@@ -262,8 +262,12 @@ def simulate_turn_offline(world: "GameWorld", player_decision: str) -> dict:
     if personality_lines:
         narrative_parts.extend(personality_lines)
 
-    # ── Action narrative (knowledge-aware) ──
-    narrative_parts.append(_get_action_narrative(intent, player, world))
+    # ── Action narrative (input-aware) ──
+    narrative_parts.append(_get_action_narrative(intent, player, world, player_decision))
+
+    # ── Aftermath: show specific consequence of player's words ──
+    aftermath_text = _compute_aftermath(player_decision, world, player)
+    # Displayed as separate panel in CLI, not part of narrative
 
     # ── Random knowledge-driven events ──
     event_result = _try_random_event(player, memory, world)
@@ -284,11 +288,21 @@ def simulate_turn_offline(world: "GameWorld", player_decision: str) -> dict:
 
     # ── Reference past memories ──
     recent = get_recent_memories(memory, 3)
-    if recent and random.random() < 0.3:
+    if recent and random.random() < 0.25:
         past = random.choice(recent)
-        narrative_parts.append(
-            f"\n📖 回想起来，自你{past['narrative'][:30]}已经过去了……"
-        )
+        past_narrative = past.get("narrative", "")
+        # Use first meaningful sentence instead of raw [:30]
+        past_snippet = ""
+        for sep in ["。", "！", "？", "\n"]:
+            if sep in past_narrative:
+                past_snippet = past_narrative.split(sep)[0] + sep
+                break
+        if not past_snippet:
+            past_snippet = past_narrative[:40]
+        if past_snippet:
+            narrative_parts.append(
+                f"\n📖 回想起来，自「{past_snippet}」已经过去了……"
+            )
 
     # ── Apply effects ──
     _apply_effects(player, base_effects)
@@ -315,12 +329,13 @@ def simulate_turn_offline(world: "GameWorld", player_decision: str) -> dict:
     if game_over:
         narrative_parts.append(f"\n\n{'═' * 50}")
         narrative_parts.append(game_over["message"])
-        return _make_result(narrative_parts, npc_actions, {}, [], game_over)
+        return _make_result(narrative_parts, npc_actions, {}, [], game_over, aftermath_text)
 
     # ── Events from knowledge base ──
     events_occurred = _check_knowledge_events(world)
 
-    return _make_result(narrative_parts, npc_actions, {}, events_occurred)
+    return _make_result(narrative_parts, npc_actions, {}, events_occurred,
+                        aftermath=aftermath_text)
 
 
 # ─── Knowledge helpers ─────────────────────────────────────────
@@ -739,8 +754,8 @@ def _compute_base_effects(intent: str, player: "Faction") -> dict:
 
 
 def _get_action_narrative(intent: str, player: "Faction",
-                          world: "GameWorld") -> str:
-    """Generate action narrative with character names."""
+                          world: "GameWorld", player_decision: str = "") -> str:
+    """Generate action narrative that reflects what the player actually said."""
     ruler = "君主"
     for c in CHARACTERS:
         if c["id"] == player.ruler_id:
@@ -748,35 +763,99 @@ def _get_action_narrative(intent: str, player: "Faction",
             break
 
     capital = player.capital
-    # Try to find Chinese name for capital
     for r in REGIONS_RAW:
         if r["id"] == capital or r["capital"] == capital:
             capital = r["capital"]
             break
+
+    # Extract a short summary of what player said for the narrative
+    decision_short = player_decision
+    # Remove "选择第N个方案" prefix for cleaner reading
+    if "选择第" in decision_short and "个方案" in decision_short:
+        decision_short = "你做出了战略选择"
+    # Truncate for display
+    if len(decision_short) > 30:
+        decision_short = decision_short[:30] + "…"
+
     narratives = {
         "military": (
-            f"你下令征募新军，加紧操练。{ruler}的铁骑声震彻云霄，\n"
-            f"各地青壮年纷纷投军报效。军需官忙得不可开交。"
+            f"你采纳了「{decision_short}」的战略。{ruler}下令征募新军，加紧操练。\n"
+            f"各地青壮年纷纷投军报效，军需官忙得不可开交。"
         ),
         "economy": (
-            f"你推行仁政，减免赋税，兴修水利。{capital}一带\n"
+            f"你推行「{decision_short}」的方略，减免赋税，兴修水利。{capital}一带\n"
             f"百姓安居乐业，田野间一片繁忙景象。"
         ),
         "diplomacy": (
-            f"你派出精干使节，携带厚礼与书信，出使各方势力。\n"
-            f"外交的帷幕缓缓拉开——有人将成为盟友，有人将成为敌人。"
+            f"你决定「{decision_short}」。精干使节携带厚礼与书信，\n"
+            f"出使各方势力。外交的帷幕缓缓拉开。"
         ),
         "defense": (
-            f"你巡视边境，下令加固城防工事。{capital}城头的旗帜\n"
-            f"在风中飘扬，守军日夜警惕。"
+            f"你下令「{decision_short}」。{ruler}巡视边境，\n"
+            f"加固城防工事，{capital}城头的旗帜在风中飘扬。"
         ),
         "spy": (
-            f"你秘密召见情报主管，面授机宜。数名精锐细作连夜出发，\n"
-            f"消失在夜色中。"
+            f"你密令「{decision_short}」。数名精锐细作连夜出发，\n"
+            f"消失在夜色中——他们的回报将决定下一步的棋局。"
         ),
     }
     return narratives.get(intent,
-                          f"{ruler}采取了稳健的治理方针，各方面稳步发展。")
+        f"{ruler}决定「{decision_short}」。采取了稳健的治理方针，各方面稳步发展。")
+
+
+def _compute_aftermath(player_decision: str, world: "GameWorld",
+                      player: "Faction") -> str:
+    """Generate specific consequences based on player's actual words."""
+    text = player_decision.lower()
+    effects = []
+
+    # Keyword → consequence mapping
+    keyword_map = [
+        (["讨董", "讨伐", "伐董", "攻打董卓"], "讨董檄文传遍天下，袁绍为首的关东联军声势大振"),
+        (["联孙", "联合孙", "孙坚", "结盟孙"], "孙坚表示愿意与你结盟，江东猛虎成为你的有力后援"),
+        (["联袁", "联合袁", "袁绍", "结盟袁"], "袁绍对你的使者以礼相待，表示愿意协同作战"),
+        (["联刘", "联合刘", "刘备", "刘表"], "你的使者抵达荆州，对方表示愿意保持友好关系"),
+        (["屯田", "开垦", "修水利", "兴农"], "庄稼长势喜人，各地粮仓开始充盈"),
+        (["征兵", "扩军", "训练", "操练"], "新兵陆续报到，{capital}城外的校场上喊杀声震天"),
+        (["征伐", "出征", "派出军队"], "大军开拔，旌旗蔽日，百姓夹道相送"),
+        (["情报", "间谍", "细作", "侦查"], "细作传回密报：{enemy}正在边境集结兵力"),
+        (["称帝", "称王", "建国", "自立"], "此议时机未到，谋士们纷纷劝谏不可操之过急"),
+        (["禅让", "让位", "退位"], "此言一出，帐下一片哗然——大业未成，何以言退？"),
+        (["联姻", "婚", "和亲", "嫁女"], "联姻之事需要慎重，你决定先派使者试探对方意向"),
+    ]
+
+    capital = player.capital
+    for r in REGIONS_RAW:
+        if r["id"] == capital or r["capital"] == capital:
+            capital = r["capital"]
+            break
+
+    # Find enemies for filler
+    enemies = [f for f in world.factions.values()
+               if f.is_active and f.id != world.player_faction_id]
+    enemy_name = random.choice(enemies).name if enemies else "敌军"
+
+    for keywords, consequence in keyword_map:
+        if any(kw in text for kw in keywords):
+            try:
+                effects.append(consequence.format(capital=capital, enemy=enemy_name))
+            except KeyError:
+                effects.append(consequence)
+            break  # Only one consequence per turn
+
+    if not effects:
+        # Generic consequence based on intent
+        intent = _classify_intent(text)
+        generic = {
+            "military": "军队开始调动，战争的阴影笼罩大地。",
+            "economy": "政令下达各州郡，官员们开始执行你的决策。",
+            "diplomacy": "使节们日夜兼程，赶赴各方势力的都城。",
+            "defense": "边境各寨的守军提高了警惕。",
+            "spy": "情报网正在织就……",
+        }
+        effects.append(generic.get(intent, "你的决策传遍各州郡，文武官员各司其职。"))
+
+    return " ".join(effects)
 
 
 def _merge_effects(base: dict, addition: dict) -> None:
@@ -842,7 +921,8 @@ def _generate_choices(intent: str, world: "GameWorld") -> list[str]:
 
 def _make_result(narrative_parts: list, npc_actions: list,
                  state: dict, events: list,
-                 game_over: Optional[dict] = None) -> dict:
+                 game_over: Optional[dict] = None,
+                 aftermath: str = "") -> dict:
     return {
         "narrative": "\n".join(narrative_parts),
         "npc_actions": npc_actions or ["天下局势正在微妙变化中……"],
@@ -850,6 +930,7 @@ def _make_result(narrative_parts: list, npc_actions: list,
         "events_occurred": events,
         "new_choices": [],
         "game_over": game_over,
+        "aftermath": aftermath,
     }
 
 

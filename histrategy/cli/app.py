@@ -175,7 +175,18 @@ def display_season_report(engine: GameEngine, result: dict):
             title_align="left",
         ))
 
-    # NPC Actions
+    # ── Aftermath ──
+    aftermath_text = result.get("aftermath", "")
+    if aftermath_text:
+        console.print()
+        console.print(Panel(
+            aftermath_text,
+            border_style="bright_yellow",
+            title="⚡ 决策后果",
+            title_align="left",
+        ))
+
+    # ── NPC Actions ──
     npc_actions = result.get("npc_actions", [])
     if npc_actions:
         console.print()
