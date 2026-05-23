@@ -27,7 +27,7 @@ env['TERM'] = 'xterm-256color'
 env['PYTHONUNBUFFERED'] = '1'
 env['PATH'] = os.environ.get('PATH', '/usr/local/bin:/usr/bin:/bin')
 
-GAME_CMD = [".venv/bin/python3", "-m", "histrategy"]
+GAME_CMD = [".venv/bin/python3", "-m", "histrategy", "--new"]
 
 # Demo inputs: (delay_after_previous, text)
 # Longer delays for AI generation
