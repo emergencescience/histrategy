@@ -153,7 +153,7 @@ print(f"Cast file: {cast_size} bytes")
 # Convert to SVG
 print("Converting to SVG...")
 result = subprocess.run([
-    "svg-term", "--cast", CAST_PATH,
+    "svg-term", "--in", CAST_PATH,
     "--out", SVG_PATH,
     "--width", "100", "--height", "35",
     "--padding", "10",
@@ -166,7 +166,7 @@ else:
     print(f"svg-term failed: {result.stderr}")
     # Try without padding
     result = subprocess.run([
-        "svg-term", "--cast", CAST_PATH,
+        "svg-term", "--in", CAST_PATH,
         "--out", SVG_PATH,
         "--width", "100", "--height", "35",
     ], capture_output=True, text=True, timeout=30)
