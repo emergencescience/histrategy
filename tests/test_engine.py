@@ -87,11 +87,11 @@ class TestSimulation:
         from histrategy.engine.game import GameEngine
         engine = GameEngine()
         engine.set_player_faction("cao")
-        assert engine.world.turn_count == 0
+        assert engine.world_state.turn == 0
+        result = engine.process_turn("发展经济")
+        assert engine.world_state.turn == 1
         engine.process_turn("发展经济")
-        assert engine.world.turn_count == 1
-        engine.process_turn("发展经济")
-        assert engine.world.turn_count == 2
+        assert engine.world_state.turn == 2
 
     def test_npc_factions_also_change(self):
         """NPC faction stats change over time too."""
@@ -273,12 +273,17 @@ class TestMemorySystem:
 class TestCapitalNames:
     """Test that capital names are Chinese, not English IDs."""
 
-    def test_cao_capital_is_chinese(self):
+    def test_cao_cao_capital_is_chinese(self):
         """Cao Cao's capital should show as 许昌."""
-        from histrategy.engine.game import FACTION_INTROS
-        assert FACTION_INTROS["cao"]["capital_name"] == "许昌"
+        from histrategy.engine.game import GameEngine, FACTION_CONFIGS
+        assert FACTION_CONFIGS["cao"]["capital"] == "xuchang"
+        # The capital ID is used to look up Chinese name
+        from histrategy.engine.offline_sim import CAPITAL_NAMES
+        assert CAPITAL_NAMES["xuchang"] == "许昌"
 
     def test_yuan_shao_capital_is_chinese(self):
         """Yuan Shao's capital should show as 邺城."""
-        from histrategy.engine.game import FACTION_INTROS
-        assert FACTION_INTROS["yuan_shao"]["capital_name"] == "邺城"
+        from histrategy.engine.game import FACTION_CONFIGS
+        assert FACTION_CONFIGS["yuan_shao"]["capital"] == "yecheng"
+        from histrategy.engine.offline_sim import CAPITAL_NAMES
+        assert CAPITAL_NAMES["yecheng"] == "邺城"

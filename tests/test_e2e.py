@@ -64,9 +64,9 @@ class TestGameStartup:
     """Test that the game starts and displays expected content."""
 
     def test_title_screen(self):
-        """Game should display the ASCII title."""
+        """Game should display the game title."""
         output, _ = run_game("1\nexit\n", timeout=15)
-        assert "History Strategy Game" in output
+        assert "三國志略" in output or "三國" in output
 
     def test_offline_mode_detection(self):
         """Without API key, game should show offline mode notice."""
@@ -119,11 +119,12 @@ class TestMemorySystem:
     """Test the memory/save system."""
 
     def test_memory_file_created(self):
-        """Playing a game should create a memory file."""
-        memory_file = Path.home() / ".histrategy" / "player_memory.json"
-        assert not memory_file.exists()
+        """Playing a game should create a save file."""
+        # Use "1\n1\nexit\n" to play one turn (select Cao Cao, then make a decision)
         run_game("1\n1\nexit\n", timeout=20)
-        assert memory_file.exists()
+        # World state should be saved
+        world_file = Path.home() / ".histrategy" / "world_state.json"
+        assert world_file.exists(), f"world_state.json not found at {world_file}"
 
     def test_memory_has_decisions(self):
         """Memory file should contain decision records."""

@@ -1,8 +1,18 @@
-"""三國志略 - CLI module with enhanced game loop."""
+"""
+三國志略 — CLI module with enhanced game loop.
+
+Changes from v1:
+- Auto-loads existing game from ~/.histrategy/ on startup
+- Only shows ASCII_TITLE once (not every turn)
+- Random season narrative replaces redundant title
+- --dev flag for plain-text mode (testing/scripting)
+"""
+
 from __future__ import annotations
 
 import os
 import sys
+import argparse
 from typing import Optional
 
 from rich.console import Console
@@ -16,6 +26,7 @@ from rich.align import Align
 
 from ..engine.game import GameEngine
 from ..llm.adapter import LLMAdapter, detect_provider
+from ..state.world_state import has_existing_game, DATA_DIR
 
 console = Console()
 
@@ -23,14 +34,16 @@ ASCII_TITLE = r"""
        / \   |  _ \ / \  |_ _|_   _| \ | |_ _|  _ \ 
       / _ \  | |_) / _ \  | |  | | |  \| || || |_) |
      / ___ \ |  __/ ___ \ | |  | | | |\  || ||  _ < 
-    /_/   \_\|_| /_/   \_\|___| |_| |_| \_|___|_| \_\
-
-   ⚔  A Text-Based History Strategy Game Powered by AI ⚔
+    /_/   \_\_|_ /_/   \_\\___| |_| |_| \_|___|_| \_\
 """
 
 
-def run_game():
-    """Main game loop."""
+def run_game(force_new: bool = False):
+    """Main game loop.
+
+    Args:
+        force_new: If True, ignore any existing save game
+    """
     console.clear()
     _print_title()
 
@@ -62,9 +75,28 @@ def run_game():
         except (EOFError, KeyboardInterrupt):
             pass
 
-    engine = GameEngine(llm=llm)
+    engine = GameEngine(llm=llm, new_game=force_new)
 
-    # --- Faction Selection ---
+    # Check for existing save game
+    if not force_new and has_existing_game():
+        # Resume existing game - skip faction selection
+        console.print(Panel(
+            "[bold green]✓ 检测到历史存档，自动继续游戏[/]\n"
+            "[dim]使用 --new 可强制开始新游戏 | 删除 ~/.histrategy/ 可重置所有数据[/]",
+            border_style="green",
+            title="📂 继续游戏",
+        ))
+        console.print("[dim]按回车继续...[/]")
+        try:
+            input()
+        except (EOFError, KeyboardInterrupt):
+            pass
+        console.clear()
+        _show_status_header(engine)
+        _game_loop(engine)
+        return
+
+    # --- New Game: Faction Selection ---
     factions = [
         {"id": "cao", "name": "曹操军", "ruler": "曹操", "strength": 30000,
          "description": "乱世奸雄，奉天子以令不臣"},
@@ -100,21 +132,17 @@ def run_game():
 
     # --- Intro Scene ---
     console.clear()
-    _print_title()
-    console.print(Panel(
-        f"[bold]{selected['name']}[/] - [italic]{selected['description']}[/]\n"
-        f"[dim]初平元年（190 AD）春季 | {selected['name']}，兵力 {selected['strength']:,}[/]",
-        border_style="cyan",
-        title="⚔ 开局",
-    ))
-    console.print()
+    _show_status_header(engine, is_intro=True)
 
     with console.status("[yellow]天机运转，推演天下大势...[/]", spinner="dots"):
         intro = engine.get_intro_scene()
 
     display_season_report(engine, intro)
+    _game_loop(engine)
 
-    # --- Game Loop ---
+
+def _game_loop(engine: GameEngine):
+    """The main game loop (shared between new and resumed games)."""
     while True:
         console.print()
         player_decision = get_player_input()
@@ -126,40 +154,42 @@ def run_game():
 
         display_season_report(engine, result)
 
-        # Check for game over (from the enhanced offline sim)
+        # Check for game over
         game_over = result.get("game_over")
         if game_over:
             _display_game_over(game_over)
-            final_choice = Prompt.ask("请选择", choices=["1", "2"], default="1")
-            if final_choice == "1":
-                # Restart
-                engine = GameEngine(llm=llm)
-                # For restart, we'd need to re-select faction
-                # For now, just exit
             break
+
+
+def _show_status_header(engine: GameEngine, is_intro: bool = False):
+    """Show a compact status header (replaces redundant title on subsequent turns)."""
+    ws = engine.world_state
+    player = ws.get_player_faction()
+    if player:
+        date_str = f"{ws.year}年·{_season_cn(ws.current_season)}"
+        header = Panel(
+            f"[bold yellow]{date_str}[/] | "
+            f"兵力: [cyan]{player.strength:,}[/] | "
+            f"经济: [green]{player.economy}/100[/] | "
+            f"民心: [magenta]{player.morale}/100[/] | "
+            f"资金: [yellow]{player.treasury:,}[/] | "
+            f"粮草: [yellow]{player.food:,}[/]",
+            border_style="bright_blue",
+        )
+        console.print(header)
 
 
 def display_season_report(engine: GameEngine, result: dict):
     """Display a season report to the player."""
-    world = engine.world
-    player = world.get_player_faction()
+    ws = engine.world_state
+    player = ws.get_player_faction()
 
     if not player:
         console.print("[red]你的势力已经不复存在...[/]")
         return
 
-    # Header: Date + Status
-    date_str = f"{world.current_year}年·{_season_cn(world.current_season)}"
-    header = Panel(
-        f"[bold yellow]{date_str}[/] | "
-        f"兵力: [cyan]{player.strength:,}[/] | "
-        f"经济: [green]{player.economy}/100[/] | "
-        f"民心: [magenta]{player.morale}/100[/] | "
-        f"资金: [yellow]{player.treasury:,}[/] | "
-        f"粮草: [yellow]{player.food:,}[/]",
-        border_style="bright_blue",
-    )
-    console.print(header)
+    # Header: Date + Status (replaces redundant ASCII_TITLE)
+    _show_status_header(engine)
 
     # Narrative
     narrative_text = result.get("narrative", "")
@@ -225,7 +255,7 @@ def display_season_report(engine: GameEngine, result: dict):
 
 
 def _print_title():
-    """Print the game title ASCII art."""
+    """Print the game title ASCII art (once at startup)."""
     console.print(Panel(
         Align(Text(ASCII_TITLE, style="bold yellow"), align="center"),
         border_style="red",
@@ -277,8 +307,33 @@ def get_player_input() -> Optional[str]:
 
 
 def main():
+    """Entry point with CLI argument parsing."""
+    parser = argparse.ArgumentParser(
+        description="三國志略 — AI 驱动的历史策略游戏",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--dev", action="store_true",
+        help="启动开发模式（纯文本输入/输出，适合测试）"
+    )
+    parser.add_argument(
+        "--new", action="store_true",
+        help="强制开始新游戏（忽略存档）"
+    )
+    parser.add_argument(
+        "--faction", type=int, choices=range(1, 5),
+        help="直接选择势力编号（跳过选人界面，仅开发模式）"
+    )
+
+    args = parser.parse_args()
+
+    if args.dev:
+        from .dev_cli import run_dev
+        run_dev(faction_choice=args.faction, force_new=args.new)
+        return
+
     try:
-        run_game()
+        run_game(force_new=args.new)
     except KeyboardInterrupt:
         console.print("\n[yellow]退出游戏。[/]")
     except Exception as e:
