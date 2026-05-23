@@ -40,26 +40,26 @@ EVENTS_RAW = _load_knowledge("events.json")
 # ─── Character personality-driven behaviors ─────────────────────
 
 PERSONALITY_EFFECTS = {
-    "雄才大略": {"strength": 3000, "economy": 3, "morale": 2},
-    "多疑": {"morale": -2, "intel": 5},
-    "用人唯才": {"economy": 4, "strength": 2000},
-    "仁德": {"morale": 5, "economy": 2},
-    "坚毅": {"strength": 1000, "morale": 3},
-    "重义气": {"morale": 3, "diplomacy": 3},
-    "勇猛": {"strength": 5000, "morale": 2},
-    "忠烈": {"morale": 4},
-    "好谋无断": {"strength": -1000, "morale": -1},
-    "自大": {"morale": -2, "diplomacy": -2},
-    "残暴": {"morale": -5, "economy": -3, "strength": 2000},
-    "跋扈": {"morale": -3, "diplomacy": -4},
-    "骄奢": {"economy": -3, "morale": -2, "treasury": -500},
-    "优柔寡断": {"strength": -2000},
-    "善于笼络人心": {"morale": 5, "diplomacy": 4},
-    "不拘小节": {"economy": 2},
-    "霸道": {"strength": 4000, "morale": -2, "economy": -1},
-    "果断": {"strength": 2000},
-    "目光短浅": {"economy": -2, "morale": -1},
-    "贪欲": {"treasury": -300, "morale": -2},
+    "雄才大略": {"economy": 1, "morale": 1},
+    "多疑": {"morale": -1, "strength": 500},
+    "用人唯才": {"economy": 1},
+    "仁德": {"morale": 2},
+    "坚毅": {"morale": 1},
+    "重义气": {"morale": 1},
+    "勇猛": {"strength": 2000},
+    "忠烈": {"morale": 1},
+    "好谋无断": {"morale": -1},
+    "自大": {"morale": -1},
+    "残暴": {"morale": -3, "economy": -1, "strength": 1000},
+    "跋扈": {"morale": -2},
+    "骄奢": {"economy": -1, "morale": -1, "treasury": -200},
+    "优柔寡断": {"strength": -500},
+    "善于笼络人心": {"morale": 2, "economy": 1},
+    "不拘小节": {"economy": 1},
+    "霸道": {"morale": -1, "strength": 2000},
+    "果断": {"strength": 1000},
+    "目光短浅": {"economy": -1},
+    "贪欲": {"treasury": -200, "morale": -1},
 }
 
 PERSONALITY_NARRATIVES = {
@@ -192,6 +192,14 @@ RANDOM_EVENTS = [
     },
 ]
 
+
+# ─── Season narratives (regional-aware) ────────────────────────
+
+TENDENCY_CN = {
+    "hostile": "好战", "neutral": "中立", "calculating": "善谋",
+    "friendly": "友善", "pragmatic": "务实", "arrogant": "傲慢",
+    "defensive": "守成",
+}
 
 # ─── Season narratives (regional-aware) ────────────────────────
 
@@ -340,12 +348,13 @@ def _get_knowledge_intro(world: "GameWorld", faction: "Faction") -> str:
     """Season intro that uses knowledge data."""
     region_data = None
     for r in REGIONS_RAW:
-        if r["id"] == faction.capital:
+        # Match by region id or by capital name match
+        if r["id"] == faction.capital or r["capital"] == faction.capital:
             region_data = r
             break
 
     capital_name = region_data["capital"] if region_data else faction.capital
-    capital_name = faction.capital.replace("_", " ").title()
+    # Don't overwrite with English fallback — keep Chinese name
 
     leader_data = None
     for c in CHARACTERS:
@@ -395,10 +404,21 @@ def _process_event_chain_knowledge(world: "GameWorld", player: "Faction",
     pro_coalition = any(kw in decision_text for kw in ["讨董", "联盟", "袁绍", "联军"])
 
     for chain_name, chain in EVENT_CHAINS.items():
+        # Check if ALL stages of this chain are already completed
+        all_done = True
+        for s in chain["stages"]:
+            if s["title"] not in log_text:
+                all_done = False
+                break
+        if all_done:
+            continue
+
         stages_done = sum(1 for s in chain["stages"] if s["title"] in log_text)
         if stages_done < len(chain["stages"]):
             stage = chain["stages"][stages_done]
             template = stage["narrative_template"]
+
+            # Fill knowledge-aware template vars
 
             # Fill knowledge-aware template vars
             dong_char = None
@@ -420,12 +440,15 @@ def _process_event_chain_knowledge(world: "GameWorld", player: "Faction",
                 yuan_shu_behavior = "袁术断孙坚粮草，袁绍按兵不动，"
 
             try:
+                # Record this stage as completed
+                world.history_log.append(f"[事件链] {chain_name}: {stage['title']}")
                 return f"\n📜 **{stage['title']}**\n" + \
                        template.format(ye_city=ye_city, dong_reaction=dong_react,
                                        yuan_shu_behavior=yuan_shu_behavior,
                                        player_impact=player_impact,
                                        new_power_rise=new_power)
             except KeyError:
+                world.history_log.append(f"[事件链] {chain_name}: {stage['title']}")
                 return f"\n📜 **{stage['title']}**\n" + stage["narrative_template"]
 
     return None
@@ -496,7 +519,7 @@ def _simulate_npcs_knowledge(world: "GameWorld", player_intent: str,
         if aggression > 60 and random.random() < 0.35:
             bonus = random.randint(2000, 6000)
             change["strength"] = change.get("strength", 0) + bonus
-            actions.append(f"⚔ {fa.name}（{tendency}）在边境频繁调动军队。")
+            actions.append(f"⚔ {fa.name}（{TENDENCY_CN.get(tendency, tendency)}）在边境频繁调动军队。")
 
         # Defensive factions fortify
         if tendency == "defensive" and random.random() < 0.25:
@@ -543,7 +566,7 @@ def _generate_faction_dynamics(world: "GameWorld",
 
         if random.random() < 0.5 or a_tendency == "hostile" or b_tendency == "hostile":
             events.append({
-                "narrative": f"{a.name}（{a_tendency}）与{b.name}（{b_tendency}）因边境冲突爆发了局部战争！",
+                "narrative": f"{a.name}（{TENDENCY_CN.get(a_tendency, a_tendency)}）与{b.name}（{TENDENCY_CN.get(b_tendency, b_tendency)}）因边境冲突爆发了局部战争！",
                 "effects": {"economy": -1, "morale": -1},
                 "npc_msg": f"🔥 {a.name} 与 {b.name} 正在交战中！",
             })
@@ -581,12 +604,16 @@ def _check_game_over(world: "GameWorld", memory: dict) -> Optional[dict]:
 
     turns = world.turn_count
 
-    if player.strength >= 80000:
+    # Min 12 turns before any victory
+    if turns < 12:
+        return None
+
+    if player.strength >= 120000:
         return {
             "type": "victory",
             "message": (
                 f"🎉 **大业已成！**\n\n"
-                f"{ruler_name}的军队已达 80,000 人，\n"
+                f"{ruler_name}的军队已达 120,000 人，\n"
                 f"天下无人能与你抗衡。诸侯纷纷遣使纳贡，\n"
                 f"史书记载：{ruler_name}用了{turns}个回合（约{turns*3}个月）\n"
                 f"从一方诸侯成长为天下霸主。\n\n"
@@ -594,7 +621,7 @@ def _check_game_over(world: "GameWorld", memory: dict) -> Optional[dict]:
             ),
         }
 
-    if player.economy >= 85 and player.morale >= 90:
+    if player.economy >= 85 and player.morale >= 90 and player.strength >= 50000:
         return {
             "type": "victory",
             "message": (
@@ -690,24 +717,24 @@ def _classify_intent(text: str) -> str:
 def _compute_base_effects(intent: str, player: "Faction") -> dict:
     effects = {"strength": 0, "economy": 0, "morale": 0, "treasury": 0, "food": 0}
     if intent == "military":
-        effects.update(strength=random.randint(3000, 8000), treasury=-random.randint(800, 2000),
-                       food=-random.randint(200, 600), morale=random.randint(1, 4),
-                       economy=-random.randint(1, 3))
+        effects.update(strength=random.randint(2000, 5000), treasury=-random.randint(500, 1500),
+                       food=-random.randint(200, 500), morale=random.randint(0, 2),
+                       economy=-random.randint(0, 2))
     elif intent == "economy":
-        effects.update(economy=random.randint(4, 10), food=random.randint(500, 1500),
-                       treasury=random.randint(300, 800), morale=random.randint(2, 5))
+        effects.update(economy=random.randint(1, 4), food=random.randint(200, 800),
+                       treasury=random.randint(100, 500), morale=random.randint(1, 3),
+                       strength=random.randint(0, 500))
     elif intent == "diplomacy":
-        effects.update(morale=random.randint(1, 4), treasury=-random.randint(200, 500),
-                       economy=random.randint(1, 3))
+        effects.update(morale=random.randint(0, 2), treasury=-random.randint(100, 300),
+                       economy=random.randint(0, 2), strength=random.randint(0, 500))
     elif intent == "defense":
-        effects.update(morale=random.randint(2, 5), strength=random.randint(1000, 3000),
-                       treasury=-random.randint(300, 800), food=-random.randint(100, 300))
+        effects.update(morale=random.randint(1, 3), strength=random.randint(500, 2000),
+                       treasury=-random.randint(200, 500), food=-random.randint(100, 200))
     elif intent == "spy":
-        effects.update(treasury=-random.randint(300, 1000), morale=random.randint(0, 2),
-                       strength=500)
+        effects.update(treasury=-random.randint(200, 500), strength=random.randint(0, 300))
     else:
-        effects.update(economy=random.randint(1, 4), morale=random.randint(1, 3),
-                       treasury=random.randint(100, 300), food=random.randint(100, 300))
+        effects.update(economy=random.randint(0, 2), morale=random.randint(0, 2),
+                       treasury=random.randint(50, 200), food=random.randint(50, 200))
     return effects
 
 
@@ -720,7 +747,12 @@ def _get_action_narrative(intent: str, player: "Faction",
             ruler = c["name"]
             break
 
-    capital = player.capital.replace("_", " ").title()
+    capital = player.capital
+    # Try to find Chinese name for capital
+    for r in REGIONS_RAW:
+        if r["id"] == capital or r["capital"] == capital:
+            capital = r["capital"]
+            break
     narratives = {
         "military": (
             f"你下令征募新军，加紧操练。{ruler}的铁骑声震彻云霄，\n"
