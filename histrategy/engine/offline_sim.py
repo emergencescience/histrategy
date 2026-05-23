@@ -193,6 +193,11 @@ RANDOM_EVENTS = [
 ]
 
 
+CAPITAL_NAMES = {
+    "xuchang": "许昌", "pingyuan": "平原", "changsha": "长沙",
+    "yecheng": "邺城", "changan": "长安", "luoyang": "洛阳",
+}
+
 # ─── Season narratives (regional-aware) ────────────────────────
 
 TENDENCY_CN = {
@@ -368,7 +373,7 @@ def _get_knowledge_intro(world: "GameWorld", faction: "Faction") -> str:
             region_data = r
             break
 
-    capital_name = region_data["capital"] if region_data else faction.capital
+    capital_name = region_data["capital"] if region_data else CAPITAL_NAMES.get(faction.capital, faction.capital)
     # Don't overwrite with English fallback — keep Chinese name
 
     leader_data = None
@@ -710,16 +715,31 @@ def _calculate_score(world: "GameWorld", memory: dict, ruler: str) -> str:
 # ─── Helper functions ──────────────────────────────────────────
 
 def _classify_intent(text: str) -> str:
-    military = ["兵", "军", "战", "攻", "打", "讨", "伐", "征", "袭", "击", "破", "灭"]
-    economy = ["经济", "农", "粮", "钱", "税", "发展", "内政", "建设", "商", "耕", "屯", "富"]
+    # Multi-char keywords (higher priority)
+    economy_bigrams = ["发展经济", "屯田", "兴修水利", "内政", "建设", "发展"]
+    military_bigrams = ["讨伐", "征伐", "扩军", "备战", "出征", "攻打", "出兵", "北伐"]
+    diplomacy_bigrams = ["联合", "结盟", "联盟", "出使", "和亲", "连横", "合纵", "结交"]
+    defense_bigrams = ["加固", "城防", "防守", "防御", "固守", "坚守"]
+    spy_bigrams = ["情报", "间谍", "细作", "侦查", "刺探", "密报"]
+
+    military = ["兵", "军", "战", "攻", "讨", "伐", "征", "袭", "击", "破", "灭"]
+    economy = ["经济", "农", "粮", "钱", "税", "商", "耕", "屯", "富"]
     diplomacy = ["联", "交", "盟", "使", "和", "谈", "亲", "结", "连", "通"]
     defense = ["守", "防", "固", "保", "筑", "城", "壁", "垒", "御"]
     spy = ["间", "谍", "刺", "暗", "潜", "细", "查", "探", "密"]
 
-    score = {k: sum(1 for kw in v if kw in text)
-             for k, v in [("military", military), ("economy", economy),
-                          ("diplomacy", diplomacy), ("defense", defense),
-                          ("spy", spy)]}
+    # Bigrams get 3x weight
+    score = {}
+    for k, v in [("economy", economy_bigrams), ("military", military_bigrams),
+                  ("diplomacy", diplomacy_bigrams), ("defense", defense_bigrams),
+                  ("spy", spy_bigrams)]:
+        score[k] = sum(3 for kw in v if kw in text)
+
+    # Single chars get 1x weight, but subtract if already counted by bigrams
+    for k, v in [("military", military), ("economy", economy),
+                  ("diplomacy", diplomacy), ("defense", defense),
+                  ("spy", spy)]:
+        score[k] = score.get(k, 0) + sum(1 for kw in v if kw in text)
 
     if text.strip().isdigit():
         return {1: "military", 2: "economy", 3: "diplomacy",

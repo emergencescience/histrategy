@@ -124,9 +124,6 @@ def run_game():
         with console.status("[yellow]天机运转，推演天下大势...[/]", spinner="dots"):
             result = engine.process_turn(player_decision)
 
-        console.clear()
-        _print_title()
-
         display_season_report(engine, result)
 
         # Check for game over (from the enhanced offline sim)
