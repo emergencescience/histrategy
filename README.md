@@ -10,19 +10,28 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Made by Emergence Science](https://img.shields.io/badge/Made%20by-Emergence%20Science-8A2BE2)](https://emergence.science)
 
+<p align="center">
+  <img src="demo/histrategy-demo.svg" alt="三國志略 Demo" width="720">
+</p>
+
 ---
 
 ## 🎮 Quick Start
 
+### Install (macOS / Linux)
+
 ```bash
-# Install
+# Option 1: pip (once published to PyPI)
 pip install histrategy
 
-# Play offline (rule-based simulation — no API key needed)
-histrategy
+# Option 2: local install from source (recommended for now)
+git clone https://github.com/emergencescience/histrategy.git
+cd histrategy
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
 
-# Play with AI-powered narrative
-export DEEPSEEK_API_KEY='your-key'
+# Play offline (rule-based simulation — no API key needed)
 histrategy
 ```
 
