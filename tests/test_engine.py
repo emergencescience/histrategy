@@ -12,7 +12,7 @@ from histrategy.engine.world import GameWorld
 from histrategy.engine.offline_sim import (
     simulate_turn_offline, _classify_intent, _compute_aftermath,
     _compute_base_effects, _get_action_narrative, load_player_memory,
-    _check_game_over, _generate_choices, _generate_advisor_feedback,
+    _check_game_over, _generate_choices,
 )
 
 
@@ -172,53 +172,6 @@ class TestAftermath:
         assert "联合孙权" in narrative or "孙权" in narrative
 
 
-class TestAdvisorFeedback:
-    """Test immediate advisor feedback for free-text strategy."""
-
-    def test_turn_result_includes_advisor_feedback(self):
-        """Every offline turn should include advisor feedback."""
-        w = GameWorld("190")
-        w.player_faction_id = "cao"
-        result = simulate_turn_offline(w, "发展商贸，安置流民")
-        feedback = result.get("advisor_feedback")
-        assert isinstance(feedback, dict)
-        assert feedback.get("understanding")
-        assert feedback.get("risks")
-        assert feedback.get("recommended_execution")
-
-    def test_complex_strategy_gets_specific_read(self):
-        """Complex political/economic text should not collapse into a generic template."""
-        w = GameWorld("190")
-        w.player_faction_id = "cao"
-        player = w.get_player_faction()
-        feedback = _generate_advisor_feedback(
-            "天下大乱，唯有皇帝这面旗帜才能凝聚人心。还要向民众许诺统一的大市场。",
-            w,
-            player,
-        )
-        joined = " ".join(
-            [feedback["understanding"]]
-            + feedback["strategic_read"]
-            + feedback["risks"]
-            + feedback["recommended_execution"]
-        )
-        assert "合法性" in joined or "天子" in joined or "汉室" in joined
-        assert "市场" in joined or "商旅" in joined or "贸易" in joined
-        assert "风险" not in feedback["understanding"]
-
-    def test_advisor_feedback_is_non_mutating(self):
-        """Advisor feedback should not mutate world or faction state."""
-        w = GameWorld("190")
-        w.player_faction_id = "cao"
-        player = w.get_player_faction()
-        before = (player.strength, player.economy, player.morale,
-                  player.treasury, player.food)
-        _generate_advisor_feedback("扩军备战，同时修护商道", w, player)
-        after = (player.strength, player.economy, player.morale,
-                 player.treasury, player.food)
-        assert after == before
-
-
 class TestIntentClassification:
     """Test the intent classifier."""
 
@@ -273,12 +226,16 @@ class TestChoicesGenerated:
         assert len(choices) >= 3
         assert any("扩军" in c or "出征" in c for c in choices)
 
-    def test_simulation_result_returns_choices(self):
-        """Offline turn results should surface follow-up choices to the CLI."""
+    def test_simulation_result_returns_fields(self):
+        """Offline turn results should surface execution results."""
         w = GameWorld("190")
         w.player_faction_id = "cao"
         result = simulate_turn_offline(w, "发展商贸")
-        assert len(result.get("new_choices", [])) >= 3
+        # New fields
+        assert "aftermath" in result or "narrative" in result
+        assert "events_occurred" in result
+        assert "state_changes" in result
+        assert "seeds" in result  # New: long-term consequences
 
     def test_choices_depend_on_state(self):
         """Choices should change based on faction state."""

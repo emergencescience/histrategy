@@ -243,7 +243,15 @@ SEASON_FLAVOR = {
 # ─── Main simulation ───────────────────────────────────────────
 
 def simulate_turn_offline(world: "GameWorld", player_decision: str) -> dict:
-    """Knowledge-driven offline simulation with memory."""
+    """Knowledge-driven offline simulation with memory.
+    
+    The Plan Mode (advisors + suggestions) is generated in the game loop.
+    This function handles core simulation: effects, NPC actions, events.
+    """
+
+    # Check if player typed a number (from Plan Mode suggestions)
+    # If so, the game loop already resolved it to the suggestion text
+
     player = world.get_player_faction()
     if not player:
         return _empty_result()
@@ -281,7 +289,6 @@ def simulate_turn_offline(world: "GameWorld", player_decision: str) -> dict:
     # ── Aftermath: show specific consequence of player's words ──
     aftermath_text = _compute_aftermath(player_decision, world, player)
     # Displayed as separate panel in CLI, not part of narrative
-    advisor_feedback = _generate_advisor_feedback(player_decision, world, player, intent)
 
     # ── Random knowledge-driven events ──
     event_result = _try_random_event(player, memory, world)
@@ -333,7 +340,7 @@ def simulate_turn_offline(world: "GameWorld", player_decision: str) -> dict:
             new_val = getattr(player, key, 0)
             narrative_parts.append(f"{label}：{change:+d} → {new_val:,}")
 
-    # ── Save memory ──
+    # Save memory
     intro = narrative_parts[1] if len(narrative_parts) > 1 else narrative_parts[0] if narrative_parts else ""
     add_memory_entry(memory, world.turn_count, world.current_year,
                      world.current_season, player_decision, intro)
@@ -343,17 +350,13 @@ def simulate_turn_offline(world: "GameWorld", player_decision: str) -> dict:
     if game_over:
         narrative_parts.append(f"\n\n{'═' * 50}")
         narrative_parts.append(game_over["message"])
-        return _make_result(narrative_parts, npc_actions, {}, [], game_over,
-                            aftermath_text, advisor_feedback)
+        return _make_result(narrative_parts, npc_actions, {}, [], game_over, aftermath_text)
 
     # ── Events from knowledge base ──
     events_occurred = _check_knowledge_events(world)
-    choices = _generate_choices(intent, world)
 
     return _make_result(narrative_parts, npc_actions, {}, events_occurred,
-                        aftermath=aftermath_text,
-                        advisor_feedback=advisor_feedback,
-                        choices=choices)
+                        aftermath=aftermath_text)
 
 
 # ─── Knowledge helpers ─────────────────────────────────────────
@@ -800,6 +803,8 @@ def _get_action_narrative(intent: str, player: "Faction",
         if r["id"] == capital or r["capital"] == capital:
             capital = r["capital"]
             break
+    # Fallback: use Chinese name mapping
+    capital = CAPITAL_NAMES.get(capital, capital)
 
     # Extract a short summary of what player said for the narrative
     decision_short = player_decision
@@ -891,119 +896,6 @@ def _compute_aftermath(player_decision: str, world: "GameWorld",
     return " ".join(effects)
 
 
-def _generate_advisor_feedback(
-    player_decision: str,
-    world: "GameWorld",
-    player: "Faction",
-    intent: Optional[str] = None,
-) -> dict:
-    """Generate an immediate, strategy-aware advisor response.
-
-    This is deliberately deterministic-ish and non-mutating: it helps the
-    player feel understood before the seasonal report resolves outcomes.
-    """
-    text = player_decision.lower()
-    intent = intent or _classify_intent(text)
-
-    ruler_name = "主公"
-    for c in CHARACTERS:
-        if c["id"] == player.ruler_id:
-            ruler_name = c["name"]
-            break
-
-    domains: list[str] = []
-    strategic_read: list[str] = []
-    risks: list[str] = []
-    execution: list[str] = []
-
-    def add_domain(name: str):
-        if name not in domains:
-            domains.append(name)
-
-    if any(kw in text for kw in ["皇帝", "天子", "汉室", "正统", "大义", "旗帜"]):
-        add_domain("legitimacy")
-        strategic_read.append("以天子与汉室名义重建合法性，可争取士人和观望诸侯。")
-        risks.append("过早高举天子大义会让袁绍、董卓等势力警惕你的政治野心。")
-        execution.append("先用诏令、檄文和安民告示塑造秩序叙事，避免立刻挑战盟主权威。")
-
-    if any(kw in text for kw in ["民众", "百姓", "流民", "人心", "民心", "教育", "识字", "算数"]):
-        add_domain("governance")
-        strategic_read.append("你是在把民众视为劳力、兵源和政治支持，而不只是税粮来源。")
-        risks.append("安置流民与兴学短期消耗粮草和官吏能力，执行过急会扰动地方豪强。")
-        execution.append("将流民分为屯田、工役、军籍三类，并提拔可靠吏员登记户籍。")
-
-    if any(kw in text for kw in ["市场", "贸易", "商", "商贸", "商旅", "大市场", "货殖"]):
-        add_domain("economy")
-        strategic_read.append("统一市场叙事能把战争目标转化为商旅、工匠和城市百姓能理解的利益。")
-        risks.append("统一度量衡、税卡和市令会触碰地方豪强与既得税吏的利益。")
-        execution.append("先修护商道、平粮价、减重复关税，让商旅成为你的情报与财政网络。")
-
-    if any(kw in text for kw in ["诸侯", "鬼胎", "各方", "袁绍", "董卓", "刘表", "孙坚"]):
-        add_domain("intelligence")
-        strategic_read.append("你已意识到诸侯联盟并非铁板一块，关键在于识别谁怕董卓、谁怕你坐大。")
-        risks.append("若情报不足就公开表态，可能同时得罪盟友和敌人。")
-        execution.append("派商旅、使者和细作分别探查诸侯粮道、将领矛盾与盟约可信度。")
-
-    if any(kw in text for kw in ["编入军", "征兵", "训练", "军部", "出兵", "讨伐", "统一"]):
-        add_domain("military")
-        strategic_read.append("军事整合可以把流民压力转为兵源，但需要粮草和军纪支撑。")
-        risks.append("仓促扩军会稀释训练质量，且可能降低民心与粮草安全。")
-        execution.append("先设屯田兵与郡县预备队，精锐部曲用于机动作战。")
-
-    if any(kw in text for kw in ["人才", "提拔", "任用", "贤", "担任要位", "官"]):
-        add_domain("personnel")
-        strategic_read.append("提拔有才能之人能提高执行力，也能向寒门与流民释放上升通道。")
-        risks.append("破格用人会引起旧吏与地方士族不满，需要用考课和功劳压服反对。")
-        execution.append("设临时考课，按屯田、治安、军纪三项授职，先小任后大用。")
-
-    if not strategic_read:
-        generic = {
-            "military": "此策重在扩张军势，短期可增强威慑，长期取决于粮道与军纪。",
-            "economy": "此策重在稳固内政，能改善财政和民生，但见效慢于军事行动。",
-            "diplomacy": "此策重在借外势破局，关键是分清盟友的真实利益。",
-            "defense": "此策重在保存实力，适合局势未明时稳住根基。",
-            "spy": "此策重在先知先觉，能降低误判，但需要持续投入。",
-        }
-        add_domain(intent)
-        strategic_read.append(generic.get(intent, "此策可行，但需要拆成更明确的政令、目标和执行顺序。"))
-        risks.append("命令若过于宽泛，地方官只能按旧例执行，难以形成真正的新战略。")
-        execution.append("把本季度目标限定为一到两件可验收的政务或军务。")
-
-    if not risks:
-        risks.append("最大风险在于目标过多，执行官吏各取所需，导致效果被摊薄。")
-    if not execution:
-        execution.append("先选一郡试行，再根据粮草、民心和诸侯反应扩展。")
-
-    decision_short = player_decision.strip()
-    if len(decision_short) > 48:
-        decision_short = decision_short[:48] + "..."
-
-    return {
-        "understanding": f"幕府以为，{ruler_name}此令的核心不是一句「{decision_short}」，而是要把{_join_domains(domains)}转成可执行的季度政略。",
-        "strategic_read": strategic_read[:4],
-        "risks": risks[:3],
-        "recommended_execution": execution[:3],
-        "clarifying_question": None,
-    }
-
-
-def _join_domains(domains: list[str]) -> str:
-    labels = {
-        "military": "军事",
-        "economy": "经济",
-        "diplomacy": "外交",
-        "legitimacy": "合法性",
-        "governance": "治理",
-        "intelligence": "情报",
-        "personnel": "任官",
-        "defense": "防务",
-        "spy": "密探",
-    }
-    if not domains:
-        return "战略意图"
-    return "、".join(labels.get(d, d) for d in domains)
-
-
 def _merge_effects(base: dict, addition: dict) -> None:
     for k, v in addition.items():
         base[k] = base.get(k, 0) + v
@@ -1069,8 +961,9 @@ def _make_result(narrative_parts: list, npc_actions: list,
                  state: dict, events: list,
                  game_over: Optional[dict] = None,
                  aftermath: str = "",
-                 advisor_feedback: Optional[dict] = None,
-                 choices: Optional[list[str]] = None) -> dict:
+                 choices: Optional[list[str]] = None,
+                 seeds: Optional[list[dict]] = None,
+                 bureaucracy: Optional[list[dict]] = None) -> dict:
     return {
         "narrative": "\n".join(narrative_parts),
         "npc_actions": npc_actions or ["天下局势正在微妙变化中……"],
@@ -1079,7 +972,8 @@ def _make_result(narrative_parts: list, npc_actions: list,
         "new_choices": choices or [],
         "game_over": game_over,
         "aftermath": aftermath,
-        "advisor_feedback": advisor_feedback or {},
+        "seeds": seeds or [],
+        "bureaucracy": bureaucracy or [],
     }
 
 
@@ -1091,5 +985,6 @@ def _empty_result() -> dict:
         "events_occurred": [],
         "new_choices": ["1. 联络袁绍", "2. 发展经济", "3. 征兵备战"],
         "game_over": None,
-        "advisor_feedback": {},
+        "seeds": [],
+        "bureaucracy": [],
     }

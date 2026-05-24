@@ -105,16 +105,45 @@ def run_dev(faction_choice: Optional[int] = None, force_new: bool = False):
 
 
 def _game_loop(engine: GameEngine, llm: Optional[LLMAdapter]):
-    """The main game loop in dev mode."""
+    """The main game loop in dev mode.
+    
+    Flow:
+    1. Generate Plan Mode (advisors + suggestions based on current state)
+    2. Show Plan Mode to player  
+    3. Player makes decision
+    4. Process turn → Command Mode executes
+    5. Show Command Mode results (bureaucracy, short-term, seeds)
+    """
+    from histrategy.engine.advisors import generate_plan_mode
+    
     while True:
         try:
-            # Show choices
-            last_result = getattr(_game_loop, "last_result", None)
-            if last_result and last_result.get("new_choices"):
-                print("\n=== 可选择的战略方向 ===")
-                for c in last_result["new_choices"]:
+            # ═══ PLAN MODE ═══════════════════════════════════
+            plan = generate_plan_mode(engine.world_state)
+            
+            # Show court assembly
+            if plan.get("advisors"):
+                print("\n=== 内政会议 ===")
+                for adv in plan["advisors"]:
+                    style = {
+                        "cautious": "  🛡 ", "aggressive": "  ⚔ ",
+                        "scheming": "  🕵 ", "pragmatic": "  📋 ",
+                        "strict": "  📜 ", "friendly": "  🤝 ", "proud": "  🐉 ",
+                    }.get(adv.get("temperament", ""), "  💬 ")
+                    print(f"{style}{adv['name']}（{adv['title']}）:")
+                    print(f"    {adv['speech']}")
+                print()
+            
+            # Show suggestions
+            suggestions = plan.get("suggestions", [])
+            if suggestions:
+                print("---")
+                print("军师建议的方案:")
+                for c in suggestions:
                     print(f"  {c}")
-
+                print()
+            
+            # Player input
             print()
             decision = input("你的决策: ").strip()
             if decision.lower() in ("exit", "quit", "退出", "q"):
@@ -123,23 +152,87 @@ def _game_loop(engine: GameEngine, llm: Optional[LLMAdapter]):
             if decision.lower() in ("state", "状态"):
                 _display_state(engine)
                 continue
-
             if not decision:
                 print("[系统] 请输入你的决策", file=sys.stderr)
                 continue
-
-            # Process turn
+            
+            # ═══ COMMAND MODE ════════════════════════════════
+            # If player typed a number, use the suggestion text
+            if decision.strip().isdigit() and suggestions:
+                idx = int(decision) - 1
+                if 0 <= idx < len(suggestions):
+                    suggestion_text = suggestions[idx]
+                    # Extract just the strategy name, not the number
+                    if ". " in suggestion_text:
+                        decision = suggestion_text.split(". ", 1)[1]
+                    else:
+                        decision = suggestion_text
+            
             print("---", file=sys.stderr)
             print("[系统] 正在推演天下大势...", file=sys.stderr)
-
+            
             result = engine.process_turn(decision)
-
-            # Display result
-            print("=== 结果 ===")
-            _display_result(result)
-
+            
+            # ═══ DISPLAY COMMAND MODE RESULTS ════════════════
+            print("\n=== 政令执行 ===")
+            
+            # Bureaucracy report
+            bureaucracy = result.get("bureaucracy", [])
+            if bureaucracy:
+                for dept in bureaucracy:
+                    dept_name = dept.get("department", "")
+                    official = dept.get("official", "")
+                    action = dept.get("action", "")
+                    prefix = f"[{dept_name}" + (f"·{official}" if official else "") + "]"
+                    print(f"  {prefix} {action}")
+            else:
+                # Fallback: show narrative
+                narrative = result.get("narrative", "")
+                if narrative:
+                    print(f"  {narrative[:200]}")
+            
+            # Short-term effects
+            short_term = result.get("short_term", {})
+            changes = short_term.get("changes", result.get("state_changes", {}))
+            if changes:
+                player_changes = {k: v for k, v in changes.items() if k not in ("npc_changes", "changes", "before", "after")}
+                if any(player_changes.values()):
+                    print()
+                    print("  本季变化:")
+                    labels = {"strength": "兵力", "economy": "经济", "morale": "民心",
+                              "treasury": "资金", "food": "粮草"}
+                    for key, val in sorted(player_changes.items()):
+                        if val:
+                            label = labels.get(key, key)
+                            sign = "+" if val > 0 else ""
+                            print(f"    {label}: {sign}{val}")
+            
+            # Seeds
+            seeds = result.get("seeds", [])
+            if seeds:
+                print()
+                print("  🌱 潜在影响:")
+                for s in seeds:
+                    print(f"    • {s.get('description', '')}")
+            
+            # NPC reactions
+            npc_actions = result.get("npc_actions", result.get("npc_reactions", []))
+            if npc_actions:
+                print()
+                print("  天下动向:")
+                for a in npc_actions[:3]:
+                    print(f"    {a}")
+            
+            # Events
+            events = result.get("events_occurred", [])
+            if events:
+                print()
+                print("  大事记:")
+                for e in events[:3]:
+                    print(f"    📌 {e}")
+            
             _game_loop.last_result = result
-
+            
         except (EOFError, KeyboardInterrupt):
             print("\n退出游戏", file=sys.stderr)
             break
@@ -147,18 +240,56 @@ def _game_loop(engine: GameEngine, llm: Optional[LLMAdapter]):
 
 def _display_result(result: dict):
     """Display a turn result in dev mode."""
-    # Advisor feedback
-    advisor = _format_advisor_feedback(result.get("advisor_feedback", {}))
-    if advisor:
+    # ═══ PLAN MODE ═══════════════════════════════════════
+    advisors = result.get("advisors", [])
+    if advisors:
+        print("=== 内政会议 ===")
+        for adv in advisors:
+            style = {
+                "cautious": "  🛡 ",
+                "aggressive": "  ⚔ ",
+                "scheming": "  🕵 ",
+                "pragmatic": "  📋 ",
+                "strict": "  📜 ",
+                "friendly": "  🤝 ",
+                "proud": "  🐉 ",
+            }.get(adv.get("temperament", ""), "  💬 ")
+            print(f"{style}{adv['name']}（{adv['title']}）:")
+            print(f"    {adv['speech']}")
+        print()
+
+    # Suggestions
+    suggestions = result.get("new_choices", result.get("suggestions", []))
+    if suggestions:
         print("---")
-        print("幕府参议:")
-        print(advisor)
+        print("军师建议的方案:")
+        for c in suggestions:
+            print(f"  {c}")
+        print()
+
+    # ═══ COMMAND MODE ════════════════════════════════════
 
     # Narrative
     narrative = result.get("narrative", "")
+    if narrative and not advisors:
+        # Only show standalone narrative if no plan mode was shown
+        # (Plan mode already shows it through bureaucracy)
+        pass
     if narrative:
         print("---")
         print(narrative)
+
+    # Bureaucracy execution report
+    bureaucracy = result.get("bureaucracy", [])
+    if bureaucracy:
+        print("=== 政令执行 ===")
+        for dept in bureaucracy:
+            dept_name = dept.get("department", "")
+            official = dept.get("official", "")
+            action = dept.get("action", "")
+            prefix = f"{dept_name}" + (f"（{official}）" if official else "")
+            print(f"  [{prefix}] {action}")
+        print()
 
     # Aftermath
     aftermath = result.get("aftermath", "")
@@ -166,27 +297,37 @@ def _display_result(result: dict):
         print("---")
         print(aftermath)
 
-    # State changes
-    changes = result.get("state_changes", {})
+    # Short-term effects
+    short_term = result.get("short_term", {})
+    changes = short_term.get("changes", result.get("state_changes", {}))
     if changes:
-        player_changes = {k: v for k, v in changes.items() if k != "npc_changes"}
+        player_changes = {k: v for k, v in changes.items() if k not in ("npc_changes", "changes", "before", "after")}
         if player_changes:
             print("---")
-            print("状态变化:")
+            print("本季变化:")
             labels = {"strength": "兵力", "economy": "经济", "morale": "民心",
                       "treasury": "资金", "food": "粮草"}
-            for key, val in player_changes.items():
-                label = labels.get(key, key)
-                sign = "+" if val > 0 else ""
-                print(f"  {label}: {sign}{val}" if val else "")
+            for key, val in sorted(player_changes.items()):
+                if val:
+                    label = labels.get(key, key)
+                    sign = "+" if val > 0 else ""
+                    print(f"  {label}: {sign}{val}")
+
+    # Seeds (long-term consequences)
+    seeds = result.get("seeds", [])
+    if seeds:
+        print("---")
+        print("🌱 潜在影响:")
+        for s in seeds:
+            print(f"  • {s.get('title', '')} — {s.get('description', '')}")
 
     # NPC actions
-    npc_actions = result.get("npc_actions", [])
+    npc_actions = result.get("npc_actions", result.get("npc_reactions", []))
     if npc_actions:
         print("---")
         print("天下动向:")
         for a in npc_actions:
-            print(f"  ⚡ {a}")
+            print(f"  {a}")
 
     # Events
     events = result.get("events_occurred", [])
@@ -196,38 +337,14 @@ def _display_result(result: dict):
         for e in events:
             print(f"  📌 {e}")
 
-def _format_advisor_feedback(feedback) -> str:
-    """Format advisor feedback for plain-text dev output."""
-    if not feedback:
-        return ""
-    if isinstance(feedback, str):
-        return feedback.strip()
-    if not isinstance(feedback, dict):
-        return ""
-
-    lines = []
-    understanding = feedback.get("understanding")
-    if understanding:
-        lines.append(str(understanding))
-
-    sections = [
-        ("研判", feedback.get("strategic_read", [])),
-        ("风险", feedback.get("risks", [])),
-        ("本季可行", feedback.get("recommended_execution", [])),
-    ]
-    for title, items in sections:
-        if isinstance(items, str):
-            items = [items]
-        if items:
-            lines.append(f"{title}:")
-            lines.extend(f"  - {item}" for item in items if item)
-
-    question = feedback.get("clarifying_question")
-    if question:
-        lines.append("待主公决断:")
-        lines.append(f"  - {question}")
-
-    return "\n".join(lines).strip()
+    # Choices (if not already shown as suggestions)
+    if not suggestions:
+        choices = result.get("new_choices", [])
+        if choices and not result.get("game_over"):
+            print("---")
+            print("可选择的战略方向:")
+            for c in choices:
+                print(f"  {c}")
 
 
 def _display_state(engine: GameEngine):
