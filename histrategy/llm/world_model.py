@@ -16,17 +16,16 @@ This means consequences are real, emergent, and persistent.
 
 from __future__ import annotations
 
-import json
-import os
-from typing import Optional
-
-from .adapter import LLMAdapter
 from ..state.world_state import (
-    WorldState, FactionState, CharacterState, TerritoryState,
-    EventEntry, save_world, save_relationships,
-    get_recent_history, get_historical_context, add_event_to_history,
     HISTORICAL_TIMELINE_190,
+    EventEntry,
+    WorldState,
+    add_event_to_history,
+    get_historical_context,
+    get_recent_history,
+    save_world,
 )
+from .adapter import LLMAdapter
 
 # ─── System Prompt for the World Model ─────────────────────
 
@@ -204,11 +203,11 @@ class WorldModel:
                 "world_state": updated_state,
             }
 
-        except Exception as e:
+        except Exception:
             # Fallback: advance time and return a basic response
             state.advance_turn()
             return {
-                "narrative": f"（系统正在重整旗鼓。天下大势依旧运转，但军情延误了…）",
+                "narrative": "（系统正在重整旗鼓。天下大势依旧运转，但军情延误了…）",
                 "advisor_feedback": {
                     "understanding": f"幕府已收到主公之令：「{player_decision[:80]}」。",
                     "strategic_read": ["此令已记录为本季度战略意图，但 AI 推演暂未完成。"],
@@ -281,7 +280,7 @@ class WorldModel:
                     "4. 加强军备，整兵待战",
                 ]),
             }
-        except Exception as e:
+        except Exception:
             return self._fallback_intro()
 
     def _fallback_intro(self) -> dict:

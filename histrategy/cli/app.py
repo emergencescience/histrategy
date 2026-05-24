@@ -10,24 +10,23 @@ Falls back to offline_sim when no API key is available.
 
 from __future__ import annotations
 
-import sys
 import argparse
-from typing import Optional
+import contextlib
 
+from rich import box
+from rich.align import Align
 from rich.console import Console
+from rich.markdown import Markdown
 from rich.panel import Panel
+from rich.prompt import Prompt
+from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
-from rich.markdown import Markdown
-from rich import box
-from rich.prompt import Prompt
-from rich.align import Align
-from rich.rule import Rule
 
 from ..engine.game import GameEngine
 from ..llm.adapter import LLMAdapter, detect_provider
 from ..llm.game_master import GameMaster
-from ..state.world_state import has_existing_game, DATA_DIR
+from ..state.world_state import DATA_DIR, has_existing_game
 
 console = Console()
 
@@ -83,10 +82,8 @@ def run_game(force_new: bool = False):
             border_style="yellow",
         ))
         console.print("[dim]按回车开始...[/]")
-        try:
+        with contextlib.suppress(EOFError, KeyboardInterrupt):
             input()
-        except (EOFError, KeyboardInterrupt):
-            pass
 
     engine = GameEngine(llm=llm, new_game=force_new)
 
@@ -99,10 +96,8 @@ def run_game(force_new: bool = False):
             title="\U0001f4c2 继续游戏",
         ))
         console.print("[dim]按回车继续...[/]")
-        try:
+        with contextlib.suppress(EOFError, KeyboardInterrupt):
             input()
-        except (EOFError, KeyboardInterrupt):
-            pass
         console.clear()
         _show_status_header(engine)
         _game_loop(engine, game_master)
@@ -153,7 +148,7 @@ def run_game(force_new: bool = False):
     _game_loop(engine, game_master)
 
 
-def _game_loop(engine: GameEngine, game_master: Optional[GameMaster]):
+def _game_loop(engine: GameEngine, game_master: GameMaster | None):
     """Main game loop with Plan/Command two-phase flow.
 
     LLM-driven when game_master is provided:
@@ -569,7 +564,7 @@ def _show_status_header(engine: GameEngine, is_intro: bool = False):
         console.print(header)
 
 
-def _get_player_decision() -> Optional[str]:
+def _get_player_decision() -> str | None:
     """Get player's free-text strategic decision.
 
     Returns:
@@ -634,7 +629,7 @@ def _display_state(engine: GameEngine):
         faction_table.add_column("兵力", justify="right")
         faction_table.add_column("经济", justify="right")
         faction_table.add_column("民心", justify="right")
-        for fid, fs in other_factions[:8]:
+        for _fid, fs in other_factions[:8]:
             faction_table.add_row(
                 fs.name, f"{fs.strength:,}",
                 f"{fs.economy}", f"{fs.morale}",

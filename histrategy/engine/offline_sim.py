@@ -9,17 +9,14 @@ Design philosophy (小龙虾/OpenClaw):
 from __future__ import annotations
 
 import json
-import math
 import random
-import os
-from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from ..state.world_state import get_data_dir
 
 if TYPE_CHECKING:
-    from ..engine.world import GameWorld, Faction
+    from ..engine.world import Faction, GameWorld
 
 
 # ─── Load knowledge base ────────────────────────────────────────
@@ -242,9 +239,9 @@ SEASON_FLAVOR = {
 
 # ─── Main simulation ───────────────────────────────────────────
 
-def simulate_turn_offline(world: "GameWorld", player_decision: str) -> dict:
+def simulate_turn_offline(world: GameWorld, player_decision: str) -> dict:
     """Knowledge-driven offline simulation with memory.
-    
+
     The Plan Mode (advisors + suggestions) is generated in the game loop.
     This function handles core simulation: effects, NPC actions, events.
     """
@@ -361,7 +358,7 @@ def simulate_turn_offline(world: "GameWorld", player_decision: str) -> dict:
 
 # ─── Knowledge helpers ─────────────────────────────────────────
 
-def _get_character_effects(faction: "Faction") -> dict:
+def _get_character_effects(faction: Faction) -> dict:
     """Get state effects from the ruler's personality traits."""
     effects = {}
     ruler_data = None
@@ -380,7 +377,7 @@ def _get_character_effects(faction: "Faction") -> dict:
     return effects
 
 
-def _get_knowledge_intro(world: "GameWorld", faction: "Faction") -> str:
+def _get_knowledge_intro(world: GameWorld, faction: Faction) -> str:
     """Season intro that uses knowledge data."""
     region_data = None
     for r in REGIONS_RAW:
@@ -410,7 +407,7 @@ def _get_knowledge_intro(world: "GameWorld", faction: "Faction") -> str:
         return f"【{world.current_year}年 · {world.current_season}季】\n{flavor}"
 
 
-def _get_personality_narrative(faction: "Faction", effects: dict) -> list[str]:
+def _get_personality_narrative(faction: Faction, effects: dict) -> list[str]:
     """Generate narrative based on character personality."""
     lines = []
     leader_data = None
@@ -430,14 +427,14 @@ def _get_personality_narrative(faction: "Faction", effects: dict) -> list[str]:
     return lines
 
 
-def _process_event_chain_knowledge(world: "GameWorld", player: "Faction",
-                                   memory: dict) -> Optional[str]:
+def _process_event_chain_knowledge(world: GameWorld, player: Faction,
+                                   memory: dict) -> str | None:
     """Process active event chains with knowledge-aware templates."""
     log_text = "\n".join(world.history_log)
     decision_text = " ".join(d.get("decision", "") for d in memory["decisions"])
 
     # Determine if player is anti-Dong Zhuo
-    pro_coalition = any(kw in decision_text for kw in ["讨董", "联盟", "袁绍", "联军"])
+    any(kw in decision_text for kw in ["讨董", "联盟", "袁绍", "联军"])
 
     for chain_name, chain in EVENT_CHAINS.items():
         # Check if ALL stages of this chain are already completed
@@ -490,8 +487,8 @@ def _process_event_chain_knowledge(world: "GameWorld", player: "Faction",
     return None
 
 
-def _try_random_event(player: "Faction", memory: dict,
-                      world: "GameWorld") -> Optional[dict]:
+def _try_random_event(player: Faction, memory: dict,
+                      world: GameWorld) -> dict | None:
     """Try to trigger a random event with knowledge-aware narrative."""
     if random.random() > 0.45:
         return None
@@ -526,8 +523,8 @@ def _try_random_event(player: "Faction", memory: dict,
     }
 
 
-def _simulate_npcs_knowledge(world: "GameWorld", player_intent: str,
-                             player: "Faction") -> tuple[list[str], dict]:
+def _simulate_npcs_knowledge(world: GameWorld, player_intent: str,
+                             player: Faction) -> tuple[list[str], dict]:
     """Simulate NPCs using faction personality data."""
     actions = []
     changes = {}
@@ -581,8 +578,8 @@ def _simulate_npcs_knowledge(world: "GameWorld", player_intent: str,
     return actions, changes
 
 
-def _generate_faction_dynamics(world: "GameWorld",
-                               player: "Faction") -> list[dict]:
+def _generate_faction_dynamics(world: GameWorld,
+                               player: Faction) -> list[dict]:
     """Generate emergent faction dynamics (wars, alliances)."""
     events = []
     strong = [f for f in world.factions.values()
@@ -616,7 +613,7 @@ def _generate_faction_dynamics(world: "GameWorld",
     return events
 
 
-def _check_knowledge_events(world: "GameWorld") -> list[str]:
+def _check_knowledge_events(world: GameWorld) -> list[str]:
     """Check and trigger knowledge-base events."""
     occurred = []
     for event in world.get_available_events()[:2]:
@@ -625,7 +622,7 @@ def _check_knowledge_events(world: "GameWorld") -> list[str]:
     return occurred
 
 
-def _check_game_over(world: "GameWorld", memory: dict) -> Optional[dict]:
+def _check_game_over(world: GameWorld, memory: dict) -> dict | None:
     """Check win/loss conditions with memory-based scoring."""
     player = world.get_player_faction()
     if not player:
@@ -696,7 +693,7 @@ def _check_game_over(world: "GameWorld", memory: dict) -> Optional[dict]:
     return None
 
 
-def _calculate_score(world: "GameWorld", memory: dict, ruler: str) -> str:
+def _calculate_score(world: GameWorld, memory: dict, ruler: str) -> str:
     """Calculate final score with tiered ranks."""
     player = world.get_player_faction()
     if not player:
@@ -765,7 +762,7 @@ def _classify_intent(text: str) -> str:
     return best if score[best] > 0 else "economy"
 
 
-def _compute_base_effects(intent: str, player: "Faction") -> dict:
+def _compute_base_effects(intent: str, player: Faction) -> dict:
     effects = {"strength": 0, "economy": 0, "morale": 0, "treasury": 0, "food": 0}
     if intent == "military":
         effects.update(strength=random.randint(2000, 5000), treasury=-random.randint(500, 1500),
@@ -789,8 +786,8 @@ def _compute_base_effects(intent: str, player: "Faction") -> dict:
     return effects
 
 
-def _get_action_narrative(intent: str, player: "Faction",
-                          world: "GameWorld", player_decision: str = "") -> str:
+def _get_action_narrative(intent: str, player: Faction,
+                          world: GameWorld, player_decision: str = "") -> str:
     """Generate action narrative that reflects what the player actually said."""
     ruler = "君主"
     for c in CHARACTERS:
@@ -841,8 +838,8 @@ def _get_action_narrative(intent: str, player: "Faction",
         f"{ruler}决定「{decision_short}」。采取了稳健的治理方针，各方面稳步发展。")
 
 
-def _compute_aftermath(player_decision: str, world: "GameWorld",
-                      player: "Faction") -> str:
+def _compute_aftermath(player_decision: str, world: GameWorld,
+                      player: Faction) -> str:
     """Generate specific consequences based on player's actual words."""
     text = player_decision.lower()
     effects = []
@@ -901,7 +898,7 @@ def _merge_effects(base: dict, addition: dict) -> None:
         base[k] = base.get(k, 0) + v
 
 
-def _apply_effects(player: "Faction", effects: dict) -> None:
+def _apply_effects(player: Faction, effects: dict) -> None:
     clamped = {"economy": (0, 100), "morale": (0, 100)}
     for key, attr in [("strength", "strength"), ("economy", "economy"),
                        ("morale", "morale"), ("treasury", "treasury"),
@@ -918,7 +915,7 @@ def _apply_effects(player: "Faction", effects: dict) -> None:
             setattr(player, attr, new_val)
 
 
-def _apply_npc_changes(world: "GameWorld", fa_id: str, changes: dict) -> None:
+def _apply_npc_changes(world: GameWorld, fa_id: str, changes: dict) -> None:
     if fa_id in world.factions:
         fa = world.factions[fa_id]
         for k, v in changes.items():
@@ -928,7 +925,7 @@ def _apply_npc_changes(world: "GameWorld", fa_id: str, changes: dict) -> None:
                     setattr(fa, k, max(0, current + v))
 
 
-def _generate_choices(intent: str, world: "GameWorld") -> list[str]:
+def _generate_choices(intent: str, world: GameWorld) -> list[str]:
     player = world.get_player_faction()
     if not player:
         return ["1. 发展经济", "2. 扩充军备", "3. 外交结盟"]
@@ -959,11 +956,11 @@ def _generate_choices(intent: str, world: "GameWorld") -> list[str]:
 
 def _make_result(narrative_parts: list, npc_actions: list,
                  state: dict, events: list,
-                 game_over: Optional[dict] = None,
+                 game_over: dict | None = None,
                  aftermath: str = "",
-                 choices: Optional[list[str]] = None,
-                 seeds: Optional[list[dict]] = None,
-                 bureaucracy: Optional[list[dict]] = None) -> dict:
+                 choices: list[str] | None = None,
+                 seeds: list[dict] | None = None,
+                 bureaucracy: list[dict] | None = None) -> dict:
     return {
         "narrative": "\n".join(narrative_parts),
         "npc_actions": npc_actions or ["天下局势正在微妙变化中……"],

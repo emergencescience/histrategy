@@ -13,19 +13,17 @@ Key changes from v1:
 
 from __future__ import annotations
 
-import json
-import os
-from typing import Optional
-
-from ..engine.world import GameWorld
 from ..engine.offline_sim import simulate_turn_offline
-from ..llm.adapter import LLMAdapter, detect_provider
+from ..engine.world import GameWorld
+from ..llm.adapter import LLMAdapter
 from ..llm.world_model import WorldModel
 from ..state.world_state import (
-    WorldState, FactionState, save_world, load_world,
-    has_existing_game, DATA_DIR,
+    FactionState,
+    WorldState,
+    has_existing_game,
+    load_world,
+    save_world,
 )
-
 
 # ─── Initial faction configurations ────────────────────────
 
@@ -102,14 +100,8 @@ def create_initial_world(player_faction_id: str) -> WorldState:
     for fid, fc in NPC_FACTION_CONFIGS.items():
         # Map the player's faction to the NPC version
         skip = False
-        npc_ruler = fc["ruler"]
-        if player_faction_id == "cao" and fid == "caocao":
-            skip = True
-        elif player_faction_id == "shu" and fid == "liubei":
-            skip = True
-        elif player_faction_id == "wu" and fid == "sunjian":
-            skip = True
-        elif player_faction_id == "yuan_shao" and fid == "yuanshao":
+        fc["ruler"]
+        if player_faction_id == "cao" and fid == "caocao" or player_faction_id == "shu" and fid == "liubei" or player_faction_id == "wu" and fid == "sunjian" or player_faction_id == "yuan_shao" and fid == "yuanshao":
             skip = True
 
         if not skip:
@@ -133,7 +125,7 @@ class GameEngine:
     - State persistence: saves to disk after every turn
     """
 
-    def __init__(self, llm: Optional[LLMAdapter] = None, scenario: str = "190",
+    def __init__(self, llm: LLMAdapter | None = None, scenario: str = "190",
                  new_game: bool = False):
         self.llm = llm
         self.scenario = scenario
@@ -163,7 +155,6 @@ class GameEngine:
         self.game_started = True
 
         # Also init legacy world for backward compat
-        from ..engine.world import GameWorld
         self.legacy_world = GameWorld(scenario=self.scenario)
         self.legacy_world.player_faction_id = faction_id
 

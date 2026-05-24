@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 import json
-import random
-from dataclasses import dataclass, field, asdict
-from datetime import datetime
+import warnings
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
-
 
 DATA_DIR = Path(__file__).parent.parent / "knowledge" / "data"
 
@@ -23,8 +20,8 @@ class Character:
     personality: list[str]
     skills: list[str]
     description: str
-    birth: Optional[int] = None
-    death: Optional[int] = None
+    birth: int | None = None
+    death: int | None = None
     is_alive: bool = True
     loyalty: int = 70  # 0-100
 
@@ -33,7 +30,7 @@ class Character:
 class Faction:
     id: str
     name: str
-    ruler_id: Optional[str]
+    ruler_id: str | None
     color: str
     description: str
     capital: str
@@ -86,7 +83,7 @@ class GameWorld:
         self.season_index = 0
         self.seasons = ["spring", "summer", "autumn", "winter"]
         self.turn_count = 0
-        self.player_faction_id: Optional[str] = None
+        self.player_faction_id: str | None = None
 
         self.characters: dict[str, Character] = {}
         self.factions: dict[str, Faction] = {}
@@ -96,6 +93,7 @@ class GameWorld:
         self.history_log: list[str] = []
 
         self._load_all_data()
+        self._validate_on_load()
 
     def _load_all_data(self):
         """Load knowledge base data."""
@@ -164,6 +162,62 @@ class GameWorld:
                     is_historical=e["is_historical"],
                 ))
 
+    def _validate_on_load(self):
+        """Validate cross-references and field integrity after loading data.
+
+        Issues warnings for any problems found. Never raises — backward
+        compatibility: broken references emit warnings but don't crash.
+        """
+        issues: list[str] = []
+
+        # Characters reference valid factions
+        for char in self.characters.values():
+            if char.faction not in self.factions:
+                issues.append(
+                    f"Character '{char.name}' ({char.id}) references "
+                    f"unknown faction '{char.faction}'"
+                )
+
+        # Factions reference valid ruler characters
+        for fa in self.factions.values():
+            if fa.ruler_id and fa.ruler_id not in self.characters:
+                issues.append(
+                    f"Faction '{fa.name}' ({fa.id}) references "
+                    f"unknown ruler_id '{fa.ruler_id}'"
+                )
+
+        # Faction starting_territories reference valid regions
+        for fa in self.factions.values():
+            for t in fa.territories:
+                if t not in self.regions:
+                    issues.append(
+                        f"Faction '{fa.name}' ({fa.id}) has "
+                        f"unknown territory '{t}'"
+                    )
+
+        # Region neighbors reference valid regions (by pinyin ID or Chinese name)
+        region_names = {r.name: r.id for r in self.regions.values()}
+        for r in self.regions.values():
+            for n in r.neighbors:
+                if n not in self.regions and n not in region_names:
+                    issues.append(
+                        f"Region '{r.name}' ({r.id}) has "
+                        f"unknown neighbor '{n}'"
+                    )
+
+        # Stats range checks (warn, don't clamp — let game logic handle it)
+        for fa in self.factions.values():
+            for attr, label in [("economy", "economy"), ("morale", "morale"),
+                                ("intel_level", "intel"), ("aggression", "aggression")]:
+                val = getattr(fa, attr, 0)
+                if not (0 <= val <= 100):
+                    issues.append(
+                        f"Faction '{fa.name}' ({fa.id}): {label}={val} out of range 0–100"
+                    )
+
+        for issue in issues:
+            warnings.warn(f"Data integrity: {issue}", stacklevel=2)
+
     def get_available_events(self) -> list[HistoricalEvent]:
         """Get events that should occur this turn (deduplicated)."""
         seen = set()
@@ -197,7 +251,7 @@ class GameWorld:
             self.current_year += 1
         self.turn_count += 1
 
-    def get_player_faction(self) -> Optional[Faction]:
+    def get_player_faction(self) -> Faction | None:
         if self.player_faction_id:
             return self.factions.get(self.player_faction_id)
         return None
@@ -289,5 +343,5 @@ class GameWorld:
                 if "economy" in changes:
                     fa.economy = max(0, min(100, changes["economy"]))
 
-    def get_territory_info(self, territory_id: str) -> Optional[Region]:
+    def get_territory_info(self, territory_id: str) -> Region | None:
         return self.regions.get(territory_id)

@@ -12,16 +12,16 @@ Two modes:
 from __future__ import annotations
 
 import copy
-import json
-from typing import Optional
 
-from .adapter import LLMAdapter
 from ..state.world_state import (
-    WorldState, FactionState, EventEntry,
-    save_world, add_event_to_history,
-    get_recent_history, get_historical_context,
+    EventEntry,
+    WorldState,
+    add_event_to_history,
+    get_historical_context,
+    get_recent_history,
+    save_world,
 )
-
+from .adapter import LLMAdapter
 
 # ─── System Prompts ─────────────────────────────────────────
 
@@ -163,7 +163,7 @@ def _build_plan_context(state: WorldState) -> str:
         return ""
 
     lines = [
-        f"## 当前时间",
+        "## 当前时间",
         f"{state.year}年{state.current_season_cn} | 第{state.turn}回合",
         "",
         f"## 玩家势力：{player.name}",
@@ -208,7 +208,7 @@ def _build_command_context(state: WorldState, player_decision: str) -> str:
     player = state.get_player_faction()
 
     lines = [
-        f"## 当前状态",
+        "## 当前状态",
         f"时间：{state.year}年{state.current_season_cn} | 第{state.turn}回合",
         f"势力：{player.name if player else '未知'}",
     ]
@@ -231,7 +231,7 @@ def _build_command_context(state: WorldState, player_decision: str) -> str:
         lines.append(f"- {fs.name}：兵力{fs.strength:,}，经济{fs.economy}，民心{fs.morale}")
 
     lines.append("")
-    lines.append(f"## 主公决策")
+    lines.append("## 主公决策")
     lines.append(f"「{player_decision}」")
     lines.append("")
     lines.append("请根据以上决策模拟本季度的推演。输出完整的JSON结果。")
@@ -379,10 +379,7 @@ class GameMaster:
                 if delta:
                     current = getattr(player, key, 0)
                     new_val = current + delta
-                    if key in ("economy", "morale"):
-                        new_val = max(0, min(100, new_val))
-                    else:
-                        new_val = max(0, new_val)
+                    new_val = max(0, min(100, new_val)) if key in ("economy", "morale") else max(0, new_val)
                     setattr(player, key, new_val)
 
         # Apply updated NPC factions
@@ -392,10 +389,7 @@ class GameMaster:
                 fs = new_state.factions[fid]
                 for key, val in fs_data.items():
                     if hasattr(fs, key) and isinstance(val, (int, float)):
-                        if key in ("economy", "morale"):
-                            val = max(0, min(100, int(val)))
-                        else:
-                            val = max(0, int(val))
+                        val = max(0, min(100, int(val))) if key in ("economy", "morale") else max(0, int(val))
                         setattr(fs, key, val)
 
         new_state.advance_turn()

@@ -4,11 +4,8 @@ from __future__ import annotations
 import json
 import os
 import re
-from dataclasses import dataclass, field
-from typing import Optional
 
 import httpx
-
 
 # Provider configurations in priority order
 PROVIDER_CONFIGS = [
@@ -120,10 +117,10 @@ class LLMAdapter:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        api_base: Optional[str] = None,
-        model: Optional[str] = None,
-        provider: Optional[str] = None,
+        api_key: str | None = None,
+        api_base: str | None = None,
+        model: str | None = None,
+        provider: str | None = None,
     ):
         self.provider_config = detect_provider()
 
@@ -178,7 +175,7 @@ class LLMAdapter:
     def chat_structured(
         self,
         messages: list[dict],
-        response_format: Optional[dict] = None,
+        response_format: dict | None = None,
         temperature: float = 0.7,
         max_tokens: int = 4096,
     ) -> dict:

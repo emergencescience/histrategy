@@ -23,16 +23,14 @@ Offline mode:
 from __future__ import annotations
 
 import sys
-import os
-from typing import Optional
 
 from ..engine.game import GameEngine
 from ..llm.adapter import LLMAdapter, detect_provider
 from ..llm.game_master import GameMaster
-from ..state.world_state import has_existing_game, DATA_DIR
+from ..state.world_state import DATA_DIR, has_existing_game
 
 
-def run_dev(faction_choice: Optional[int] = None, force_new: bool = False):
+def run_dev(faction_choice: int | None = None, force_new: bool = False):
     """
     Run the game in dev mode (plain text input/output).
 
@@ -101,7 +99,7 @@ def run_dev(faction_choice: Optional[int] = None, force_new: bool = False):
     _game_loop(engine, game_master)
 
 
-def _game_loop(engine: GameEngine, game_master: Optional[GameMaster]):
+def _game_loop(engine: GameEngine, game_master: GameMaster | None):
     """The main game loop — Plan Mode → Player Decision → Command Mode.
 
     LLM-driven when game_master is provided:

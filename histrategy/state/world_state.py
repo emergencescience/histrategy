@@ -19,11 +19,9 @@ from __future__ import annotations
 
 import json
 import os
-import copy
-from pathlib import Path
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from dataclasses import dataclass, field, asdict
-from typing import Optional
+from pathlib import Path
 
 # ─── File paths ─────────────────────────────────────────────
 
@@ -177,7 +175,7 @@ class WorldState:
         if self.season_index % 4 == 0:
             self.year += 1
 
-    def get_player_faction(self) -> Optional[FactionState]:
+    def get_player_faction(self) -> FactionState | None:
         return self.factions.get(self.player_faction_id)
 
     def to_dict(self) -> dict:
@@ -290,7 +288,7 @@ def save_world(state: WorldState):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def load_world() -> Optional[WorldState]:
+def load_world() -> WorldState | None:
     """Load the world state from disk."""
     path = _world_state_file()
     if not path.exists():
