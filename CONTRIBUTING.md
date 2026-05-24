@@ -2,6 +2,22 @@
 
 Thank you for contributing! This guide covers everything you need to get started.
 
+---
+
+## Ways to Contribute
+
+| Type | Description | Skill Needed |
+|---|---|---|
+| [Code](#how-to-contribute-code) | Engine features, bug fixes, new engines | Python |
+| [History Data](#how-to-contribute-data) | Characters, events, regions, arc goals | History knowledge |
+| [World Engine Plugin](#how-to-contribute-a-world-engine-plugin) | Rome, Red Alert, custom simulation | Python + Game Design |
+| [Knowledge Plugin](#how-to-contribute-a-knowledge-plugin) | New historical settings | Python + History |
+| [UI Plugin](#how-to-contribute-a-ui-plugin) | Web, Voice, Discord | Frontend/API |
+| [Game Logs](#how-to-contribute-game-logs) | Share your alternate history | Playing the game |
+| [Game Sense Reports](#how-to-submit-game-sense-reports) | Report LLM quality issues | Playing + observation |
+
+---
+
 ## How to Contribute Code
 
 1. **Fork** the [repo](https://github.com/emergencescience/histrategy)
@@ -123,9 +139,162 @@ histrategy/
 - **Plan/Command separation**: Plan Mode = council meeting (what to do). Command Mode = execution (how it goes).
 - **Data lives in JSON**: Characters, factions, regions, and events are structured data, not hardcoded in Python.
 - **State is serializable**: Use `WorldState` dataclasses with `to_dict()` / `from_dict()` for persistence.
+- **Headless core**: The engine never imports UI libraries. `SimResult` is always a plain dataclass.
+- **Lazy simulation**: Time only advances on player input. No cron jobs. No background threads.
+- **Plugin-first extensibility**: New engines and knowledge bases register via Python entry points. No core changes needed.
+
+---
+
+## How to Contribute a World Engine Plugin
+
+World engine plugins let you replace the simulation engine entirely — for example:
+- A Rome-era strategic simulation engine
+- A Red Alert Cold War engine
+- A full LLM-agent NPC engine (Tier 3)
+- A cron-driven engine with push notifications
+
+**Step 1**: Subclass `WorldEnginePlugin` from `histrategy.plugins.interface`:
+
+```python
+# my_engine/engine.py
+from histrategy.plugins.interface import WorldEnginePlugin
+from histrategy.engine.world_sim_interface import SimResult
+from histrategy.state.world_state import WorldState
+
+class MyCustomEngine(WorldEnginePlugin):
+    plugin_id = "my-custom-engine"
+    description = "My custom world simulation engine"
+
+    def simulate(self, state: WorldState, action: str) -> SimResult:
+        # Your simulation logic here
+        return SimResult(
+            narrative="...",
+            aftermath="...",
+            world_state=state,
+            engine_id=self.plugin_id,
+        )
+
+    @property
+    def requires_llm(self) -> bool:
+        return False
+```
+
+**Step 2**: Register in `pyproject.toml`:
+
+```toml
+[project.entry-points."histrategy.plugins"]
+my_engine = "my_engine.engine:MyCustomEngine"
+```
+
+**Step 3**: Install and test:
+
+```bash
+pip install -e my_engine/
+histrategy --dev  # engine is auto-discovered
+pytest tests/plugins/ -v
+```
+
+**Step 4**: Open a PR or publish to PyPI as `histrategy-my-engine`.
+
+> Note: When multiple WorldEnginePlugin implementations exist, they may move to a separate repo: `github.com/emergencescience/histrategy-world`.
+
+---
+
+## How to Contribute a Knowledge Plugin
+
+Knowledge plugins provide alternate historical settings (Rome, WWII, other Three Kingdoms eras, custom scenarios).
+
+**Step 1**: Subclass `KnowledgePlugin`:
+
+```python
+from histrategy.plugins.interface import KnowledgePlugin
+
+class RomeKnowledgePlugin(KnowledgePlugin):
+    plugin_id = "rome-knowledge"
+
+    def get_characters(self) -> list[dict]:
+        # Return list matching characters.json schema
+        ...
+
+    def get_factions(self) -> list[dict]: ...
+    def get_regions(self) -> list[dict]: ...
+    def get_events(self) -> list[dict]: ...
+```
+
+**Step 2**: Register and validate:
+
+```bash
+python histrategy/knowledge/scripts/validate_data.py --plugin rome-knowledge
+```
+
+> Note: When multiple KnowledgePlugin implementations exist, they may move to: `github.com/emergencescience/histrategy-history`.
+
+---
+
+## How to Contribute a UI Plugin
+
+UI plugins decorate the headless engine with a rendering layer (Web, Voice, Discord, etc.).
+
+```python
+from histrategy.plugins.interface import UIPlugin
+from histrategy.engine.world_sim_interface import SimResult
+
+class DiscordUIPlugin(UIPlugin):
+    plugin_id = "discord-ui"
+
+    def render(self, sim_result: SimResult) -> None:
+        # Send SimResult content to Discord channel
+        ...
+
+    def get_player_input(self, prompt: str) -> str:
+        # Wait for Discord message and return it
+        ...
+```
+
+---
+
+## How to Contribute Game Logs
+
+Sharing your game logs helps the project in three ways:
+1. Dataset for LLM narrative quality research
+2. Community alternate history gallery
+3. Edge cases and prompt failures for developers to fix
+
+**Export your log**:
+```bash
+histrategy --export-log
+# Saved to: ~/.histrategy/logs/YYYY-MM-DD-{faction}.json
+```
+
+**Share options**:
+- Post as a GitHub Gist and link in [Discussions](https://github.com/emergencescience/histrategy/discussions)
+- (Future) Submit to the community log gallery at `histrategy.emergencescience.com/logs`
+
+Log files are anonymous by default. Your player ID is `"anonymous"` unless you opt in with attribution in `~/.histrategy/config.json`.
+
+---
+
+## How to Submit Game Sense Reports
+
+If you notice the LLM generating anachronistic, inconsistent, or dramatically weak content, open an issue with label **`game-sense`**:
+
+```markdown
+**Turn**: 8 | **Faction**: 曹操 | **Model**: deepseek-v3
+**Decision**: "派使者联合袁绍"
+**Observed**: 袁绍 immediately agreed without showing 好谋无断 hesitation
+**Expected**: 袁绍 should deliberate for at least one NPC reaction before responding
+**Suggested prompt fix**: Add "NPC must reflect personality traits before major decisions" to COMMAND prompt
+**Log file**: [attach ~/.histrategy/logs/YYYY-MM-DD-caocao.json]
+```
+
+Game sense reports are the training signal for future DevOps LLM agents to auto-improve the system prompts in `game_master.py`.
+
+---
 
 ## Need Help?
 
 - Found a bug? [Open an issue](https://github.com/emergencescience/histrategy/issues)
 - Have an idea? Start a [discussion](https://github.com/emergencescience/histrategy/discussions)
-- Read [PRD](docs/PRD.md) and [Tech Design](docs/tech-design.md) for product/architecture context
+- Read [ROADMAP](docs/ROADMAP.md), [PRD](docs/PRD.md), and [Tech Design](docs/tech-design.md)
+- Read [Design Iterations](docs/design-iterations.md) for the philosophy evolution
+- Read [Operations Guide](docs/OPERATIONS.md) for DevOps workflows

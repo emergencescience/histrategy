@@ -1,49 +1,84 @@
-# CLAUDE.md for 三國志略 (histrategy)
+# CLAUDE.md
 
-## Critical Project Context
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-This is an AI-powered Three Kingdoms strategy game. The user is frustrated because:
-1. The game engine uses Python string templates instead of LLM-generated content
-2. Advisors, suggestions, consequences, and NPC actions are all hardcoded Python templates
-3. The user wants the LLM to be the GAME ENGINE, not just a narrator over pre-computed results
+## Project Overview
 
-## Architecture Requirements
+三國志略 (Histrategy) is an AI-powered Three Kingdoms strategy game where the LLM acts as the game engine — generating advisor speeches, strategic suggestions, consequences, and NPC actions based on actual world state. Offline/fallback mode uses a rule-based simulation.
 
-### MUST: LLM-Driven (not template-driven)
-- All advisor speeches come from LLM, not from Python f-strings
-- All suggestions are LLM-generated based on actual game state
-- All consequences are LLM-generated based on player input
-- ALL NPC actions come from LLM
-- Templates ONLY as fallback when no API key is available (offline mode)
+## Commands
 
-### Plan/Command Mode Design
-- `state = "plan"` → LLM generates advisor court (council meeting)
-  - Each advisor gives their opinion (from LLM, based on world state)
-  - 4 strategic suggestions (from LLM)
-  - Player types their decision (free text)
-- `state = "command"` → LLM generates execution results
-  - Bureaucracy execution narrative
-  - Short-term consequences (state changes)
-  - Long-term seeds
-  - Updated world state
-- Player can explicitly switch: type "plan" to re-enter plan mode
+```bash
+# Install in dev mode
+pip install -e .
 
-### Key Files to Read
-- histrategy/llm/adapter.py — LLM adapter (multi-provider)
-- histrategy/state/world_state.py — World state data structures
-- histrategy/llm/world_model.py — Current (broken) world model
-- histrategy/engine/game.py — Game engine
-- histrategy/cli/dev_cli.py — Dev mode CLI
+# Run the game (auto-detects API key, falls back to offline mode)
+histrategy
+histrategy --dev             # plain-text dev mode
+histrategy --dev --faction 2 --new  # skip faction select, force new game
 
-### What to Remove
-- histrategy/engine/advisors.py — DELETE entirely (hardcoded templates)
-- histrategy/engine/command.py — DELETE entirely (hardcoded templates)
-- histrategy/engine/offline_sim.py — REDUCE to offline fallback only
-- All `_generate_*`, `_format_*`, `_compute_*` template functions
+# Run all tests
+pytest tests/ -v
 
-### What to Build
-- histrategy/llm/game_master.py — LLM-powered game master
-  - generate_plan_mode(state) → advisors, suggestions
-  - generate_command_mode(state, decision) → narrative, consequences, seeds
-  - generate_npc_moves(state) → NPC actions
-- Clean separation: Plan mode (council) → player decision → Command mode (execution)
+# Run a specific test file or class
+pytest tests/test_engine.py -v
+pytest tests/test_engine.py::TestSimulation -v
+
+# Lint and format (ruff)
+ruff check .
+ruff format .
+
+# Validate knowledge base JSON data
+python histrategy/knowledge/scripts/validate_data.py
+
+# Pre-push hooks (ruff lint+format, then pytest unit tests)
+pre-commit run --hook-stage pre-push
+```
+
+## Architecture
+
+### Game Flow (Plan/Command two-phase)
+
+```
+Plan Mode (LLM)  →  Player decision (free text)  →  Command Mode (LLM)
+```
+
+- **Plan Mode** — `GameMaster.generate_plan_mode()` generates advisor court + 4 strategic suggestions from LLM
+- **Player** types free-text decision (or `plan` to re-enter plan, `state` to view world, `exit` to quit)
+- **Command Mode** — `GameMaster.generate_command_mode()` generates bureaucracy execution, consequences, NPC reactions, updated world state
+
+### Key Layers
+
+| Layer | Key Files | Responsibility |
+|-------|-----------|----------------|
+| **CLI** | `cli/app.py`, `cli/dev_cli.py` | Rich TUI / plain-text I/O, orchestrates game loop |
+| **Engine** | `engine/game.py`, `engine/offline_sim.py` | GameEngine orchestrator, offline fallback simulation |
+| **LLM** | `llm/game_master.py`, `llm/world_model.py`, `llm/adapter.py` | GameMaster (Plan/Command), older WorldModel, multi-provider API client |
+| **State** | `state/world_state.py` | `WorldState` dataclass with JSON persistence |
+| **Knowledge** | `knowledge/data/*.json` | Characters, factions, regions, events as structured JSON |
+
+### Two Game Engines
+
+- **`GameEngine`** (in `engine/game.py`) — the primary orchestrator. Uses `GameMaster` (LLM) when an API key is available, otherwise falls back to `offline_sim`.
+- **`GameWorld`** (in `engine/world.py`) — legacy class used only by `offline_sim`. Not used in LLM mode.
+
+### Two LLM Integrations
+
+- **`GameMaster`** (in `llm/game_master.py`) — current implementation with Plan/Command two-phase architecture. Used by `cli/app.py` and `cli/dev_cli.py`.
+- **`WorldModel`** (in `llm/world_model.py`) — older one-phase implementation. Still referenced by `engine/game.py` for backward compatibility.
+
+### LLM Provider Detection
+
+`LLMAdapter` in `llm/adapter.py` auto-detects the best available provider: DeepSeek > OpenAI > Tongyi > OpenRouter > Custom. Set `DEEPSEEK_API_KEY`, `OPENAI_API_KEY`, `TONGYI_API_KEY`, or `OPENROUTER_API_KEY`. Override with `LLM_PROVIDER` env var or custom endpoint via `OPENAI_API_BASE`.
+
+### State Persistence
+
+`WorldState` dataclasses save to `~/.histrategy/` (or `$HISTRATEGY_DATA_DIR`) as JSON. Multiple files track world state, player memory, faction relationships, event history, and character profiles.
+
+### Key Design Rules
+
+- **LLM is the game engine** — advisor speeches, suggestions, consequences, NPC actions come from LLM, not Python templates. Templates only as offline fallback.
+- **State is serializable** — `WorldState` with `to_dict()`/`from_dict()` for persistence and LLM context building.
+- **Plan/Command separation** — Plan = council meeting (what to do). Command = execution (how it goes).
+- **Knowledge lives in JSON** — characters, factions, regions, events are data, not code.
+- **Tests use isolated save dirs** — `HISTRATEGY_DATA_DIR` is monkeypatched to `tmp_path` in tests.
