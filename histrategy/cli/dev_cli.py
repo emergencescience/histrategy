@@ -146,6 +146,13 @@ def _game_loop(engine: GameEngine, llm: Optional[LLMAdapter]):
 
 def _display_result(result: dict):
     """Display a turn result in dev mode."""
+    # Advisor feedback
+    advisor = _format_advisor_feedback(result.get("advisor_feedback", {}))
+    if advisor:
+        print("---")
+        print("幕府参议:")
+        print(advisor)
+
     # Narrative
     narrative = result.get("narrative", "")
     if narrative:
@@ -195,6 +202,40 @@ def _display_result(result: dict):
         print("可选择的战略方向:")
         for c in choices:
             print(f"  {c}")
+
+
+def _format_advisor_feedback(feedback) -> str:
+    """Format advisor feedback for plain-text dev output."""
+    if not feedback:
+        return ""
+    if isinstance(feedback, str):
+        return feedback.strip()
+    if not isinstance(feedback, dict):
+        return ""
+
+    lines = []
+    understanding = feedback.get("understanding")
+    if understanding:
+        lines.append(str(understanding))
+
+    sections = [
+        ("研判", feedback.get("strategic_read", [])),
+        ("风险", feedback.get("risks", [])),
+        ("本季可行", feedback.get("recommended_execution", [])),
+    ]
+    for title, items in sections:
+        if isinstance(items, str):
+            items = [items]
+        if items:
+            lines.append(f"{title}:")
+            lines.extend(f"  - {item}" for item in items if item)
+
+    question = feedback.get("clarifying_question")
+    if question:
+        lines.append("待主公决断:")
+        lines.append(f"  - {question}")
+
+    return "\n".join(lines).strip()
 
 
 def _display_state(engine: GameEngine):

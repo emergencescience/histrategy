@@ -22,15 +22,11 @@ import pytest
 HISTRATEGY_DIR = Path(__file__).parent.parent
 GAME_CMD = [sys.executable, "-m", "histrategy"]
 
-# Clean memory before each test
 @pytest.fixture(autouse=True)
-def clean_memory():
-    memory_file = Path.home() / ".histrategy" / "player_memory.json"
-    if memory_file.exists():
-        memory_file.unlink()
+def isolated_save_dir(tmp_path, monkeypatch):
+    """Run each E2E test with an isolated save directory."""
+    monkeypatch.setenv("HISTRATEGY_DATA_DIR", str(tmp_path / ".histrategy"))
     yield
-    if memory_file.exists():
-        memory_file.unlink()
 
 
 def run_game(input_sequence: str, timeout: int = 30,
@@ -123,13 +119,13 @@ class TestMemorySystem:
         # Use "1\n1\nexit\n" to play one turn (select Cao Cao, then make a decision)
         run_game("1\n1\nexit\n", timeout=20)
         # World state should be saved
-        world_file = Path.home() / ".histrategy" / "world_state.json"
+        world_file = Path(os.environ["HISTRATEGY_DATA_DIR"]) / "world_state.json"
         assert world_file.exists(), f"world_state.json not found at {world_file}"
 
     def test_memory_has_decisions(self):
         """Memory file should contain decision records."""
         run_game("1\n1\n2\nexit\n", timeout=30)
-        memory_file = Path.home() / ".histrategy" / "player_memory.json"
+        memory_file = Path(os.environ["HISTRATEGY_DATA_DIR"]) / "player_memory.json"
         if memory_file.exists():
             data = json.loads(memory_file.read_text())
             assert "decisions" in data

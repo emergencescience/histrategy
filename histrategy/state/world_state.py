@@ -5,7 +5,9 @@ The world state is the single source of truth for the game world.
 Each turn, the LLM receives the full world state and produces an updated one.
 This ensures emergent gameplay where every decision has real consequences.
 
-State files stored in ~/.histrategy/:
+State files stored in ~/.histrategy/ by default.
+Set HISTRATEGY_DATA_DIR to override this for development, tests, or portable saves.
+
   - world_state.json        — Main game world state
   - player_memory.json      — Player's past decisions
   - relationships.json      — Faction relationship matrix
@@ -25,13 +27,46 @@ from typing import Optional
 
 # ─── File paths ─────────────────────────────────────────────
 
-DATA_DIR = Path.home() / ".histrategy"
+def get_data_dir() -> Path:
+    """Return the active save directory.
 
-WORLD_STATE_FILE = DATA_DIR / "world_state.json"
-PLAYER_MEMORY_FILE = DATA_DIR / "player_memory.json"
-RELATIONSHIPS_FILE = DATA_DIR / "relationships.json"
-EVENT_HISTORY_FILE = DATA_DIR / "event_history.json"
-CHARACTER_PROFILES_FILE = DATA_DIR / "character_profiles.json"
+    Defaults to ~/.histrategy for normal installed play. Tests and local
+    development can set HISTRATEGY_DATA_DIR to keep saves isolated.
+    """
+    override = os.environ.get("HISTRATEGY_DATA_DIR")
+    if override:
+        return Path(override).expanduser()
+    return Path.home() / ".histrategy"
+
+
+DATA_DIR = get_data_dir()
+
+
+def _world_state_file() -> Path:
+    return get_data_dir() / "world_state.json"
+
+
+def _player_memory_file() -> Path:
+    return get_data_dir() / "player_memory.json"
+
+
+def _relationships_file() -> Path:
+    return get_data_dir() / "relationships.json"
+
+
+def _event_history_file() -> Path:
+    return get_data_dir() / "event_history.json"
+
+
+def _character_profiles_file() -> Path:
+    return get_data_dir() / "character_profiles.json"
+
+
+WORLD_STATE_FILE = _world_state_file()
+PLAYER_MEMORY_FILE = _player_memory_file()
+RELATIONSHIPS_FILE = _relationships_file()
+EVENT_HISTORY_FILE = _event_history_file()
+CHARACTER_PROFILES_FILE = _character_profiles_file()
 
 
 # ─── Data structures ───────────────────────────────────────
@@ -242,7 +277,7 @@ def get_historical_context(year: int) -> str:
 
 def ensure_dir():
     """Ensure the data directory exists."""
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    get_data_dir().mkdir(parents=True, exist_ok=True)
 
 
 def save_world(state: WorldState):
@@ -251,16 +286,17 @@ def save_world(state: WorldState):
     data = state.to_dict()
     # Add extra data
     data["saved_at"] = datetime.now().isoformat()
-    with open(WORLD_STATE_FILE, "w") as f:
+    with open(_world_state_file(), "w") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
 def load_world() -> Optional[WorldState]:
     """Load the world state from disk."""
-    if not WORLD_STATE_FILE.exists():
+    path = _world_state_file()
+    if not path.exists():
         return None
     try:
-        with open(WORLD_STATE_FILE) as f:
+        with open(path) as f:
             data = json.load(f)
         state = WorldState()
         state.from_dict(data)
@@ -272,16 +308,17 @@ def load_world() -> Optional[WorldState]:
 def save_relationships(rels: dict[str, dict[str, int]]):
     """Save inter-faction relationships."""
     ensure_dir()
-    with open(RELATIONSHIPS_FILE, "w") as f:
+    with open(_relationships_file(), "w") as f:
         json.dump(rels, f, ensure_ascii=False, indent=2)
 
 
 def load_relationships() -> dict[str, dict[str, int]]:
     """Load inter-faction relationships."""
-    if not RELATIONSHIPS_FILE.exists():
+    path = _relationships_file()
+    if not path.exists():
         return {}
     try:
-        with open(RELATIONSHIPS_FILE) as f:
+        with open(path) as f:
             return json.load(f)
     except (json.JSONDecodeError, OSError):
         return {}
@@ -292,16 +329,17 @@ def add_event_to_history(event: EventEntry):
     ensure_dir()
     history = load_event_history()
     history.append(asdict(event))
-    with open(EVENT_HISTORY_FILE, "w") as f:
+    with open(_event_history_file(), "w") as f:
         json.dump(history, f, ensure_ascii=False, indent=2)
 
 
 def load_event_history() -> list[dict]:
     """Load full event history."""
-    if not EVENT_HISTORY_FILE.exists():
+    path = _event_history_file()
+    if not path.exists():
         return []
     try:
-        with open(EVENT_HISTORY_FILE) as f:
+        with open(path) as f:
             return json.load(f)
     except (json.JSONDecodeError, OSError):
         return []
@@ -315,4 +353,4 @@ def get_recent_history(n: int = 5) -> list[dict]:
 
 def has_existing_game() -> bool:
     """Check if there's a saved game to resume."""
-    return WORLD_STATE_FILE.exists()
+    return _world_state_file().exists()

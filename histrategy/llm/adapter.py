@@ -15,8 +15,8 @@ PROVIDER_CONFIGS = [
     {
         "name": "deepseek",
         "env_key": "DEEPSEEK_API_KEY",
-        "default_base": "https://api.deepseek.com/v1",
-        "default_model": "deepseek-chat",
+        "default_base": "https://api.deepseek.com",
+        "default_model": "deepseek-v4-pro",
         "supports_json_mode": True,
     },
     {
@@ -38,7 +38,7 @@ PROVIDER_CONFIGS = [
         "name": "openrouter",
         "env_key": "OPENROUTER_API_KEY",
         "default_base": "https://openrouter.ai/api/v1",
-        "default_model": "deepseek/deepseek-r1",
+        "default_model": "deepseek/deepseek-v4-pro",
         "supports_json_mode": False,
     },
 ]

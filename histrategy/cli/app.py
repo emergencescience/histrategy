@@ -82,7 +82,7 @@ def run_game(force_new: bool = False):
         # Resume existing game - skip faction selection
         console.print(Panel(
             "[bold green]✓ 检测到历史存档，自动继续游戏[/]\n"
-            "[dim]使用 --new 可强制开始新游戏 | 删除 ~/.histrategy/ 可重置所有数据[/]",
+            f"[dim]使用 --new 可强制开始新游戏 | 删除 {DATA_DIR}/ 可重置所有数据[/]",
             border_style="green",
             title="📂 继续游戏",
         ))
@@ -191,6 +191,18 @@ def display_season_report(engine: GameEngine, result: dict):
     # Header: Date + Status (replaces redundant ASCII_TITLE)
     _show_status_header(engine)
 
+    # Advisor Feedback
+    advisor_feedback = result.get("advisor_feedback", {})
+    advisor_text = _format_advisor_feedback(advisor_feedback)
+    if advisor_text:
+        console.print()
+        console.print(Panel(
+            advisor_text,
+            border_style="bright_magenta",
+            title="🧭 幕府参议",
+            title_align="left",
+        ))
+
     # Narrative
     narrative_text = result.get("narrative", "")
     if narrative_text:
@@ -252,6 +264,39 @@ def display_season_report(engine: GameEngine, result: dict):
             title="🎯 可选择的战略方向",
             title_align="left",
         ))
+
+
+def _format_advisor_feedback(feedback) -> str:
+    """Convert advisor feedback dict/string into display text."""
+    if not feedback:
+        return ""
+    if isinstance(feedback, str):
+        return feedback.strip()
+    if not isinstance(feedback, dict):
+        return ""
+
+    lines = []
+    understanding = feedback.get("understanding")
+    if understanding:
+        lines.append(str(understanding))
+
+    sections = [
+        ("研判", feedback.get("strategic_read", [])),
+        ("风险", feedback.get("risks", [])),
+        ("本季可行", feedback.get("recommended_execution", [])),
+    ]
+    for title, items in sections:
+        if isinstance(items, str):
+            items = [items]
+        if items:
+            lines.append(f"\n[bold]{title}[/]")
+            lines.extend(f"  • {item}" for item in items if item)
+
+    question = feedback.get("clarifying_question")
+    if question:
+        lines.append(f"\n[bold]待主公决断[/]\n  • {question}")
+
+    return "\n".join(lines).strip()
 
 
 def _print_title():

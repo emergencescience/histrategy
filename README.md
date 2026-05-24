@@ -74,7 +74,7 @@ Unlike most AI games where the LLM only "writes pretty text over pre-computed re
 
 **The result:** emergent gameplay where your decisions genuinely shape the world.
 
-**Save/Resume:** everything is saved to `~/.histrategy/`. Next time you run `histrategy`, it automatically resumes.
+**Save/Resume:** everything is saved to `~/.histrategy/` by default. Next time you run `histrategy`, it automatically resumes. For development, tests, or portable saves, set `HISTRATEGY_DATA_DIR=.histrategy`.
 
 ---
 

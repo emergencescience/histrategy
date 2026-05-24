@@ -51,12 +51,14 @@ WORLD_MODEL_SYSTEM_PROMPT = """你是《三國志略》的AI游戏主持人（Ga
 
 ## 叙事风格
 - 使用文白相间的文言风格，略有古典小说质感
+- advisor_feedback 要像军师即时进言：先说明你如何理解玩家意图，再指出风险和可执行落点
 - 每个后果都要具体（不要笼统的"民心有所提升"）
 - 引用玩家的原话作为决策的起点
 - 决策后果板要清晰写具体数字变化
 
 ## 输出格式
 你必须严格输出JSON，包含以下字段：
+- advisor_feedback: 幕府参议（先理解玩家战略，不改变状态），包含 understanding, strategic_read, risks, recommended_execution, clarifying_question
 - narrative: 本季度的叙事文本（文言风格，300-800字）
 - aftermath: 决策后果板（简短，引用玩家原话 + 具体后果）
 - state_changes: 玩家势力变化 {strength, economy, morale, treasury, food 的变化值}
@@ -188,6 +190,7 @@ class WorldModel:
             # Build the return dict
             return {
                 "narrative": result.get("narrative", ""),
+                "advisor_feedback": result.get("advisor_feedback", {}),
                 "aftermath": result.get("aftermath", ""),
                 "npc_actions": result.get("npc_actions", []),
                 "state_changes": result.get("state_changes", {}),
@@ -206,6 +209,13 @@ class WorldModel:
             state.advance_turn()
             return {
                 "narrative": f"（系统正在重整旗鼓。天下大势依旧运转，但军情延误了…）",
+                "advisor_feedback": {
+                    "understanding": f"幕府已收到主公之令：「{player_decision[:80]}」。",
+                    "strategic_read": ["此令已记录为本季度战略意图，但 AI 推演暂未完成。"],
+                    "risks": ["军情延误会降低本季度反馈精度。"],
+                    "recommended_execution": ["可重新提交更明确的政令，或继续等待军情。"],
+                    "clarifying_question": None,
+                },
                 "aftermath": f"⚡ 你的决策：「{player_decision[:80]}」\n  因军情延误，暂未收到回报。",
                 "npc_actions": ["各方势力继续行动，天下纷争不休。"],
                 "state_changes": {"strength": 0, "economy": 0, "morale": 0, "treasury": 0, "food": 0},
@@ -259,6 +269,7 @@ class WorldModel:
 
             return {
                 "narrative": result.get("narrative", ""),
+                "advisor_feedback": result.get("advisor_feedback", {}),
                 "npc_actions": result.get("npc_actions", []),
                 "state_changes": {"strength": 0, "economy": 0, "morale": 0,
                                   "treasury": 0, "food": 0, "npc_changes": {}},
@@ -373,6 +384,4 @@ class WorldModel:
         new_state.advance_turn()
 
         return new_state
-
-
 
