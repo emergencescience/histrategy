@@ -273,6 +273,13 @@ class TestChoicesGenerated:
         assert len(choices) >= 3
         assert any("扩军" in c or "出征" in c for c in choices)
 
+    def test_simulation_result_returns_choices(self):
+        """Offline turn results should surface follow-up choices to the CLI."""
+        w = GameWorld("190")
+        w.player_faction_id = "cao"
+        result = simulate_turn_offline(w, "发展商贸")
+        assert len(result.get("new_choices", [])) >= 3
+
     def test_choices_depend_on_state(self):
         """Choices should change based on faction state."""
         w = GameWorld("190")
@@ -312,6 +319,20 @@ class TestMemorySystem:
         # Memory should have 3 entries
         mem2 = load_player_memory()
         assert len(mem2["decisions"]) >= 3
+
+
+class TestOfflineTurnProgression:
+    """Test offline legacy world time progression through the engine."""
+
+    def test_legacy_world_advances_with_world_state(self):
+        """Offline reports should not be stuck in 190 spring forever."""
+        from histrategy.engine.game import GameEngine
+        engine = GameEngine(new_game=True)
+        engine.set_player_faction("cao")
+        engine.process_turn("发展经济")
+        assert engine.world_state.turn == 1
+        assert engine.legacy_world.turn_count == 1
+        assert engine.legacy_world.current_season == "summer"
 
 
 class TestCapitalNames:

@@ -348,10 +348,12 @@ def simulate_turn_offline(world: "GameWorld", player_decision: str) -> dict:
 
     # ── Events from knowledge base ──
     events_occurred = _check_knowledge_events(world)
+    choices = _generate_choices(intent, world)
 
     return _make_result(narrative_parts, npc_actions, {}, events_occurred,
                         aftermath=aftermath_text,
-                        advisor_feedback=advisor_feedback)
+                        advisor_feedback=advisor_feedback,
+                        choices=choices)
 
 
 # ─── Knowledge helpers ─────────────────────────────────────────
@@ -1067,13 +1069,14 @@ def _make_result(narrative_parts: list, npc_actions: list,
                  state: dict, events: list,
                  game_over: Optional[dict] = None,
                  aftermath: str = "",
-                 advisor_feedback: Optional[dict] = None) -> dict:
+                 advisor_feedback: Optional[dict] = None,
+                 choices: Optional[list[str]] = None) -> dict:
     return {
         "narrative": "\n".join(narrative_parts),
         "npc_actions": npc_actions or ["天下局势正在微妙变化中……"],
         "state_changes": state,
         "events_occurred": events,
-        "new_choices": [],
+        "new_choices": choices or [],
         "game_over": game_over,
         "aftermath": aftermath,
         "advisor_feedback": advisor_feedback or {},

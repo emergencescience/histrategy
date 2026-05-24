@@ -98,6 +98,7 @@ def run_dev(faction_choice: Optional[int] = None, force_new: bool = False):
         for action in intro.get("npc_actions", []):
             print(f"  ⚡ {action}")
         print("---")
+        _game_loop.last_result = intro
 
     # Game loop
     _game_loop(engine, llm)
@@ -194,15 +195,6 @@ def _display_result(result: dict):
         print("大事记:")
         for e in events:
             print(f"  📌 {e}")
-
-    # Choices
-    choices = result.get("new_choices", [])
-    if choices and not result.get("game_over"):
-        print("---")
-        print("可选择的战略方向:")
-        for c in choices:
-            print(f"  {c}")
-
 
 def _format_advisor_feedback(feedback) -> str:
     """Format advisor feedback for plain-text dev output."""

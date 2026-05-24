@@ -215,6 +215,7 @@ class GameEngine:
         result = simulate_turn_offline(self.legacy_world, player_decision)
 
         # Sync state changes back to world_state
+        self.legacy_world.advance_turn()
         self.world_state.advance_turn()
         player_fsid = self.world_state.get_player_faction()
         lw_player = self.legacy_world.get_player_faction()

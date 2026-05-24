@@ -18,6 +18,7 @@ Thumbs.db
 
 # Game saves
 .histrategy/
+.histrategy-playtest/
 
 # Environment
 .env
