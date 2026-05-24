@@ -96,25 +96,22 @@ def run_dev(faction_choice: int | None = None, force_new: bool = False):
         print("---")
 
     # Main game loop
-    _game_loop(engine, game_master)
+    _game_loop(engine)
 
 
-def _game_loop(engine: GameEngine, game_master: GameMaster | None):
+def _game_loop(engine: GameEngine):
     """The main game loop — Plan Mode → Player Decision → Command Mode.
 
-    LLM-driven when game_master is provided:
-      Plan Mode → LLM generates advisor court + suggestions
+    Unified through GameEngine:
+      Plan Mode → engine.get_plan_data()
       Player types free-text decision
-      Command Mode → LLM generates execution results + consequences
-
-    Offline fallback when no game_master:
-      Shows simple prompt, uses engine.process_turn() with offline_sim.
+      Command Mode → engine.process_turn()
     """
     while True:
         try:
             # ═══ PLAN MODE ═══════════════════════════════════════
-            if game_master:
-                _show_llm_plan_mode(game_master, engine.world_state)
+            if engine.llm:
+                _show_llm_plan_mode(engine)
             else:
                 _show_offline_plan_mode(engine)
 
@@ -139,17 +136,14 @@ def _game_loop(engine: GameEngine, game_master: GameMaster | None):
 
             # ═══ COMMAND MODE ═══════════════════════════════════
             print("---", file=sys.stderr)
-            if game_master:
+            if engine.llm:
                 print("[系统] AI游戏主持正在推演天下大势...", file=sys.stderr)
-                result = game_master.generate_command_mode(
-                    engine.world_state, decision
-                )
-                if "world_state" in result:
-                    engine.world_state = result["world_state"]
-                _show_llm_command_result(result)
             else:
                 print("[系统] 正在推演天下大势...", file=sys.stderr)
-                result = engine.process_turn(decision)
+            result = engine.process_turn(decision)
+            if engine.llm:
+                _show_llm_command_result(result)
+            else:
                 _show_offline_command_result(result)
 
         except (EOFError, KeyboardInterrupt):
@@ -159,9 +153,9 @@ def _game_loop(engine: GameEngine, game_master: GameMaster | None):
 
 # ─── LLM-Driven Plan Mode ──────────────────────────────────
 
-def _show_llm_plan_mode(gm: GameMaster, state):
+def _show_llm_plan_mode(engine: GameEngine):
     """Generate and display LLM-driven Plan Mode (advisor court)."""
-    plan = gm.generate_plan_mode(state)
+    plan = engine.get_plan_data()
 
     # Season summary
     summary = plan.get("season_summary", "")

@@ -100,7 +100,7 @@ def run_game(force_new: bool = False):
             input()
         console.clear()
         _show_status_header(engine)
-        _game_loop(engine, game_master)
+        _game_loop(engine)
         return
 
     # --- New Game: Faction Selection ---
@@ -145,20 +145,18 @@ def run_game(force_new: bool = False):
         intro = engine.get_intro_scene()
 
     _display_intro(engine, intro)
-    _game_loop(engine, game_master)
+    _game_loop(engine)
 
 
-def _game_loop(engine: GameEngine, game_master: GameMaster | None):
+def _game_loop(engine: GameEngine):
     """Main game loop with Plan/Command two-phase flow.
 
-    LLM-driven when game_master is provided:
-      Plan Mode  -> LLM generates advisor court + suggestions
+    Fully unified through GameEngine:
+      Plan Mode  -> engine.get_plan_data()
       Player types free-text decision
-      Command Mode -> LLM generates execution results + consequences
-
-    Offline fallback when no game_master:
-      Uses engine.process_turn() with offline_sim.
+      Command Mode -> engine.process_turn()
     """
+    show_plan = True
     while True:
         # Check for elimination
         player = engine.world_state.get_player_faction()
@@ -175,10 +173,12 @@ def _game_loop(engine: GameEngine, game_master: GameMaster | None):
             break
 
         # === PLAN MODE ===========================================
-        if game_master:
-            _display_llm_plan_mode(game_master, engine.world_state)
-        else:
-            _display_offline_plan_mode(engine)
+        if show_plan:
+            if engine.llm:
+                _display_llm_plan_mode(engine)
+            else:
+                _display_offline_plan_mode(engine)
+        show_plan = True  # reset for next loop iteration
 
         # === PLAYER DECISION =====================================
         console.print()
@@ -190,19 +190,18 @@ def _game_loop(engine: GameEngine, game_master: GameMaster | None):
             continue
         if decision == "__state__":
             _display_state(engine)
+            show_plan = False
+            continue
+        if decision == "__prompt_again__":
+            show_plan = False
             continue
 
         # === COMMAND MODE ========================================
         with console.status("[yellow]天机运转，推演天下大势...[/]", spinner="dots"):
-            if game_master:
-                result = game_master.generate_command_mode(
-                    engine.world_state, decision
-                )
-                if "world_state" in result:
-                    engine.world_state = result["world_state"]
+            result = engine.process_turn(decision)
+            if engine.llm:
                 _display_llm_command_result(result)
             else:
-                result = engine.process_turn(decision)
                 _display_offline_command_result(engine, result)
 
             game_over = result.get("game_over")
@@ -213,10 +212,10 @@ def _game_loop(engine: GameEngine, game_master: GameMaster | None):
 
 # ─── LLM Plan Mode Display ──────────────────────────────────
 
-def _display_llm_plan_mode(gm: GameMaster, state):
+def _display_llm_plan_mode(engine: GameEngine):
     """Display LLM-generated Plan Mode: advisor court + suggestions."""
     with console.status("[yellow]谋臣正在商议国策...[/]", spinner="dots"):
-        plan = gm.generate_plan_mode(state)
+        plan = engine.get_plan_data()
 
     # Season summary
     summary = plan.get("season_summary", "")
@@ -297,33 +296,13 @@ def _display_llm_command_result(result: dict):
             title_align="left",
         ))
 
-    # 2. Aftermath + state changes (merged into one panel)
-    has_changes = changes and any(v for v in changes.values() if v)
-    if aftermath or has_changes:
-        parts = []
-        if aftermath:
-            parts.append(aftermath)
-        if has_changes:
-            if parts:
-                parts.append("")
-            labels = {
-                "strength": "兵力", "economy": "经济", "morale": "民心",
-                "treasury": "资金", "food": "粮草",
-            }
-            for key in sorted(changes):
-                val = changes[key]
-                if not val:
-                    continue
-                label = labels.get(key, key)
-                sign = "+" if val > 0 else ""
-                color = "green" if val > 0 else "red"
-                parts.append(f"  [{color}]{label}: {sign}{val}[/]")
-
+    # 2. Aftermath/Narrative panel
+    if aftermath:
         console.print()
         console.print(Panel(
-            "\n".join(parts),
+            aftermath,
             border_style="bright_yellow",
-            title="⚡ 决策后果",
+            title="📜 局势推演",
             title_align="left",
         ))
 
@@ -365,9 +344,21 @@ def _display_offline_plan_mode(engine: GameEngine):
     if not player:
         return
 
+    plan = engine.get_plan_data()
+    summary = plan.get("season_summary", f"{engine.world_state.year}年{engine.world_state.current_season_cn}，天下纷争未休。")
+    suggestions = plan.get("suggestions", [])
+
+    s_lines = []
+    if suggestions:
+        s_lines.append("[bold yellow]军师建议的方案：[/]")
+        for s in suggestions:
+            s_lines.append(f"  {s}")
+        s_lines.append("")
+
     console.print()
     console.print(Panel(
-        f"[bold]请下达你的战略决策[/]\n\n"
+        f"[italic cyan]{summary}[/]\n\n"
+        + "\n".join(s_lines) +
         f"兵力: [cyan]{player.strength:,}[/] | "
         f"经济: [green]{player.economy}/100[/] | "
         f"民心: [magenta]{player.morale}/100[/] | "
@@ -584,7 +575,8 @@ def _get_player_decision() -> str | None:
         if decision.lower() == "plan":
             return "__plan__"
         if not decision:
-            return "__plan__"
+            console.print("[yellow][系统] 决策不能为空，请输入您的战略方针。[/]")
+            return "__prompt_again__"
         return decision
     except (EOFError, KeyboardInterrupt):
         return None
@@ -690,8 +682,22 @@ def main():
         "--faction", type=int, choices=range(1, 5),
         help="直接选择势力编号（跳过选人界面，仅开发模式）",
     )
+    parser.add_argument(
+        "--export-log", type=str,
+        help="将当前游戏战绩导出为 Markdown 或 JSON 格式 (例如: --export-log output.md)",
+    )
 
     args = parser.parse_args()
+
+    if args.export_log:
+        from ..engine.log_exporter import export_log
+        fmt = "json" if args.export_log.endswith(".json") else "markdown"
+        success = export_log(args.export_log, format_type=fmt)
+        if success:
+            print(f"[系统] 成功导出战绩至 {args.export_log}")
+        else:
+            print(f"[错误] 导出失败，可能没有当前会话日志或路径无效")
+        return
 
     if args.dev:
         from .dev_cli import run_dev

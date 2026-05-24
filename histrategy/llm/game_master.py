@@ -16,6 +16,7 @@ import copy
 from ..state.world_state import (
     EventEntry,
     WorldState,
+    HistoricalMode,
     add_event_to_history,
     get_historical_context,
     get_recent_history,
@@ -154,6 +155,40 @@ changes字段包含以下数值变化（可以为负）：
 }"""
 
 
+# ─── Mode-Specific Prompts ───────────────────────────────────
+
+HISTORICAL_PLAN_FRAMING = """
+## 历史模式运作指南
+- 当前为「正史模式」（偏离度低）：天下局势与历史高度吻合，谋臣们的提议应当尽量符合正史走向或在历史框架内做出合理规划。
+- 引导玩家顺应历史的主线事件。
+"""
+
+DIVERGENT_PLAN_FRAMING = """
+## 历史模式运作指南
+- 当前为「演义/走向偏离模式」（偏离度中）：历史轨迹已被玩家改变。谋臣们需要意识到历史已经分叉，建言要基于当前的“偏离状态”进行合情合理的推演，而不是生搬硬套正史。
+"""
+
+FREEFORM_PLAN_FRAMING = """
+## 历史模式运作指南
+- 当前为「幻想沙盒模式」（偏离度高）：历史进程已完全脱轨。请抛开任何历史必然性的包袱，纯粹根据各势力实力和人物性格进行合理的利益冲突和争霸建言。
+"""
+
+HISTORICAL_COMMAND_FRAMING = """
+## 历史模式执行指南
+- 当前为「正史模式」：推演结果需要维持强烈的历史重力。玩家的微调可以影响结果，但大势（如董卓迁都、群雄割据）会产生强烈的牵引力。
+"""
+
+DIVERGENT_COMMAND_FRAMING = """
+## 历史模式执行指南
+- 当前为「演义/走向偏离模式」：历史已被改变。请在推演中体现蝴蝶效应，展示事件如何以全新的因果逻辑发展。史官会将此记为《建安异录》。
+"""
+
+FREEFORM_COMMAND_FRAMING = """
+## 历史模式执行指南
+- 当前为「幻想沙盒模式」：历史已完全脱轨，属于全自由度沙盒。请根据当前的军事实力、民心等数据进行纯粹的博弈推演，NPC的行为应当完全自驱。
+"""
+
+
 # ─── Context builders ───────────────────────────────────────
 
 def _build_plan_context(state: WorldState) -> str:
@@ -199,6 +234,16 @@ def _build_plan_context(state: WorldState) -> str:
             d = ev.get("player_decision", "")
             if d:
                 lines.append(f"- 「{d[:60]}」")
+
+    # NPC emotional states
+    if state.npc_states:
+        lines.append("")
+        lines.append("## 臣子/将领情绪与忠诚度")
+        for cid, ns in state.npc_states.items():
+            char_name = state.characters[cid].name if cid in state.characters else cid
+            lines.append(f"- {char_name}：忠诚度 {ns.loyalty}，情绪【{ns.mood.value}】")
+            if ns.grievance:
+                lines.append(f"  缘由：{ns.grievance}")
 
     return "\n".join(lines)
 
@@ -258,16 +303,33 @@ class GameMaster:
 
     # ─── Plan Mode ──────────────────────────────────────────
 
-    def generate_plan_mode(self, state: WorldState) -> dict:
+    def generate_plan_mode(
+        self,
+        state: WorldState,
+        pressure_hint: str = "",
+    ) -> dict:
         """Generate Plan Mode content: advisor speeches + 4 suggestions.
 
         The LLM receives the full world state and generates a council meeting
         with faction-appropriate advisors giving real strategic advice.
         """
+        mode = state.historical_mode
+        if mode == HistoricalMode.HISTORICAL:
+            framing = HISTORICAL_PLAN_FRAMING
+        elif mode == HistoricalMode.DIVERGENT:
+            framing = DIVERGENT_PLAN_FRAMING
+        else:
+            framing = FREEFORM_PLAN_FRAMING
+
+        system_content = GAMEMASTER_PLAN_SYSTEM + "\n" + framing
+        if pressure_hint:
+            system_content += f"\n\n## 叙事方向牵引指示（请在剧情推演中自然引导，但不要强行套用）：\n{pressure_hint}"
+
         messages = [
-            {"role": "system", "content": GAMEMASTER_PLAN_SYSTEM},
+            {"role": "system", "content": system_content},
             {"role": "user", "content": _build_plan_context(state)},
         ]
+
 
         try:
             result = self.llm.chat_structured(
@@ -303,6 +365,7 @@ class GameMaster:
         self,
         state: WorldState,
         player_decision: str,
+        pressure_hint: str = "",
     ) -> dict:
         """Generate Command Mode content: execution results.
 
@@ -313,8 +376,20 @@ class GameMaster:
         - NPC reactions
         - Updated world state
         """
+        mode = state.historical_mode
+        if mode == HistoricalMode.HISTORICAL:
+            framing = HISTORICAL_COMMAND_FRAMING
+        elif mode == HistoricalMode.DIVERGENT:
+            framing = DIVERGENT_COMMAND_FRAMING
+        else:
+            framing = FREEFORM_COMMAND_FRAMING
+
+        system_content = GAMEMASTER_COMMAND_SYSTEM + "\n" + framing
+        if pressure_hint:
+            system_content += f"\n\n## 叙事方向牵引指示（请在剧情推演中自然引导，但不要强行套用）：\n{pressure_hint}"
+
         messages = [
-            {"role": "system", "content": GAMEMASTER_COMMAND_SYSTEM},
+            {"role": "system", "content": system_content},
             {"role": "user", "content": _build_command_context(state, player_decision)},
         ]
 
@@ -328,6 +403,7 @@ class GameMaster:
 
             # Apply state changes from LLM
             updated_state = self._apply_command_updates(state, result)
+
 
             # Record the event
             event = EventEntry(
@@ -343,15 +419,22 @@ class GameMaster:
             save_world(updated_state)
             add_event_to_history(event)
 
+            # Divergence acknowledgment
+            aftermath = result.get("aftermath", "")
+            if state.historical_mode == HistoricalMode.HISTORICAL and updated_state.historical_mode != HistoricalMode.HISTORICAL:
+                divergence_msg = "【史官提笔长叹：历史的轨迹已被彻底改变，此后的纪事，将被记入《建安异录》之中。】\n\n"
+                aftermath = divergence_msg + aftermath
+
             return {
                 "bureaucracy": result.get("bureaucracy", []),
                 "short_term": result.get("short_term", {"changes": {}}),
                 "seeds": result.get("seeds", []),
                 "npc_reactions": result.get("npc_reactions", []),
-                "aftermath": result.get("aftermath", ""),
+                "aftermath": aftermath,
                 "state_changes": result.get("short_term", {}).get("changes", {}),
                 "world_state": updated_state,
             }
+
         except Exception:
             state.advance_turn()
             return {
@@ -392,5 +475,13 @@ class GameMaster:
                         val = max(0, min(100, int(val))) if key in ("economy", "morale") else max(0, int(val))
                         setattr(fs, key, val)
 
+        # Apply updated player deviation
+        if "player_deviation" in llm_result:
+            try:
+                new_state.player_deviation = float(llm_result["player_deviation"])
+            except (ValueError, TypeError):
+                pass
+
         new_state.advance_turn()
         return new_state
+

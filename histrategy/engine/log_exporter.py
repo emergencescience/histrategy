@@ -1,150 +1,170 @@
-"""GameLogExporter — export session logs for community contribution.
+"""Log Exporter — formats and exports game session logs to JSON or Markdown.
 
-Players can share their alternate history playthroughs via structured
-JSON logs. These logs are also the raw data for academic analysis.
-
-Usage:
-    exporter = GameLogExporter(faction_id="cao_cao")
-    exporter.record_turn(turn_context, sim_result)
-    exporter.save()  # writes to ~/.histrategy/logs/
-
-CLI:
-    histrategy --export-log   # saves current session log
+Supports community sharing and DevOps agent training.
 """
 
 from __future__ import annotations
 
 import json
-import os
-from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-
-LOG_SCHEMA_VERSION = "0.3"
-
-
-def _log_dir() -> Path:
-    override = os.environ.get("HISTRATEGY_DATA_DIR")
-    base = Path(override).expanduser() if override else Path.home() / ".histrategy"
-    return base / "logs"
+from ..state.world_state import get_data_dir, load_world
 
 
-@dataclass
-class TurnLog:
-    """Record of a single game turn."""
-    turn: int
-    year: int
-    season: str
-    player_decision: str
-    advisor_speeches: list[dict] = field(default_factory=list)
-    suggestions: list[str] = field(default_factory=list)
-    consequences: dict = field(default_factory=dict)   # state_changes
-    seeds: list[dict] = field(default_factory=list)
-    npc_reactions: list[str] = field(default_factory=list)
-    aftermath: str = ""
-    deviation_score: float = 0.0
-    engine_used: str = ""
+def _session_log_file() -> Path:
+    return get_data_dir() / "current_session_log.json"
 
 
-@dataclass
-class GameLog:
-    """Complete session log — one per game."""
-    schema_version: str = LOG_SCHEMA_VERSION
-    faction_id: str = ""
-    faction_name: str = ""
-    player_id: str = "anonymous"      # opt-in attribution
-    started_at: str = ""
-    ended_at: str = ""
-    outcome: str = ""                  # "victory" | "defeat" | "abandoned"
-    final_score: str = ""
-    turns: list[TurnLog] = field(default_factory=list)
-    total_turns: int = 0
-    final_deviation: float = 0.0
+def clear_session_log() -> None:
+    """Clear or reset the current session log on new game start."""
+    path = _session_log_file()
+    if path.exists():
+        try:
+            path.unlink()
+        except OSError:
+            pass
 
 
-class GameLogExporter:
-    """Records and exports game session logs.
+def append_to_session_log(
+    turn: int,
+    year: int,
+    season: str,
+    player_decision: str,
+    sim_result_dict: dict,
+) -> None:
+    """Append a turn's simulation results to the active session log."""
+    path = _session_log_file()
+    path.parent.mkdir(parents=True, exist_ok=True)
 
-    Logs are saved to ~/.histrategy/logs/YYYY-MM-DD-{faction}.json.
-    """
+    log_entry = {
+        "turn": turn,
+        "year": year,
+        "season": season,
+        "player_decision": player_decision,
+        "narrative": sim_result_dict.get("narrative", ""),
+        "aftermath": sim_result_dict.get("aftermath", ""),
+        "state_changes": sim_result_dict.get("state_changes", {}),
+        "npc_reactions": sim_result_dict.get("npc_reactions", []),
+        "bureaucracy": sim_result_dict.get("bureaucracy", []),
+        "timestamp": datetime.now().isoformat(),
+    }
 
-    def __init__(self, faction_id: str, faction_name: str = "") -> None:
-        self._log = GameLog(
-            faction_id=faction_id,
-            faction_name=faction_name,
-            started_at=datetime.now().isoformat(),
-        )
+    entries = []
+    if path.exists():
+        try:
+            with open(path) as f:
+                entries = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            pass
 
-    def record_turn(
-        self,
-        turn: int,
-        year: int,
-        season: str,
-        player_decision: str,
-        sim_result,          # SimResult object
-        advisor_speeches: list[dict] | None = None,
-        suggestions: list[str] | None = None,
-        deviation: float = 0.0,
-    ) -> None:
-        """Record one turn of gameplay."""
-        entry = TurnLog(
-            turn=turn,
-            year=year,
-            season=season,
-            player_decision=player_decision,
-            advisor_speeches=advisor_speeches or [],
-            suggestions=suggestions or [],
-            consequences=getattr(sim_result, "state_changes", {}),
-            seeds=getattr(sim_result, "seeds", []),
-            npc_reactions=getattr(sim_result, "npc_reactions", []),
-            aftermath=getattr(sim_result, "aftermath", ""),
-            deviation_score=deviation,
-            engine_used=getattr(sim_result, "engine_id", ""),
-        )
-        self._log.turns.append(entry)
+    entries.append(log_entry)
 
-    def finish(
-        self,
-        outcome: str = "abandoned",
-        final_score: str = "",
-        final_deviation: float = 0.0,
-    ) -> None:
-        """Finalize the log at game end."""
-        self._log.ended_at = datetime.now().isoformat()
-        self._log.outcome = outcome
-        self._log.final_score = final_score
-        self._log.total_turns = len(self._log.turns)
-        self._log.final_deviation = final_deviation
+    with open(path, "w") as f:
+        json.dump(entries, f, ensure_ascii=False, indent=2)
 
-    def save(self) -> Path:
-        """Save log to disk. Returns the saved file path."""
-        log_dir = _log_dir()
-        log_dir.mkdir(parents=True, exist_ok=True)
 
-        date_str = datetime.now().strftime("%Y-%m-%d")
-        filename = f"{date_str}-{self._log.faction_id}.json"
-        path = log_dir / filename
+def export_log(output_path: str, format_type: str = "markdown") -> bool:
+    """Export the current session log to the target path in JSON or Markdown."""
+    log_src = _session_log_file()
+    if not log_src.exists():
+        return False
 
-        data = asdict(self._log)
-        with open(path, "w") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+    try:
+        with open(log_src) as f:
+            entries = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return False
 
-        return path
+    out_path = Path(output_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    def to_markdown(self) -> str:
-        """Generate a human-readable Markdown summary of the session."""
-        log = self._log
-        lines = [
-            f"# 《三國志略》游戏记录",
-            f"**势力**: {log.faction_name} | **结局**: {log.outcome}",
-            f"**回合数**: {log.total_turns} | **历史偏差**: {log.final_deviation:.2f}",
-            f"**最终评分**: {log.final_score}",
+    if format_type.lower() == "json":
+        try:
+            with open(out_path, "w") as f:
+                json.dump(entries, f, ensure_ascii=False, indent=2)
+            return True
+        except OSError:
+            return False
+
+    # Default to markdown
+    world = load_world()
+    player_name = "主公"
+    if world:
+        player_fac = world.get_player_faction()
+        if player_fac:
+            player_name = f"{player_fac.name}（{player_fac.ruler_id}）"
+
+    md_lines = [
+        f"# 《三國志略》战纪：{player_name}之天下争霸",
+        f"导出时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | 总计回合：{len(entries)} 回合",
+        "",
+        "---",
+        "",
+    ]
+
+    for entry in entries:
+        season_cn = {
+            "spring": "春季",
+            "summer": "夏季",
+            "autumn": "秋季",
+            "winter": "冬季",
+        }.get(entry.get("season", ""), entry.get("season", ""))
+        md_lines.extend([
+            f"## 第 {entry.get('turn')} 回合：{entry.get('year')}年{season_cn}",
             "",
-        ]
-        for t in log.turns:
-            lines.append(f"## 第{t.turn}回合 · {t.year}年{t.season}")
-            lines.append(f"> 决策: {t.player_decision}")
-            if t.aftermath:
-                lines.append(f"\n{t.aftermath}")
-            lines.append("")
-        return "\n".join(lines)
+            f"> 📜 **主公政令**：「{entry.get('player_decision')}」",
+            "",
+            "### 📜 局势推演",
+            entry.get("narrative", "").strip(),
+            "",
+        ])
+
+        # State changes
+        changes = entry.get("state_changes", {})
+        if changes:
+            md_lines.append("### 📊 势力变动")
+            for key, label in [
+                ("strength", "兵力"),
+                ("economy", "经济"),
+                ("morale", "民心"),
+                ("treasury", "资金"),
+                ("food", "粮草"),
+            ]:
+                val = changes.get(key, 0)
+                if val:
+                    sign = "+" if val > 0 else ""
+                    md_lines.append(f"- **{label}**：`{sign}{val}`")
+            md_lines.append("")
+
+        # Bureaucracy
+        bur = entry.get("bureaucracy", [])
+        if bur:
+            md_lines.extend([
+                "### 🏛️ 曹署执行情况",
+                "| 官署 | 责任官吏 | 执行细则 |",
+                "| :--- | :--- | :--- |",
+            ])
+            for b in bur:
+                dept = b.get("department", "")
+                off = b.get("official", "")
+                act = b.get("action", "")
+                md_lines.append(f"| {dept} | {off} | {act} |")
+            md_lines.append("")
+
+        # NPC Reactions
+        reactions = entry.get("npc_reactions", [])
+        if reactions:
+            md_lines.append("### ⚔️ 天下八方动向")
+            for r in reactions:
+                md_lines.append(f"- {r}")
+            md_lines.append("")
+
+        md_lines.append("---")
+        md_lines.append("")
+
+    try:
+        with open(out_path, "w") as f:
+            f.write("\n".join(md_lines))
+        return True
+    except OSError:
+        return False

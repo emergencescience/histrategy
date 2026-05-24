@@ -135,7 +135,7 @@ class NarrativeDirector:
     def mark_completed(self, event_id: str) -> None:
         """Mark an arc goal as completed (called when historical event occurs)."""
         for goal in self._goals:
-            if goal.event_id == event_id:
+            if goal.event_id == event_id or goal.title == event_id:
                 goal.completed = True
                 self._hint_cache = ""  # invalidate cache
 

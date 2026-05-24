@@ -21,7 +21,18 @@ import json
 import os
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
+
+from .npc_state import NPCState, load_npc_states, save_npc_states
+
+
+
+class HistoricalMode(Enum):
+    HISTORICAL = "historical"
+    DIVERGENT = "divergent"
+    FREEFORM = "freeform"
+
 
 # ─── File paths ─────────────────────────────────────────────
 
@@ -148,6 +159,8 @@ class WorldState:
     factions: dict[str, FactionState] = field(default_factory=dict)
     characters: dict[str, CharacterState] = field(default_factory=dict)
     territories: dict[str, TerritoryState] = field(default_factory=dict)
+    npc_states: dict[str, NPCState] = field(default_factory=dict)
+
 
     # Events & history
     event_log: list = field(default_factory=list)
@@ -167,6 +180,16 @@ class WorldState:
     @property
     def current_season_cn(self) -> str:
         return self.SEASON_CN.get(self.current_season, self.current_season)
+
+    @property
+    def historical_mode(self) -> HistoricalMode:
+        if self.player_deviation < 0.15:
+            return HistoricalMode.HISTORICAL
+        elif self.player_deviation < 0.40:
+            return HistoricalMode.DIVERGENT
+        else:
+            return HistoricalMode.FREEFORM
+
 
     def advance_turn(self):
         """Advance by one turn (one season)."""
@@ -195,6 +218,11 @@ class WorldState:
             },
             "player_faction_id": self.player_faction_id,
             "completed_events": self.completed_events,
+            "npc_states": {
+                cid: ns.to_dict()
+                for cid, ns in self.npc_states.items()
+            },
+
         }
 
     def from_dict(self, data: dict) -> WorldState:
@@ -222,6 +250,13 @@ class WorldState:
 
         if "completed_events" in data:
             self.completed_events = data["completed_events"]
+
+        if "npc_states" in data:
+            self.npc_states = {
+                cid: NPCState.from_dict(nsd)
+                for cid, nsd in data["npc_states"].items()
+            }
+
 
         return self
 
@@ -286,6 +321,8 @@ def save_world(state: WorldState):
     data["saved_at"] = datetime.now().isoformat()
     with open(_world_state_file(), "w") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+    if state.npc_states:
+        save_npc_states(state.npc_states)
 
 
 def load_world() -> WorldState | None:
@@ -298,9 +335,13 @@ def load_world() -> WorldState | None:
             data = json.load(f)
         state = WorldState()
         state.from_dict(data)
+        npc_data = load_npc_states()
+        if npc_data:
+            state.npc_states.update(npc_data)
         return state
     except (json.JSONDecodeError, OSError):
         return None
+
 
 
 def save_relationships(rels: dict[str, dict[str, int]]):

@@ -309,3 +309,38 @@ class TestCapitalNames:
         assert FACTION_CONFIGS["yuan_shao"]["capital"] == "yecheng"
         from histrategy.engine.offline_sim import CAPITAL_NAMES
         assert CAPITAL_NAMES["yecheng"] == "邺城"
+
+
+class TestNPCBetrayalTrigger:
+    """Test NPC emotional state danger thresholds and defection events."""
+
+    def test_plotting_mood_betrayal_after_consecutive_turns(self):
+        """NPC in plotting mood for 2+ consecutive turns should trigger betrayal."""
+        from histrategy.engine.game import GameEngine
+        from histrategy.state.npc_state import NPCState, NPCMood
+        from histrategy.state.world_state import CharacterState
+
+        engine = GameEngine(new_game=True)
+        engine.set_player_faction("cao")
+        
+        # Manually register an advisor 'xun_yu' in world characters and npc_states
+        engine.world_state.characters["xun_yu"] = CharacterState(
+            id="xun_yu", name="荀彧", faction_id="cao", role="advisor"
+        )
+        
+        # Inject plotting state with turns_at_current_mood = 2
+        engine.world_state.npc_states["xun_yu"] = NPCState(
+            character_id="xun_yu",
+            mood=NPCMood.PLOTTING,
+            turns_at_current_mood=2,
+            loyalty=20,
+        )
+        
+        # Run a turn. This should trigger defection
+        result = engine.process_turn("发展内政")
+        
+        # Check if the betrayal event was registered
+        assert any("荀彧" in evt and "叛逃" in evt for evt in result["events_occurred"])
+        assert "xun_yu" not in engine.world_state.npc_states
+        # Xun Yu should have defected to another faction (e.g. not 'cao')
+        assert engine.world_state.characters["xun_yu"].faction_id != "cao"
