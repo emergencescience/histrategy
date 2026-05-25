@@ -12,6 +12,7 @@ PROVIDER_CONFIGS = [
     {
         "name": "deepseek",
         "env_key": "DEEPSEEK_API_KEY",
+        "env_base": "DEEPSEEK_API_BASE",
         "default_base": "https://api.deepseek.com",
         "default_model": "deepseek-v4-pro",
         "supports_json_mode": True,
@@ -27,6 +28,7 @@ PROVIDER_CONFIGS = [
     {
         "name": "tongyi",
         "env_key": "TONGYI_API_KEY",
+        "env_base": "TONGYI_API_BASE",
         "default_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         "default_model": "qwen-max",
         "supports_json_mode": True,
@@ -34,6 +36,7 @@ PROVIDER_CONFIGS = [
     {
         "name": "openrouter",
         "env_key": "OPENROUTER_API_KEY",
+        "env_base": "OPENROUTER_API_BASE",
         "default_base": "https://openrouter.ai/api/v1",
         "default_model": "deepseek/deepseek-v4-pro",
         "supports_json_mode": False,
@@ -69,6 +72,8 @@ def detect_provider() -> dict:
                 key = os.environ.get(cfg["env_key"], "")
                 if key:
                     base_override = os.environ.get(cfg.get("env_base", ""), "")
+                    if not base_override and cfg["name"] != "openai":
+                        base_override = os.environ.get("OPENAI_API_BASE", "")
                     return {
                         "name": cfg["name"],
                         "api_key": key,
@@ -79,7 +84,7 @@ def detect_provider() -> dict:
                 return {
                     "name": cfg["name"],
                     "api_key": "",
-                    "api_base": cfg["default_base"],
+                    "api_base": os.environ.get(cfg.get("env_base", ""), "") or os.environ.get("OPENAI_API_BASE", "") or cfg["default_base"],
                     "model": os.environ.get("LLM_MODEL", cfg["default_model"]),
                     "supports_json_mode": cfg["supports_json_mode"],
                 }
@@ -89,6 +94,8 @@ def detect_provider() -> dict:
         key = os.environ.get(cfg["env_key"], "")
         if key and not key.startswith("your-") and len(key) > 10:
             base_override = os.environ.get(cfg.get("env_base", ""), "")
+            if not base_override and cfg["name"] != "openai":
+                base_override = os.environ.get("OPENAI_API_BASE", "")
             return {
                 "name": cfg["name"],
                 "api_key": key,
@@ -140,7 +147,7 @@ class LLMAdapter:
                     "Authorization": f"Bearer {self.api_key}",
                     "Content-Type": "application/json",
                 },
-                timeout=60.0,
+                timeout=180.0,
             )
         else:
             self.client = None

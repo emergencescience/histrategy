@@ -213,7 +213,7 @@ def _game_loop(engine: GameEngine):
 # ─── LLM Plan Mode Display ──────────────────────────────────
 
 def _display_llm_plan_mode(engine: GameEngine):
-    """Display LLM-generated Plan Mode: advisor court + suggestions."""
+    """Display LLM-generated Plan Mode: advisor court + suggestions in a single unified panel."""
     with console.status("[yellow]谋臣正在商议国策...[/]", spinner="dots"):
         plan = engine.get_plan_data()
 
@@ -226,32 +226,38 @@ def _display_llm_plan_mode(engine: GameEngine):
             align="center",
         ))
 
-    # Unified Court Dialogue
+    # Construct unified Markdown text
     court_dialogue = plan.get("court_dialogue", "")
+    suggestions = plan.get("suggestions", [])
+
+    court_md = []
     if court_dialogue:
+        court_md.append(court_dialogue.strip())
+        court_md.append("")
+
+    if suggestions:
+        court_md.append("### 🎯 廷议决策方向参考")
+        for i, s in enumerate(suggestions, 1):
+            if s.startswith("【") and "】" in s:
+                parts = s.split("】", 1)
+                title = parts[0][1:]
+                desc = parts[1].strip()
+                court_md.append(f"{i}. **{title}** — {desc}")
+            elif s.startswith("[") and "]" in s:
+                parts = s.split("]", 1)
+                title = parts[0][1:]
+                desc = parts[1].strip()
+                court_md.append(f"{i}. **{title}** — {desc}")
+            else:
+                court_md.append(f"{i}. {s}")
+        court_md.append("")
+
+    if court_md:
         console.print()
         console.print(Panel(
-            Markdown(court_dialogue),
+            Markdown("\n".join(court_md)),
             border_style="bright_magenta",
             title="🏛️ 议事厅 - 谋臣献策",
-            title_align="left",
-            padding=(1, 2),
-        ))
-
-    # Suggestions
-    suggestions = plan.get("suggestions", [])
-    if suggestions:
-        console.print()
-        suggestion_grid = Table.grid(padding=(0, 2))
-        for i, s in enumerate(suggestions, 1):
-            suggestion_grid.add_row(
-                f"[bold yellow]{i}.[/]",
-                Text(str(s), style="bright_white"),
-            )
-        console.print(Panel(
-            suggestion_grid,
-            border_style="cyan",
-            title="🎯 军师建议的方案",
             title_align="left",
             padding=(1, 2),
         ))
@@ -260,70 +266,51 @@ def _display_llm_plan_mode(engine: GameEngine):
 # ─── LLM Command Mode Display ───────────────────────────────
 
 def _display_llm_command_result(result: dict):
-    """Display LLM Command Mode results with unified panels."""
+    """Display LLM Command Mode results as a single unified historical chronicle."""
     bureaucracy = result.get("bureaucracy", [])
     aftermath = result.get("aftermath", "")
-    changes = result.get("state_changes", {})
     seeds = result.get("seeds", [])
     npc_reactions = result.get("npc_reactions", [])
 
-    # 1. Bureaucracy execution report
+    chronicle_md = []
+
+    if aftermath:
+        chronicle_md.append(aftermath.strip())
+        chronicle_md.append("")
+
     if bureaucracy:
-        console.print()
-        dept_parts = []
+        chronicle_md.append("### 🏛️ 各司政务")
         for dept in bureaucracy:
             dept_name = dept.get("department", "")
             official = dept.get("official", "")
             action = dept.get("action", "")
-            prefix = f"[{dept_name}"
-            if official:
-                prefix += f" · {official}"
-            prefix += "]"
-            dept_parts.append(f"[bold cyan]{prefix}[/] {action}")
-        console.print(Panel(
-            "\n\n".join(dept_parts),
-            border_style="blue",
-            title="\U0001f4dc 政令执行",
-            title_align="left",
-        ))
+            prefix = f"**[{dept_name}" + (f" · {official}" if official else "") + "]**"
+            chronicle_md.append(f"- {prefix} {action}")
+        chronicle_md.append("")
 
-    # 2. Aftermath/Narrative panel
-    if aftermath:
-        console.print()
-        console.print(Panel(
-            aftermath,
-            border_style="bright_yellow",
-            title="📜 局势推演",
-            title_align="left",
-        ))
+    if npc_reactions:
+        chronicle_md.append("### ⚔️ 列国战志")
+        for r in npc_reactions:
+            chronicle_md.append(f"- {r}")
+        chronicle_md.append("")
 
-    # 3. Seeds (long-term)
     if seeds:
-        console.print()
-        seed_lines = []
+        chronicle_md.append("### 🔮 伏线机锋")
         for s in seeds:
             trigger = s.get("trigger_after", "?")
             title = s.get("title", "未知")
             desc = s.get("description", "")
-            seed_lines.append(
-                f"[bold yellow]• {title}[/] [dim]({trigger}回合后)[/]\n"
-                f"  [italic]{desc}[/]"
-            )
-        console.print(Panel(
-            "\n".join(seed_lines),
-            border_style="green",
-            title="\U0001f331 潜在影响",
-            title_align="left",
-        ))
+            chronicle_md.append(f"- **{title}** *({trigger}回合后)*: {desc}")
+        chronicle_md.append("")
 
-    # 4. NPC reactions
-    if npc_reactions:
+    if chronicle_md:
         console.print()
         console.print(Panel(
-            "\n".join(f"  ⚔ {r}" for r in npc_reactions),
-            border_style="yellow",
-            title="\U0001f30d 天下动向",
+            Markdown("\n".join(chronicle_md)),
+            border_style="bright_yellow",
+            title="📜 局势推演纪事",
             title_align="left",
+            padding=(1, 2),
         ))
 
 

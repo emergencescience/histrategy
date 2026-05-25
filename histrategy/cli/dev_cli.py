@@ -154,7 +154,7 @@ def _game_loop(engine: GameEngine):
 # ─── LLM-Driven Plan Mode ──────────────────────────────────
 
 def _show_llm_plan_mode(engine: GameEngine):
-    """Generate and display LLM-driven Plan Mode (advisor court)."""
+    """Generate and display LLM-driven Plan Mode (advisor court + suggestions)."""
     plan = engine.get_plan_data()
 
     # Season summary
@@ -164,56 +164,67 @@ def _show_llm_plan_mode(engine: GameEngine):
 
     # Unified Court Dialogue
     court_dialogue = plan.get("court_dialogue", "")
+    suggestions = plan.get("suggestions", [])
+
+    print("\n=== 🏛️ 议事厅 - 谋臣献策 ===")
     if court_dialogue:
-        print("\n=== 🏛️ 议事厅 - 谋臣献策 ===")
-        print(court_dialogue)
+        print(court_dialogue.strip())
         print()
 
-    # Suggestions
-    suggestions = plan.get("suggestions", [])
     if suggestions:
         print("---")
-        print("军师建议的方案:")
-        for s in suggestions:
-            print(f"  {s}")
+        print("🎯 廷议决策方向参考:")
+        for i, s in enumerate(suggestions, 1):
+            if s.startswith("【") and "】" in s:
+                parts = s.split("】", 1)
+                title = parts[0][1:]
+                desc = parts[1].strip()
+                print(f"  {i}. **{title}** — {desc}")
+            elif s.startswith("[") and "]" in s:
+                parts = s.split("]", 1)
+                title = parts[0][1:]
+                desc = parts[1].strip()
+                print(f"  {i}. **{title}** — {desc}")
+            else:
+                print(f"  {i}. {s}")
         print()
 
 
 def _show_llm_command_result(result: dict):
-    """Display Command Mode results from LLM."""
-    # Bureaucracy report
+    """Display Command Mode results from LLM in a single unified chronicle block."""
     bureaucracy = result.get("bureaucracy", [])
+    aftermath = result.get("aftermath", "")
+    seeds = result.get("seeds", [])
+    npc_reactions = result.get("npc_reactions", [])
+
+    print("\n=== 📜 局势推演纪事 ===")
+    if aftermath:
+        print(aftermath.strip())
+        print()
+
     if bureaucracy:
-        print("\n=== 政令执行 ===")
+        print("### 🏛️ 各司政务")
         for dept in bureaucracy:
             dept_name = dept.get("department", "")
             official = dept.get("official", "")
             action = dept.get("action", "")
-            prefix = f"[{dept_name}" + (f"·{official}" if official else "") + "]"
-            print(f"  {prefix} {action}")
-
-    # Aftermath
-    aftermath = result.get("aftermath", "")
-    if aftermath:
-        print(f"\n=== 📜 局势推演 ===")
-        print(aftermath)
-
-    # Seeds
-    seeds = result.get("seeds", [])
-    if seeds:
+            prefix = f"[{dept_name}" + (f" · {official}" if official else "") + "]"
+            print(f"  - **{prefix}** {action}")
         print()
-        print("  🌱 潜在影响:")
+
+    if npc_reactions:
+        print("### ⚔️ 列国战志")
+        for r in npc_reactions:
+            print(f"  - {r}")
+        print()
+
+    if seeds:
+        print("### 🔮 伏线机锋")
         for s in seeds:
             trigger = s.get("trigger_after", "?")
-            print(f"    • {s.get('title', '未知')}（{trigger}回合后）— {s.get('description', '')}")
-
-    # NPC reactions
-    npc_reactions = result.get("npc_reactions", [])
-    if npc_reactions:
-        print()
-        print("  天下动向:")
-        for r in npc_reactions:
-            print(f"    • {r}")
+            title = s.get("title", "未知")
+            desc = s.get("description", "")
+            print(f"  - **{title}** *({trigger}回合后)*: {desc}")
         print()
 
 
