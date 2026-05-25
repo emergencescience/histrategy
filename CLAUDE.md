@@ -53,7 +53,7 @@ Plan Mode (LLM)  →  Player decision (free text)  →  Command Mode (LLM)
 |-------|-----------|----------------|
 | **CLI** | `cli/app.py`, `cli/dev_cli.py` | Rich TUI / plain-text I/O, orchestrates game loop |
 | **Engine** | `engine/game.py`, `engine/offline_sim.py` | GameEngine orchestrator, offline fallback simulation |
-| **LLM** | `llm/game_master.py`, `llm/world_model.py`, `llm/adapter.py` | GameMaster (Plan/Command), older WorldModel, multi-provider API client |
+| **LLM** | `llm/game_master.py`, `llm/adapter.py` | GameMaster (Intro/Plan/Command), multi-provider API client |
 | **State** | `state/world_state.py` | `WorldState` dataclass with JSON persistence |
 | **Knowledge** | `knowledge/data/*.json` | Characters, factions, regions, events as structured JSON |
 
@@ -62,10 +62,9 @@ Plan Mode (LLM)  →  Player decision (free text)  →  Command Mode (LLM)
 - **`GameEngine`** (in `engine/game.py`) — the primary orchestrator. Uses `GameMaster` (LLM) when an API key is available, otherwise falls back to `offline_sim`.
 - **`GameWorld`** (in `engine/world.py`) — legacy class used only by `offline_sim`. Not used in LLM mode.
 
-### Two LLM Integrations
+### LLM Integration
 
-- **`GameMaster`** (in `llm/game_master.py`) — current implementation with Plan/Command two-phase architecture. Used by `cli/app.py` and `cli/dev_cli.py`.
-- **`WorldModel`** (in `llm/world_model.py`) — older one-phase implementation. Still referenced by `engine/game.py` for backward compatibility.
+- **`GameMaster`** (in `llm/game_master.py`) — current unified implementation with game intro, Plan Mode, and Command Mode. Used by `cli/app.py` and `cli/dev_cli.py`.
 
 ### LLM Provider Detection
 

@@ -1,11 +1,11 @@
 """
 三國志略 — Game Engine
 
-The engine orchestrates the WorldModel (LLM-driven), world state,
+The engine orchestrates the GameMaster (LLM-driven), world state,
 and player memory. It provides a unified interface for the CLI.
 
 Key changes from v1:
-- Uses LLM-driven WorldModel instead of template-driven offline sim
+- Uses LLM-driven GameMaster instead of template-driven offline sim
 - World state is stored as structured JSON in ~/.histrategy/
 - Player memory auto-loads on game start
 - Every player decision has visible, LLM-generated consequences
@@ -17,7 +17,7 @@ from ..engine.offline_sim import simulate_turn_offline
 from ..engine.world import GameWorld
 from ..engine.world_sim_interface import WorldSimEngine
 from ..llm.adapter import LLMAdapter
-from ..llm.world_model import WorldModel
+from ..llm.game_master import GameMaster
 from ..state.world_state import (
     FactionState,
     WorldState,
@@ -125,7 +125,7 @@ class GameEngine:
     Main game engine orchestrating world state and LLM interaction.
 
     - On startup: auto-loads existing game from ~/.histrategy/ if present
-    - Turn processing: uses WorldModel (LLM) when available, fallback to offline
+    - Turn processing: uses GameMaster (LLM) when available, fallback to offline
     - State persistence: saves to disk after every turn
     """
 
@@ -200,8 +200,8 @@ class GameEngine:
             return self._fallback_intro()
 
         if self.llm is not None:
-            model = WorldModel(self.llm)
-            return model.generate_intro(self.world_state)
+            gm = GameMaster(self.llm)
+            return gm.generate_intro(self.world_state)
         else:
             # Offline mode: use faction-specific intro
             return self._offline_intro()

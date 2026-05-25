@@ -21,10 +21,25 @@ from ..state.world_state import (
     get_historical_context,
     get_recent_history,
     save_world,
+    HISTORICAL_TIMELINE_190,
 )
 from .adapter import LLMAdapter
 
 # ─── System Prompts ─────────────────────────────────────────
+
+GAMEMASTER_INTRO_SYSTEM = """你是《三國志略》的AI游戏主持人（Game Master）。现在是「游戏序幕」阶段。
+
+## 你的角色
+你负责根据玩家所选择的君主势力，生成一段极具三国历史感、文白相间的精彩开篇叙事。你要向玩家（主公）汇报天下大势与他当前所处的局面，并给出第一回合的初始战略抉择。
+
+## 输出格式
+严格输出JSON，格式如下：
+{
+  "narrative": "...",
+  "npc_reactions": ["...", "...", "..."],
+  "choices": ["...", "...", "...", "..."]
+}
+"""
 
 GAMEMASTER_PLAN_SYSTEM = """你是《三國志略》的AI游戏主持人（Game Master）。现在是「内政会议」阶段。
 
@@ -35,7 +50,7 @@ GAMEMASTER_PLAN_SYSTEM = """你是《三國志略》的AI游戏主持人（Game 
 你会收到一份完整的天下形势报告，包含：
 - 玩家势力的各项数据（兵力、经济、民心、资金、粮草、领地）
 - 其他NPC势力的状态
-- 最近的历史事件和玩家的决策轨迹
+- 最近的历史事件 and 玩家的决策轨迹
 - 当前所处的历史时期
 
 ## 你需要生成的
@@ -281,6 +296,88 @@ class GameMaster:
 
     def __init__(self, llm: LLMAdapter):
         self.llm = llm
+
+    # ─── Intro Mode ─────────────────────────────────────────
+
+    def generate_intro(self, state: WorldState) -> dict:
+        """Generate the introductory scene for a new game."""
+        player = state.get_player_faction()
+        if not player:
+            return self._fallback_intro()
+
+        intro_context = (
+            f"## 游戏开局\n\n"
+            f"剧本：{state.scenario}\n"
+            f"时间：{state.year}年春季\n\n"
+            f"玩家势力：{player.name}\n"
+            f"- 兵力：{player.strength:,}\n"
+            f"- 经济：{player.economy}/100\n"
+            f"- 民心：{player.morale}/100\n"
+            f"- 资金：{player.treasury:,}\n"
+            f"- 粮草：{player.food:,}\n"
+            f"- 首都：{player.capital}\n"
+            f"- 领地：{', '.join(player.territories)}\n\n"
+            f"历史背景：{HISTORICAL_TIMELINE_190[0]}\n\n"
+            f"请以说书人/军师的口吻，生成三国志略的开局叙事（以Markdown格式书写，建议分为‘天下大势’与‘主公处境’两部分，有历史感，300-600字）。\n"
+            f"生成3-5条其他NPC势力的开局动向（放在npc_reactions列表中），以及4个极具历史厚重感、切合局势的开局选择（放在choices列表中，如：【发布檄文】响应讨董，【深挖粮饷】稳固后方 等）。"
+        )
+
+        messages = [
+            {"role": "system", "content": GAMEMASTER_INTRO_SYSTEM},
+            {"role": "user", "content": intro_context},
+        ]
+
+        try:
+            result = self.llm.chat_structured(
+                messages,
+                response_format={"type": "json_object"},
+                temperature=0.85,
+                max_tokens=4096,
+            )
+
+            return {
+                "narrative": result.get("narrative", ""),
+                "npc_actions": result.get("npc_reactions", []),
+                "new_choices": result.get("choices", [
+                    "【发布檄文】联络天下英雄",
+                    "【屯田养兵】积蓄钱粮实力",
+                    "【合纵连横】派使者联络袁绍",
+                    "【招贤纳士】招募在野文武",
+                ]),
+                "state_changes": {"strength": 0, "economy": 0, "morale": 0,
+                                  "treasury": 0, "food": 0, "npc_changes": {}},
+                "events_occurred": [],
+            }
+        except Exception:
+            return self._fallback_intro()
+
+    def _fallback_intro(self) -> dict:
+        """Fallback intro if LLM fails."""
+        return {
+            "narrative": (
+                "### 天下大势\n"
+                "初平元年（190 AD），汉室倾颓，诸侯并起。\n"
+                "董卓挟持天子，暴虐无道，天下英雄莫不愤慨。\n"
+                "曹操在陈留散尽家财，发矫诏号召天下诸侯共讨董卓。\n"
+                "袁绍据渤海起兵，被推举为讨董盟主。\n\n"
+                "### 主公处境\n"
+                "乱世已至，群雄并起。主公当审时度势，谋定而后动。"
+            ),
+            "npc_actions": [
+                "董卓挟天子以令诸侯，作威作福，西凉铁骑防备关东",
+                "曹操在陈留招兵买马，发矫诏联络关东各路诸侯",
+                "孙坚于长沙整军备战，厉兵秣马，准备出兵北上",
+            ],
+            "state_changes": {"strength": 0, "economy": 0, "morale": 0,
+                              "treasury": 0, "food": 0, "npc_changes": {}},
+            "events_occurred": [],
+            "new_choices": [
+                "【发布檄文】联络天下英雄",
+                "【屯田养兵】积蓄钱粮实力",
+                "【合纵连横】派使者联络袁绍",
+                "【招贤纳士】招募在野文武",
+            ],
+        }
 
     # ─── Plan Mode ──────────────────────────────────────────
 

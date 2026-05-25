@@ -361,3 +361,14 @@ class TestGameMasterPlanSchema:
         assert "advisors" not in plan
         assert len(plan["court_dialogue"]) > 10
         assert len(plan["suggestions"]) >= 3
+
+    def test_fallback_intro_data_schema(self):
+        """Engine fallback intro data must return narrative, npc_actions, and new_choices."""
+        from histrategy.engine.game import GameEngine
+        engine = GameEngine(new_game=True)
+        engine.set_player_faction("cao")
+        intro = engine.get_intro_scene()
+        assert "narrative" in intro
+        assert "npc_actions" in intro
+        assert "new_choices" in intro
+        assert len(intro["new_choices"]) == 4
