@@ -317,7 +317,7 @@ def _display_llm_command_result(result: dict):
 # ─── Offline Fallback Displays ───────────────────────────────
 
 def _display_offline_plan_mode(engine: GameEngine):
-    """Minimal Plan Mode prompt for offline play."""
+    """Minimal Plan Mode prompt for offline play in unified layout."""
     player = engine.world_state.get_player_faction()
     if not player:
         return
@@ -326,31 +326,41 @@ def _display_offline_plan_mode(engine: GameEngine):
     summary = plan.get("season_summary", f"{engine.world_state.year}年{engine.world_state.current_season_cn}，天下纷争未休。")
     suggestions = plan.get("suggestions", [])
 
-    s_lines = []
+    court_md = []
+    court_md.append(f"*{summary}*")
+    court_md.append("")
+    court_md.append("【内政会议】群臣侍立。时局动荡，粮草兵甲之耗日甚，诸将皆拱手望向主公，等候战略指示。")
+    court_md.append("")
+
     if suggestions:
-        s_lines.append("[bold yellow]军师建议的方案：[/]")
-        for s in suggestions:
-            s_lines.append(f"  {s}")
-        s_lines.append("")
+        court_md.append("### 🎯 廷议决策方向参考")
+        for i, s in enumerate(suggestions, 1):
+            if s.startswith("【") and "】" in s:
+                parts = s.split("】", 1)
+                title = parts[0][1:]
+                desc = parts[1].strip()
+                court_md.append(f"{i}. **{title}** — {desc}")
+            elif s.startswith("[") and "]" in s:
+                parts = s.split("]", 1)
+                title = parts[0][1:]
+                desc = parts[1].strip()
+                court_md.append(f"{i}. **{title}** — {desc}")
+            else:
+                court_md.append(f"{i}. {s}")
+        court_md.append("")
 
     console.print()
     console.print(Panel(
-        f"[italic cyan]{summary}[/]\n\n"
-        + "\n".join(s_lines) +
-        f"兵力: [cyan]{player.strength:,}[/] | "
-        f"经济: [green]{player.economy}/100[/] | "
-        f"民心: [magenta]{player.morale}/100[/] | "
-        f"资金: [yellow]{player.treasury:,}[/] | "
-        f"粮草: [yellow]{player.food:,}[/]\n\n"
-        "[dim]例如：发展内政、扩军备战、派遣使者联合袁绍、搜集敌方情报等[/]",
+        Markdown("\n".join(court_md)),
         border_style="bright_magenta",
-        title="\U0001f3af 战略决策",
+        title="🏛️ 议事厅 - 谋臣献策 (离线)",
         title_align="left",
+        padding=(1, 2),
     ))
 
 
 def _display_offline_command_result(engine: GameEngine, result: dict):
-    """Display offline Command Mode results (offline_sim fallback)."""
+    """Display offline Command Mode results (offline_sim fallback) as a unified chronicle."""
     narrative_text = result.get("narrative", "")
     bureaucracy = result.get("bureaucracy", [])
     aftermath_text = result.get("aftermath", "")
@@ -360,115 +370,94 @@ def _display_offline_command_result(engine: GameEngine, result: dict):
     events = result.get("events_occurred", [])
     choices = result.get("new_choices", [])
 
-    # Narrative
+    chronicle_md = []
+
     if narrative_text:
-        console.print()
-        console.print(Panel(
-            narrative_text,
-            border_style="green",
-            title="\U0001f4dc 军师来报",
-            title_align="left",
-        ))
+        chronicle_md.append(narrative_text.strip())
+        chronicle_md.append("")
 
-    # Bureaucracy
-    if bureaucracy:
-        dept_parts = []
-        for dept in bureaucracy:
-            dept_name = dept.get("department", "")
-            official = dept.get("official", "")
-            action = dept.get("action", "")
-            prefix = f"[{dept_name}"
-            if official:
-                prefix += f" · {official}"
-            prefix += "]"
-            dept_parts.append(f"[bold cyan]{prefix}[/] {action}")
-        if dept_parts:
-            console.print()
-            console.print(Panel(
-                "\n\n".join(dept_parts),
-                border_style="blue",
-                title="\U0001f4dc 政令执行",
-                title_align="left",
-            ))
+    if aftermath_text:
+        chronicle_md.append(aftermath_text.strip())
+        chronicle_md.append("")
 
-    # Aftermath + state changes merged
+    # State changes
     player_changes = {
         k: v for k, v in changes.items()
         if k not in ("npc_changes", "before", "after") and v
     }
-    if aftermath_text or player_changes:
-        parts = []
-        if aftermath_text:
-            parts.append(aftermath_text)
-        if player_changes:
-            if parts:
-                parts.append("")
-            labels = {
-                "strength": "兵力", "economy": "经济", "morale": "民心",
-                "treasury": "资金", "food": "粮草",
-            }
-            for key in sorted(player_changes):
-                val = player_changes[key]
-                label = labels.get(key, key)
-                sign = "+" if val > 0 else ""
-                color = "green" if val > 0 else "red"
-                parts.append(f"  [{color}]{label}: {sign}{val}[/]")
+    if player_changes:
+        chronicle_md.append("### 📊 势力变动")
+        labels = {
+            "strength": "兵力", "economy": "经济", "morale": "民心",
+            "treasury": "资金", "food": "粮草",
+        }
+        for key in sorted(player_changes):
+            val = player_changes[key]
+            label = labels.get(key, key)
+            sign = "+" if val > 0 else ""
+            chronicle_md.append(f"- **{label}**: `{sign}{val}`")
+        chronicle_md.append("")
 
-        console.print()
-        console.print(Panel(
-            "\n".join(parts),
-            border_style="bright_yellow",
-            title="⚡ 决策后果",
-            title_align="left",
-        ))
+    if bureaucracy:
+        chronicle_md.append("### 🏛️ 各司政务")
+        for dept in bureaucracy:
+            dept_name = dept.get("department", "")
+            official = dept.get("official", "")
+            action = dept.get("action", "")
+            prefix = f"**[{dept_name}" + (f" · {official}" if official else "") + "]**"
+            chronicle_md.append(f"- {prefix} {action}")
+        chronicle_md.append("")
 
-    # Seeds
+    if npc_actions:
+        chronicle_md.append("### ⚔️ 列国战志")
+        for a in npc_actions:
+            chronicle_md.append(f"- {a}")
+        chronicle_md.append("")
+
     if seeds:
-        console.print()
-        seed_lines = []
+        chronicle_md.append("### 🔮 伏线机锋")
         for s in seeds:
             desc = s.get("description", s.get("title", ""))
-            seed_lines.append(f"[bold yellow]•[/] {desc}")
-        console.print(Panel(
-            "\n".join(seed_lines),
-            border_style="green",
-            title="\U0001f331 潜在影响",
-            title_align="left",
-        ))
+            chronicle_md.append(f"- {desc}")
+        chronicle_md.append("")
 
-    # NPC actions
-    if npc_actions:
-        console.print()
-        console.print(Panel(
-            "\n".join(f"  ⚔ {a}" for a in npc_actions),
-            border_style="yellow",
-            title="\U0001f30d 天下动向",
-            title_align="left",
-        ))
-
-    # Events
     if events:
-        console.print()
-        console.print(Panel(
-            "\n".join(f"  \U0001f4cc {e}" for e in events),
-            border_style="red",
-            title="⚡ 大事记",
-            title_align="left",
-        ))
+        chronicle_md.append("### ⚡ 大事记")
+        for e in events:
+            chronicle_md.append(f"- {e}")
+        chronicle_md.append("")
 
-    # Choices
     if choices and not result.get("game_over"):
-        console.print()
-        choice_grid = Table.grid(padding=(0, 2))
+        chronicle_md.append("### 🎯 廷议决策方向参考")
         for c in choices:
-            num = c.split(".", 1)[0].strip() if "." in c else "?"
-            text = c.split(".", 1)[1].strip() if "." in c else c
-            choice_grid.add_row(f"[bold yellow]{num}.[/]", text)
+            if c.startswith("【") and "】" in c:
+                parts = c.split("】", 1)
+                title = parts[0][1:]
+                desc = parts[1].strip()
+                chronicle_md.append(f"- **{title}** — {desc}")
+            elif c.startswith("[") and "]" in c:
+                parts = c.split("]", 1)
+                title = parts[0][1:]
+                desc = parts[1].strip()
+                chronicle_md.append(f"- **{title}** — {desc}")
+            else:
+                if "." in c:
+                    parts = c.split(".", 1)
+                    num = parts[0].strip()
+                    text = parts[1].strip()
+                    chronicle_md.append(f"{num}. {text}")
+                else:
+                    chronicle_md.append(f"- {c}")
+        chronicle_md.append("")
+
+    if chronicle_md:
+        console.print()
         console.print(Panel(
-            choice_grid,
-            border_style="cyan",
-            title="\U0001f3af 可选择的战略方向",
+            Markdown("\n".join(chronicle_md)),
+            border_style="bright_yellow",
+            title="📜 局势推演纪事 (离线)",
             title_align="left",
+            padding=(1, 2),
         ))
 
 
