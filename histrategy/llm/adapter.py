@@ -139,6 +139,7 @@ class LLMAdapter:
                       or "gpt-4o-mini")
         self.supports_json = self.provider_config["supports_json_mode"]
         self.provider_name = provider or self.provider_config["name"] or "none"
+        self.last_call_stats = None
 
         if self.api_key:
             self.client = httpx.Client(
@@ -166,18 +167,30 @@ class LLMAdapter:
                 "or TONGYI_API_KEY environment variable."
             )
 
-        response = self.client.post(
-            "/chat/completions",
-            json={
-                "model": self.model,
-                "messages": messages,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-            },
-        )
-        response.raise_for_status()
-        data = response.json()
-        return data["choices"][0]["message"]["content"]
+        import time
+        start_time = time.perf_counter()
+        response = None
+        try:
+            response = self.client.post(
+                "/chat/completions",
+                json={
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                },
+            )
+            latency = time.perf_counter() - start_time
+            response.raise_for_status()
+            data = response.json()
+
+            self._record_stats_and_log(messages, data, latency)
+
+            return data["choices"][0]["message"]["content"]
+        except Exception as e:
+            latency = time.perf_counter() - start_time
+            self._record_error_and_log(messages, e, latency, response)
+            raise
 
     def chat_structured(
         self,
@@ -213,20 +226,32 @@ class LLMAdapter:
             else:
                 payload["response_format"] = {"type": "json_object"}
 
-        response = self.client.post(
-            "/chat/completions",
-            json=payload,
-        )
-        response.raise_for_status()
-        data = response.json()
-        content = data["choices"][0]["message"]["content"]
+        import time
+        start_time = time.perf_counter()
+        response = None
+        try:
+            response = self.client.post(
+                "/chat/completions",
+                json=payload,
+            )
+            latency = time.perf_counter() - start_time
+            response.raise_for_status()
+            data = response.json()
 
-        # Try to parse JSON
-        if use_json_mode:
-            return json.loads(content)
+            self._record_stats_and_log(messages, data, latency)
 
-        # Fallback: extract JSON from text response
-        return self._extract_json(content)
+            content = data["choices"][0]["message"]["content"]
+
+            # Try to parse JSON
+            if use_json_mode:
+                return json.loads(content)
+
+            # Fallback: extract JSON from text response
+            return self._extract_json(content)
+        except Exception as e:
+            latency = time.perf_counter() - start_time
+            self._record_error_and_log(messages, e, latency, response)
+            raise
 
     def _extract_json(self, text: str) -> dict:
         """Extract JSON from a text response when JSON mode isn't available."""
@@ -253,3 +278,187 @@ class LLMAdapter:
                 pass
 
         raise ValueError(f"Could not extract JSON from response:\n{text[:500]}")
+
+    def _record_stats_and_log(self, messages: list[dict], response_data: dict, latency: float) -> None:
+        """Parse token usage, update self.last_call_stats, and write logs."""
+        try:
+            usage = response_data.get("usage") or {}
+            prompt_tokens = usage.get("prompt_tokens", 0)
+            completion_tokens = usage.get("completion_tokens", 0)
+            total_tokens = usage.get("total_tokens", 0)
+
+            reasoning_tokens = 0
+            details = usage.get("completion_tokens_details")
+            if isinstance(details, dict):
+                reasoning_tokens = details.get("reasoning_tokens", 0)
+
+            self.last_call_stats = {
+                "provider": self.provider_name,
+                "model": self.model,
+                "latency": latency,
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": total_tokens,
+                "reasoning_tokens": reasoning_tokens,
+            }
+
+            self._write_to_log_files(messages, response_data, latency, self.last_call_stats)
+        except Exception as e:
+            import sys
+            print(f"[Warning] Failed to record/log LLM usage: {e}", file=sys.stderr)
+
+    def _write_to_log_files(self, messages: list[dict], response_data: dict, latency: float, stats: dict) -> None:
+        from datetime import datetime
+        from pathlib import Path
+        import json
+
+        try:
+            log_dir = Path(__file__).parent.parent.parent / "logs"
+            log_dir.mkdir(parents=True, exist_ok=True)
+
+            timestamp_str = datetime.now().isoformat()
+            readable_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            content = response_data.get("choices", [{}])[0].get("message", {}).get("content", "")
+
+            # 1. Write to JSONL (for parsed analytics)
+            jsonl_path = log_dir / "llm_usage.jsonl"
+            jsonl_entry = {
+                "timestamp": timestamp_str,
+                "provider": stats["provider"],
+                "model": stats["model"],
+                "latency_seconds": stats["latency"],
+                "prompt_tokens": stats["prompt_tokens"],
+                "completion_tokens": stats["completion_tokens"],
+                "total_tokens": stats["total_tokens"],
+                "reasoning_tokens": stats["reasoning_tokens"],
+                "messages": messages,
+                "response": content,
+            }
+            with open(jsonl_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(jsonl_entry, ensure_ascii=False) + "\n")
+
+            # 2. Write to readable .log file
+            log_path = log_dir / "llm_usage.log"
+            divider_major = "=" * 80 + "\n"
+            divider_minor = "-" * 80 + "\n"
+
+            log_entry = [
+                divider_major,
+                f"Timestamp:         {readable_time}\n",
+                f"Provider:          {stats['provider']}\n",
+                f"Model:             {stats['model']}\n",
+                f"Latency:           {stats['latency']:.2f}s\n",
+                f"Prompt Tokens:     {stats['prompt_tokens']}\n",
+                f"Completion Tokens: {stats['completion_tokens']}\n",
+                f"Total Tokens:      {stats['total_tokens']}\n",
+            ]
+            if stats["reasoning_tokens"] > 0:
+                log_entry.append(f"Reasoning Tokens:  {stats['reasoning_tokens']}\n")
+            log_entry.append(divider_minor)
+
+            log_entry.append("--- INPUT MESSAGES ---\n")
+            for msg in messages:
+                role = msg.get("role", "unknown").upper()
+                msg_content = msg.get("content", "")
+                log_entry.append(f"[{role}]:\n{msg_content}\n")
+                log_entry.append(divider_minor)
+
+            log_entry.append("--- RESPONSE ---\n")
+            log_entry.append(f"{content}\n")
+            log_entry.append(divider_major)
+            log_entry.append("\n")
+
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.writelines(log_entry)
+
+        except Exception as e:
+            import sys
+            print(f"[Warning] Failed to write LLM log: {e}", file=sys.stderr)
+
+    def _record_error_and_log(self, messages: list[dict], exception: Exception, latency: float, response: httpx.Response | None = None) -> None:
+        """Log LLM call errors to self.last_call_stats and write to logs."""
+        try:
+            self.last_call_stats = {
+                "provider": self.provider_name,
+                "model": self.model,
+                "latency": latency,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0,
+                "reasoning_tokens": 0,
+                "error": str(exception),
+            }
+
+            self._write_error_to_log_files(messages, exception, latency, response)
+        except Exception as log_err:
+            import sys
+            print(f"[Warning] Failed to log LLM error: {log_err}", file=sys.stderr)
+
+    def _write_error_to_log_files(self, messages: list[dict], exception: Exception, latency: float, response: httpx.Response | None = None) -> None:
+        from datetime import datetime
+        from pathlib import Path
+        import json
+
+        try:
+            log_dir = Path(__file__).parent.parent.parent / "logs"
+            log_dir.mkdir(parents=True, exist_ok=True)
+
+            timestamp_str = datetime.now().isoformat()
+            readable_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+            status_code = response.status_code if response is not None else None
+            response_body = response.text if response is not None else ""
+
+            # 1. Write to JSONL
+            jsonl_path = log_dir / "llm_usage.jsonl"
+            jsonl_entry = {
+                "timestamp": timestamp_str,
+                "provider": self.provider_name,
+                "model": self.model,
+                "latency_seconds": latency,
+                "error": str(exception),
+                "status_code": status_code,
+                "response_body": response_body,
+                "messages": messages,
+            }
+            with open(jsonl_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(jsonl_entry, ensure_ascii=False) + "\n")
+
+            # 2. Write to readable .log file
+            log_path = log_dir / "llm_usage.log"
+            divider_major = "=" * 80 + "\n"
+            divider_minor = "-" * 80 + "\n"
+
+            log_entry = [
+                divider_major,
+                f"Timestamp:         {readable_time}\n",
+                f"Provider:          {self.provider_name}\n",
+                f"Model:             {self.model}\n",
+                f"Latency:           {latency:.2f}s\n",
+                f"Status:            ERROR\n",
+                f"Exception:         {str(exception)}\n",
+            ]
+            if status_code is not None:
+                log_entry.append(f"HTTP Status Code:  {status_code}\n")
+            log_entry.append(divider_minor)
+
+            log_entry.append("--- INPUT MESSAGES ---\n")
+            for msg in messages:
+                role = msg.get("role", "unknown").upper()
+                msg_content = msg.get("content", "")
+                log_entry.append(f"[{role}]:\n{msg_content}\n")
+                log_entry.append(divider_minor)
+
+            if response_body:
+                log_entry.append("--- RAW ERROR RESPONSE ---\n")
+                log_entry.append(f"{response_body}\n")
+                log_entry.append(divider_major)
+            log_entry.append("\n")
+
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.writelines(log_entry)
+
+        except Exception as e:
+            import sys
+            print(f"[Warning] Failed to write LLM error log: {e}", file=sys.stderr)

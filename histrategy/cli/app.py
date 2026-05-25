@@ -145,6 +145,7 @@ def run_game(force_new: bool = False):
         intro = engine.get_intro_scene()
 
     _display_intro(engine, intro)
+    _print_llm_stats(engine.llm)
     _game_loop(engine)
 
 
@@ -200,7 +201,7 @@ def _game_loop(engine: GameEngine):
         with console.status("[yellow]天机运转，推演天下大势...[/]", spinner="dots"):
             result = engine.process_turn(decision)
             if engine.llm:
-                _display_llm_command_result(result)
+                _display_llm_command_result(result, engine.llm)
             else:
                 _display_offline_command_result(engine, result)
 
@@ -262,10 +263,12 @@ def _display_llm_plan_mode(engine: GameEngine):
             padding=(1, 2),
         ))
 
+    _print_llm_stats(engine.llm)
+
 
 # ─── LLM Command Mode Display ───────────────────────────────
 
-def _display_llm_command_result(result: dict):
+def _display_llm_command_result(result: dict, llm: LLMAdapter | None = None):
     """Display LLM Command Mode results as a single unified historical chronicle."""
     bureaucracy = result.get("bureaucracy", [])
     aftermath = result.get("aftermath", "")
@@ -312,6 +315,26 @@ def _display_llm_command_result(result: dict):
             title_align="left",
             padding=(1, 2),
         ))
+
+    _print_llm_stats(llm)
+
+
+def _print_llm_stats(llm: LLMAdapter | None):
+    """Print LLM call performance and token stats."""
+    if not llm or not getattr(llm, "last_call_stats", None):
+        return
+    stats = llm.last_call_stats
+    latency = stats.get("latency", 0)
+    pt = stats.get("prompt_tokens", 0)
+    ct = stats.get("completion_tokens", 0)
+    tt = stats.get("total_tokens", 0)
+    rt = stats.get("reasoning_tokens", 0)
+
+    msg = f"[dim]⚡ AI推演用时: {latency:.2f}s | Token: 输入 {pt}, 输出 {ct}, 共 {tt}[/]"
+    if rt > 0:
+        msg += f" [dim](含思维 {rt})[/]"
+
+    console.print(Align(msg, align="right"))
 
 
 # ─── Offline Fallback Displays ───────────────────────────────

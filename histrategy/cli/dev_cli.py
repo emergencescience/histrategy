@@ -94,6 +94,7 @@ def run_dev(faction_choice: int | None = None, force_new: bool = False):
         for action in intro.get("npc_actions", []):
             print(f"  ⚡ {action}")
         print("---")
+        _print_llm_stats(engine.llm)
 
     # Main game loop
     _game_loop(engine)
@@ -112,6 +113,7 @@ def _game_loop(engine: GameEngine):
             # ═══ PLAN MODE ═══════════════════════════════════════
             if engine.llm:
                 _show_llm_plan_mode(engine)
+                _print_llm_stats(engine.llm)
             else:
                 _show_offline_plan_mode(engine)
 
@@ -143,6 +145,7 @@ def _game_loop(engine: GameEngine):
             result = engine.process_turn(decision)
             if engine.llm:
                 _show_llm_command_result(result)
+                _print_llm_stats(engine.llm)
             else:
                 _show_offline_command_result(result)
 
@@ -340,3 +343,20 @@ def _display_state(engine: GameEngine):
 
     print(f"\n存檔位置: {DATA_DIR}")
     print("---")
+
+
+def _print_llm_stats(llm: LLMAdapter | None):
+    """Print LLM call performance and token stats (plain text)."""
+    if not llm or not getattr(llm, "last_call_stats", None):
+        return
+    stats = llm.last_call_stats
+    latency = stats.get("latency", 0)
+    pt = stats.get("prompt_tokens", 0)
+    ct = stats.get("completion_tokens", 0)
+    tt = stats.get("total_tokens", 0)
+    rt = stats.get("reasoning_tokens", 0)
+
+    msg = f"[系统] AI推演用时: {latency:.2f}秒 | Token: 输入 {pt}, 输出 {ct}, 共 {tt}"
+    if rt > 0:
+        msg += f" (其中思维/推理: {rt})"
+    print(msg, file=sys.stderr)
