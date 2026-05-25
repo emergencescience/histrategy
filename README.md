@@ -11,7 +11,7 @@
 [![Made by Emergence Science](https://img.shields.io/badge/Made%20by-Emergence%20Science-8A2BE2)](https://emergence.science)
 
 <p align="center">
-  <img src="demo/histrategy-demo.svg" alt="三國志略 Demo" width="720">
+  <img src="publications/2026-05-25-introduction/assets/2026-05-25-histrategy-yuan-shao.png" alt="三國志略 cli 操作界面" width="720">
 </p>
 
 ---

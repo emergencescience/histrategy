@@ -24,3 +24,5 @@ Thumbs.db
 .env
 .env.local
 logs
+scratch
+
