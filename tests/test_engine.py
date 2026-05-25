@@ -344,3 +344,20 @@ class TestNPCBetrayalTrigger:
         assert "xun_yu" not in engine.world_state.npc_states
         # Xun Yu should have defected to another faction (e.g. not 'cao')
         assert engine.world_state.characters["xun_yu"].faction_id != "cao"
+
+
+class TestGameMasterPlanSchema:
+    """Test that the unified LLM GameMaster returns the new plan/dialogue schema."""
+
+    def test_fallback_plan_data_schema(self):
+        """Engine fallback plan data must conform to the new schema (court_dialogue, not advisors)."""
+        from histrategy.engine.game import GameEngine
+        engine = GameEngine(new_game=True)
+        engine.set_player_faction("cao")
+        plan = engine.get_plan_data()
+        assert "court_dialogue" in plan
+        assert "suggestions" in plan
+        assert "season_summary" in plan
+        assert "advisors" not in plan
+        assert len(plan["court_dialogue"]) > 10
+        assert len(plan["suggestions"]) >= 3

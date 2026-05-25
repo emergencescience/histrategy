@@ -34,7 +34,7 @@ class LLMSimEngine(WorldSimEngine):
     def health_check(self) -> bool:
         """Check if LLM API is reachable."""
         try:
-            return self._adapter.is_available()
+            return self._adapter.is_available
         except Exception:
             return False
 

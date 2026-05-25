@@ -231,13 +231,19 @@ class GameEngine:
             return self._fallback_plan_data()
 
     def _fallback_plan_data(self) -> dict:
+        player = self.world_state.get_player_faction()
+        ruler_name = player.name if player else "主公"
+        court_msg = (
+            f"【{self.world_state.year}年{self.world_state.current_season_cn} · 内政会议】\n\n"
+            f"群臣趋前侍立。时局动荡，军资匮乏，众将皆望向{ruler_name}，等待决断。"
+        )
         return {
-            "advisors": [],
+            "court_dialogue": court_msg,
             "suggestions": [
-                "1. 休养生息，发展经济",
-                "2. 练兵备战，充实军力",
-                "3. 派遣使者，结交盟友",
-                "4. 搜集情报，待机而动",
+                "【休养生息】发展内政与农耕",
+                "【练兵备战】招募乡勇操练新军",
+                "【合纵连横】派遣使者联络群雄",
+                "【搜集情报】细作四出打探动向",
             ],
             "season_summary": f"{self.world_state.year}年{self.world_state.current_season_cn}，天下纷争未休。",
         }

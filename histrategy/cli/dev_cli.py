@@ -162,22 +162,11 @@ def _show_llm_plan_mode(engine: GameEngine):
     if summary:
         print(f"\n  {summary}")
 
-    # Advisor speeches
-    advisors = plan.get("advisors", [])
-    if advisors:
-        print("\n=== 内政会议 ===")
-        for adv in advisors:
-            style = {
-                "cautious": "  🛡 ",
-                "aggressive": "  ⚔ ",
-                "scheming": "  🕵 ",
-                "pragmatic": "  📋 ",
-                "strict": "  📜 ",
-                "friendly": "  🤝 ",
-                "proud": "  🐉 ",
-            }.get(adv.get("temperament", ""), "  💬 ")
-            print(f"{style}{adv.get('name', '谋臣')}（{adv.get('title', '')}）:")
-            print(f"    {adv.get('speech', '')}")
+    # Unified Court Dialogue
+    court_dialogue = plan.get("court_dialogue", "")
+    if court_dialogue:
+        print("\n=== 🏛️ 议事厅 - 谋臣献策 ===")
+        print(court_dialogue)
         print()
 
     # Suggestions
@@ -206,22 +195,8 @@ def _show_llm_command_result(result: dict):
     # Aftermath
     aftermath = result.get("aftermath", "")
     if aftermath:
-        print(f"\n  ⚡ {aftermath}")
-
-    # State changes
-    changes = result.get("state_changes", {})
-    if changes and any(changes.values()):
-        print()
-        print("  本季变化:")
-        labels = {
-            "strength": "兵力", "economy": "经济", "morale": "民心",
-            "treasury": "资金", "food": "粮草",
-        }
-        for key, val in sorted(changes.items()):
-            if val:
-                label = labels.get(key, key)
-                sign = "+" if val > 0 else ""
-                print(f"    {label}: {sign}{val}")
+        print(f"\n=== 📜 局势推演 ===")
+        print(aftermath)
 
     # Seeds
     seeds = result.get("seeds", [])
@@ -238,7 +213,8 @@ def _show_llm_command_result(result: dict):
         print()
         print("  天下动向:")
         for r in npc_reactions:
-            print(f"    {r}")
+            print(f"    • {r}")
+        print()
 
 
 # ─── Offline Fallbacks ──────────────────────────────────────

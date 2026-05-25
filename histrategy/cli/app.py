@@ -226,27 +226,17 @@ def _display_llm_plan_mode(engine: GameEngine):
             align="center",
         ))
 
-    # Advisor court
-    advisors = plan.get("advisors", [])
-    if advisors:
+    # Unified Court Dialogue
+    court_dialogue = plan.get("court_dialogue", "")
+    if court_dialogue:
         console.print()
-        console.print(Rule("内政会议 — 谋臣献策", style="bright_magenta"))
-
-        for adv in advisors:
-            temperament = adv.get("temperament", "pragmatic")
-            icon, color = TEMPERAMENT_STYLES.get(temperament, ("\U0001f4ac", "white"))
-            name = adv.get("name", "谋臣")
-            title = adv.get("title", "")
-            speech = adv.get("speech", "")
-
-            header = f"{icon} [bold {color}]{name}[/] [dim]({title})[/]"
-            console.print(Panel(
-                Text(speech, style="bright_white"),
-                border_style=color,
-                title=header,
-                title_align="left",
-                padding=(0, 1),
-            ))
+        console.print(Panel(
+            Markdown(court_dialogue),
+            border_style="bright_magenta",
+            title="🏛️ 议事厅 - 谋臣献策",
+            title_align="left",
+            padding=(1, 2),
+        ))
 
     # Suggestions
     suggestions = plan.get("suggestions", [])
@@ -261,8 +251,9 @@ def _display_llm_plan_mode(engine: GameEngine):
         console.print(Panel(
             suggestion_grid,
             border_style="cyan",
-            title="\U0001f3af 军师建议的方案",
+            title="🎯 军师建议的方案",
             title_align="left",
+            padding=(1, 2),
         ))
 
 
