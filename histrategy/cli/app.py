@@ -662,6 +662,10 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
+        "--headless", action="store_true",
+        help="启动无头模式（JSON结构化输出，适合飞书桥接）",
+    )
+    parser.add_argument(
         "--dev", action="store_true",
         help="启动开发模式（纯文本输入/输出，适合测试）",
     )
@@ -688,6 +692,11 @@ def main():
             print(f"[系统] 成功导出战绩至 {args.export_log}")
         else:
             print(f"[错误] 导出失败，可能没有当前会话日志或路径无效")
+        return
+
+    if args.headless:
+        from .headless_cli import run_headless
+        run_headless(faction_choice=args.faction, force_new=args.new)
         return
 
     if args.dev:
