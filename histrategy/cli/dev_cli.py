@@ -59,7 +59,21 @@ def run_dev(faction_choice: int | None = None, force_new: bool = False):
         print("---")
         _display_state(engine)
     else:
-        # Faction selection
+        # Faction selection — v2 207 scenario when engine is available
+    _v2_available = False
+    try:
+        from histrategy_engine import TurnController  # noqa: F401
+        _v2_available = True
+    except ImportError:
+        pass
+
+    if _v2_available:
+        factions = [
+            ("shu", "刘备", "汉室宗亲，寄居新野，三顾茅庐在即 (207)"),
+            ("cao", "曹操", "奉天子以令不臣，已据中原大半 (207)"),
+            ("wu", "孙权", "继承父兄基业，稳坐江东 (207)"),
+        ]
+    else:
         factions = [
             ("cao", "曹操", "乱世奸雄，奉天子以令不臣"),
             ("shu", "刘备", "汉室宗亲，以仁德取天下"),
@@ -67,19 +81,19 @@ def run_dev(faction_choice: int | None = None, force_new: bool = False):
             ("yuan_shao", "袁绍", "四世三公，讨董盟主"),
         ]
 
-        if faction_choice is None:
-            print("=== 选择势力 ===")
-            for i, (fid, name, desc) in enumerate(factions, 1):
-                print(f"  {i}. {name} - {desc}")
-            print()
-            try:
-                choice = input("请输入编号 (1-4): ").strip()
-                idx = int(choice) - 1 if choice.isdigit() else 0
-            except (EOFError, KeyboardInterrupt):
-                print("\n退出游戏", file=sys.stderr)
-                return
-        else:
-            idx = max(0, min(faction_choice - 1, 3))
+    if faction_choice is None:
+        print("=== 选择势力 ===")
+        for i, (fid, name, desc) in enumerate(factions, 1):
+            print(f"  {i}. {name} - {desc}")
+        print()
+        try:
+            choice = input("请输入编号 (1-{}): ".format(len(factions))).strip()
+            idx = int(choice) - 1 if choice.isdigit() else 0
+        except (EOFError, KeyboardInterrupt):
+            print("\n退出游戏", file=sys.stderr)
+            return
+    else:
+        idx = max(0, min(faction_choice - 1, len(factions) - 1))
 
         fid, fname, _ = factions[idx]
         print(f"\n[系统] 已选择 {fname}", file=sys.stderr)
@@ -325,7 +339,47 @@ def _show_offline_command_result(result: dict):
 # ─── State Display ──────────────────────────────────────────
 
 def _display_state(engine: GameEngine):
-    """Show the current game state."""
+    """Show the current game state — v2 or v1."""
+    if getattr(engine, "_use_v2", False):
+        _display_state_v2(engine)
+    else:
+        _display_state_v1(engine)
+
+
+def _display_state_v2(engine: GameEngine):
+    """Display v2 physics engine state."""
+    ws = engine.world_state_v2
+    player = ws.factions.get(ws.player_faction_id) if ws else None
+
+    print(f"=== {ws.year}年 {ws.season.cn} | 第 {ws.turn_number} 回合 ===")
+
+    if player:
+        print(f"势力: {player.name}")
+        print(f"兵力: {player.strength_actual:,}")
+        print(f"经济: {player.economy_actual}/100")
+        print(f"民心: {player.morale_actual}/100")
+        print(f"资金: {player.treasury:,}")
+        print(f"粮草: {player.food:,}")
+        print(f"税率: {player.tax_rate:.0%}")
+        print(f"首都: {player.capital}")
+        names = [
+            f"{ws.territories[t].name}({t})"
+            if t in ws.territories else t
+            for t in player.territories
+        ]
+        print(f"领地: {', '.join(names) if names else '暂无'}")
+
+    # Other factions
+    for fid, fs in ws.factions.items():
+        if not fs.is_active or fid == ws.player_faction_id:
+            continue
+        print(f"  {fs.name}: 兵{fs.strength_actual:,} 领{len(fs.territories)}")
+
+    print("---")
+
+
+def _display_state_v1(engine: GameEngine):
+    """Display v1 game state."""
     ws = engine.world_state
     player = ws.get_player_faction()
 

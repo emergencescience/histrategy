@@ -105,16 +105,34 @@ def run_game(force_new: bool = False):
         return
 
     # --- New Game: Faction Selection ---
-    factions = [
-        {"id": "cao", "name": "曹操军", "ruler": "曹操", "strength": 30000,
-         "description": "乱世奸雄，奉天子以令不臣"},
-        {"id": "shu", "name": "刘备军", "ruler": "刘备", "strength": 5000,
-         "description": "汉室宗亲，以仁德取天下"},
-        {"id": "wu", "name": "孙坚军", "ruler": "孙坚", "strength": 20000,
-         "description": "江东猛虎，据长江天险"},
-        {"id": "yuan_shao", "name": "袁绍军", "ruler": "袁绍", "strength": 80000,
-         "description": "四世三公，讨董盟主"},
-    ]
+    # Check if v2 engine is available
+    _v2_available = False
+    try:
+        from histrategy_engine import TurnController  # noqa: F401
+        _v2_available = True
+    except ImportError:
+        pass
+
+    if _v2_available:
+        factions = [
+            {"id": "shu", "name": "刘备军", "ruler": "刘备", "strength": 5000,
+             "description": "汉室宗亲，寄居新野，三顾茅庐在即"},
+            {"id": "cao", "name": "曹操军", "ruler": "曹操", "strength": 150000,
+             "description": "奉天子以令不臣，已据中原大半"},
+            {"id": "wu", "name": "孙权军", "ruler": "孙权", "strength": 60000,
+             "description": "继承父兄基业，稳坐江东"},
+        ]
+    else:
+        factions = [
+            {"id": "cao", "name": "曹操军", "ruler": "曹操", "strength": 30000,
+             "description": "乱世奸雄，奉天子以令不臣"},
+            {"id": "shu", "name": "刘备军", "ruler": "刘备", "strength": 5000,
+             "description": "汉室宗亲，以仁德取天下"},
+            {"id": "wu", "name": "孙坚军", "ruler": "孙坚", "strength": 20000,
+             "description": "江东猛虎，据长江天险"},
+            {"id": "yuan_shao", "name": "袁绍军", "ruler": "袁绍", "strength": 80000,
+             "description": "四世三公，讨董盟主"},
+        ]
 
     console.print("\n[bold cyan]选择你的君主[/]\n")
 
@@ -151,18 +169,19 @@ def run_game(force_new: bool = False):
 
 
 def _game_loop(engine: GameEngine):
-    """Main game loop with Plan/Command two-phase flow.
-
-    Fully unified through GameEngine:
-      Plan Mode  -> engine.get_plan_data()
-      Player types free-text decision
-      Command Mode -> engine.process_turn()
-    """
+    """Main game loop with Plan/Command two-phase flow."""
     show_plan = True
     while True:
         # Check for elimination
-        player = engine.world_state.get_player_faction()
-        if not player or not player.is_active or player.strength <= 0:
+        if getattr(engine, "_use_v2", False):
+            ws = engine.world_state_v2
+            player = ws.factions.get(ws.player_faction_id)
+            alive = player and player.is_active and player.strength_actual > 0
+        else:
+            player = engine.world_state.get_player_faction()
+            alive = player and player.is_active and player.strength > 0
+
+        if not alive:
             _display_game_over({
                 "type": "defeat",
                 "message": (
@@ -530,20 +549,36 @@ def _display_intro(engine: GameEngine, intro: dict):
 
 def _show_status_header(engine: GameEngine, is_intro: bool = False):
     """Show a compact status header."""
-    ws = engine.world_state
-    player = ws.get_player_faction()
-    if player:
-        date_str = f"{ws.year}年·{_season_cn(ws.current_season)}"
-        header = Panel(
-            f"[bold yellow]{date_str}[/] | "
-            f"兵力: [cyan]{player.strength:,}[/] | "
-            f"经济: [green]{player.economy}/100[/] | "
-            f"民心: [magenta]{player.morale}/100[/] | "
-            f"资金: [yellow]{player.treasury:,}[/] | "
-            f"粮草: [yellow]{player.food:,}[/]",
-            border_style="bright_blue",
-        )
-        console.print(header)
+    if getattr(engine, "_use_v2", False):
+        ws = engine.world_state_v2
+        player = ws.factions.get(ws.player_faction_id) if ws else None
+        if player:
+            date_str = f"{ws.year}年·{ws.season.cn}"
+            header = Panel(
+                f"[bold yellow]{date_str}[/] | "
+                f"兵力: [cyan]{player.strength_actual:,}[/] | "
+                f"经济: [green]{player.economy_actual}/100[/] | "
+                f"民心: [magenta]{player.morale_actual}/100[/] | "
+                f"资金: [yellow]{player.treasury:,}[/] | "
+                f"粮草: [yellow]{player.food:,}[/]",
+                border_style="bright_blue",
+            )
+            console.print(header)
+    else:
+        ws = engine.world_state
+        player = ws.get_player_faction()
+        if player:
+            date_str = f"{ws.year}年·{_season_cn(ws.current_season)}"
+            header = Panel(
+                f"[bold yellow]{date_str}[/] | "
+                f"兵力: [cyan]{player.strength:,}[/] | "
+                f"经济: [green]{player.economy}/100[/] | "
+                f"民心: [magenta]{player.morale}/100[/] | "
+                f"资金: [yellow]{player.treasury:,}[/] | "
+                f"粮草: [yellow]{player.food:,}[/]",
+                border_style="bright_blue",
+            )
+            console.print(header)
 
 
 def _get_player_decision() -> str | None:
@@ -574,7 +609,90 @@ def _get_player_decision() -> str | None:
 
 
 def _display_state(engine: GameEngine):
-    """Show the current world state in detail."""
+    """Show the current world state in detail — v2 physics engine state."""
+    if getattr(engine, "_use_v2", False):
+        _display_state_v2(engine)
+    else:
+        _display_state_v1(engine)
+
+
+def _display_state_v2(engine: GameEngine):
+    """Display v2 physics engine state."""
+    ws = engine.world_state_v2
+    player = ws.factions.get(ws.player_faction_id) if ws else None
+
+    console.print()
+    console.print(Panel(
+        f"[bold yellow]{ws.year}年 {ws.season.cn}[/] | "
+        f"第 {ws.turn_number} 回合",
+        border_style="bright_blue",
+        title="\U0001f30d 天下状态 (物理引擎)",
+        title_align="left",
+    ))
+
+    if player:
+        state_table = Table(box=box.SIMPLE, border_style="dim")
+        state_table.add_column("属性", style="dim")
+        state_table.add_column("数值", style="bold")
+        state_table.add_row("势力", player.name)
+        state_table.add_row("兵力", f"{player.strength_actual:,}")
+        state_table.add_row("经济", f"{player.economy_actual}/100")
+        state_table.add_row("民心", f"{player.morale_actual}/100")
+        state_table.add_row("资金", f"{player.treasury:,}")
+        state_table.add_row("粮草", f"{player.food:,}")
+        state_table.add_row("税率", f"{player.tax_rate:.0%}")
+        state_table.add_row("首都", player.capital or "—")
+        state_table.add_row("领地", ", ".join(
+            f"{ws.territories[t].name}({t})" if t in ws.territories else t
+            for t in player.territories
+        ) if player.territories else "暂无")
+        console.print(state_table)
+
+        # Territory details
+        if player.territories:
+            console.print()
+            terr_table = Table(box=box.SIMPLE, border_style="dim")
+            terr_table.add_column("领土", style="bold")
+            terr_table.add_column("人口", justify="right")
+            terr_table.add_column("开发", justify="right")
+            terr_table.add_column("驻军", justify="right")
+            for tid in player.territories[:10]:
+                t = ws.territories.get(tid)
+                if t:
+                    # Count troops here
+                    troops = sum(
+                        a.total_troops for a in ws.armies.values()
+                        if a.location == tid and a.faction_id == ws.player_faction_id
+                    )
+                    terr_table.add_row(
+                        f"{t.name} ({t.id})", f"{t.population:,}",
+                        f"{t.development}", f"{troops:,}",
+                    )
+            console.print(terr_table)
+
+    other_factions = [
+        (fid, fs) for fid, fs in ws.factions.items()
+        if fs.is_active and fid != ws.player_faction_id
+    ]
+    if other_factions:
+        console.print()
+        faction_table = Table(box=box.SIMPLE, border_style="dim")
+        faction_table.add_column("势力", style="bold")
+        faction_table.add_column("兵力", justify="right")
+        faction_table.add_column("领土", justify="right")
+        faction_table.add_column("关系", justify="right")
+        for _fid, fs in other_factions[:8]:
+            rel = fs.relations.get(ws.player_faction_id, 0) if fs.relations else 0
+            rel_str = f"{rel:+d}" if rel else "0"
+            faction_table.add_row(
+                fs.name, f"{fs.strength_actual:,}",
+                str(len(fs.territories)), rel_str,
+            )
+        console.print(faction_table)
+
+
+def _display_state_v1(engine: GameEngine):
+    """Display v1 world state."""
     ws = engine.world_state
     player = ws.get_player_faction()
 
