@@ -114,17 +114,41 @@ def _get_engine(game_id: str) -> Any | None:
 
 def _build_faction_status(engine) -> dict:
     """Extract player faction status from engine."""
+    # City-to-Chinese-name mapping (engine stores city IDs, not province IDs)
+    _CITY_NAMES: dict[str, str] = {
+        "xinye": "新野", "xiangyang": "襄阳", "jiangling": "江陵",
+        "jiangxia": "江夏", "changsha": "长沙", "chengdu": "成都",
+        "jiangzhou": "江州", "yongchang": "永昌", "jianye": "建业",
+        "lujiang": "庐江", "wujun": "吴郡", "kuaiji": "会稽",
+        "nanhai": "南海", "luoyang": "洛阳", "xuchang": "许昌",
+        "changan": "长安", "yecheng": "邺城", "beiping": "北平",
+        "hanshong": "汉中", "jinyang": "晋阳", "tianshui": "天水",
+        "wuwei": "武威", "runan": "汝南", "xiapi": "下邳",
+        "beihai": "北海", "jixian": "蓟县",
+    }
+
     if engine._use_v2:
         ws = engine.world_state_v2
         player = ws.factions.get(ws.player_faction_id)
         if not player:
             return {}
+        # Resolve territory names from engine
+        territory_names = []
+        for tid in player.territories:
+            t = ws.territories.get(tid)
+            if t:
+                territory_names.append(t.name)
+            else:
+                territory_names.append(_CITY_NAMES.get(tid, tid))
+
         return {
             "name": player.name,
+            "faction_id": ws.player_faction_id,
             "strength": player.strength_actual,
             "food": player.food,
             "treasury": player.treasury,
             "territories": player.territories,
+            "territory_names": territory_names,
             "morale": player.morale_actual,
             "is_active": player.is_active,
             "year": ws.year,
