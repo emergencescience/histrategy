@@ -181,6 +181,7 @@ footer{text-align:center;color:var(--text-dim);font-size:.65em;
 <header>
   <h1>三國志略<span>v2</span></h1>
   <div class="stats">
+    <button class="map-btn" id="map-toggle" title="折叠/展开地图" style="margin-right:4px">◧</button>
     <div class="stat"><label>年代</label><span id="stat-year">—</span></div>
     <div class="stat"><label>兵力</label><span class="s" id="stat-strength">—</span></div>
     <div class="stat"><label>粮草</label><span class="f" id="stat-food">—</span></div>
@@ -194,9 +195,7 @@ footer{text-align:center;color:var(--text-dim);font-size:.65em;
 <main>
   <!-- Map -->
   <div class="map-panel" id="map-panel">
-    <div class="map-controls">
-      <button class="map-btn" id="map-toggle" title="折叠地图 / 文字模式">◧</button>
-    </div>
+    <div class="text-mode-hint">地图已折叠 · 点击右上角 ◨ 展开</div>
     <svg viewBox="0 0 800 600" id="map-svg">
       <rect width="800" height="600" fill="#1a1a2e"/>
       <g stroke="#222244" stroke-width="0.5" opacity="0.3">
