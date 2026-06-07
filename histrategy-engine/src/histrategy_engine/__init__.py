@@ -25,6 +25,9 @@ from .world import (
 from .map import MapEngine, PathResult
 from .character import CharacterEngine
 from .domestic import ClimateSystem, DomesticEngine, TerritoryResult
+from .military import MilitaryEngine, RecruitResult, MoveResult, SupplyStatus
+from .ai import DecisionEngine
+from .turn import TurnController
 
 __all__ = [
     # World
@@ -35,7 +38,8 @@ __all__ = [
     "Season", "ClimateEvent", "TerrainType", "UnitType", "HistoricalMode",
     # Engines
     "MapEngine", "CharacterEngine", "DomesticEngine", "ClimateSystem",
+    "MilitaryEngine", "DecisionEngine", "TurnController",
     # Results
-    "PathResult", "TerritoryResult",
+    "PathResult", "TerritoryResult", "RecruitResult", "MoveResult", "SupplyStatus",
 ]
 __version__ = "0.1.0"
