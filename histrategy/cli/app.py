@@ -799,6 +799,22 @@ def main():
         "--export-log", type=str,
         help="将当前游戏战绩导出为 Markdown 或 JSON 格式 (例如: --export-log output.md)",
     )
+    parser.add_argument(
+        "--serve", action="store_true",
+        help="启动 REST API 服务器（Web 客户端后端）",
+    )
+    parser.add_argument(
+        "--record", action="store_true",
+        help="启动录制管线 — Headless 游戏 → 视频",
+    )
+    parser.add_argument(
+        "--port", type=int, default=8080,
+        help="API 服务器端口 (默认: 8080)",
+    )
+    parser.add_argument(
+        "--host", type=str, default="127.0.0.1",
+        help="API 服务器监听地址 (默认: 127.0.0.1)",
+    )
 
     args = parser.parse_args()
 
@@ -815,6 +831,20 @@ def main():
     if args.headless:
         from .headless_cli import run_headless
         run_headless(faction_choice=args.faction, force_new=args.new)
+        return
+
+    if args.serve:
+        from ..server.api import run_server
+        run_server(host=args.host, port=args.port)
+        return
+
+    if args.record:
+        from .record import main as record_main
+        import sys as _sys
+        _sys.argv = ["record",
+                     "--faction", args.faction or "shu",
+                     "--turns", "10"]
+        record_main()
         return
 
     if args.dev:
