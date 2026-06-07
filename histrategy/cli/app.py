@@ -804,6 +804,10 @@ def main():
         help="启动 REST API 服务器（Web 客户端后端）",
     )
     parser.add_argument(
+        "--api-key", type=str, default=None,
+        help="DeepSeek API Key (或设置 DEEPSEEK_API_KEY 环境变量)",
+    )
+    parser.add_argument(
         "--record", action="store_true",
         help="启动录制管线 — Headless 游戏 → 视频",
     )
@@ -835,7 +839,7 @@ def main():
 
     if args.serve:
         from ..server.api import run_server
-        run_server(host=args.host, port=args.port)
+        run_server(host=args.host, port=args.port, api_key=args.api_key)
         return
 
     if args.record:

@@ -86,21 +86,28 @@ class FactionStatus(BaseModel):
 
 # In-memory game pool: {game_id: GameEngine}
 _games: dict[str, Any] = {}
+_llm_provider: str | None = None  # Set by run_server / create_app
 
 
 def _get_or_create_engine(faction: str = "shu", scenario: str = "207",
                           new: bool = True) -> tuple[str, Any]:
     """Get existing game by ID or create a new one."""
-    # If not new, try to find an existing game
     if not new and _games:
-        # Return the most recently created game
         return list(_games.keys())[-1], list(_games.values())[-1]
 
-    # Create new game
     from histrategy.engine.game import GameEngine
+    from histrategy.llm.adapter import LLMAdapter
+
+    # Build LLM adapter if provider is available
+    llm = None
+    if _llm_provider:
+        try:
+            llm = LLMAdapter(provider=_llm_provider)
+        except Exception:
+            pass
 
     game_id = uuid.uuid4().hex[:12]
-    engine = GameEngine(scenario=scenario, new_game=True)
+    engine = GameEngine(scenario=scenario, new_game=True, llm=llm)
     engine.set_player_faction(faction)
 
     _games[game_id] = engine
@@ -176,8 +183,12 @@ def _build_faction_status(engine) -> dict:
 # ─── FastAPI App ─────────────────────────────────────────────────
 
 
-def create_app() -> Any:
+def create_app(llm_provider: str | None = None) -> Any:
     """Create and configure the FastAPI application."""
+    global _llm_provider
+    if llm_provider:
+        _llm_provider = llm_provider
+
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
 
@@ -208,7 +219,14 @@ def create_app() -> Any:
 
     @app.get("/api/health")
     def health():
-        return {"status": "ok", "games_active": len(_games)}
+        return {
+            "status": "ok",
+            "games_active": len(_games),
+            "llm": {
+                "available": _llm_provider is not None,
+                "provider": _llm_provider or "none",
+            },
+        }
 
     @app.post("/api/games")
     def create_game(req: CreateGameRequest):
@@ -328,9 +346,27 @@ def create_app() -> Any:
 # ─── Server Runner ───────────────────────────────────────────────
 
 
-def run_server(host: str = "127.0.0.1", port: int = 8080):
+def run_server(host: str = "127.0.0.1", port: int = 8080, api_key: str | None = None):
     """Run the REST API server."""
+    import os
     import uvicorn
 
-    app = create_app()
+    # Set API key from parameter or environment
+    provider = None
+    if api_key:
+        os.environ["DEEPSEEK_API_KEY"] = api_key
+        provider = "deepseek"
+    elif os.environ.get("DEEPSEEK_API_KEY"):
+        provider = "deepseek"
+    elif os.environ.get("OPENAI_API_KEY"):
+        provider = "openai"
+
+    app = create_app(llm_provider=provider)
+
+    if provider:
+        print(f"🤖 LLM: {provider} API 已配置 — 智能叙事引擎已启用")
+    else:
+        print("📴 LLM: 未检测到 API Key — 使用离线模式（关键字规则引擎）")
+        print("   💡 设置: export DEEPSEEK_API_KEY='sk-...' 或 histrategy --serve --api-key sk-...")
+
     uvicorn.run(app, host=host, port=port, log_level="info")
