@@ -1,0 +1,483 @@
+{
+  "timeline_id": "207-223",
+  "name": "三顾茅庐至白帝托孤",
+  "description": "刘备从寄居新野到白帝城托孤的核心历史区间，涵盖赤壁之战、入蜀、汉中争夺、失荆州、夷陵之战等重大事件",
+  "events": [
+    {
+      "id": "three_visits_207",
+      "title": "三顾茅庐",
+      "year": 207,
+      "month": 12,
+      "category": "diplomatic",
+      "description": "刘备三顾茅庐请诸葛亮出山，诸葛亮献《隆中对》，提出三分天下策略。刘备得卧龙，从此有了战略方向。",
+      "participants": ["liubei", "zhugeliang", "guanyu", "zhangfei"],
+      "gravity": 0.95,
+      "preconditions": {
+        "liubei_location": "xinye",
+        "zhugeliang_alive": true,
+        "liubei_has_advisor": false
+      },
+      "outcomes": [
+        {
+          "id": "zhuge_joins",
+          "description": "诸葛亮加入刘备，任军师中郎将",
+          "effects": {"liubei_advisor": "zhugeliang", "liubei_strategy": "longzhong_plan"}
+        },
+        {
+          "id": "zhuge_refuses",
+          "description": "诸葛亮拒绝出山，刘备继续寻找人才",
+          "effects": {"liubei_advisor": "none", "game_divergence": "high"}
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["liubiao_death_208"],
+        "if_averted": "刘备缺乏战略指导，赤壁之战可能失败"
+      }
+    },
+    {
+      "id": "liubiao_death_208",
+      "title": "刘表病亡，曹操南下",
+      "year": 208,
+      "month": 3,
+      "category": "character_death",
+      "description": "荆州牧刘表病逝，次子刘琮继位。曹操趁荆州内乱率大军南下，刘琮举州投降，刘备被迫南逃。",
+      "participants": ["liubiao", "liucong", "caocao", "liubei"],
+      "gravity": 0.9,
+      "preconditions": {
+        "liubiao_alive": false,
+        "jingzhou_owner": "liubiao"
+      },
+      "outcomes": [
+        {
+          "id": "cao_takes_jingzhou",
+          "description": "曹操收编荆州水军，刘备南逃至江夏",
+          "effects": {"jingzhou_owner": "cao", "liubei_location": "jiangkou"}
+        },
+        {
+          "id": "liucong_resists",
+          "description": "刘琮据守襄阳抵抗，曹操围城",
+          "effects": {"jingzhou_owner": "contested"}
+        },
+        {
+          "id": "liubei_inherits",
+          "description": "刘表临终托孤刘备，荆州归刘",
+          "effects": {"jingzhou_owner": "liubei", "game_divergence": "high"}
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["changban_208", "red_cliffs_208"],
+        "if_averted": "荆州格局不变，曹操不会南下，赤壁之战不发生"
+      }
+    },
+    {
+      "id": "changban_208",
+      "title": "长坂坡之战",
+      "year": 208,
+      "month": 9,
+      "category": "major_battle",
+      "description": "刘备率军民南撤，曹操精骑五千追击于当阳长坂坡。赵云七进七出救阿斗，张飞据水断桥喝退曹军。",
+      "participants": ["liubei", "zhaoyun", "zhangfei", "caocao"],
+      "gravity": 0.85,
+      "preconditions": {
+        "liubiao_dead": true,
+        "caocao_south": true,
+        "liubei_fleeing": true
+      },
+      "outcomes": [
+        {
+          "id": "liubei_escapes",
+          "description": "刘备成功突围至江夏，但损失辎重民众",
+          "effects": {"liubei_location": "jiangkou", "liubei_population_loss": "large"}
+        },
+        {
+          "id": "liubei_captured",
+          "description": "曹操擒获刘备或其家眷",
+          "effects": {"liubei_status": "captured", "game_divergence": "extreme"}
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["red_cliffs_208"],
+        "if_averted": "刘备保存实力，孙刘联盟可能推迟"
+      }
+    },
+    {
+      "id": "red_cliffs_208",
+      "title": "赤壁之战",
+      "year": 208,
+      "month": 12,
+      "category": "major_battle",
+      "description": "孙权刘备联军在赤壁以火攻大破曹操水军，周瑜黄盖上演苦肉计，诸葛亮借东风。此战奠定三分天下格局。",
+      "participants": ["caocao", "sunquan", "liubei", "zhouyu", "zhugeliang", "huanggai"],
+      "gravity": 0.95,
+      "preconditions": {
+        "caocao_controls_jingzhou": true,
+        "sunliu_alliance": true,
+        "caocao_has_navy": true
+      },
+      "outcomes": [
+        {
+          "id": "alliance_victory",
+          "description": "孙刘联军大胜，曹操北归，荆州被瓜分",
+          "effects": {"cao_retreats": true, "jingzhou_split": true}
+        },
+        {
+          "id": "cao_victory",
+          "description": "曹操击溃联军，统一江南",
+          "effects": {"cao_unifies": true, "game_divergence": "extreme"}
+        },
+        {
+          "id": "stalemate",
+          "description": "双方相持不下，划江而治",
+          "effects": {"yangtze_border": true}
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["jingnan_campaign_209", "zhouyu_death_210"],
+        "if_averted": "曹操统一天下进程加快，三国格局不存在"
+      }
+    },
+    {
+      "id": "jingnan_campaign_209",
+      "title": "刘备取荆南四郡",
+      "year": 209,
+      "month": 3,
+      "category": "territory_change",
+      "description": "赤壁战后，刘备趁曹操北归之势，南下攻取武陵、长沙、零陵、桂阳四郡，收黄忠、魏延等将。",
+      "participants": ["liubei", "guanyu", "zhaoyun", "huangzhong", "weiyan"],
+      "gravity": 0.8,
+      "preconditions": {
+        "red_cliffs_won": true,
+        "caocao_retreated": true
+      },
+      "outcomes": [
+        {
+          "id": "four_commanderies",
+          "description": "刘备尽得荆南四郡，实力大增",
+          "effects": {"liubei_territories_add": ["wuling", "changsha", "lingling", "guiyang"]}
+        },
+        {
+          "id": "partial_capture",
+          "description": "刘备只得二郡，其余被孙权占据",
+          "effects": {"jingnan_split": true}
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["sunliu_marriage_209"],
+        "if_averted": "刘备实力不足，难以入蜀"
+      }
+    },
+    {
+      "id": "sunliu_marriage_209",
+      "title": "孙刘联姻",
+      "year": 209,
+      "month": 9,
+      "category": "diplomatic",
+      "description": "孙权将妹妹孙尚香嫁予刘备，巩固孙刘联盟。诸葛亮使赵云护卫前往东吴成婚。",
+      "participants": ["liubei", "sunshangxiang", "sunquan", "zhouyu", "zhugeliang"],
+      "gravity": 0.7,
+      "preconditions": {
+        "sunliu_alliance": true,
+        "jingnan_captured": true
+      },
+      "outcomes": [
+        {
+          "id": "marriage_succeeds",
+          "description": "孙刘联姻成功，联盟巩固",
+          "effects": {"sunliu_relation": "+20"}
+        },
+        {
+          "id": "marriage_fails",
+          "description": "联姻被周瑜破坏，孙权扣留刘备",
+          "effects": {"liubei_status": "detained", "game_divergence": "high"}
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["liubei_enters_shu_211"],
+        "if_averted": "孙刘联盟弱化"
+      }
+    },
+    {
+      "id": "zhouyu_death_210",
+      "title": "周瑜病逝",
+      "year": 210,
+      "month": 12,
+      "category": "character_death",
+      "description": "周瑜在取蜀途中箭伤复发，于巴丘逝世，年仅36岁。临终叹「既生瑜，何生亮」。鲁肃继任大都督。",
+      "participants": ["zhouyu", "sunquan", "lusu"],
+      "gravity": 0.8,
+      "preconditions": {
+        "red_cliffs_won": true,
+        "zhouyu_alive": true
+      },
+      "outcomes": [
+        {
+          "id": "zhouyu_dies",
+          "description": "周瑜病逝巴丘，鲁肃继任",
+          "effects": {"wu_commander": "lusu", "wu_aggression": "reduced"}
+        },
+        {
+          "id": "zhouyu_survives",
+          "description": "周瑜伤愈，继续经略西川",
+          "effects": {"wu_expansion": "west", "game_divergence": "high"}
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["liubei_enters_shu_211"],
+        "if_averted": "周瑜取蜀，刘备被困荆州一隅"
+      }
+    },
+    {
+      "id": "liubei_enters_shu_211",
+      "title": "刘备入蜀",
+      "year": 211,
+      "month": 12,
+      "category": "territory_change",
+      "description": "刘璋邀刘备入蜀抵御张鲁。刘备与刘璋会于涪城，后反目。庞统战死落凤坡，诸葛亮率张飞赵云入川支援，最终于214年攻克成都。",
+      "participants": ["liubei", "liuzhang", "pangtong", "zhugeliang", "zhangfei", "zhaoyun", "machao"],
+      "gravity": 0.9,
+      "preconditions": {
+        "liuzhang_holds_yizhou": true,
+        "liubei_has_base": true
+      },
+      "outcomes": [
+        {
+          "id": "liubei_takes_chengdu",
+          "description": "刘备攻克成都，自领益州牧",
+          "effects": {"liubei_controls": "yizhou", "pangtong_dead": true}
+        },
+        {
+          "id": "liuzhang_repels",
+          "description": "刘璋识破刘备意图，将其逐出蜀地",
+          "effects": {"liubei_location": "jingzhou", "game_divergence": "high"}
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["xiangshui_treaty_215"],
+        "if_averted": "刘备困守荆州，三足鼎立不成立"
+      }
+    },
+    {
+      "id": "xiangshui_treaty_215",
+      "title": "湘水划界",
+      "year": 215,
+      "month": 12,
+      "category": "diplomatic",
+      "description": "孙权索要荆州，刘备推脱不得凉州不还。孙权怒派吕蒙袭取长沙、零陵、桂阳三郡。双方剑拔弩张之际，因曹操攻汉中而议和，以湘水为界重新划分荆州。",
+      "participants": ["sunquan", "liubei", "lvmeng", "guanyu"],
+      "gravity": 0.75,
+      "preconditions": {
+        "liubei_has_jingzhou": true,
+        "sunquan_demands_jingzhou": true
+      },
+      "outcomes": [
+        {
+          "id": "xiangshui_split",
+          "description": "湘水划界，长沙、江夏、桂阳以东归孙权",
+          "effects": {"jingzhou_split": "xiangshui", "sunliu_relation": "-10"}
+        },
+        {
+          "id": "jingzhou_war",
+          "description": "谈判破裂，孙刘荆州大战",
+          "effects": {"sunliu_war": true, "game_divergence": "high"}
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["hanzhong_campaign_217"],
+        "if_averted": "孙刘联盟提前破裂"
+      }
+    },
+    {
+      "id": "hanzhong_campaign_217",
+      "title": "汉中争夺战",
+      "year": 217,
+      "month": 12,
+      "category": "major_battle",
+      "description": "刘备发动汉中战役，与曹操争夺汉中。定军山一役黄忠阵斩夏侯渊，曹操亲征亦不能胜。219年刘备攻占汉中全境，自称汉中王。",
+      "participants": ["liubei", "caocao", "huangzhong", "xiahouyuan", "zhanghe", "fazheng"],
+      "gravity": 0.85,
+      "preconditions": {
+        "liubei_has_yizhou": true,
+        "caocao_has_hanzhong": true
+      },
+      "outcomes": [
+        {
+          "id": "liubei_takes_hanzhong",
+          "description": "刘备攻占汉中，自称汉中王",
+          "effects": {"liubei_title": "king_of_hanzhong", "xiahouyuan_dead": true}
+        },
+        {
+          "id": "cao_holds_hanzhong",
+          "description": "曹操守住汉中，刘备退回益州",
+          "effects": {"cao_holds": "hanzhong", "game_divergence": "high"}
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["guanyu_northern_campaign_219"],
+        "if_averted": "刘备被压制在益州，汉中成为曹操南下的跳板"
+      }
+    },
+    {
+      "id": "guanyu_northern_campaign_219",
+      "title": "关羽北伐与失荆州",
+      "year": 219,
+      "month": 8,
+      "category": "major_battle",
+      "description": "关羽率荆州军北伐，水淹七军擒于禁斩庞德，威震华夏。曹操欲迁都以避其锋。然吕蒙白衣渡江偷袭江陵，关羽腹背受敌，败走麦城被吴将潘璋擒杀。",
+      "participants": ["guanyu", "yujin", "pangde", "lvmeng", "luxun", "mifang", "caoren"],
+      "gravity": 0.9,
+      "preconditions": {
+        "guanyu_guards_jingzhou": true,
+        "liubei_has_hanzhong": true,
+        "cao_still_powerful": true
+      },
+      "outcomes": [
+        {
+          "id": "guanyu_killed",
+          "description": "关羽败走麦城被杀，荆州全境归孙权",
+          "effects": {"guanyu_dead": true, "jingzhou_owner": "sunquan", "liubei_strategic_loss": "catastrophic"}
+        },
+        {
+          "id": "guanyu_retreats",
+          "description": "关羽及时撤回江陵，守住荆州",
+          "effects": {"jingzhou_hold": true, "game_divergence": "high"}
+        },
+        {
+          "id": "guanyu_takes_fan",
+          "description": "关羽攻克樊城，威逼许昌",
+          "effects": {"cao_territory_loss": "severe", "game_divergence": "extreme"}
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["caocao_death_220", "liubei_emperor_221", "yiling_battle_221"],
+        "if_averted": "刘备保有荆州跨有荆益，隆中对可实现"
+      }
+    },
+    {
+      "id": "caocao_death_220",
+      "title": "曹操病逝，曹丕篡汉",
+      "year": 220,
+      "month": 3,
+      "category": "character_death",
+      "description": "魏王曹操病逝于洛阳，享年66岁。世子曹丕继位，同年逼汉献帝禅让，建立魏国，汉朝四百年江山终。",
+      "participants": ["caocao", "caopi", "hanxiandi"],
+      "gravity": 0.9,
+      "preconditions": {
+        "caocao_alive": true,
+        "cao_controls_north": true
+      },
+      "outcomes": [
+        {
+          "id": "caopi_usurps",
+          "description": "曹丕篡汉建立魏国，汉室终结",
+          "effects": {"han_dynasty_ends": true, "wei_founded": true}
+        },
+        {
+          "id": "caocao_recovers",
+          "description": "曹操康复，亲自称帝",
+          "effects": {"cao_emperor": true, "game_divergence": "moderate"}
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["liubei_emperor_221"],
+        "if_averted": "曹操亲自篡汉，或维持汉室"
+      }
+    },
+    {
+      "id": "liubei_emperor_221",
+      "title": "刘备称帝，张飞被刺",
+      "year": 221,
+      "month": 4,
+      "category": "political",
+      "description": "刘备在成都称帝，国号汉（蜀汉）。命张飞率兵会师伐吴，张飞因鞭挞士卒被部将范疆张达刺杀。",
+      "participants": ["liubei", "zhangfei", "zhugeliang", "zhaoyun"],
+      "gravity": 0.85,
+      "preconditions": {
+        "caopi_usurped": true,
+        "liubei_alive": true
+      },
+      "outcomes": [
+        {
+          "id": "liubei_emperor_and_zhangfei_dead",
+          "description": "刘备称帝，张飞被刺身亡",
+          "effects": {"liubei_title": "emperor", "zhangfei_dead": true}
+        },
+        {
+          "id": "zhangfei_survives",
+          "description": "张飞未遭刺杀，领军伐吴",
+          "effects": {"zhangfei_commands": "wu_campaign", "game_divergence": "moderate"}
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["yiling_battle_221"],
+        "if_averted": "张飞参与伐吴，可能改变夷陵之战走向"
+      }
+    },
+    {
+      "id": "yiling_battle_221",
+      "title": "夷陵之战",
+      "year": 221,
+      "month": 7,
+      "category": "major_battle",
+      "description": "刘备为关羽复仇，亲率大军伐吴。陆逊火烧连营七百里，蜀军大败。刘备退至白帝城，蜀汉元气大伤。",
+      "participants": ["liubei", "luxun", "sunquan", "huangzhong", "ganning"],
+      "gravity": 0.9,
+      "preconditions": {
+        "guanyu_dead": true,
+        "liubei_emperor": true,
+        "wu_holds_jingzhou": true
+      },
+      "outcomes": [
+        {
+          "id": "wu_victory",
+          "description": "陆逊火烧连营，刘备惨败退守白帝城",
+          "effects": {"liubei_army": "devastated", "shu_power": "crippled"}
+        },
+        {
+          "id": "shu_victory",
+          "description": "刘备击破吴军收复荆州",
+          "effects": {"jingzhou_owner": "liubei", "game_divergence": "extreme"}
+        },
+        {
+          "id": "stalemate",
+          "description": "双方相持，议和罢兵",
+          "effects": {"status_quo": true}
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["baidi_tuogu_223"],
+        "if_averted": "蜀汉保有强大军力，三国格局延长"
+      }
+    },
+    {
+      "id": "baidi_tuogu_223",
+      "title": "白帝托孤",
+      "year": 223,
+      "month": 4,
+      "category": "character_death",
+      "description": "刘备病重，于白帝城托孤于诸葛亮：「如其不才，君可自取」。嘱托刘禅「勿以善小而不为，勿以恶小而为之」。刘备逝世，享年63岁。",
+      "participants": ["liubei", "zhugeliang", "liushan", "liji"],
+      "gravity": 0.95,
+      "preconditions": {
+        "liubei_alive": true,
+        "yiling_lost": true,
+        "zhugeliang_alive": true
+      },
+      "outcomes": [
+        {
+          "id": "liubei_dies_zhuge_regency",
+          "description": "刘备病逝，诸葛亮受托孤之重辅政",
+          "effects": {"liubei_dead": true, "shu_regent": "zhugeliang", "liushan_emperor": true}
+        },
+        {
+          "id": "liubei_recovers",
+          "description": "刘备康复，重整旗鼓",
+          "effects": {"liubei_restored": true, "game_divergence": "high"}
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": [],
+        "if_averted": "刘备继续统领蜀汉，蜀汉国策可能不同"
+      }
+    }
+  ]
+}

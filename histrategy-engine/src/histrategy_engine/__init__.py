@@ -11,6 +11,7 @@ from .world import (
     ClimateEvent,
     CombatResult,
     Command,
+    EventProposal,
     FactionState,
     HistoricalEvent,
     HistoricalMode,
@@ -25,17 +26,24 @@ from .world import (
 from .map import MapEngine, PathResult
 from .character import CharacterEngine
 from .domestic import ClimateSystem, DomesticEngine, TerritoryResult
+from .military import MilitaryEngine, RecruitResult, MoveResult, SupplyStatus
+from .ai import DecisionEngine
+from .turn import TurnController
+from .history import HistoryEngine
+from .history.rag import HistoricalRAG
 
 __all__ = [
     # World
     "WorldState", "Territory", "Character", "FactionState", "Army",
     "StrategicPoint", "CombatResult", "Command", "TurnResult",
-    "HistoricalEvent",
+    "HistoricalEvent", "EventProposal",
     # Enums
     "Season", "ClimateEvent", "TerrainType", "UnitType", "HistoricalMode",
     # Engines
     "MapEngine", "CharacterEngine", "DomesticEngine", "ClimateSystem",
+    "MilitaryEngine", "DecisionEngine", "TurnController",
+    "HistoryEngine", "HistoricalRAG",
     # Results
-    "PathResult", "TerritoryResult",
+    "PathResult", "TerritoryResult", "RecruitResult", "MoveResult", "SupplyStatus",
 ]
 __version__ = "0.1.0"

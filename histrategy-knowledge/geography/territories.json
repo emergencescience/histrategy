@@ -1,0 +1,166 @@
+{
+  "description": "东汉十三州及主要郡县，基于地图引擎的区域划分",
+  "source": "后汉书·郡国志",
+  "regions": [
+    {
+      "id": "sili",
+      "name": "司隶",
+      "chinese": "司隶校尉部",
+      "capital": "luoyang",
+      "cities": ["洛阳", "长安", "弘农", "河东", "河内", "河南"],
+      "terrain": "plains",
+      "climate_zone": "north",
+      "fertility": 7,
+      "significance": "东汉首都所在，政治中心。207年属曹操。"
+    },
+    {
+      "id": "yuzhou",
+      "name": "豫州",
+      "chinese": "豫州刺史部",
+      "capital": "qiaoxian",
+      "cities": ["谯县", "许昌", "汝南", "颍川", "陈国", "梁国"],
+      "terrain": "plains",
+      "climate_zone": "central",
+      "fertility": 7,
+      "significance": "曹操故乡，许昌为汉帝驻地。颍川出谋士。"
+    },
+    {
+      "id": "yanzhou",
+      "name": "兖州",
+      "chinese": "兖州刺史部",
+      "capital": "juancheng",
+      "cities": ["鄄城", "陈留", "东郡", "山阳", "济阴"],
+      "terrain": "plains",
+      "climate_zone": "north",
+      "fertility": 6,
+      "significance": "曹操早期根据地，中原腹地。"
+    },
+    {
+      "id": "qingzhou",
+      "name": "青州",
+      "chinese": "青州刺史部",
+      "capital": "linzi",
+      "cities": ["临淄", "北海", "东莱", "济南", "平原"],
+      "terrain": "plains",
+      "climate_zone": "north",
+      "has_coast": true,
+      "fertility": 6,
+      "significance": "青州兵来源地。207年属曹操。"
+    },
+    {
+      "id": "xuzhou",
+      "name": "徐州",
+      "chinese": "徐州刺史部",
+      "capital": "xiapichen",
+      "cities": ["下邳", "彭城", "琅琊", "东海", "广陵"],
+      "terrain": "plains",
+      "climate_zone": "central",
+      "has_coast": true,
+      "fertility": 7,
+      "significance": "刘备早期曾领徐州牧。207年属曹操。"
+    },
+    {
+      "id": "jizhou",
+      "name": "冀州",
+      "chinese": "冀州刺史部",
+      "capital": "yeshi",
+      "cities": ["邺城", "信都", "常山", "中山", "河间", "渤海"],
+      "terrain": "plains",
+      "climate_zone": "north",
+      "fertility": 8,
+      "significance": "河北重镇，袁绍故地。民殷国富。207年属曹操。"
+    },
+    {
+      "id": "bingzhou",
+      "name": "并州",
+      "chinese": "并州刺史部",
+      "capital": "jinyang",
+      "cities": ["晋阳", "上党", "雁门", "西河", "太原"],
+      "terrain": "mountain",
+      "climate_zone": "north",
+      "horse_resource": true,
+      "fertility": 4,
+      "significance": "北方边疆，产马。吕布故乡。"
+    },
+    {
+      "id": "youzhou",
+      "name": "幽州",
+      "chinese": "幽州刺史部",
+      "capital": "ji",
+      "cities": ["蓟县", "涿郡", "渔阳", "北平", "辽东", "昌黎"],
+      "terrain": "plains",
+      "climate_zone": "north",
+      "has_coast": true,
+      "horse_resource": true,
+      "fertility": 5,
+      "significance": "刘备、张飞故乡(涿郡)。公孙瓒旧地。"
+    },
+    {
+      "id": "liangzhou",
+      "name": "凉州",
+      "chinese": "凉州刺史部",
+      "capital": "longguan",
+      "cities": ["武威", "张掖", "酒泉", "敦煌", "金城", "陇西", "天水"],
+      "terrain": "mountain",
+      "climate_zone": "north",
+      "horse_resource": true,
+      "fertility": 3,
+      "significance": "西凉铁骑产地。马超、韩遂势力范围。"
+    },
+    {
+      "id": "jingzhou",
+      "name": "荆州",
+      "chinese": "荆州刺史部",
+      "capital": "xiangyang",
+      "cities": [
+        "襄阳", "江陵", "江夏", "长沙",
+        "零陵", "武陵", "桂阳", "南阳"
+      ],
+      "terrain": "plains",
+      "climate_zone": "central",
+      "has_river": true,
+      "fertility": 8,
+      "significance": "三国争夺焦点，诸葛亮《隆中对》核心。跨有荆益的起点。"
+    },
+    {
+      "id": "yangzhou",
+      "name": "扬州",
+      "chinese": "扬州刺史部",
+      "capital": "jianye",
+      "cities": ["建业", "庐江", "吴郡", "会稽", "豫章", "柴桑", "合肥"],
+      "terrain": "plains",
+      "climate_zone": "south",
+      "has_river": true,
+      "has_coast": true,
+      "fertility": 7,
+      "significance": "孙权大本营。长江天险，水军基地。"
+    },
+    {
+      "id": "yizhou",
+      "name": "益州",
+      "chinese": "益州刺史部",
+      "capital": "chengdu",
+      "cities": [
+        "成都", "汉中", "巴郡", "涪陵",
+        "建宁", "永昌", "牂牁", "越雋"
+      ],
+      "terrain": "mountain",
+      "climate_zone": "south",
+      "has_river": true,
+      "fertility": 8,
+      "significance": "天府之国，诸葛亮《隆中对》的最终目标。"
+    },
+    {
+      "id": "jiaozhou",
+      "name": "交州",
+      "chinese": "交州刺史部",
+      "capital": "longbian",
+      "cities": ["龙编", "交趾", "九真", "日南", "南海", "苍梧"],
+      "terrain": "forest",
+      "climate_zone": "south",
+      "has_coast": true,
+      "fertility": 6,
+      "significance": "最南端，士燮割据。207年名义属汉。"
+    }
+  ]
+}

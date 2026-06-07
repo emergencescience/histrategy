@@ -18,10 +18,30 @@
 
 ## 🎮 Quick Start
 
-### Install (macOS / Linux)
+### v2 Engine (Physics-Driven — Recommended)
 
 ```bash
-# local install from source
+git clone https://github.com/emergencescience/histrategy.git
+cd histrategy
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install the game engine (zero dependencies)
+pip install -e histrategy-engine/
+
+# Install the game (depends on engine)
+pip install -e .
+
+# Run tests
+cd histrategy-engine && python -m pytest tests/ -v
+
+# Play
+histrategy
+```
+
+### v1 Install (LLM-Driven — Legacy)
+
+```bash
 git clone https://github.com/emergencescience/histrategy.git
 cd histrategy
 python3 -m venv .venv
@@ -30,11 +50,8 @@ pip install -e .
 
 # Play offline (rule-based simulation — no API key needed)
 histrategy
-```
 
-### AI mode (recommended)
-
-```bash
+# AI mode (recommended)
 export DEEPSEEK_API_KEY='sk-...'
 histrategy
 ```

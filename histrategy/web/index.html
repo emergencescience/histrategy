@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三國志略 — Histrategy v2</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#1a1a2e;--bg-panel:#16213e;--bg-input:#0f3460;
+  --text:#e0d8c8;--text-dim:#8a8a7a;--text-bright:#f5e6c8;
+  --gold:#d4a017;--red:#c0392b;--blue:#2980b9;--green:#27ae60;
+  --border:#2a2a4a;--accent:#e74c3c;
+  --transition:0.2s ease;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB',
+    'Noto Sans SC','Microsoft YaHei',sans-serif;overflow:hidden}
+body{display:flex;flex-direction:column}
+
+/* ═══ Header ═══ */
+header{
+  background:linear-gradient(180deg,#2c1810,#16213e);
+  border-bottom:2px solid #3a2020;padding:8px 20px;
+  display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:12px}
+header h1{font-size:1.2em;color:var(--gold);letter-spacing:3px;white-space:nowrap}
+header h1 span{color:var(--text-dim);font-size:.55em;margin-left:4px}
+.stats{display:flex;gap:16px;align-items:center;font-size:.8em;flex-wrap:wrap}
+.stat{text-align:center}
+.stat label{color:var(--text-dim);font-size:.65em;display:block}
+.stat span{color:var(--text-bright);font-weight:bold}
+.stat .s{color:#5dade2}.stat .f{color:#f0c27a}.stat .g{color:var(--gold)}
+#stat-lands{color:#58d68d;font-size:.75em;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.llm-badge{padding:2px 8px;border-radius:10px;font-size:.65em;font-weight:bold}
+.llm-on{background:rgba(39,174,96,.2);color:var(--green)}
+.llm-off{background:rgba(231,76,60,.2);color:var(--red)}
+
+/* ═══ Main Layout ═══ */
+main{display:flex;flex:1;min-height:0;transition:all var(--transition)}
+.map-panel{flex:1.2;position:relative;background:var(--bg);
+  border-right:1px solid var(--border);min-width:0;transition:all var(--transition);overflow:hidden}
+.map-panel.collapsed{flex:0;min-width:0;width:0;border-right:none;padding:0}
+.info-panel{flex:0.8;display:flex;flex-direction:column;overflow-y:auto;
+  padding:12px 16px;gap:8px;min-width:320px;max-width:520px;transition:all var(--transition)}
+.map-panel.collapsed + .info-panel{flex:1;max-width:none}
+
+/* ═══ Map Controls ═══ */
+.map-controls{position:absolute;top:8px;right:8px;z-index:10;display:flex;gap:4px}
+.map-btn{
+  background:rgba(22,33,62,.9);border:1px solid var(--border);border-radius:4px;
+  color:var(--text-dim);cursor:pointer;padding:4px 8px;font-size:.75em;
+  transition:all var(--transition)}
+.map-btn:hover{color:var(--gold);border-color:var(--gold)}
+
+/* ═══ Map ═══ */
+.map-panel svg{width:100%;height:100%}
+.city{cursor:pointer;transition:filter var(--transition)}
+.city:hover{filter:brightness(1.6)}
+.city.player{stroke:var(--gold);stroke-width:2.5;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{stroke-opacity:1}50%{stroke-opacity:.3}}
+.city-label{font-size:10px;pointer-events:none;text-anchor:middle;fill:var(--text-dim)}
+.city-label.player{fill:var(--gold);font-size:11px;font-weight:bold}
+
+/* ═══ Custom Tooltip (1s delay) ═══ */
+.tooltip{
+  position:fixed;z-index:999;max-width:360px;
+  background:var(--bg-panel);border:1px solid var(--gold);border-radius:6px;
+  padding:10px 14px;font-size:.85em;line-height:1.5;color:var(--text-bright);
+  pointer-events:none;opacity:0;transition:opacity .15s;
+  box-shadow:0 4px 20px rgba(0,0,0,.6)}
+.tooltip.show{opacity:1}
+
+/* ═══ Panels ═══ */
+.panel{
+  background:var(--bg-panel);border:1px solid var(--border);
+  border-radius:6px;padding:12px 14px;flex-shrink:0}
+.panel-title{
+  color:var(--gold);font-size:.75em;letter-spacing:1px;
+  margin-bottom:6px;border-bottom:1px solid var(--border);padding-bottom:3px;
+  display:flex;justify-content:space-between;align-items:center}
+
+/* ═══ Narrative ═══ */
+.narrative{font-size:.88em;line-height:1.7;white-space:pre-wrap;
+  max-height:200px;overflow-y:auto;scroll-behavior:smooth}
+.narrative h3,.narrative strong{color:var(--gold)}
+
+/* ═══ Suggestions (with hover tooltip trigger) ═══ */
+.suggestions{list-style:none;display:flex;flex-direction:column;gap:4px}
+.sug-item{
+  background:var(--bg-input);border:1px solid var(--border);
+  border-radius:4px;padding:7px 10px;cursor:pointer;transition:all var(--transition);
+  font-size:.85em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  position:relative}
+.sug-item:hover{background:#1a3a5c;border-color:var(--accent)}
+.sug-item .tag{background:var(--accent);color:#fff;font-size:.7em;
+  padding:1px 6px;border-radius:3px;margin-right:6px;white-space:nowrap}
+
+/* ═══ Command Input (larger, textarea style) ═══ */
+.input-area{flex-shrink:0}
+#decision-input{
+  width:100%;min-height:72px;max-height:160px;resize:vertical;
+  background:var(--bg-input);border:1px solid var(--border);border-radius:6px;
+  padding:10px 14px;color:var(--text-bright);
+  font-size:.95em;font-family:inherit;line-height:1.6;
+  outline:none;transition:border-color var(--transition)}
+#decision-input:focus{border-color:var(--accent)}
+#decision-input::placeholder{color:var(--text-dim)}
+.input-row{display:flex;gap:8px;margin-top:6px;align-items:center}
+.btn{
+  background:var(--accent);color:#fff;border:none;border-radius:4px;
+  padding:8px 20px;cursor:pointer;font-size:.9em;font-weight:600;
+  white-space:nowrap;transition:all var(--transition)}
+.btn:hover{background:#c0392b}
+.btn:disabled{background:#555;cursor:not-allowed}
+
+/* ═══ Modal ═══ */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.8);
+  display:flex;align-items:center;justify-content:center;z-index:100}
+.modal{
+  background:var(--bg-panel);border:1px solid var(--gold);border-radius:8px;
+  padding:32px 28px;max-width:500px;text-align:center}
+.modal h2{color:var(--gold);margin-bottom:6px;font-size:1.3em}
+.modal .sub{color:var(--text-dim);font-size:.85em;margin-bottom:18px}
+.faction-choices{display:flex;gap:10px;justify-content:center}
+.faction-btn{
+  background:var(--bg-input);border:2px solid var(--border);border-radius:6px;
+  padding:16px 16px;cursor:pointer;transition:all var(--transition);text-align:center;
+  min-width:110px;color:var(--text);font-family:inherit}
+.faction-btn:hover{border-color:var(--accent);transform:translateY(-2px)}
+.faction-btn .n{font-size:1.1em;font-weight:bold;display:block;margin-bottom:4px}
+.faction-btn .d{font-size:.7em;color:var(--text-dim);line-height:1.4}
+
+/* ═══ Status bar ═══ */
+.status-bar{
+  display:flex;gap:10px;align-items:center;justify-content:center;
+  padding:4px;background:rgba(22,33,62,.6);border-radius:4px;font-size:.75em;flex-shrink:0}
+.status-bar .dot{width:6px;height:6px;border-radius:50%}
+.dot.on{background:var(--green)}.dot.off{background:var(--red)}
+
+/* ═══ Toggle for text-only mode ═══ */
+.text-mode-hint{
+  text-align:center;color:var(--text-dim);font-size:.75em;padding:40px 20px;
+  display:none}
+.map-panel.collapsed .text-mode-hint{display:block}
+.map-panel.collapsed svg{display:none}
+
+.loading{text-align:center;color:var(--text-dim);padding:30px;font-size:.9em}
+.error{color:var(--accent);font-size:.8em;padding:4px 8px;background:rgba(231,76,60,.1);
+  border-radius:4px;margin-top:4px}
+.hidden{display:none!important}
+footer{text-align:center;color:var(--text-dim);font-size:.65em;
+  padding:4px;flex-shrink:0;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<!-- Faction Modal -->
+<div class="modal-overlay" id="faction-modal">
+  <div class="modal">
+    <h2>🏯 选择君主</h2>
+    <p class="sub">建安十二年（公元207年），天下三分之势未定…</p>
+    <div class="faction-choices">
+      <button class="faction-btn" data-faction="shu">
+        <span class="n">🔴 刘备</span><span class="d">寄居新野 · 三顾茅庐在即</span>
+      </button>
+      <button class="faction-btn" data-faction="cao">
+        <span class="n">🔵 曹操</span><span class="d">奉天子令不臣 · 已据中原</span>
+      </button>
+      <button class="faction-btn" data-faction="wu">
+        <span class="n">🟢 孙权</span><span class="d">继承父兄基业 · 稳坐江东</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom tooltip element -->
+<div class="tooltip" id="tooltip"></div>
+
+<!-- Header -->
+<header>
+  <h1>三國志略<span>v2</span></h1>
+  <div class="stats">
+    <button class="map-btn" id="map-toggle" title="折叠/展开地图" style="margin-right:4px">◧</button>
+    <div class="stat"><label>年代</label><span id="stat-year">—</span></div>
+    <div class="stat"><label>兵力</label><span class="s" id="stat-strength">—</span></div>
+    <div class="stat"><label>粮草</label><span class="f" id="stat-food">—</span></div>
+    <div class="stat"><label>资金</label><span class="g" id="stat-treasury">—</span></div>
+    <span id="stat-lands" title=""></span>
+    <span id="llm-badge" class="llm-badge llm-off">离线</span>
+  </div>
+</header>
+
+<!-- Main -->
+<main>
+  <!-- Map -->
+  <div class="map-panel" id="map-panel">
+    <div class="text-mode-hint">地图已折叠 · 点击右上角 ◨ 展开</div>
+    <svg viewBox="0 0 800 600" id="map-svg">
+      <rect width="800" height="600" fill="#1a1a2e"/>
+      <g stroke="#222244" stroke-width="0.5" opacity="0.3">
+        <line x1="200" y1="0" x2="200" y2="600"/><line x1="400" y1="0" x2="400" y2="600"/>
+        <line x1="600" y1="0" x2="600" y2="600"/>
+      </g>
+      <g stroke="#2a4a6a" stroke-width="3" fill="none" opacity="0.4">
+        <path d="M0,120 Q200,110 350,140 Q500,160 650,120 Q750,100 800,90"/>
+        <path d="M0,350 Q200,330 400,370 Q550,390 650,350 Q750,330 800,340"/>
+      </g>
+      <g id="cities-layer"></g>
+    </svg>
+  </div>
+
+  <!-- Info -->
+  <div class="info-panel">
+    <div class="status-bar">
+      <span class="dot on" id="status-dot"></span>
+      <span id="turn-info" style="color:var(--text-dim)">等待选择势力…</span>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">📜 军师来报</div>
+      <div class="narrative" id="narrative-text">请先选择你要辅佐的君主。</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">🎯 廷议决策方向 <span style="font-size:.7em;color:var(--text-dim);font-weight:normal">(悬停 1 秒看详情)</span></div>
+      <ul class="suggestions" id="suggestions-list"></ul>
+    </div>
+
+    <div class="input-area">
+      <textarea id="decision-input" placeholder="下达你的战略命令…" disabled rows="3"></textarea>
+      <div class="input-row">
+        <span style="flex:1;color:var(--text-dim);font-size:.7em">Enter 提交 · 点击建议自动填入 · 双击叙事先刷新</span>
+        <button class="btn" id="submit-btn" disabled>执 行</button>
+      </div>
+    </div>
+    <div id="error-msg" class="error hidden"></div>
+  </div>
+</main>
+
+<footer>三國志略 v2 · Emergence Science</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   State
+   ═══════════════════════════════════════════════════════════════ */
+const API = '/api';
+let gameId = null, isProcessing = false;
+const $ = id => document.getElementById(id);
+
+/* ═══════════════════════════════════════════════════════════════
+   City Data
+   ═══════════════════════════════════════════════════════════════ */
+const CITIES = [
+  {id:'beiping',name:'北平',x:695,y:50,faction:'gongsunzan',info:'公孙瓒 · 白马义从'},
+  {id:'jixian',name:'蓟县',x:655,y:95,faction:'gongsunzan',info:'幽州治所'},
+  {id:'jinyang',name:'晋阳',x:480,y:110,faction:'cao',info:'并州 · 曹操辖地'},
+  {id:'yecheng',name:'邺城',x:565,y:155,faction:'cao',info:'冀州治所 · 曹操大本营'},
+  {id:'beihai',name:'北海',x:730,y:185,faction:'cao',info:'青州 · 孔融旧地'},
+  {id:'luoyang',name:'洛阳',x:450,y:220,faction:'cao',info:'汉帝都 · 曹操挟天子'},
+  {id:'xuchang',name:'许昌',x:505,y:270,faction:'cao',info:'曹操幕府 · 实际政治中心'},
+  {id:'runan',name:'汝南',x:560,y:305,faction:'cao',info:'豫州 · 袁绍故里'},
+  {id:'xiapi',name:'下邳',x:675,y:255,faction:'cao',info:'徐州 · 吕布殒命处'},
+  {id:'changan',name:'长安',x:345,y:210,faction:'cao',info:'西汉旧都 · 雍州'},
+  {id:'hanshong',name:'汉中',x:315,y:285,faction:'zhanglu',info:'五斗米教 · 张鲁'},
+  {id:'tianshui',name:'天水',x:275,y:190,faction:'machao',info:'凉州 · 马超韩遂'},
+  {id:'wuwei',name:'武威',x:215,y:150,faction:'machao',info:'凉州治所 · 西凉铁骑'},
+  {id:'xinye',name:'新野',x:480,y:340,faction:'shu',info:'刘备驻地 · 三顾茅庐处'},
+  {id:'xiangyang',name:'襄阳',x:440,y:360,faction:'liubiao',info:'荆州治所 · 刘表'},
+  {id:'jiangling',name:'江陵',x:410,y:400,faction:'liubiao',info:'南郡 · 荆州重镇'},
+  {id:'jiangxia',name:'江夏',x:520,y:380,faction:'liubiao',info:'荆州东部 · 长江要塞'},
+  {id:'changsha',name:'长沙',x:455,y:460,faction:'wu',info:'荆南 · 孙权限'},
+  {id:'jianye',name:'建业',x:655,y:390,faction:'wu',info:'孙权都城 · 石头城'},
+  {id:'lujiang',name:'庐江',x:585,y:370,faction:'wu',info:'扬州 · 周瑜故乡'},
+  {id:'wujun',name:'吴郡',x:700,y:410,faction:'wu',info:'江东富庶之地'},
+  {id:'kuaiji',name:'会稽',x:740,y:440,faction:'wu',info:'扬州南 · 山越之地'},
+  {id:'chengdu',name:'成都',x:165,y:370,faction:'liuzhang',info:'益州治所 · 天府之国'},
+  {id:'jiangzhou',name:'江州',x:265,y:380,faction:'liuzhang',info:'巴郡 · 入蜀要道'},
+  {id:'nanhai',name:'南海',x:535,y:525,faction:'wu',info:'交州 · 岭南门户'},
+];
+
+const FCOL = {shu:'#e74c3c',cao:'#2980b9',wu:'#27ae60',
+  gongsunzan:'#7f8c8d',liubiao:'#95a5a6',liuzhang:'#bdc3c7',
+  machao:'#8e44ad',zhanglu:'#d35400'};
+
+/* ═══════════════════════════════════════════════════════════════
+   API
+   ═══════════════════════════════════════════════════════════════ */
+async function api(method, path, body=null) {
+  const opts = {method, headers:{'Content-Type':'application/json'}};
+  if(body) opts.body = JSON.stringify(body);
+  const resp = await fetch(API+path, opts);
+  if(!resp.ok){const t=await resp.text();throw new Error(`HTTP ${resp.status}: ${t.slice(0,200)}`)}
+  return resp.json();
+}
+
+async function checkLLM() {
+  try {
+    const h = await api('GET','/health');
+    const badge = $('llm-badge');
+    if(h.llm?.available){badge.textContent='AI';badge.className='llm-badge llm-on'}
+    else{badge.textContent='离线';badge.className='llm-badge llm-off'}
+  } catch(e) {}
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Map
+   ═══════════════════════════════════════════════════════════════ */
+function renderMap(territoryIds, playerFaction) {
+  const layer = $('cities-layer');
+  const tSet = new Set(territoryIds || []);
+  layer.innerHTML = CITIES.map(c => {
+    const mine = tSet.has(c.id) || c.faction===playerFaction;
+    const color = mine ? '#d4a017' : (FCOL[c.faction]||'#555');
+    const r = mine ? 8 : 5;
+    return `<circle cx="${c.x}" cy="${c.y}" r="${r}" fill="${color}"
+      class="city${mine?' player':''}" data-city="${c.id}" data-info="${c.info||c.name}">
+      </circle>
+      <text x="${c.x}" y="${c.y-10}" class="city-label${mine?' player':''}">${c.name}</text>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Tooltip System (1 second delay)
+   ═══════════════════════════════════════════════════════════════ */
+const tooltip = $('tooltip');
+let tipTimer = null, tipTarget = null;
+
+function showTooltip(e, text) {
+  clearTimeout(tipTimer);
+  tipTarget = e.target;
+  tipTimer = setTimeout(() => {
+    tooltip.textContent = text;
+    const rect = tipTarget.getBoundingClientRect();
+    let x = rect.left + rect.width/2;
+    let y = rect.bottom + 6;
+    // Keep in viewport
+    const tw = tooltip.offsetWidth || 300;
+    if(x + tw/2 > window.innerWidth-10) x = window.innerWidth - tw/2 - 10;
+    if(x - tw/2 < 10) x = tw/2 + 10;
+    if(y + 100 > window.innerHeight) y = rect.top - 100;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top = y + 'px';
+    tooltip.classList.add('show');
+  }, 1000);
+}
+
+function hideTooltip() {
+  clearTimeout(tipTimer);
+  tooltip.classList.remove('show');
+}
+
+// Delegate: suggestions and city circles
+document.addEventListener('mouseover', e => {
+  // Suggestions
+  const sug = e.target.closest('.sug-item');
+  if(sug && sug.textContent.trim().length > 30) {
+    showTooltip(e, sug.textContent.trim());
+    return;
+  }
+  // City circles
+  const city = e.target.closest('.city');
+  if(city) {
+    showTooltip(e, city.dataset.info || city.dataset.city);
+    return;
+  }
+});
+
+document.addEventListener('mouseout', e => {
+  if(e.target.closest('.sug-item') || e.target.closest('.city')) hideTooltip();
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   Render
+   ═══════════════════════════════════════════════════════════════ */
+function updateStats(status) {
+  if(!status) return;
+  $('stat-year').textContent = `${status.year||'?'}年${status.season||'?'}`;
+  $('stat-strength').textContent = (status.strength||0).toLocaleString();
+  $('stat-food').textContent = (status.food||0).toLocaleString();
+  $('stat-treasury').textContent = (status.treasury||0).toLocaleString();
+  const names = status.territory_names || status.territories || [];
+  $('stat-lands').textContent = names.length ? `🏰 ${names.join(' · ')}` : '';
+  $('stat-lands').title = names.join('、');
+  $('turn-info').textContent = status.name
+    ? `${status.name} · 第${status.turn||1}回合 · ${names.length||0}城`
+    : '等待选择势力…';
+}
+
+function renderNarrative(text) {
+  $('narrative-text').innerHTML = (text||'—')
+    .replace(/\n/g,'<br>')
+    .replace(/### (.+)/g,'<h3>$1</h3>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+}
+
+function renderSuggestions(list) {
+  const ul = $('suggestions-list');
+  ul.innerHTML = (list||[]).map(s => {
+    const m = s.match(/^【(.+?)】\s*(.*)/);
+    const tag = m ? `<span class="tag">${m[1]}</span>` : '';
+    const text = m ? m[2] : s;
+    return `<li class="sug-item" data-full="${s.replace(/"/g,'&quot;')}">${tag}${text}</li>`;
+  }).join('');
+
+  ul.querySelectorAll('.sug-item').forEach(li => {
+    li.addEventListener('click', () => {
+      $('decision-input').value = li.dataset.full || li.textContent.trim();
+      $('submit-btn').disabled = false;
+    });
+  });
+}
+
+function showError(msg) {
+  const el = $('error-msg');
+  el.textContent = msg; el.classList.remove('hidden');
+  setTimeout(() => el.classList.add('hidden'), 6000);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Game Flow
+   ═══════════════════════════════════════════════════════════════ */
+async function startGame(faction) {
+  $('faction-modal').classList.add('hidden');
+  $('narrative-text').textContent = '天机运转，调遣兵马…';
+  $('turn-info').textContent = '创建游戏中…';
+  try {
+    const data = await api('POST','/games',{faction,scenario:'207',new:true});
+    gameId = data.game_id;
+    renderMap(data.faction_status?.territories, faction);
+    updateStats(data.faction_status);
+    renderNarrative(data.intro?.narrative||'初平元年，汉室倾颓。');
+    $('decision-input').disabled = false;
+    await fetchPlan();
+  } catch(e) {
+    renderNarrative(`⚠️ 游戏启动失败：${e.message}`);
+    showError(`API错误：${e.message}`);
+  }
+}
+
+async function fetchPlan() {
+  if(!gameId) return;
+  try {
+    const data = await api('POST',`/games/${gameId}/plan`);
+    renderNarrative(data.court_dialogue);
+    renderSuggestions(data.suggestions);
+    updateStats(data.faction_status);
+    renderMap(data.faction_status?.territories, data.faction_status?.faction_id);
+  } catch(e) {showError(`Plan获取失败：${e.message}`)}
+}
+
+async function submitDecision() {
+  if(isProcessing||!gameId) return;
+  const decision = $('decision-input').value.trim();
+  if(!decision) return;
+  isProcessing = true;
+  $('submit-btn').disabled = true; $('submit-btn').textContent = '推演中…';
+  $('narrative-text').textContent = '天机运转，推演天下大势…';
+  try {
+    const data = await api('POST',`/games/${gameId}/command`,{decision});
+    renderNarrative(data.aftermath||data.narrative);
+    renderSuggestions(data.new_suggestions||[]);
+    renderMap(data.faction_status?.territories, data.faction_status?.faction_id);
+    updateStats(data.faction_status);
+    if(data.game_over){
+      renderNarrative((data.game_over.message||'游戏结束')+'\n\n'+(data.aftermath||''));
+      $('decision-input').disabled=true;$('submit-btn').disabled=true;
+      $('submit-btn').textContent='终局';
+    }
+  } catch(e){renderNarrative(`⚠️ 回合处理失败：${e.message}`);showError(e.message)}
+  finally {
+    isProcessing=false;$('submit-btn').textContent='执 行';
+    $('submit-btn').disabled=false;$('decision-input').value='';$('decision-input').focus();
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Events
+   ═══════════════════════════════════════════════════════════════ */
+document.querySelectorAll('.faction-btn').forEach(b =>
+  b.addEventListener('click',()=>startGame(b.dataset.faction)));
+
+$('submit-btn').addEventListener('click', submitDecision);
+$('decision-input').addEventListener('keydown', e => {
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submitDecision();}
+});
+$('narrative-text').addEventListener('dblclick', fetchPlan);
+
+// Map collapse toggle
+let mapOpen = true;
+$('map-toggle').addEventListener('click', () => {
+  mapOpen = !mapOpen;
+  $('map-panel').classList.toggle('collapsed', !mapOpen);
+  $('map-toggle').textContent = mapOpen ? '◧' : '◨';
+  $('map-toggle').title = mapOpen ? '折叠地图' : '展开地图';
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   Init
+   ═══════════════════════════════════════════════════════════════ */
+renderMap([], null);
+checkLLM();
+$('faction-modal').classList.remove('hidden');
+</script>
+</body>
+</html>

@@ -1,0 +1,271 @@
+{
+  "scenario_id": "207_liubei",
+  "name": "三顾茅庐",
+  "year": 207,
+  "season": "winter",
+  "player_faction": "shu",
+  "description": "刘备寄居新野，三顾茅庐请诸葛亮出山。荆州刘表病危，曹操虎视眈眈。",
+
+  "factions": {
+    "shu": {
+      "name": "刘备",
+      "ruler": "liubei",
+      "capital": "xinye",
+      "territories": ["xinye"],
+      "treasury": 3000,
+      "food": 2000,
+      "strength": 5000,
+      "prestige": 35,
+      "tax_rate": 0.2,
+      "morale_actual": 70,
+      "tech_levels": {"agriculture": 1, "commerce": 1, "military": 1},
+      "relations": {
+        "cao": -80,
+        "wu": 20,
+        "liubiao": 40,
+        "liuzhang": 10
+      },
+      "personality": {
+        "aggression": 0.3,
+        "cunning": 0.3,
+        "caution": 0.7,
+        "diplomacy": 0.8,
+        "development": 0.8,
+        "mercy": 0.95
+      }
+    },
+    "cao": {
+      "name": "曹操",
+      "ruler": "caocao",
+      "capital": "xuchang",
+      "territories": [
+        "xuchang", "wancheng", "luoyang", "ye",
+        "ji", "puyang", "beihai", "xiapi", "changshan"
+      ],
+      "treasury": 50000,
+      "food": 30000,
+      "strength": 150000,
+      "prestige": 90,
+      "tax_rate": 0.4,
+      "morale_actual": 80,
+      "tech_levels": {"agriculture": 3, "commerce": 3, "military": 4},
+      "relations": {
+        "shu": -80,
+        "wu": -30,
+        "liubiao": -20,
+        "liuzhang": -10
+      },
+      "personality": {
+        "aggression": 0.8,
+        "cunning": 0.9,
+        "caution": 0.3,
+        "diplomacy": 0.5,
+        "development": 0.6,
+        "mercy": 0.2
+      }
+    },
+    "wu": {
+      "name": "孙权",
+      "ruler": "sunquan",
+      "capital": "jianye",
+      "territories": [
+        "jianye", "wu", "chaisang", "lujiang",
+        "kuaiji", "yuzhang", "danyang"
+      ],
+      "treasury": 15000,
+      "food": 10000,
+      "strength": 60000,
+      "prestige": 60,
+      "tax_rate": 0.3,
+      "morale_actual": 75,
+      "tech_levels": {"agriculture": 2, "commerce": 2, "military": 3},
+      "relations": {
+        "shu": 20,
+        "cao": -30,
+        "liubiao": -10,
+        "liuzhang": 0
+      },
+      "personality": {
+        "aggression": 0.6,
+        "cunning": 0.6,
+        "caution": 0.5,
+        "diplomacy": 0.6,
+        "development": 0.6,
+        "mercy": 0.5
+      }
+    },
+    "liubiao": {
+      "name": "刘表",
+      "ruler": "liubiao",
+      "capital": "xiangyang",
+      "territories": ["xiangyang", "jiangling", "jiangkou", "changsha"],
+      "treasury": 10000,
+      "food": 8000,
+      "strength": 40000,
+      "prestige": 50,
+      "tax_rate": 0.3,
+      "morale_actual": 50,
+      "is_active_manually": false,
+      "tech_levels": {"agriculture": 2, "commerce": 2, "military": 2},
+      "relations": {
+        "shu": 40,
+        "cao": -20,
+        "wu": -10
+      }
+    },
+    "liuzhang": {
+      "name": "刘璋",
+      "ruler": "liuzhang",
+      "capital": "chengdu",
+      "territories": ["chengdu", "hanshui", "jiangzhou", "nanjun"],
+      "treasury": 12000,
+      "food": 15000,
+      "strength": 50000,
+      "prestige": 30,
+      "tax_rate": 0.3,
+      "morale_actual": 55,
+      "tech_levels": {"agriculture": 2, "commerce": 1, "military": 1},
+      "relations": {
+        "shu": 10,
+        "cao": -10,
+        "liubiao": 20
+      }
+    }
+  },
+
+  "territories": {
+    "xinye": {
+      "name": "新野",
+      "owner": "shu",
+      "population": 30000,
+      "development": 25,
+      "terrain": "plains",
+      "climate_zone": "central",
+      "fertility": 6
+    },
+    "xuchang": {
+      "name": "许昌",
+      "owner": "cao",
+      "population": 100000,
+      "development": 70,
+      "terrain": "plains",
+      "climate_zone": "central",
+      "fertility": 7
+    },
+    "wancheng": {
+      "name": "宛城",
+      "owner": "cao",
+      "population": 50000,
+      "development": 45,
+      "terrain": "plains",
+      "climate_zone": "central",
+      "fertility": 7
+    },
+    "xiangyang": {
+      "name": "襄阳",
+      "owner": "liubiao",
+      "population": 80000,
+      "development": 55,
+      "terrain": "plains",
+      "climate_zone": "central",
+      "has_river": true,
+      "fertility": 8
+    },
+    "jiangling": {
+      "name": "江陵",
+      "owner": "liubiao",
+      "population": 60000,
+      "development": 50,
+      "terrain": "plains",
+      "climate_zone": "central",
+      "has_river": true,
+      "fertility": 8
+    },
+    "jianye": {
+      "name": "建业",
+      "owner": "wu",
+      "population": 70000,
+      "development": 55,
+      "terrain": "plains",
+      "climate_zone": "south",
+      "has_river": true,
+      "has_coast": true,
+      "fertility": 7
+    },
+    "chaisang": {
+      "name": "柴桑",
+      "owner": "wu",
+      "population": 40000,
+      "development": 40,
+      "terrain": "plains",
+      "climate_zone": "south",
+      "has_river": true,
+      "fertility": 7
+    },
+    "chengdu": {
+      "name": "成都",
+      "owner": "liuzhang",
+      "population": 100000,
+      "development": 60,
+      "terrain": "mountain",
+      "climate_zone": "south",
+      "has_river": true,
+      "fertility": 8
+    },
+    "hanshui": {
+      "name": "汉中",
+      "owner": "liuzhang",
+      "population": 40000,
+      "development": 35,
+      "terrain": "mountain",
+      "climate_zone": "central",
+      "fertility": 5
+    }
+  },
+
+  "initial_events": [
+    {
+      "event_id": "three_visits_207",
+      "status": "pending",
+      "trigger_condition": "player decides to visit zhugeliang"
+    },
+    {
+      "event_id": "liubiao_death_208",
+      "status": "pending",
+      "trigger_condition": "year >= 208 and liubiao is alive"
+    }
+  ],
+
+  "objectives": [
+    {
+      "id": "find_advisor",
+      "description": "三顾茅庐请诸葛亮出山",
+      "type": "main",
+      "reward": "获得军师"
+    },
+    {
+      "id": "survive_cao_invasion",
+      "description": "在曹操南下中存活",
+      "type": "main",
+      "reward": "继续游戏"
+    },
+    {
+      "id": "form_alliance",
+      "description": "与孙权结盟抗曹",
+      "type": "main",
+      "reward": "赤壁之战触发条件"
+    },
+    {
+      "id": "acquire_jingnan",
+      "description": "夺取荆南四郡",
+      "type": "secondary",
+      "reward": "领土扩张"
+    },
+    {
+      "id": "enter_shu",
+      "description": "入蜀夺取益州",
+      "type": "secondary",
+      "reward": "完成隆中对"
+    }
+  ]
+}
