@@ -1,539 +1,641 @@
-# Histrategy v2 — 物理引擎驱动的三国策略游戏
+# Histrategy v2 — 完整架构设计
+
+> 物理引擎驱动 × 角色深度绑定 × LLM 叙事渲染 × 运营飞轮
 
 **作者**: Prometheus (Hermes Agent)
-**日期**: 2026-06-07
-**状态**: 设计阶段
+**日期**: 2026-06-07 (v2 更新)
+**状态**: 设计审查中
 
 ---
 
-## 0. 核心问题诊断
+## 0. 设计哲学：宏观历史唯物主义 × 人物驱动
 
-### 当前架构的根本缺陷
+### 0.1 调研结论
+
+对市面上成功的历史策略游戏分析：
+
+| 游戏 | 核心驱动力 | 玩家粘性来源 | 对三國志略的启示 |
+|------|-----------|-------------|-----------------|
+| **光荣三国志** (11/14) | 人物养成 | 收集名将、培养数值、触发历史事件 | 人物属性系统是三国 IP 的核心价值 |
+| **Total War: TK** | 人物+战斗 | Romance 模式销量远超 Records 模式 | 玩家要的是"关羽温酒斩华雄"，不是"步兵方阵推进" |
+| **Crusader Kings 3** | 人物关系网 | 家族传承、阴谋、角色扮演 | 人物驱动 + 宏观推演可以并存 |
+| **文明系列** | 科技树+版图 | "再来一回合"的正反馈循环 | 科技树的递进式奖励机制值得借鉴 |
+| **历史模拟器：崇祯** | 人物+叙事 | 沉浸式历史体验、AI 对话 | LLM 让角色"活过来"是差异化优势 |
+
+### 0.2 三國志略的设计定位
+
+**结论：宏观物理引擎 + 人物作为"修正因子" + LLM 叙事渲染**
 
 ```
-当前: 玩家自由文本 → LLM (既当裁判又当运动员) → 修改游戏状态 → 生成叙事
-                                    ↑
-                            幻觉注入 + 偏向玩家
+          ┌──────────────────────────┐
+          │    PHYSICS ENGINE        │  ← 宏观：粮食、人口、领土、气候
+          │   (What happens)         │     确定性公式，所有势力平等
+          └──────────┬───────────────┘
+                     │
+                     ▼
+          ┌──────────────────────────┐
+          │    CHARACTER SYSTEM      │  ← 中观：人物属性修正物理结果
+          │   (Who makes it happen)  │     关羽统率高 → 战斗加成
+          └──────────┬───────────────┘     诸葛亮智高 → 科技加速
+                     │
+                     ▼
+          ┌──────────────────────────┐
+          │    LLM NARRATIVE         │  ← 微观：生成故事，不改变结果
+          │   (How it's told)        │     "关羽温酒斩华雄"的叙事
+          └──────────────────────────┘
 ```
 
-**三个致命问题：**
-
-1. **LLM 幻觉污染游戏状态** — 玩家可以说"191年风调雨顺"，LLM 可能在叙事中采纳，从而改变粮食产出
-2. **玩家偏向** — LLM 知道谁是玩家，天然倾向让玩家的决策"成功"，NPC 被不公平对待
-3. **不可复现** — 同样输入不同输出，无法测试、无法平衡
-
-### v2 核心思路
-
-```
-物理引擎（确定性）→ 游戏状态 → LLM 叙事层（只读）
-       ↑                            ↓
-  所有势力平等            根据物理结果生成故事
-  不区分人类/NPC              绝不修改游戏状态
-```
-
-**参考灵感：**
-- 《历史模拟器：崇祯》Steam 版的数值系统
-- 桌游《三国杀》的回合制设计
-- 《三国志》系列（光荣）的大地图资源系统
-- Paradox 大战略游戏的事件驱动引擎
+**为什么走这条路：**
+1. 三国 IP 的核心是**人物**—玩家玩三国是为了关羽、诸葛亮、曹操，不是为了一块地的产量
+2. 但人物的作用必须经由**客观系统**来体现—否则就是 LLM 拍脑袋说谁赢谁赢
+3. 物理引擎提供公平性，人物系统提供策略深度，LLM 提供沉浸感
+4. 这个架构也兼容你提到的"历史唯物主义"视角：物质基础（粮/金/人口）决定上层建筑（战争/外交），但杰出人物可以加速或延缓历史进程
 
 ---
 
-## 1. 架构总览
+## 1. 模块化架构总览
+
+### 1.1 核心原则：物理引擎作为可插拔独立包
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│                      CLIENTS                              │
-│    TUI (Rich)  │  Web (React)  │  OpenClaw  │  API       │
-└────────────────────────┬─────────────────────────────────┘
-                         │
-┌────────────────────────▼─────────────────────────────────┐
-│                  GAME CONTROLLER                          │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │  Intent Parser (LLM-assisted NLP)                │    │
-│  │  自由文本 → 结构化命令                             │    │
-│  └───────────────────┬─────────────────────────────┘    │
-│                      ▼                                    │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │  Validation Layer                                │    │
-│  │  拒绝不可行命令 / 过滤幻觉注入 / 数值上限检查       │    │
-│  └───────────────────┬─────────────────────────────┘    │
-│                      ▼                                    │
-│              [PHYSICS ENGINE]                             │
-│                      │                                    │
-│              [GAME STATE]                                 │
-│                      │                                    │
-│                      ▼                                    │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │  LLM Narrative Layer (READ-ONLY)                 │    │
-│  │  接收物理结果 → 生成叙事/对话/史书                 │    │
-│  │  ✗ 禁止修改 game state                            │    │
-│  └─────────────────────────────────────────────────┘    │
-└──────────────────────────────────────────────────────────┘
+histrategy-engine/          ← 独立的 Python 包，零依赖 LLM
+├── pyproject.toml
+├── src/histrategy_engine/
+│   ├── __init__.py
+│   ├── core/               ← 纯函数，无副作用
+│   │   ├── resources.py    ← 粮食/税收/人口增长
+│   │   ├── climate.py      ← 季节/天气掷骰
+│   │   ├── military.py     ← 招募/补给/战斗结算
+│   │   └── formulas.py     ← 共享数学公式
+│   ├── world/              ← 世界状态
+│   │   ├── territory.py    ← 领土模型
+│   │   ├── faction.py      ← 势力模型
+│   │   ├── character.py    ← 人物模型（属性/技能/关系）
+│   │   └── world_state.py  ← 全局状态容器
+│   ├── ai/                 ← NPC 决策引擎
+│   │   ├── personality.py  ← 个性档案
+│   │   ├── decision_tree.py← 决策树
+│   │   └── evaluator.py    ← 威胁/机会评估
+│   ├── events/             ← 事件系统
+│   │   ├── triggers.py     ← 条件触发器
+│   │   ├── historical.py   ← 历史事件定义
+│   │   └── random_events.py← 随机事件
+│   ├── tech/               ← 科技系统
+│   │   ├── tech_tree.py    ← 科技定义
+│   │   └── diffusion.py    ← 科技传播
+│   └── turn/               ← 回合控制
+│       └── controller.py   ← 回合生命周期
+│
+histrategy/                 ← 主游戏（依赖 histrategy-engine）
+├── llm/                    ← LLM 叙事层
+│   ├── narrative.py        ← 叙事生成器（只读）
+│   ├── context_builder.py  ← RAG 上下文构建
+│   └── adapter.py          ← 多 provider 适配
+├── parser/                 ← 玩家输入处理
+│   ├── intent.py           ← Intent Parser
+│   └── validator.py        ← 命令验证
+├── knowledge/              ← 知识库
+│   ├── rag/                ← RAG 系统
+│   │   ├── index.py        ← 事件索引
+│   │   └── retriever.py    ← 检索器
+│   └── data/               ← 结构化知识
+│       ├── timeline_190.json  ← 190-200年事件时间线
+│       ├── timeline_200.json  ← 200-210年
+│       ├── timeline_210.json  ← 210-220年
+│       └── characters.json    ← 人物数据库
+└── cli/                    ← 客户端
+    ├── app.py              ← TUI
+    ├── api.py              ← REST API
+    └── openclaw_bridge.py  ← OpenClaw 集成
 ```
+
+### 1.2 可插拔接口
+
+```python
+from abc import ABC, abstractmethod
+
+class PhysicsEngine(ABC):
+    """物理引擎接口 — 可替换实现"""
+    
+    @abstractmethod
+    def process_turn(self, world: WorldState, commands: dict[str, list[Command]]) -> TurnResult:
+        """处理一个完整回合 — 所有势力命令 → 结算 → 新状态"""
+        ...
+
+class NarrativeEngine(ABC):
+    """叙事引擎接口 — 可替换实现"""
+    
+    @abstractmethod
+    def generate(self, turn_result: TurnResult) -> Narrative:
+        """接收结算结果 → 生成叙事文本（只读）"""
+        ...
+
+class CommandParser(ABC):
+    """命令解析器接口"""
+    
+    @abstractmethod
+    def parse(self, raw_text: str, faction_id: str) -> list[Command]:
+        """自由文本 → 已验证的结构化命令"""
+        ...
+```
+
+**为什么这样设计：**
+- `histrategy-engine` 可以独立测试、独立版本、独立发布
+- 物理引擎可以用纯 Python 实现，也可以后续用 Rust 重写（性能）
+- 叙事引擎可以切换 LLM provider 或使用本地模型
+- 未来可以做多人游戏：物理引擎完全不知道哪个 faction 是 AI 哪个是人
 
 ---
 
-## 2. 物理引擎 (Physics Engine)
+## 2. 角色系统：人物的"修正因子"角色
 
-物理引擎是**确定性**的、**回合制**的、**所有势力平等**的核心系统。
-
-### 2.1 领土与资源系统
-
-#### 2.1.1 领土属性
-
-每个州（territory）具有以下属性：
+### 2.1 五维属性
 
 ```python
 @dataclass
-class Territory:
-    id: str                    # e.g. "jizhou"
-    name: str                  # e.g. "冀州"
-    owner_id: str              # faction id
+class Character:
+    id: str
+    name: str
     
-    # 自然属性（不变）
-    fertility: int             # 1-10 粮食产量系数
-    terrain: str               # plains/mountains/forest/river/coast
-    climate_zone: str          # north/central/south
-    horse_resource: bool       # 是否产马
-    iron_resource: bool        # 是否产铁
-    salt_resource: bool        # 是否产盐
+    # 核心五维 (1-100)
+    leadership: int    # 统率 — 影响带兵上限、战斗加成
+    might: int         # 武力 — 影响单挑、突袭
+    intelligence: int  # 智力 — 影响计谋、科技研究、谍报
+    politics: int      # 政治 — 影响内政、外交、税收效率
+    charisma: int      # 魅力 — 影响征兵效率、民心、外交成功率
     
-    # 社会经济（动态）
-    population: int            # 当前人口
-    development: int           # 0-100 开发度
-    garrison: int              # 驻军数量
+    # 技能
+    skills: list[str]  # e.g. ["骑兵指挥", "火攻", "屯田"]
     
-    # 邻居
-    neighbors: list[str]       # 相邻领土 ID
+    # 动态
+    faction_id: str
+    loyalty: int       # 0-100
+    location: str
+    alive: bool
+    age: int
 ```
 
-#### 2.1.2 粮食生产公式
+### 2.2 属性如何影响物理引擎
 
 ```
-base_yield = fertility × 1000 × (1 + development / 100)
+粮食产量 = base_formula × (1 + 太守政治 / 200)
+         = 冀州 10 × 1.0 × 1.2 × 1.0 × (1 + 荀彧政治95 / 200)
+         = 冀州粮食 × 1.475
 
-season_multiplier:
-  春 (Spring):  0.3   ← 播种季
-  夏 (Summer):  1.0   ← 生长季
-  秋 (Autumn):  1.2   ← 收获季
-  冬 (Winter):  0.05  ← 休耕
+战斗伤害 = base_formula × (1 + 主将统率 / 200) × (1 + 副将武力 / 400)
 
-climate_modifier:
-  风调雨顺 (normal):        1.0
-  干旱 (drought):           0.4
-  洪涝 (flood):             0.6
-  蝗灾 (pestilence):        0.3
-  大丰 (bumper_harvest):    1.5
+外交成功率 = base_probability × (1 + 使者魅力 / 200)
 
-food_produced = base_yield × season_multiplier × climate_modifier
+征兵效率 = base_recruitment × (1 + 太守魅力 / 200)
+
+科技研究速度 = base_speed × (1 + 研究者智力 / 200)
 ```
 
-**气候事件概率（每领地每季）：**
+**关键**：角色属性是**乘法修正**而非加法，这意味着：
+- 诸葛亮的智力 100 → 科技速度 ×1.5
+- 普通文官智力 50 → 科技速度 ×1.25
+- 但基础速度来源于物理引擎的 development 等级，角色不能无中生有
 
-| 事件 | 概率 | 受影响因素 |
-|------|------|-----------|
-| 正常 | 60% | - |
-| 干旱 | 8% | 北方 +3%, 灌溉开发 -2% |
-| 洪涝 | 8% | 沿河 +5%, 水利开发 -2% |
-| 蝗灾 | 4% | 高温干旱区 +3% |
-| 大丰 | 5% | 高开发 +2% |
-| 寒灾 | 5% | 北方冬季 +10% |
-
-**关键：气候使用种子的伪随机数，玩家无法通过输入影响。**
-
-#### 2.1.3 人口增长公式
+### 2.3 忠诚度与关系
 
 ```
-food_consumption = population × 0.5  (每人每季消耗0.5粮)
-food_surplus = food - food_consumption
+忠诚度变化：
+  - 封赏（给钱给官）        +1~5
+  - 战败                    -3~8
+  - 长期不发俸禄            每季 -2
+  - 亲密度高的同僚被杀       -10~20
+  - 君主魅力高              +0~2/季
 
-if food > food_consumption:
-    growth_rate = 0.015 × (1 + morale/100) × (1 + development/200)
-elif food > food_consumption × 0.5:
-    growth_rate = 0.005 × (1 + morale/100)
-else:
-    growth_rate = -0.02 × (1 - food/food_consumption)  # 饥荒减员
-
-new_population = max(100, population × (1 + growth_rate))
+关系网（影响忠诚的群体效应）：
+  - 结义兄弟被杀            忠诚 -30
+  - 配偶在敌对势力          忠诚 -5/季
+  - 同乡在麾下              忠诚 +1/季
 ```
 
-#### 2.1.4 税收与经济
+---
 
-```
-tax_revenue = population × tax_rate × (economy/100) × 0.05
-              
-tax_rate 范围: 0.1 (轻徭薄赋) ~ 0.5 (横征暴敛)
-税负影响: 税率 > 0.3 时每季民心 -1~3
+## 3. RAG 历史知识库系统
 
-military_upkeep = total_troops × 0.02  (每100兵耗2金)
+### 3.1 设计思路
 
-gold_change = tax_revenue - military_upkeep - development_cost
-```
+LLM 没有精确的三国历史知识——它知道"赤壁之战发生在208年"但不精确。RAG 系统在每次 LLM 调用时，将**当前时间窗口的历史事件**注入上下文，让 LLM 有"历史参考"但不受历史束缚。
 
-### 2.2 军事系统
+### 3.2 数据结构
 
-#### 2.2.1 兵种
-
-| 兵种 | 招募费(金) | 人口消耗 | 攻击 | 防御 | 速度 | 地形加成 | 特殊需求 |
-|------|-----------|---------|------|------|------|----------|---------|
-| 步兵 | 3/兵 | 1 | 10 | 10 | 1 | 城池+5防 | 无 |
-| 骑兵 | 10/兵 | 1 | 14 | 7 | 2 | 平原+5攻 | 需产马地 |
-| 弓兵 | 6/兵 | 1 | 8 | 13 | 1 | 森林+3防 | 需铁 |
-| 水军 | 8/兵 | 1 | 9 | 10 | 1.5 | 河流+8攻 | 需沿水 |
-
-#### 2.2.2 招募规则
-
-```
-最大征兵数 = min(population × 0.05, available_gold / recruitment_cost)
-训练时间: 新兵第一季战斗力 = 50%，第二季 = 100%
-```
-
-#### 2.2.3 补给系统
-
-```
-supply_range = 2  (从友方领地出发最大2格)
-超出补给范围: 每季每格 5% 损耗
-冬季: 粮食消耗 × 1.5
-断粮: 每季 20% 减员 + 士气 -20
-```
-
-#### 2.2.4 战斗结算公式
-
-```python
-def resolve_combat(attacker, defender, terrain, weather, commanders):
-    """决定性战斗结算 — 不再由 LLM 驱动"""
-    
-    # 基础战力
-    atk_power = sum(unit.count × unit.attack × unit.training for unit in attacker)
-    def_power = sum(unit.count × unit.defense × unit.training for unit in defender)
-    
-    # 地形修正
-    atk_power *= terrain.attack_modifier(attacker.unit_types)
-    def_power *= terrain.defense_modifier(defender.unit_types)
-    
-    # 将领加成 (统帅值 0-100)
-    atk_power *= (1 + attacker_commander.leadership / 200)
-    def_power *= (1 + defender_commander.leadership / 200)
-    
-    # 阵型加成
-    atk_power *= formation_bonus
-    def_power *= fortification_bonus
-    
-    # 天气影响
-    if weather == "rain":     atk_power *= 0.8; def_power *= 0.9
-    if weather == "snow":     atk_power *= 0.6
-    
-    ratio = atk_power / max(def_power, 1)
-    
-    # 结算
-    if ratio > 2.0:    result = "decisive_victory"
-    elif ratio > 1.3:  result = "victory"
-    elif ratio > 0.7:  result = "draw"
-    elif ratio > 0.5:  result = "defeat"
-    else:              result = "decisive_defeat"
-    
-    return CombatResult(result, casualties_atk, casualties_def, ...)
-```
-
-### 2.3 NPC AI 决策引擎
-
-每个 NPC 势力每回合执行决策树，**不使用 LLM**。
-
-#### 2.3.1 个性档案
-
-```python
-PERSONALITIES = {
-    "caocao": {
-        "aggression": 0.8,       # 进攻倾向
-        "cunning": 0.9,          # 诡计倾向（离间、假情报）
-        "caution": 0.3,          # 谨慎度（低=敢冒险）
-        "diplomacy": 0.5,        # 外交倾向
-        "development": 0.6,      # 内政倾向
-        "mercy": 0.2,            # 仁德（影响民心变化）
+```json
+{
+  "year": 200,
+  "events": [
+    {
+      "id": "guandu_200",
+      "title": "官渡之战",
+      "month": 10,
+      "description": "曹操与袁绍在官渡对峙。曹操以少胜多，火烧乌巢，大败袁绍。",
+      "participants": ["曹操", "袁绍", "许攸", "张郃", "高览"],
+      "faction_changes": {
+        "cao": {"strength_delta": "+5000", "morale_delta": "+20"},
+        "yuan_shao": {"strength_delta": "-30000", "morale_delta": "-30"}
+      },
+      "territory_changes": {},
+      "preconditions": [
+        "cao.faction.alive",
+        "yuan_shao.faction.alive", 
+        "cao.controls('yuzhou')",
+        "yuan_shao.controls('jizhou')"
+      ],
+      "gravity": 0.85,
+      "butterfly_effect": "许攸叛逃事件可能不发生或后果不同",
+      "type": "major_battle"
     },
-    "liubei": {
-        "aggression": 0.3,
-        "cunning": 0.3,
-        "caution": 0.7,
-        "diplomacy": 0.8,
-        "development": 0.8,
-        "mercy": 0.95,           # 极高仁德 → 民心易涨
-    },
-    "sunjian": {
-        "aggression": 0.85,
-        "cunning": 0.4,
-        "caution": 0.2,
-        "diplomacy": 0.4,
-        "development": 0.5,
-        "mercy": 0.5,
-    },
-    "yuanshao": {
-        "aggression": 0.5,
-        "cunning": 0.6,
-        "caution": 0.7,          # 好谋无断
-        "diplomacy": 0.7,
-        "development": 0.5,
-        "mercy": 0.6,
-    },
-    "dongzhuo": {
-        "aggression": 0.9,
-        "cunning": 0.5,
-        "caution": 0.1,          # 极低谨慎 → 残暴
-        "diplomacy": 0.1,
-        "development": 0.2,
-        "mercy": 0.05,           # 极低仁德 → 民心跌
-    },
-    # ... 其他势力
+    {
+      "id": "sun_ce_death_200",
+      "title": "孙策遇刺",
+      "month": 4,
+      "description": "孙策在丹徒狩猎时为许贡门客所伤，不久身亡。孙权继位。",
+      "participants": ["孙策", "孙权", "周瑜", "张昭"],
+      "faction_changes": {
+        "wu": {"ruler_change": "孙策→孙权", "morale_delta": "-10"}
+      },
+      "type": "character_death"
+    }
+  ]
 }
 ```
 
-#### 2.3.2 决策流程
-
-```
-每个势力每回合:
-
-1. 威胁评估
-   for each 相邻势力:
-       if 对方兵力 > 我方 × 1.5:        threat_level = HIGH
-       elif 对方兵力 > 我方 × 0.8:       threat_level = MEDIUM
-       else:                            threat_level = LOW
-
-2. 机会评估
-   for each 相邻弱势力 (兵力 < 我方 × 0.6):
-       opportunity_score += 对方领土价值 × aggression
-
-3. 资源需求
-   if 粮食 < 警戒线:  priority = FOOD
-   elif 金库 < 警戒线: priority = GOLD
-   elif 兵力 < 目标:  priority = TROOPS
-   else:              priority = EXPAND
-
-4. 决策（权重制）
-   - 进攻弱邻:      aggression × opportunity_score × (1 - caution)
-   - 发展内政:      development × (1 - opportunity_score)
-   - 外交结盟:      diplomacy × (1 - aggression)
-   - 征兵备战:      aggression × threat_level
-   - 休整观望:      caution × (1 - threat_level)
-```
-
-### 2.4 玩家输入处理（防注入）
-
-```
-玩家自由文本输入
-        │
-        ▼
-┌────────────────────────────────────┐
-│  Intent Parser (小模型 LLM 调用)     │
-│  System prompt:                    │
-│  "你是一个命令解析器。从玩家文本中   │
-│   提取游戏操作。只输出有效操作。     │
-│   不支持的操作：修改天气、凭空造兵、 │
-│   修改他人忠诚度、改动历史。"        │
-│                                    │
-│  输出格式: JSON                    │
-│  {"actions": [                     │
-│    {"type": "recruit"|"move"|      │
-│            "attack"|"develop"|     │
-│            "diplomacy"|"tax"|      │
-│            "train"|"spy"|          │
-│            "trade"|"rest",         │
-│     "params": {...}}               │
-│  ]}                                │
-└───────────────┬────────────────────┘
-                ▼
-┌────────────────────────────────────┐
-│  Validation Layer (纯代码, 无LLM)   │
-│  - recruit: 征兵数 ≤ 人口×5%        │
-│  - attack: 目标存在 + 可达          │
-│  - develop: 领土属于玩家            │
-│  - 任何非游戏操作 → 丢弃            │
-│  - 任何注入企图 → 丢弃 + 记录        │
-│  - "风调雨顺" → 匹配不到操作 → 丢弃  │
-└───────────────┬────────────────────┘
-                ▼
-         [PHYSICS ENGINE]
-```
-
----
-
-## 3. 回合结构
-
-```
-═══════════════════════════════════
-  第 N 回合 · 190年 春 (所有势力同时执行)
-═══════════════════════════════════
-
-Step 1. 气候掷骰      → 每个领地独立掷气候事件
-Step 2. 资源结算      → 粮食/税收/人口增长
-Step 3. 所有势力下达命令
-        玩家: 自由文本 → Intent Parser → Validation → Commands
-        NPCs: NPC AI 决策树 → Commands
-Step 4. 移动结算      → 所有部队同时移动（冲突时按速度判定）
-Step 5. 战斗结算      → 所有交战同时结算（确定性公式）
-Step 6. 外交结算      → 同盟/宣战/纳贡/和亲
-Step 7. 事件触发      → 叛乱/流民/祥瑞/天灾/领地叛乱
-Step 8. 状态持久化    → save to ~/.histrategy/
-Step 9. 叙事生成      → LLM 接收最终状态 → 生成故事
-Step 10. 呈现给玩家   → 任何客户端
-```
-
----
-
-## 4. LLM 叙事层（只读）
+### 3.3 RAG 检索策略
 
 ```python
-class NarrativeGenerator:
-    """从物理引擎结果生成叙事 — 绝不修改游戏状态"""
+class HistoricalRAG:
+    """基于年份的轻量级检索 — 不需要向量数据库"""
     
-    def generate_turn_narrative(self, turn_result: TurnResult) -> str:
+    def retrieve(self, current_year: int, deviation: float) -> list[dict]:
         """
-        turn_result 包含:
-          - climate_events: 每个领地气候
-          - resource_changes: 粮/金/人口变化
-          - battles: 战斗结果（兵力变化、将领伤亡）
-          - diplomacy: 外交事件
-          - npc_decisions: NPC 做了什么（但不透露 AI 逻辑）
+        检索当前时间窗口的历史事件。
+        
+        - 时间窗口: current_year ± 3年
+        - 但若 deviation > 0.5，仅检索 ±1年（历史已偏离，参考价值降低）
+        - 返回: 排序后的事件列表（gravity 高的优先）
         """
-        context = self._build_narrative_context(turn_result)
-        # LLM 只生成叙事文本
-        narrative = self.llm.chat(context, max_tokens=2000)
-        return narrative
+        window = 1 if deviation > 0.5 else 3
+        events = []
+        for year in range(current_year - window, current_year + window + 1):
+            events.extend(self._index.get(year, []))
+        
+        # 按 gravity 排序，限制数量（控制 token 消耗）
+        events.sort(key=lambda e: e["gravity"], reverse=True)
+        return events[:8]  # 最多 8 个事件
     
-    def _build_narrative_context(self, tr: TurnResult) -> str:
-        """构建叙事上下文 — 只有结果，没有内部逻辑"""
-        # 示例:
-        # "190年春。冀州遭遇蝗灾，粮食减产60%。
-        #  刘备在平原招募了2000步兵。曹操从陈留出兵攻打徐州。
-        #  曹操军与陶谦军在彭城交战。曹操军获胜，损失500人，
-        #  陶谦军损失3000人，退守下邳。
-        #  请用文白相间的史书风格描述这一季的天下大势。"
+    def build_context(self, events: list[dict]) -> str:
+        """将历史事件格式化为 LLM 上下文"""
+        lines = ["## 历史参考（供叙事参考，可不严格遵循）"]
+        for ev in events:
+            lines.append(f"- {ev['year']}年{ev.get('month','')}月: {ev['description']}")
+        return "\n".join(lines)
 ```
 
-**LLM 绝不接触：**
-- 天气掷骰的随机种子
-- NPC 决策树的内部权重
-- 战斗结算的原始公式
-- 未对玩家揭示的密探情报
-- 其他势力的内部资源数据（除非通过间谍获得）
+**RAG 注入位置：**
+1. **Plan Mode**: 注入当前±3年的历史事件 → LLM 的谋臣建言可以"参考"历史走向
+2. **Command Mode**: 注入当前±1年的历史事件 → LLM 叙事可以"呼应"真实历史
+3. **Intro**: 注入开局年的历史背景
+
+**RAG ≠ 强制历史**：事件只在上下文中作为"参考"，LLM 的 system prompt 明确说"可参考但不必须遵循"。物理引擎的结算结果才是最终权威。
 
 ---
 
-## 5. 客户端架构
+## 4. 科技树：有机扩散模型
 
-### 5.1 服务端 API（新增）
+### 4.1 为什么不用 Civilization 线性树
+
+Civ 的科技树是"玩家选择 → 解锁"的主动模式。更适合三国的模式是 **Paradox 式的有机扩散**：
+
+- 科技在**所有势力中自然传播**（如印刷术从洛阳传到各州）
+- 玩家可以**加速**特定方向的研发（派高智力文官研究）
+- 但不可能"跳过时代"或"完全不发展农业"
+- 这更符合历史唯物主义：生产力发展有自身规律
+
+### 4.2 科技分类
 
 ```python
-# 核心 API 端点
-GET  /api/game/state          # 当前游戏状态（玩家可见部分）
-POST /api/game/command        # 提交玩家命令
-GET  /api/game/narrative      # 本回合叙事
-GET  /api/game/map            # 地图数据
-GET  /api/game/history        # 历史事件日志
+TECH_CATEGORIES = {
+    "agriculture": {  # 农业科技
+        "irrigation": {"prereq": None, "era": 1, "effect": {"food_output": 1.15}},
+        "crop_rotation": {"prereq": "irrigation", "era": 2, "effect": {"food_output": 1.25}},
+        "improved_plow": {"prereq": "crop_rotation", "era": 3, "effect": {"food_output": 1.40}},
+        "granary": {"prereq": "irrigation", "era": 2, "effect": {"food_storage": 1.30}},
+    },
+    "military": {
+        "improved_forge": {"prereq": None, "era": 1, "effect": {"weapon_quality": 1.10}},
+        "crossbow": {"prereq": "improved_forge", "era": 2, "effect": {"ranged_damage": 1.20}},
+        "heavy_cavalry": {"prereq": "improved_forge", "era": 2, "effect": {"cavalry_defense": 1.15}, "requires_resource": "horses"},
+        "siege_weapons": {"prereq": "crossbow", "era": 3, "effect": {"siege_speed": 1.50}},
+        "formations": {"prereq": None, "era": 2, "effect": {"unit_morale": 1.10}},
+        "fire_attack": {"prereq": None, "era": 2, "effect": {"special_attack": "fire"}, "requires_intelligence": 80},
+    },
+    "administration": {
+        "bureaucracy": {"prereq": None, "era": 1, "effect": {"tax_efficiency": 1.15}},
+        "legal_code": {"prereq": "bureaucracy", "era": 2, "effect": {"corruption_reduction": 0.20}},
+        "imperial_exams": {"prereq": "legal_code", "era": 3, "effect": {"officer_quality": 1.10}},
+    },
+    "commerce": {
+        "markets": {"prereq": None, "era": 1, "effect": {"trade_income": 1.15}},
+        "currency": {"prereq": "markets", "era": 2, "effect": {"trade_income": 1.25}},
+        "trade_routes": {"prereq": "currency", "era": 3, "effect": {"trade_range": 2}},
+    },
+    "culture": {
+        "academies": {"prereq": None, "era": 2, "effect": {"tech_spread_rate": 1.15}},
+        "historiography": {"prereq": "academies", "era": 3, "effect": {"legitimacy": 1.10}},
+    },
+}
 ```
 
-### 5.2 TUI 客户端（现有，保留）
+### 4.3 科技传播机制
 
-- Rich 渲染 → 保留
-- 修复：ASCII_TITLE 不重复显示
-- 增加：战斗结果面板、地图小图
+```python
+def calculate_tech_progress(faction, world):
+    """每回合计算科技进展"""
+    for category, techs in TECH_CATEGORIES.items():
+        for tech_id, tech in techs.items():
+            # 基础传播速度
+            spread_rate = 0.02  # 2% per turn base
+            
+            # 修正因子
+            if faction.development > 50:
+                spread_rate *= (1 + faction.development / 200)  # 开发度高加速
+            
+            # 相邻势力已拥有该科技 → 加速传播
+            neighbor_has_tech = any(
+                n.has_tech(tech_id) for n in world.get_neighbors(faction)
+            )
+            if neighbor_has_tech:
+                spread_rate *= 1.5  # 邻国已有 → 传播加速
+            
+            # 贸易路线加速
+            trade_partners_with_tech = sum(
+                1 for p in faction.trade_partners if p.has_tech(tech_id)
+            )
+            spread_rate *= (1 + trade_partners_with_tech * 0.1)
+            
+            # 主动研究加速（如果玩家或 NPC AI 指定了研究方向）
+            if tech_id in faction.research_focus:
+                researcher = faction.get_best_officer("intelligence")
+                if researcher:
+                    spread_rate *= (1 + researcher.intelligence / 200)
+            
+            # 累积进度
+            faction.tech_progress[tech_id] += spread_rate
+            
+            # 解锁
+            if faction.tech_progress[tech_id] >= 1.0:
+                faction.unlock_tech(tech_id)
+```
 
-### 5.3 Web 客户端（新增）
-
-- React + Canvas 地图渲染
-- 十三州交互地图
-- 人物卡牌 UI
-- 响应式设计（桌面+平板）
-
-### 5.4 OpenClaw 客户端（新增）
-
-- IM 频道内文字交互
-- 命令：`/plan` `/act` `/map` `/state` `/history`
-- Memory 系统存储游戏上下文
-- 适合碎片时间异步游玩
+**关键洞察**：科技是有机扩散的，不是线性解锁的。这符合"历史唯物主义"——生产力发展是整体社会进程，不是某个君主的个人选择。
 
 ---
 
-## 6. 实施路线图
+## 5. 蝴蝶效应与事件触发系统
 
-### Phase 1: Physics Engine Core (预计 2 周)
-```
-□ 1.1 Define data models (Territory, Army, Battle, Climate)
-□ 1.2 Implement resource system (food, population, gold formulas)
-□ 1.3 Implement climate/season system with seeded RNG
-□ 1.4 Implement military system (recruit, move, supply, combat)
-□ 1.5 Implement NPC AI decision trees for all major factions
-□ 1.6 Implement turn lifecycle controller
-□ 1.7 Unit tests for all physics systems (≥ 80% coverage)
-```
+### 5.1 核心问题
 
-### Phase 2: Player Integration (预计 1 周)
-```
-□ 2.1 Intent Parser (LLM-assisted command extraction)
-□ 2.2 Validation layer (reject impossible/injected commands)
-□ 2.3 Command execution pipeline
-□ 2.4 TUI integration with physics engine backend
-□ 2.5 E2E tests for full game turns
-```
+你提的问题非常精准：
 
-### Phase 3: Narrative Refactor (预计 1 周)
-```
-□ 3.1 NarrativeGenerator (read-only, takes TurnResult)
-□ 3.2 Context builder (only exposes visible information)
-□ 3.3 Advisor court scene generation
-□ 3.4 Battle narrative generation
-□ 3.5 Historical chronicle writer
-```
+> "历史事件有很多非线性的——一个领导人的死亡、一则情报、一次战役都可能完全改写历史"
 
-### Phase 4: Game Depth (预计 2 周)
-```
-□ 4.1 Diplomacy system (alliance, tribute, vassal, marriage)
-□ 4.2 Character skill trees (governors improve development, generals improve combat)
-□ 4.3 Technology tree (irrigation → food+, metallurgy → weapon+, etc.)
-□ 4.4 Espionage system (spy on neighbors, sabotage, counter-intel)
-□ 4.5 Additional scenarios (194, 200, 208 starting dates)
-□ 4.6 Victory conditions (unification, hegemony, legacy)
+现有游戏对这个问题的处理都不完美。我们的方案：
+
+### 5.2 事件触发：条件 + 重力 + 偏离度
+
+```python
+@dataclass
+class HistoricalEvent:
+    id: str
+    title: str
+    year_range: tuple[int, int]     # 可能发生的年份范围
+    
+    preconditions: dict              # 触发条件
+    # 例: {"cao.controls": ["yuzhou"], "yuanshao.alive": True, "caocao.alive": True}
+    
+    gravity: float                   # 0-1 历史"引力"强度
+    # 官渡之战=0.9, 赤壁之战=0.95, 三顾茅庐=0.7
+    
+    possible_outcomes: list[dict]    # 可能的结果分支
+    # [
+    #   {"condition": "default", "result": "曹操胜利", "prob": 0.6},
+    #   {"condition": "yuanshao.uses_xuyou", "result": "袁绍采纳许攸", "prob": 0.3},
+    #   {"condition": "yuanshao.loses_wuchao", "result": "乌巢被烧", "prob": 0.1}
+    # ]
+    
+    butterfly_effects: list[str]     # 如果事件不发生/结果不同，下游事件的变化
+    # ["袁绍未败 → 曹操无法统一北方 → 赤壁之战不会发生 → ..."]
 ```
 
-### Phase 5: Clients (预计 3 周)
+### 5.3 事件驱动流程
+
 ```
-□ 5.1 REST API server (FastAPI)
-□ 5.2 Web client MVP (React + map rendering)
-□ 5.3 OpenClaw skill integration
-□ 5.4 Save/load across clients
-□ 5.5 Session persistence and replay
+每个回合结束时：
+
+1. 检查所有历史事件的 preconditions
+   - 条件满足 → 进入候选池
+   - 条件不满足 → 跳过（事件可能永远不会发生）
+
+2. 对候选事件计算生效概率
+   effective_prob = gravity × (1 - player_deviation × 0.5)
+   
+   示例:
+   - 官渡之战 gravity=0.9, deviation=0.1 → prob = 0.9 × 0.95 = 0.855
+   - 官渡之战 gravity=0.9, deviation=0.6 → prob = 0.9 × 0.7 = 0.63
+   
+   高偏离度 = 历史越来越不可能按原轨道走
+
+3. 掷骰决定是否触发
+   - 触发 → 从 possible_outcomes 中按概率选择一个结果
+   - 不触发 → 记录为 averted（可能影响下游事件）
+
+4. 物理引擎执行事件后果
+   - 兵力变化、领土转移、将领死亡、关系变动
+   - 所有后果通过物理引擎结算（确定性）
+
+5. LLM 生成事件叙事
+   - RAG 注入真实历史版本作为对比
+   - 如发生偏离，LLM 在叙事中体现"史官将此记为建安异录"
+```
+
+### 5.4 蝴蝶效应链
+
+```json
+{
+  "id": "guandu_200",
+  "butterfly_effects": [
+    {
+      "if_averted": "曹操无法统一北方",
+      "downstream_events_blocked": ["liubei_flees_jingzhou", "battle_of_chibi"],
+      "alternative_chain": [
+        "袁绍趁胜南下 → 曹操退守兖州 → 袁绍与孙坚争霸中原 → 刘备趁乱取益州"
+      ]
+    },
+    {
+      "if_outcome": "draw",
+      "description": "曹操与袁绍两败俱伤",
+      "alternative_chain": [
+        "河北诸侯趁机反叛袁绍 → 中原出现权力真空 → 刘表北上"
+      ]
+    }
+  ]
+}
+```
+
+**蝴蝶效应的边界**：我们不试图模拟"全部可能"，而是为每个 major event 预定义 2-3 种可能的分支结果。这保持了可测试性，同时提供了足够的变化。
+
+---
+
+## 6. 玩家输入安全：Intent Parser + Validator
+
+```
+玩家自由文本
+    │
+    ▼
+┌───────────────────────────────────────┐
+│  Intent Parser (LLM, 小模型, 低成本)    │
+│                                       │
+│  System Prompt:                       │
+│  "你是一个命令解析器。                  │
+│   从以下文本中提取可执行的操作。         │
+│   支持的操作类型:                       │
+│     recruit, move, attack, develop,    │
+│     tax, train, spy, trade, rest,      │
+│     appoint, dismiss, negotiate,       │
+│     research                           │
+│   不支持的操作（直接忽略）:              │
+│     - 修改天气或气候                    │
+│     - 凭空增加资源                     │
+│     - 改变他人忠诚度（除封赏外）         │
+│     - 修改历史或时间线                  │
+│     - 瞬移部队                         │
+│   输出: JSON                           │
+│   {'actions': [{'type': ...,           │
+│     'params': {...}}]}                 │
+└───────────────┬───────────────────────┘
+                ▼
+┌───────────────────────────────────────┐
+│  Validator (纯代码, 零LLM)             │
+│                                       │
+│  recruit: 数量 ≤ 人口×5%, 花费 ≤ 金库  │
+│  move: 目标在补给范围内                │
+│  attack: 目标存在 + 不相邻则需移动到邻  │
+│  appoint: 人物存在 + 忠诚度 > 30       │
+│  tax: 税率 0.1-0.5                    │
+│                                       │
+│  任何非法命令 → 丢弃 + 返回合法命令     │
+│  "风调雨顺" → 匹配不到操作 → 丢弃       │
+│  "让关羽忠诚度变成100" → appoint可加    │
+│     但appoint效果由物理引擎决定          │
+└───────────────────────────────────────┘
 ```
 
 ---
 
-## 7. 测试策略
+## 7. 运营飞轮
+
+### 7.1 飞轮模型
 
 ```
-单元测试:
-  - 资源生产公式: 给定输入 → 验证输出
-  - 战斗结算: 兵力比 → 损失率
-  - 气候系统: 10000次掷骰 → 统计分布
-  - NPC AI: 给定状态 → 验证决策合理性
-  - Validation: 非法命令 → 拒绝
-  
-集成测试:
-  - 完整回合: climate → production → orders → combat → state
-  - 多势力并行: 5个NPC + 玩家 → 无状态污染
-  - 存档/读档: save → load → 数值一致
-  
-回归测试:
-  - Intent Parser: 已知输入 → 预期命令
-  - 防注入: "风调雨顺" → 不产生命令
-  - LLM 不修改状态: narrative 输出 ≠ state 变化
+优质游戏体验
+    ↓
+玩家自发传播（B站/知乎/Reddit/Steam）
+    ↓
+新玩家涌入 + GitHub Star 增长
+    ↓
+社区反馈 → 改进游戏 → 更优质体验
+    ↓                    ↓
+emergence.science 品牌曝光   Mod/扩展生态
+    ↓                    ↓
+平台引流（bounty marketplace）   UGC 内容
+    ↓
+商业化变现
+```
+
+### 7.2 传播基础设施
+
+| 阶段 | 目标 | 行动 |
+|------|------|------|
+| **冷启动** | 100 GitHub Stars | 技术文章（知乎/Show HN）、开源社区推广 |
+| **社区建设** | 500 Discord 成员 | 每日开发日志、开放 Mod API、征集历史事件 |
+| **内容裂变** | B站 10 万播放 | 游戏实况（脚本录制 → LLM 生成解说 → 自动上传） |
+| **平台联动** | 100 emergence.science 注册 | 游戏内"一键发布 bounty"按钮 |
+| **商业化** | 月活 1000+ | Steam 发布、DLC（新剧本）、Token 内购（LLM 成本） |
+
+### 7.3 内容自动化
+
+利用现有的 Hermes Agent + emergence 基础设施：
+- **每日游戏日志** → 自动生成 AAR 文章 → 发布到知乎/Medium
+- **脚本化录屏** → `headless_cli.py` 运行 → SVG 录像 → 裁剪为短视频
+- **社区监控** → 监控 B站/Reddit 关于三国策略游戏的讨论 → 针对性回复
+- **版本更新日志** → 自动生成 changelog → 推送到 Discord/GitHub
+
+---
+
+## 8. 实施路线图 (更新)
+
+### Phase 1: Engine Core (2 周)
+```
+□ 1.1 histrategy-engine 独立包骨架
+□ 1.2 领土资源系统（粮食/人口/税收/开发）
+□ 1.3 气候系统（季节 + 历史气候数据种子）
+□ 1.4 军事系统（兵种/招募/补给/战斗公式）
+□ 1.5 角色系统（五维属性/技能/忠诚关系）
+□ 1.6 科技传播系统
+□ 1.7 单元测试覆盖 ≥ 80%
+```
+
+### Phase 2: RAG + Events (1 周)
+```
+□ 2.1 历史事件知识库（184-234年完整时间线）
+□ 2.2 RAG 检索器（年份索引 + 上下文构建）
+□ 2.3 事件触发系统（preconditions + gravity + deviation）
+□ 2.4 蝴蝶效应链（每个 major event 的 2-3 分支）
+```
+
+### Phase 3: NPC AI + Player Integration (1.5 周)
+```
+□ 3.1 NPC 个性档案 × 决策树
+□ 3.2 Intent Parser（小模型 LLM）
+□ 3.3 Validator（纯代码验证层）
+□ 3.4 回合控制器（所有势力同时结算）
+□ 3.5 TUI 集成
+```
+
+### Phase 4: Narrative + Clients (2 周)
+```
+□ 4.1 叙事引擎（只读 LLM）
+□ 4.2 上下文构建器（物理结果 + RAG 历史）
+□ 4.3 REST API（FastAPI）
+□ 4.4 Web 客户端 MVP（React + Canvas 地图）
+□ 4.5 OpenClaw 客户端
+```
+
+### Phase 5: Operations (持续)
+```
+□ 5.1 自动 AAR 生成 + 发布
+□ 5.2 游戏实况录制 + 自动上传 B站
+□ 5.3 社区管理（Discord + GitHub Issues）
+□ 5.4 emergence.science 平台联动
 ```
 
 ---
 
-## 8. 关键设计原则
+## 9. 关键指标
 
-1. **物理引擎是圣经** — 所有数值从这里产生，LLM 只能读取
-2. **所有势力平等** — 玩家只是一个"恰好输入来源不同的势力"
-3. **确定性优先** — 同一状态 + 同一命令 = 同一结果（便于测试和平衡）
-4. **LLM 为叙事服务** — 它让故事好看，但不决定故事走向
-5. **防注入是强制性的** — Parser → Validator 双保险
-6. **渐进式交付** — 每个 Phase 产出可玩、可测的增量
+| 指标 | 目标 (Phase 3 完成时) | 目标 (Phase 5 完成时) |
+|------|----------------------|----------------------|
+| 可玩回合数 | 40+ 回合 | 100+ 回合 |
+| 势力数 | 8+ 可操控 | 15+ |
+| 剧本 | 1 (190) | 4 (184/190/200/208) |
+| LLM 每次调用 token | < 3000 input | < 2000 input |
+| 测试覆盖率 | ≥ 80% | ≥ 85% |
+| GitHub Stars | 50 | 500 |
+| Discord 成员 | 100 | 500 |
+| B站视频播放 | 1 万 | 10 万 |
+
+---
+
+*本设计文档会持续演进。每个 Phase 完成后更新状态。*
