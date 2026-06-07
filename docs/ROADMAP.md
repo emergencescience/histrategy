@@ -1,6 +1,6 @@
 # Histrategy Roadmap
-> 三國志略 — Open-Source LLM Narrative Historical Strategy Engine
-> Last updated: 2026-05-24
+> 三國志略 — Open-Source Physics-Driven Historical Strategy Game
+> Last updated: 2026-06-07
 
 ---
 
