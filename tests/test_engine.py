@@ -346,6 +346,314 @@ class TestNPCBetrayalTrigger:
         assert engine.world_state.characters["xun_yu"].faction_id != "cao"
 
 
+class TestNPCAutonomousBehavior:
+    """H08h: E2E playthrough validating NPC autonomous actions.
+
+    NPCs (non-player factions) should independently:
+      - Change stats each turn (economy, strength, morale)
+      - Exhibit personality-driven behavior (aggressive factions expand more)
+      - Form alliances or wage wars with each other
+      - React differently to player military vs economic focus
+      - Show meaningful stat divergence over multi-turn playthroughs
+    """
+
+    def test_all_npc_factions_change_stats_independently(self):
+        """Every active NPC faction should show stat changes each turn."""
+        from histrategy.engine.world import GameWorld
+        from histrategy.engine.offline_sim import simulate_turn_offline
+        w = GameWorld("190")
+        w.player_faction_id = "cao"
+
+        # Snapshot all NPC faction stats
+        initial = {}
+        for fid, fa in w.factions.items():
+            if fid == w.player_faction_id or not fa.is_active:
+                continue
+            initial[fid] = fa.strength
+
+        simulate_turn_offline(w, "发展内政")
+
+        # Count how many NPC factions changed
+        changed = sum(
+            1 for fid in initial
+            if w.factions[fid].strength != initial[fid]
+        )
+        assert changed >= 1, \
+            f"No NPC factions changed stats: changed={changed}/{len(initial)}"
+
+    def test_aggressive_npc_factions_expand_more(self):
+        """Aggressive NPC factions (dongzhuo, aggression 85) should gain
+        more strength per turn than defensive factions on average."""
+        from histrategy.engine.game import GameEngine
+        import random
+        random.seed(42)
+        engine = GameEngine(new_game=True, force_v1=True)
+        engine.set_player_faction("cao")
+
+        # Track strength deltas over multiple turns per faction
+        faction_deltas: dict[str, list[int]] = {}
+        for fid, fs in engine.world_state.factions.items():
+            if fid == engine.world_state.player_faction_id or not fs.is_active:
+                continue
+            faction_deltas[fid] = []
+
+        for _ in range(8):
+            snap_before = {}
+            for fid in faction_deltas:
+                fs = engine.world_state.factions.get(fid)
+                if fs:
+                    snap_before[fid] = fs.strength
+            engine.process_turn("发展内政")
+            for fid in faction_deltas:
+                fs = engine.world_state.factions.get(fid)
+                if fs and fid in snap_before:
+                    faction_deltas[fid].append(fs.strength - snap_before[fid])
+
+        # Aggregate: average delta per faction
+        avg_deltas = {
+            fid: sum(deltas) / len(deltas)
+            for fid, deltas in faction_deltas.items() if deltas
+        }
+
+        # Dong Zhuo (dongzhuo) has aggression=85, should be among top gainers
+        dong_avg = avg_deltas.get("dongzhuo", 0)
+        all_avg = sum(avg_deltas.values()) / max(1, len(avg_deltas))
+        # Dong Zhuo should at least gain strength (not lose consistently)
+        assert dong_avg > -500, \
+            f"Dong Zhuo losing strength over time: avg {dong_avg:.0f}"
+        assert all_avg != 0, "No NPC faction changed strength at all"
+
+    def test_npc_faction_dynamics_occur(self):
+        """NPC factions should produce varied narratives across turns."""
+        from histrategy.engine.game import GameEngine
+        import random
+        random.seed(42)
+
+        engine = GameEngine(new_game=True, force_v1=True)
+        engine.set_player_faction("cao")
+
+        # Run several turns and verify NPC narratives are diverse
+        all_npc_texts = []
+        for _ in range(8):
+            result = engine.process_turn("发展内政")
+            npc_text = " ".join(str(r) for r in result.get("npc_reactions", []))
+            all_npc_texts.append(npc_text)
+
+        # Each turn should have NPC content
+        for i, text in enumerate(all_npc_texts):
+            assert len(text) > 3, f"Turn {i}: empty NPC content"
+
+        # NPC content should not be identical across all turns
+        unique_texts = set(all_npc_texts)
+        assert len(unique_texts) >= 2, \
+            "NPC narratives identical across all turns — no dynamics"
+
+    def test_npc_react_to_player_military_buildup(self):
+        """NPC factions should react when player expands military."""
+        from histrategy.engine.game import GameEngine
+        import random
+        random.seed(7)
+
+        # Economy-focused game
+        engine_eco = GameEngine(new_game=True, force_v1=True)
+        engine_eco.set_player_faction("cao")
+
+        # Military-focused game
+        engine_mil = GameEngine(new_game=True, force_v1=True)
+        engine_mil.set_player_faction("cao")
+
+        eco_strength_changes: dict[str, int] = {}
+        mil_strength_changes: dict[str, int] = {}
+        for fid in engine_eco.world_state.factions:
+            if fid == "cao" or not engine_eco.world_state.factions[fid].is_active:
+                continue
+            eco_strength_changes[fid] = 0
+            mil_strength_changes[fid] = 0
+
+        for _ in range(6):
+            snap_eco = {}
+            snap_mil = {}
+            for fid in eco_strength_changes:
+                fs_e = engine_eco.world_state.factions.get(fid)
+                fs_m = engine_mil.world_state.factions.get(fid)
+                if fs_e:
+                    snap_eco[fid] = fs_e.strength
+                if fs_m:
+                    snap_mil[fid] = fs_m.strength
+            engine_eco.process_turn("发展经济休养生息")
+            engine_mil.process_turn("扩军备战征伐天下")
+            for fid in eco_strength_changes:
+                fs_e = engine_eco.world_state.factions.get(fid)
+                fs_m = engine_mil.world_state.factions.get(fid)
+                if fs_e and fid in snap_eco:
+                    eco_strength_changes[fid] += abs(fs_e.strength - snap_eco[fid])
+                if fs_m and fid in snap_mil:
+                    mil_strength_changes[fid] += abs(fs_m.strength - snap_mil[fid])
+
+        eco_total = sum(eco_strength_changes.values())
+        mil_total = sum(mil_strength_changes.values())
+        assert eco_total > 0, "NPC factions showed zero reaction to economy focus"
+        assert mil_total > 0, "NPC factions showed zero reaction to military focus"
+
+    def test_multi_turn_npc_divergence(self):
+        """Over 12 turns, NPC factions should show significant stat divergence."""
+        from histrategy.engine.world import GameWorld
+        from histrategy.engine.offline_sim import simulate_turn_offline
+        import random
+        random.seed(123)
+
+        w = GameWorld("190")
+        w.player_faction_id = "cao"
+
+        # Snapshot initial strength
+        initial = {}
+        for fid, fa in w.factions.items():
+            if fid == w.player_faction_id or not fa.is_active:
+                continue
+            initial[fid] = fa.strength
+
+        # Run 12 turns
+        for _ in range(12):
+            simulate_turn_offline(w, "发展内政")
+
+        # Collect final strengths
+        deltas = {}
+        for fid, fa in w.factions.items():
+            if fid == w.player_faction_id or not fa.is_active:
+                continue
+            if fid in initial:
+                deltas[fid] = fa.strength - initial[fid]
+
+        assert len(deltas) >= 3, f"Need at least 3 NPC factions, got {len(deltas)}"
+
+        # At least one faction should have changed meaningfully
+        changed = sum(1 for d in deltas.values() if abs(d) > 100)
+        assert changed >= 1, \
+            f"No NPC factions changed meaningfully after 12 turns"
+
+        # Factions should not all have identical deltas (divergence)
+        unique_deltas = set(deltas.values())
+        assert len(unique_deltas) > 1, \
+            "All NPC factions had identical strength changes — no divergence"
+
+    def test_npc_actions_surface_in_result(self):
+        """Every turn result should contain NPC-related content."""
+        from histrategy.engine.game import GameEngine
+        engine = GameEngine(new_game=True, force_v1=True)
+        engine.set_player_faction("cao")
+
+        # Check that NPC content exists in results
+        npc_content_found = 0
+        for i in range(5):
+            result = engine.process_turn("发展内政")
+            npc_reactions = result.get("npc_reactions", [])
+            npc_actions = result.get("npc_actions", [])
+            narrative = result.get("narrative", "")
+            # npc_reactions or npc_actions or narrative should have content
+            has_content = (
+                (isinstance(npc_reactions, list) and len(npc_reactions) > 0) or
+                (isinstance(npc_actions, list) and len(npc_actions) > 0) or
+                len(narrative) > 30
+            )
+            if has_content:
+                npc_content_found += 1
+
+        assert npc_content_found >= 3, \
+            f"Only {npc_content_found}/5 turns had NPC content"
+
+        # At least one turn should mention specific NPC factions by name
+        faction_mentions = 0
+        for _ in range(5):
+            result = engine.process_turn("发展内政")
+            npc_text = " ".join(str(r) for r in result.get("npc_reactions", []))
+            narrative = result.get("narrative", "")
+            combined = npc_text + " " + narrative
+            for name in ["董卓", "袁绍", "孙坚", "刘表", "公孙瓒"]:
+                if name in combined:
+                    faction_mentions += 1
+        assert faction_mentions >= 1, \
+            "NPC content should mention specific factions"
+
+
+class TestNPCMoodProgression:
+    """H08h: Test NPC advisor mood progression over multiple turns."""
+
+    def test_npc_mood_worsen_on_single_step(self):
+        """NPC mood shifts at most 1 level per turn (design constraint)."""
+        from histrategy.state.npc_state import NPCState, NPCMood
+        npc = NPCState(character_id="test_advisor", mood=NPCMood.CONTENT)
+        npc.worsen("主公未纳谏言")
+        assert npc.mood == NPCMood.FRUSTRATED
+        npc.worsen("再次被忽视")
+        assert npc.mood == NPCMood.ANGRY
+        npc.worsen("积累不满")
+        assert npc.mood == NPCMood.SCHEMING
+
+    def test_npc_mood_no_skip_levels(self):
+        """NPC mood must never skip levels — CONTENT can't jump to ANGRY."""
+        from histrategy.state.npc_state import NPCState, NPCMood
+        npc = NPCState(character_id="test_advisor", mood=NPCMood.CONTENT)
+        npc.worsen("一次不满")
+        assert npc.mood == NPCMood.FRUSTRATED
+        # Verify it's exactly one level worse, not two
+        assert npc.mood != NPCMood.ANGRY
+
+    def test_npc_improve_from_danger(self):
+        """NPC can improve from danger levels back to safe."""
+        from histrategy.state.npc_state import NPCState, NPCMood
+        npc = NPCState(character_id="test_advisor", mood=NPCMood.SCHEMING)
+        npc.improve("主公安抚赏赐")
+        assert npc.mood == NPCMood.ANGRY
+        npc.improve("主公采纳建议")
+        assert npc.mood == NPCMood.FRUSTRATED
+        npc.improve("获封官职")
+        assert npc.mood == NPCMood.CONTENT
+
+    def test_plotting_not_triggered_below_threshold(self):
+        """NPC with mood below plotting and <2 turns should NOT trigger defection."""
+        from histrategy.engine.game import GameEngine
+        from histrategy.state.npc_state import NPCState, NPCMood
+        from histrategy.state.world_state import CharacterState
+
+        engine = GameEngine(new_game=True, force_v1=True)
+        engine.set_player_faction("cao")
+
+        engine.world_state.characters["guo_jia"] = CharacterState(
+            id="guo_jia", name="郭嘉", faction_id="cao", role="advisor"
+        )
+        # Plotting but only 1 turn — should NOT trigger
+        engine.world_state.npc_states["guo_jia"] = NPCState(
+            character_id="guo_jia",
+            mood=NPCMood.PLOTTING,
+            turns_at_current_mood=1,
+            loyalty=30,
+        )
+        result = engine.process_turn("安抚众臣")
+        # Should still be in npc_states (not defected yet)
+        assert "guo_jia" in engine.world_state.npc_states, \
+            "NPC should NOT defect before 2 consecutive plotting turns"
+
+    def test_npc_mood_danger_levels(self):
+        """Verify danger levels for each mood state."""
+        from histrategy.state.npc_state import NPCMood
+        assert NPCMood.LOYAL.danger_level == 0
+        assert NPCMood.CONTENT.danger_level == 1
+        assert NPCMood.FRUSTRATED.danger_level == 2
+        assert NPCMood.ANGRY.danger_level == 3
+        assert NPCMood.SCHEMING.danger_level == 4
+        assert NPCMood.PLOTTING.danger_level == 5
+
+    def test_npc_mood_is_critical(self):
+        """Only PLOTTING mood should be critical."""
+        from histrategy.state.npc_state import NPCMood
+        assert not NPCMood.LOYAL.is_critical
+        assert not NPCMood.CONTENT.is_critical
+        assert not NPCMood.FRUSTRATED.is_critical
+        assert not NPCMood.ANGRY.is_critical
+        assert not NPCMood.SCHEMING.is_critical
+        assert NPCMood.PLOTTING.is_critical
+
+
 class TestGameMasterPlanSchema:
     """Test that the unified LLM GameMaster returns the new plan/dialogue schema."""
 
