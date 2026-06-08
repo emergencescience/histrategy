@@ -117,6 +117,25 @@ class TurnProcessor:
         # 3. Advance NPC factions
         npc_actions = bridge.advance_npc_factions()
 
+        # 3b. Collect player taxes (auto-collect each turn)
+        player_faction = session.world_state.factions.get(faction_id)
+        if player_faction:
+            player_tax_revenue = 0
+            for tid in player_faction.territories:
+                t = session.world_state.territories.get(tid)
+                if t:
+                    player_tax_revenue += bridge.domestic_engine.calculate_tax_revenue(
+                        t, player_faction.tax_rate
+                    )
+            if player_tax_revenue > 0:
+                player_faction.treasury += player_tax_revenue
+                npc_actions.insert(0, {
+                    "faction_id": faction_id,
+                    "faction_name": player_faction.name,
+                    "actions": [f"征税获得{player_tax_revenue}金"],
+                    "personality": "player",
+                })
+
         # 4. Build events
         events = []
         if result.get("message"):

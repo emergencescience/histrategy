@@ -126,7 +126,11 @@ class StateBridge:
         if not target:
             return {"success": False, "result": None, "message": "请指定移动目标"}
 
-        army = self._find_best_army_for_target(faction_id, target)
+        # Respect explicit army_id, otherwise find best
+        if army_id:
+            army = self._find_army(faction_id, army_id)
+        else:
+            army = self._find_best_army_for_target(faction_id, target)
         if not army:
             return {"success": False, "result": None, "message": "没有找到可移动的军队"}
 
