@@ -70,6 +70,8 @@ class MapEngine:
     def __init__(self, territories: dict[str, Territory] | None = None):
         self._territories: dict[str, Territory] = territories or {}
         self._adjacency: dict[str, list[str]] = {}
+        if territories:
+            self._build_adjacency()
 
     # ── Data loading ──
 

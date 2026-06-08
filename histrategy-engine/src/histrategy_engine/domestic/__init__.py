@@ -253,12 +253,14 @@ class DomesticEngine:
         """
         Cost to increase development from current to target level.
 
-        cost = 500 × (target - current) × population / 10000
-        Minimum cost: 500.
+        Uses sqrt scaling so large cities are more expensive but not impossibly so.
+        cost = 150 × delta × √(population / 1000)
+        Minimum cost: 300.
         """
+        import math
         delta = max(0, target_level - territory.development)
-        cost = 500 * delta * territory.population / 10000.0
-        return max(500, int(cost))
+        cost = 150 * delta * math.sqrt(territory.population / 1000.0)
+        return max(300, int(cost))
 
     # ── Full season tick ──
 
