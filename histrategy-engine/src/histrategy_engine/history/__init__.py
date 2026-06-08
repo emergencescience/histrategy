@@ -145,6 +145,13 @@ class HistoryEngine:
 
             # Check preconditions
             if not self._check_preconditions(evt_data, world_state):
+                # If current time aligns with scheduled target year/season, it is averted
+                if year == evt_year and abs(season_month - evt_month) <= 4:
+                    self.mark_averted(evt_id, "Preconditions not met")
+                    self.block_downstream(evt_id)
+                    world_state.player_deviation = min(1.0, world_state.player_deviation + 0.05)
+                    if evt_id not in world_state.averted_events:
+                        world_state.averted_events.append(evt_id)
                 continue
 
             # Core probability formula
@@ -154,6 +161,8 @@ class HistoryEngine:
             if random.random() < effective_prob:
                 # Event triggers
                 self._triggered_events.add(evt_id)
+                if evt_id not in world_state.completed_events:
+                    world_state.completed_events.append(evt_id)
 
                 # Collect butterfly effects as triggered events
                 butterfly = evt_data.get("butterfly_effects", {})
@@ -161,6 +170,8 @@ class HistoryEngine:
                 for downstream_id in triggered_ids:
                     if downstream_id in self._event_index:
                         self._triggered_events.add(downstream_id)
+                        if downstream_id not in world_state.completed_events:
+                            world_state.completed_events.append(downstream_id)
 
                 # Build effects from outcomes
                 outcomes = evt_data.get("outcomes", [])
@@ -188,6 +199,9 @@ class HistoryEngine:
                 # Event does not trigger — mark as averted
                 self.mark_averted(evt_id, f"Probability check failed: {effective_prob:.3f}")
                 self.block_downstream(evt_id)
+                world_state.player_deviation = min(1.0, world_state.player_deviation + 0.05)
+                if evt_id not in world_state.averted_events:
+                    world_state.averted_events.append(evt_id)
 
         return proposals
 

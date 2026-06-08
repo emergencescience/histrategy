@@ -26,6 +26,7 @@ GAME_CMD = [sys.executable, "-m", "histrategy"]
 def isolated_save_dir(tmp_path, monkeypatch):
     """Run each E2E test with an isolated save directory."""
     monkeypatch.setenv("HISTRATEGY_DATA_DIR", str(tmp_path / ".histrategy"))
+    monkeypatch.setenv("HISTRATEGY_FORCE_V1", "true")
     yield
 
 

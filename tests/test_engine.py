@@ -20,6 +20,7 @@ from histrategy.engine.offline_sim import (
 def isolated_save_dir(tmp_path, monkeypatch):
     """Keep tests away from the user's real ~/.histrategy save directory."""
     monkeypatch.setenv("HISTRATEGY_DATA_DIR", str(tmp_path / ".histrategy"))
+    monkeypatch.setenv("HISTRATEGY_FORCE_V1", "true")
     yield
 
 

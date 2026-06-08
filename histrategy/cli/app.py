@@ -107,11 +107,14 @@ def run_game(force_new: bool = False):
     # --- New Game: Faction Selection ---
     # Check if v2 engine is available
     _v2_available = False
-    try:
-        from histrategy_engine import TurnController  # noqa: F401
-        _v2_available = True
-    except ImportError:
-        pass
+    import os as _os
+    force_v1_env = _os.environ.get("HISTRATEGY_FORCE_V1", "").lower() in ("true", "1")
+    if not force_v1_env:
+        try:
+            from histrategy_engine import TurnController  # noqa: F401
+            _v2_available = True
+        except ImportError:
+            pass
 
     if _v2_available:
         factions = [

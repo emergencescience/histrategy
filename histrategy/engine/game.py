@@ -180,7 +180,8 @@ class GameEngine:
                  force_v1: bool = False):
         self.llm = llm
         self.scenario = scenario
-        self._use_v2 = _V2_AVAILABLE and not force_v1
+        force_v1_env = os.environ.get("HISTRATEGY_FORCE_V1", "").lower() in ("true", "1")
+        self._use_v2 = _V2_AVAILABLE and not force_v1 and not force_v1_env
 
         # ─── v2 initialization ────────────────────────────────
         if self._use_v2:
@@ -594,6 +595,8 @@ class GameEngine:
     def _process_turn_v2(self, player_decision: str) -> dict:
         """v2 turn processing pipeline."""
         ws = self.world_state_v2
+        current_year = ws.year
+        current_season = ws.season
 
         # Step 1: Parse player intent into commands
         player_commands = []
@@ -615,22 +618,64 @@ class GameEngine:
         )
 
         # Step 4: Check historical events
+        proposals = []
         if self.history_engine:
             try:
-                self.history_engine.check_events(
-                    ws.year, ws.season, ws, deviation=ws.player_deviation
+                # Sync completed/averted events with history_engine
+                for evt_id in ws.completed_events:
+                    self.history_engine._triggered_events.add(evt_id)
+                for evt_id in ws.averted_events:
+                    if evt_id not in self.history_engine._averted_events:
+                        self.history_engine._averted_events[evt_id] = "Restored from world state"
+                    self.history_engine.block_downstream(evt_id)
+
+                proposals = self.history_engine.check_events(
+                    current_year, current_season, ws, deviation=ws.player_deviation
                 )
-            except Exception:
+                for prop in proposals:
+                    apply_event_effects(ws, prop.effects.get("effects", {}))
+                    turn_result.history_events.append({
+                        "event_id": prop.event_id,
+                        "title": prop.title,
+                        "outcome": prop.effects.get("outcome", "default"),
+                        "description": prop.effects.get("outcome_description", ""),
+                        "effects": prop.effects.get("effects", {}),
+                    })
+            except Exception as e:
                 pass
 
-        # Step 5: Generate narrative
+        # Step 5 & 6: Generate narrative and plan suggestions (Parallelized)
+        narrative_text = ""
+        new_choices = []
+
         if self.narrative_engine and self.narrative_engine.is_available:
-            with _suppress_stderr():
-                narrative_text = self.narrative_engine.generate_turn_narrative(turn_result)
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                # Submit both tasks
+                future_narrative = executor.submit(
+                    self.narrative_engine.generate_turn_narrative, turn_result
+                )
+                future_suggestions = executor.submit(
+                    self.narrative_engine.generate_plan_suggestions, ws, ws.player_faction_id
+                )
+                
+                # Retrieve results with error fallback
+                try:
+                    with _suppress_stderr():
+                        narrative_text = future_narrative.result(timeout=30)
+                except Exception:
+                    narrative_text = self._offline_v2_narrative(turn_result)
+                
+                try:
+                    with _suppress_stderr():
+                        new_choices = future_suggestions.result(timeout=30)
+                except Exception:
+                    new_choices = self._offline_v2_suggestions()
         else:
             narrative_text = self._offline_v2_narrative(turn_result)
+            new_choices = self._offline_v2_suggestions()
 
-        # Step 6: Build result dict
+        # Step 7: Build result dict
         player = ws.factions.get(ws.player_faction_id)
         game_over = None
         if not player or not player.is_active or player.strength_actual <= 0:
@@ -676,17 +721,17 @@ class GameEngine:
                 "treasury": resource_changes.get("tax_revenue", 0),
             },
             "seeds": [
-                {"title": p.title, "description": p.narrative_hint[:80]}
-                for p in (self.history_engine.check_events(ws.year, ws.season, ws, ws.player_deviation) if self.history_engine else [])
-            ],
+                {"title": evt["title"], "description": evt.get("description", "")[:80]}
+                for evt in self.history_engine.all_events
+                if evt["id"] not in self.history_engine._triggered_events
+                and evt["id"] not in self.history_engine.averted_events
+                and evt["id"] not in self.history_engine._blocked_downstream
+                and abs(evt["year"] - ws.year) <= 1
+            ] if self.history_engine else [],
             "npc_reactions": [],
             "npc_actions": [],
             "events_occurred": turn_result.character_events,
-            "new_choices": (
-                self.narrative_engine.generate_plan_suggestions(ws, ws.player_faction_id)
-                if self.narrative_engine and self.narrative_engine.is_available
-                else self._offline_v2_suggestions()
-            ),
+            "new_choices": new_choices,
             "game_over": game_over,
             "world_state": ws,
         }
@@ -844,6 +889,12 @@ class GameEngine:
                 "3. 派简雍去徐州联络陶谦",
                 "4. 投靠公孙瓒，借势发展",
             ],
+            "yuan_shao": [
+                "1. 以盟主身份发布讨董檄文，号召诸侯",
+                "2. 发展冀州，积聚粮草兵力",
+                "3. 派使者联络曹操共同起兵",
+                "4. 坐观成败，保存实力",
+            ],
         }
 
         return {
@@ -909,3 +960,113 @@ def _suppress_stderr():
             _sys.stderr = self._stderr
 
     return _Suppress()
+
+
+def apply_event_effects(world_state: V2WorldState, effects: dict) -> None:
+    """Apply the outcomes/effects of a triggered historical event directly to WorldState."""
+    from histrategy_engine.world import FactionState
+
+    def transfer_territory(tid: str, fid: str):
+        if tid in world_state.territories:
+            old_owner_id = world_state.territories[tid].owner_id
+            world_state.territories[tid].owner_id = fid
+            # Remove from old owner's territories list
+            if old_owner_id and old_owner_id in world_state.factions:
+                old_faction = world_state.factions[old_owner_id]
+                if tid in old_faction.territories:
+                    old_faction.territories.remove(tid)
+            # Add to new owner's territories list
+            if fid and fid in world_state.factions:
+                new_faction = world_state.factions[fid]
+                if tid not in new_faction.territories:
+                    new_faction.territories.append(tid)
+
+    for key, value in effects.items():
+        # 1. Advisor joining
+        # e.g., "liubei_advisor": "zhugeliang"
+        if key.endswith("_advisor") and value and value != "none":
+            faction_id = key.split("_")[0]
+            faction_id = V2_FACTION_MAP.get(faction_id, faction_id)
+            char = world_state.characters.get(value)
+            if char:
+                char.faction_id = faction_id
+                char.loyalty = 95
+                char.alive = True
+                ruler_id = world_state.factions.get(faction_id, FactionState()).ruler_id
+                ruler = world_state.characters.get(ruler_id)
+                if ruler:
+                    char.location = ruler.location
+
+        # 2. Characters dying/status changes
+        # e.g., "guanyu_dead": True, "zhangfei_dead": True
+        elif key.endswith("_dead") and value is True:
+            char_id = key.rsplit("_", 1)[0]
+            char = world_state.characters.get(char_id)
+            if char:
+                char.alive = False
+
+        # 3. Locations
+        # e.g., "liubei_location": "jiangkou"
+        elif key.endswith("_location") and value:
+            char_id = key.rsplit("_", 1)[0]
+            char = world_state.characters.get(char_id)
+            if char:
+                char.location = value
+
+        # 4. Territory ownership
+        # e.g., "jingzhou_owner": "cao" or "liubei" or "sunquan"
+        elif key == "jingzhou_owner" and value:
+            target_fid = V2_FACTION_MAP.get(value, value)
+            for tid in ["xiangyang", "jiangling", "jiangxia", "changsha", "lingling", "wuling", "guiyang", "nanyang"]:
+                transfer_territory(tid, target_fid)
+                
+        # e.g. "liubei_controls": "yizhou"
+        elif key.endswith("_controls") and value:
+            target_fid = V2_FACTION_MAP.get(key.split("_")[0], key.split("_")[0])
+            if value == "yizhou":
+                for tid in ["chengdu", "hanshui", "hanzhong", "ziyang", "baqi"]:
+                    transfer_territory(tid, target_fid)
+            elif value == "jingzhou":
+                for tid in ["xiangyang", "jiangling", "jiangxia", "changsha", "lingling", "wuling", "guiyang", "nanyang"]:
+                    transfer_territory(tid, target_fid)
+
+        # e.g., "liubei_territories_add": ["wuling", "changsha", "lingling", "guiyang"]
+        elif key.endswith("_territories_add") and isinstance(value, list):
+            target_fid = V2_FACTION_MAP.get(key.split("_")[0], key.split("_")[0])
+            for tid in value:
+                transfer_territory(tid, target_fid)
+
+        # 5. Relations
+        # e.g., "sunliu_relation": "+20" or "-10"
+        elif key.endswith("_relation") and value:
+            f1_f2 = key.rsplit("_", 1)[0]
+            f1, f2 = None, None
+            if "sunliu" in f1_f2 or "sun_liu" in f1_f2:
+                f1, f2 = "wu", "shu"
+            if f1 and f2:
+                try:
+                    delta = int(value)
+                    fac1 = world_state.factions.get(f1)
+                    if fac1:
+                        fac1.relations[f2] = max(-100, min(100, fac1.relations.get(f2, 0) + delta))
+                    fac2 = world_state.factions.get(f2)
+                    if fac2:
+                        fac2.relations[f1] = max(-100, min(100, fac2.relations.get(f1, 0) + delta))
+                except Exception:
+                    pass
+
+        # 6. Army/Power losses
+        elif key.endswith("_army") and value == "devastated":
+            fid = key.split("_")[0]
+            fid = V2_FACTION_MAP.get(fid, fid)
+            faction = world_state.factions.get(fid)
+            if faction:
+                faction.strength_actual = max(1000, int(faction.strength_actual * 0.3))
+        elif key.endswith("_power") and value == "crippled":
+            fid = key.split("_")[0]
+            fid = V2_FACTION_MAP.get(fid, fid)
+            faction = world_state.factions.get(fid)
+            if faction:
+                faction.strength_actual = max(1000, int(faction.strength_actual * 0.4))
+                faction.treasury = max(500, int(faction.treasury * 0.5))
+                faction.food = max(500, int(faction.food * 0.5))
