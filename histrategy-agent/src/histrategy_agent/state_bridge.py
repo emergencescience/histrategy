@@ -41,6 +41,10 @@ class StateBridge:
                     "diplomacy": 0.8, "development": 0.8, "mercy": 0.95},
             "wu": {"aggression": 0.6, "cunning": 0.6, "caution": 0.5,
                    "diplomacy": 0.6, "development": 0.6, "mercy": 0.5},
+            "liuzhang": {"aggression": 0.2, "cunning": 0.3, "caution": 0.8,
+                         "diplomacy": 0.3, "development": 0.4, "mercy": 0.7},
+            "liubiao": {"aggression": 0.2, "cunning": 0.4, "caution": 0.7,
+                        "diplomacy": 0.6, "development": 0.7, "mercy": 0.8},
         })
 
     def execute_command(self, command: Command) -> dict:
@@ -416,6 +420,13 @@ class StateBridge:
                 "actions": actions,
                 "personality": profile_name,
             })
+
+        # Sync faction strength_actual with actual army totals
+        for fid, faction in self.world_state.factions.items():
+            faction.strength_actual = sum(
+                a.total_troops for a in self.world_state.armies.values()
+                if a.faction_id == fid
+            )
 
         return npc_actions
 
