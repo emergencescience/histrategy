@@ -13,67 +13,68 @@ class TestIntentParser:
         self.tp = TurnProcessor()
 
     def test_parse_attack_intent(self):
-        result = self.tp._parse_intent("进攻宛城")
+        result = self.tp._parse_intent("进攻宛城", "shu")
         assert result["action"] == "attack"
         assert result["target"] == "wancheng"
 
     def test_parse_recruit_intent(self):
-        result = self.tp._parse_intent("招募步兵 5000")
+        result = self.tp._parse_intent("招募步兵 5000", "shu")
         assert result["action"] == "recruit"
         assert result["params"]["unit_type"] == "infantry"
         assert result["params"]["amount"] == 5000
 
     def test_parse_recruit_cavalry(self):
-        result = self.tp._parse_intent("招募骑兵3000人")
+        result = self.tp._parse_intent("招募骑兵3000人", "shu")
         assert result["action"] == "recruit"
         assert result["params"]["unit_type"] == "cavalry"
         assert result["params"]["amount"] == 3000
 
     def test_parse_recruit_archer(self):
-        result = self.tp._parse_intent("招募弓兵1000")
+        result = self.tp._parse_intent("招募弓兵1000", "shu")
         assert result["action"] == "recruit"
         assert result["params"]["unit_type"] == "archer"
         assert result["params"]["amount"] == 1000
 
     def test_parse_move_intent(self):
-        result = self.tp._parse_intent("移动到洛阳")
+        result = self.tp._parse_intent("移动到洛阳", "shu")
         assert result["action"] == "move"
         assert result["target"] == "luoyang"
 
     def test_parse_develop_intent(self):
-        result = self.tp._parse_intent("开发成都的农业")
+        result = self.tp._parse_intent("开发成都的农业", "shu")
         assert result["action"] == "develop"
         assert result["target"] == "chengdu"
 
     def test_parse_diplomacy_intent(self):
-        result = self.tp._parse_intent("与孙权结盟")
+        result = self.tp._parse_intent("与孙权结盟", "shu")
         assert result["action"] == "diplomacy"
         assert result["target"] == "wu"
         assert result["params"]["action"] == "ally"
 
     def test_parse_break_ally_intent(self):
-        result = self.tp._parse_intent("与曹操断交")
+        result = self.tp._parse_intent("与曹操断交", "shu")
         assert result["action"] == "diplomacy"
         assert result["target"] == "cao"
         assert result["params"]["action"] == "break_ally"
 
     def test_parse_info_intent(self):
-        result = self.tp._parse_intent("查看天下大势")
+        result = self.tp._parse_intent("查看天下大势", "shu")
         assert result["action"] == "info"
 
     def test_parse_tax_intent(self):
-        result = self.tp._parse_intent("调整税率为30%")
+        result = self.tp._parse_intent("调整税率为30%", "shu")
         assert result["action"] == "tax"
         assert result["params"]["rate"] == 0.3
 
     def test_parse_tax_other_rate(self):
-        result = self.tp._parse_intent("税收设为15%")
+        result = self.tp._parse_intent("税收设为15%", "shu")
         assert result["action"] == "tax"
         assert result["params"]["rate"] == 0.15
 
     def test_parse_unknown_intent(self):
-        result = self.tp._parse_intent("今天天气真好")
-        assert result["action"] == "unknown"
+        result = self.tp._parse_intent("今天天气真好", "shu")
+        # Unrecognized input defaults to info (shows current state)
+        assert result["action"] == "info"
         assert result["params"]["raw_text"] == "今天天气真好"
 
     def test_extract_number_too_large(self):
@@ -89,16 +90,16 @@ class TestIntentParser:
         assert self.tp._extract_territory("攻打长安") == ""
 
     def test_extract_faction_by_cn_name(self):
-        assert self.tp._extract_faction("与曹操联盟") == "cao"
-        assert self.tp._extract_faction("和吴国结盟") == "wu"
-        assert self.tp._extract_faction("与刘表合作") == "liubiao"
+        assert self.tp._extract_faction("与曹操联盟", "shu") == "cao"
+        assert self.tp._extract_faction("和吴国结盟", "shu") == "wu"
+        assert self.tp._extract_faction("与刘表合作", "shu") == "liubiao"
 
     def test_extract_faction_not_found(self):
-        assert self.tp._extract_faction("和张角合作") == ""
+        assert self.tp._extract_faction("和张角合作", "shu") == ""
 
     def test_recruit_default_amount(self):
         # No number specified → defaults to 1000
-        result = self.tp._parse_intent("招募步兵")
+        result = self.tp._parse_intent("招募步兵", "shu")
         assert result["params"]["amount"] == 1000
 
 
