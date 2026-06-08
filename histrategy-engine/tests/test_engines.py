@@ -458,14 +458,14 @@ class TestDevelopment:
         engine = DomesticEngine()
         territory = Territory(id="test", name="测试", development=30, population=50000)
         cost = engine.calculate_development_cost(territory, target_level=40)
-        # 500 × 10 × 5.0 = 25000
-        assert cost == 25000
+        # 150 × 10 × √(50000/1000) = 1500 × √50 ≈ 10606
+        assert abs(cost - 10606) <= 2
 
     def test_development_cost_minimum(self):
         engine = DomesticEngine()
         territory = Territory(id="test", name="测试", development=30, population=1000)
         cost = engine.calculate_development_cost(territory, target_level=31)
-        assert cost == 500  # minimum
+        assert cost == 300  # minimum
 
 
 class TestSeasonProcessing:

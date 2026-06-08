@@ -37,10 +37,10 @@ INTENT_SYSTEM = """你是《三國志略》的意图解析器。将玩家的自�
 
 ## 指令类型
 - attack: 进攻/攻击/征讨某地
-- recruit: 招募/征兵（可指定兵种：步兵/cavalry/archer/navy，数量）
+- recruit: 招募/征兵（可指定兵种：步兵/infantry 骑兵/cavalry 弓兵/archer 水军/navy，数量默认1000）
 - move: 移动/进军到某地
-- develop: 开发/发展/建设某地
-- diplomacy: 外交行动（结盟ally/断交break_ally）
+- develop: 开发/发展/建设/贸易/整顿某地
+- diplomacy: 外交行动（结盟ally/断交break_ally/和亲marry）
 - tax: 调整税收/税率
 - info: 查看状态/情报/天下大势
 
@@ -49,15 +49,18 @@ xinye=新野, wancheng=宛城, xuchang=许昌, luoyang=洛阳, ye=邺城, ji=蓟
 xiangyang=襄阳, jiangling=江陵, chengdu=成都, hanshui=汉中,
 jianye=建业, chaisang=柴桑, wu=吴郡, xiapi=下邳
 
-## 势力ID
+## 势力ID（重要：玩家不能与自己的势力互动）
 shu=刘备, cao=曹操, wu=孙权, liubiao=刘表, liuzhang=刘璋
 
-## 重要规则
-- 玩家不能与自己结盟（例如刘表玩家不能与liubiao结盟）
-- 如果玩家描述的是宏观战略而非具体指令，返回 info 类型
+## 核心规则
+- **永远不要返回玩家自己的势力ID作为target**（如刘表玩家不能target=liubiao）
+- 如果玩家描述宏观战略，提取其中最具体的一条可执行行动
+- 「保境安民」→ develop，「扩充军队」→ recruit，「操练水军」→ recruit navy
+- 「与X结亲/和亲」→ diplomacy ally
+- 「整顿吏治」→ develop，「发展贸易」→ develop
 - 默认招募数量1000
 
-返回JSON: {"action": "...", "target": "...", "params": {...}}"""
+返回纯JSON：{"action": "...", "target": "...", "params": {...}}"""
 
 NARRATIVE_SYSTEM = """你是《三國志略》的史官。根据本回合发生的事件，以文白相间的三国演义体写一段简短的回合叙事（2-3句话）。
 
@@ -101,6 +104,10 @@ class TurnProcessor:
 
         # 1. Parse intent (LLM → keyword fallback)
         intent = self._parse_intent(player_input, faction_id)
+
+        # Ensure target is in params for actions that need it
+        if intent.get("target") and not intent.get("params", {}).get("target"):
+            intent.setdefault("params", {})["target"] = intent["target"]
 
         # 2. Execute command
         command = Command(
@@ -147,9 +154,21 @@ class TurnProcessor:
         """Parse intent: LLM first, keyword fallback."""
         if self._has_llm:
             result = self._llm_intent(text, faction_id)
-            if result:
+            # Reject LLM results that have empty target on actions that need one
+            if result and self._valid_intent(result):
                 return result
         return self._keyword_intent(text, faction_id)
+
+    def _valid_intent(self, result: dict) -> bool:
+        """Check if LLM intent is actually valid."""
+        action = result.get("action", "")
+        target = result.get("target", "")
+        params_target = result.get("params", {}).get("target", "")
+        # Actions requiring a target
+        if action in ("attack", "move", "develop", "diplomacy"):
+            if not target and not params_target:
+                return False  # Fall back to keyword
+        return True
 
     def _llm_intent(self, text: str, faction_id: str) -> dict | None:
         """Use LLM to understand player intent."""

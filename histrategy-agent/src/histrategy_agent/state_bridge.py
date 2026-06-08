@@ -76,7 +76,7 @@ class StateBridge:
 
         # Use faction capital if no territory specified
         if not territory_id:
-            territory_id = faction.capital
+            territory_id = params.get("target", "") or faction.capital
 
         territory = self.world_state.territories.get(territory_id)
         if not territory:
@@ -212,6 +212,9 @@ class StateBridge:
             return {"success": False, "result": None, "message": f"势力不存在: {faction_id}"}
 
         new_rate = params.get("rate", faction.tax_rate)
+        # Normalize: if rate > 1 (e.g. 20 meaning 20%), divide by 100
+        if new_rate > 1:
+            new_rate = new_rate / 100.0
         if not (0.1 <= new_rate <= 0.5):
             return {"success": False, "result": None, "message": "税率应在0.1到0.5之间"}
 
