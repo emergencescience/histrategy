@@ -49,25 +49,53 @@ def _emit(phase: str, content: str, meta: dict | None = None):
     sys.stdout.flush()
 
 
+def _get_state(engine: GameEngine):
+    """Return (world_state, player, is_v2) tuple that works with both v1 and v2 engines."""
+    if getattr(engine, "_use_v2", False):
+        ws = engine.world_state_v2
+        player = ws.factions.get(ws.player_faction_id)
+        return ws, player, True
+    else:
+        ws = engine.world_state
+        player = ws.get_player_faction() if ws else None
+        return ws, player, False
+
+
 def _emit_status(engine: GameEngine):
     """Emit current game status."""
-    ws = engine.world_state
-    player = ws.get_player_faction()
-    if player:
-        status = {
-            "year": ws.year,
-            "season": ws.current_season_cn,
-            "turn": ws.turn,
-            "faction": player.name,
-            "strength": player.strength,
-            "economy": player.economy,
-            "morale": player.morale,
-            "treasury": player.treasury,
-            "food": player.food,
-            "territories": player.territories,
-        }
+    ws, player, is_v2 = _get_state(engine)
+    if is_v2:
+        if player:
+            status = {
+                "year": ws.year,
+                "season": ws.season.cn,
+                "turn": ws.turn_number,
+                "faction": player.name,
+                "strength": player.strength_actual,
+                "economy": player.economy_actual,
+                "morale": player.morale_actual,
+                "treasury": player.treasury,
+                "food": player.food,
+                "territories": list(player.territories),
+            }
+        else:
+            status = {"year": ws.year, "season": ws.season.cn, "turn": ws.turn_number}
     else:
-        status = {"year": ws.year, "season": ws.current_season_cn, "turn": ws.turn}
+        if player:
+            status = {
+                "year": ws.year,
+                "season": ws.current_season_cn,
+                "turn": ws.turn,
+                "faction": player.name,
+                "strength": player.strength,
+                "economy": player.economy,
+                "morale": player.morale,
+                "treasury": player.treasury,
+                "food": player.food,
+                "territories": player.territories,
+            }
+        else:
+            status = {"year": ws.year, "season": ws.current_season_cn, "turn": ws.turn}
     status_str = json.dumps(status, ensure_ascii=False)
     _emit("STATUS", status_str)
 
@@ -306,8 +334,12 @@ def _game_loop(engine: GameEngine):
     while True:
         try:
             # Check for elimination
-            player = engine.world_state.get_player_faction()
-            if not player or not player.is_active or player.strength <= 0:
+            ws, player, is_v2 = _get_state(engine)
+            if is_v2:
+                alive = player and player.is_active and player.strength_actual > 0
+            else:
+                alive = player and player.is_active and player.strength > 0
+            if not alive:
                 _emit("GAMEOVER", "**势力覆灭**\n\n你的势力已经不复存在。乱世之中，成王败寇。\n\n感谢游玩《三國志略》。")
                 break
 
@@ -368,30 +400,49 @@ def _game_loop(engine: GameEngine):
 
 def _display_state(engine: GameEngine):
     """Show world state in structured format."""
-    ws = engine.world_state
-    player = ws.get_player_faction()
+    ws, player, is_v2 = _get_state(engine)
     lines = []
-    lines.append(f"**{ws.year}年 {ws.current_season_cn} — 第 {ws.turn} 回合**")
-    lines.append("")
-
-    if player:
-        lines.append(f"势力: {player.name}")
-        lines.append(f"兵力: {player.strength:,}")
-        lines.append(f"经济: {player.economy}/100")
-        lines.append(f"民心: {player.morale}/100")
-        lines.append(f"资金: {player.treasury:,}")
-        lines.append(f"粮草: {player.food:,}")
-        lines.append(f"首都: {player.capital or '—'}")
-        lines.append(f"领地: {', '.join(player.territories) if player.territories else '暂无'}")
-
-    other_factions = [
-        (fid, fs) for fid, fs in ws.factions.items()
-        if fs.is_active and fid != ws.player_faction_id
-    ]
-    if other_factions:
+    if is_v2:
+        lines.append(f"**{ws.year}年 {ws.season.cn} — 第 {ws.turn_number} 回合**")
         lines.append("")
-        lines.append("**其他势力**")
-        for _fid, fs in other_factions[:8]:
-            lines.append(f"- {fs.name}: 兵力 {fs.strength:,} | 经济 {fs.economy} | 民心 {fs.morale}")
+        if player:
+            lines.append(f"势力: {player.name}")
+            lines.append(f"兵力: {player.strength_actual:,}")
+            lines.append(f"经济: {player.economy_actual}/100")
+            lines.append(f"民心: {player.morale_actual}/100")
+            lines.append(f"资金: {player.treasury:,}")
+            lines.append(f"粮草: {player.food:,}")
+            lines.append(f"首都: {player.capital or '—'}")
+            lines.append(f"领地: {', '.join(player.territories) if player.territories else '暂无'}")
+        other_factions = [
+            (fid, fs) for fid, fs in ws.factions.items()
+            if fs.is_active and fid != ws.player_faction_id
+        ]
+        if other_factions:
+            lines.append("")
+            lines.append("**其他势力**")
+            for _fid, fs in other_factions[:8]:
+                lines.append(f"  {fs.name}: 兵{fs.strength_actual:,} 领{len(fs.territories)}")
+    else:
+        lines.append(f"**{ws.year}年 {ws.current_season_cn} — 第 {ws.turn} 回合**")
+        lines.append("")
+        if player:
+            lines.append(f"势力: {player.name}")
+            lines.append(f"兵力: {player.strength:,}")
+            lines.append(f"经济: {player.economy}/100")
+            lines.append(f"民心: {player.morale}/100")
+            lines.append(f"资金: {player.treasury:,}")
+            lines.append(f"粮草: {player.food:,}")
+            lines.append(f"首都: {player.capital or '—'}")
+            lines.append(f"领地: {', '.join(player.territories) if player.territories else '暂无'}")
+        other_factions = [
+            (fid, fs) for fid, fs in ws.factions.items()
+            if fs.is_active and fid != ws.player_faction_id
+        ]
+        if other_factions:
+            lines.append("")
+            lines.append("**其他势力**")
+            for _fid, fs in other_factions[:8]:
+                lines.append(f"  {fs.name}: 兵{fs.strength:,} 领{len(fs.territories)}")
+    _emit("STATE", "\\n".join(lines))
 
-    _emit("STATE", "\n".join(lines))
