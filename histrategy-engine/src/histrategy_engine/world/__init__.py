@@ -217,6 +217,7 @@ class FactionState:
     territories: list[str] = field(default_factory=list)
     is_active: bool = True
     prestige: int = 50
+    legitimacy: int = 50
 
     # ── Estimated (visible with intel) ──
     strength_estimated: int = 0

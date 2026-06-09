@@ -43,6 +43,7 @@ class HistoricalRAG:
         year: int,
         deviation: float = 0.0,
         max_events: int = 8,
+        averted_events: list[str] | None = None,
     ) -> list[dict]:
         """
         Retrieve relevant historical events for a given year.
@@ -68,6 +69,8 @@ class HistoricalRAG:
         for y in range(year_min, year_max + 1):
             if y in self._year_index:
                 for evt in self._year_index[y]:
+                    if averted_events and evt["id"] in averted_events:
+                        continue
                     candidates.append({
                         "id": evt["id"],
                         "title": evt["title"],

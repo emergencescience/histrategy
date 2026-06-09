@@ -139,11 +139,13 @@ class NarrativeEngine:
 
     # ── Turn Narrative ────────────────────────────────────────
 
-    def generate_turn_narrative(self, turn_result: TurnResult) -> str:
+    def generate_turn_narrative(self, turn_result: TurnResult, deviation: float = 0.0, averted_events: list[str] | None = None) -> str:
         """Generate a historical chronicle narrative from a turn's physics results.
 
         Args:
             turn_result: The complete output from TurnController.execute_turn()
+            deviation: The player's historical deviation score.
+            averted_events: List of event IDs that were averted.
 
         Returns:
             A 文白相间 historical narrative string (200-400 chars).
@@ -153,7 +155,7 @@ class NarrativeEngine:
             return self._offline_narrative(turn_result)
 
         # Build the prompt context from the TurnResult
-        context = self._build_narrative_context(turn_result)
+        context = self._build_narrative_context(turn_result, deviation=deviation, averted_events=averted_events)
 
         messages = [
             {"role": "system", "content": NARRATIVE_SYSTEM},
@@ -170,7 +172,7 @@ class NarrativeEngine:
         except Exception:
             return self._offline_narrative(turn_result)
 
-    def _build_narrative_context(self, tr: TurnResult) -> str:
+    def _build_narrative_context(self, tr: TurnResult, deviation: float = 0.0, averted_events: list[str] | None = None) -> str:
         """Build a structured text context from a TurnResult for LLM input."""
         lines: list[str] = []
         lines.append(f"## 当前时间\n{tr.year}年{tr.season.cn} | 第{tr.turn_number}回合\n")
@@ -246,7 +248,7 @@ class NarrativeEngine:
         lines.append("请将以上数据撰写为史书纪事。")
 
         # Inject RAG context if available
-        rag_ctx = self._get_rag_context(tr.year)
+        rag_ctx = self._get_rag_context(tr.year, deviation=deviation, averted_events=averted_events)
         if rag_ctx:
             lines.insert(2, rag_ctx)
 
@@ -509,12 +511,12 @@ class NarrativeEngine:
 
     # ── RAG Integration ────────────────────────────────────────
 
-    def _get_rag_context(self, year: int, deviation: float = 0.0) -> str:
+    def _get_rag_context(self, year: int, deviation: float = 0.0, averted_events: list[str] | None = None) -> str:
         """Retrieve and format RAG context for the given year."""
         if not self._rag:
             return ""
         try:
-            events = self._rag.retrieve(year, deviation=deviation, max_events=5)
+            events = self._rag.retrieve(year, deviation=deviation, max_events=5, averted_events=averted_events)
             if events:
                 return self._rag.build_llm_context(events)
         except Exception:

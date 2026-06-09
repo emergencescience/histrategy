@@ -222,6 +222,17 @@ class DecisionEngine:
         troops_low = faction.strength_actual < 3000
         treasury_ok = faction.treasury > 2000
 
+        from ..world import HistoricalMode
+        is_historical = getattr(world_state, "historical_mode", HistoricalMode.HISTORICAL) == HistoricalMode.HISTORICAL
+
+        if is_historical:
+            commands: list[Command] = []
+            if treasury_ok and troops_low and faction.territories:
+                commands.append(self._make_recruit_command(faction))
+            elif faction.territories:
+                commands.append(self._make_develop_command(faction))
+            return commands
+
         # Decision weights
         attack_score = aggression * opp_score
         develop_score = development * (1.0 - opp_score)

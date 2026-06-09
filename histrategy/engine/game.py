@@ -312,6 +312,7 @@ class GameEngine:
                     "territories": f.territories,
                     "is_active": f.is_active,
                     "prestige": f.prestige,
+                    "legitimacy": f.legitimacy,
                     "strength_actual": f.strength_actual,
                     "economy_actual": f.economy_actual,
                     "morale_actual": f.morale_actual,
@@ -648,12 +649,19 @@ class GameEngine:
         narrative_text = ""
         new_choices = []
 
+        averted_list = list(ws.averted_events)
+        if self.history_engine:
+            averted_list = list(set(averted_list) | self.history_engine._blocked_downstream)
+
         if self.narrative_engine and self.narrative_engine.is_available:
             import concurrent.futures
             with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
                 # Submit both tasks
                 future_narrative = executor.submit(
-                    self.narrative_engine.generate_turn_narrative, turn_result
+                    self.narrative_engine.generate_turn_narrative,
+                    turn_result,
+                    deviation=ws.player_deviation,
+                    averted_events=averted_list
                 )
                 future_suggestions = executor.submit(
                     self.narrative_engine.generate_plan_suggestions, ws, ws.player_faction_id

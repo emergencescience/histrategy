@@ -1187,6 +1187,169 @@ def test_liubei_historical_207_223():
     assert found_count >= 1, "At least 1 key event should trigger"
 
 
+def test_liubei_averted_red_cliffs():
+    """Verify that if Red Cliffs is averted, RAG does not retrieve it."""
+    import random
+    random.seed(42)  # Seed for deterministic tests
+
+    map_eng = MapEngine()
+    char_eng = CharacterEngine()
+    dom_eng = DomesticEngine()
+    mil_eng = MilitaryEngine()
+    dec_eng = DecisionEngine()
+    tc = TurnController(map_eng, char_eng, dom_eng, mil_eng, dec_eng)
+    hist_eng = HistoryEngine(KNOWLEDGE_PATH)
+    rag = HistoricalRAG(KNOWLEDGE_PATH)
+
+    territories = {
+        "xinye": Territory(id="xinye", name="新野", owner_id="shu",
+            fertility=6, terrain_type=TerrainType.PLAINS, climate_zone="central",
+            population=30000, development=25,
+            neighbors=["xiangyang", "wancheng"]),
+        "xiangyang": Territory(id="xiangyang", name="襄阳", owner_id="liubiao",
+            fertility=8, terrain_type=TerrainType.PLAINS, climate_zone="central",
+            has_river=True, population=80000, development=55,
+            neighbors=["xinye", "jiangling", "wancheng", "jiangkou"]),
+        "wancheng": Territory(id="wancheng", name="宛城", owner_id="cao",
+            fertility=7, terrain_type=TerrainType.PLAINS, climate_zone="central",
+            population=50000, development=45,
+            neighbors=["xinye", "xiangyang", "xuchang"]),
+        "xuchang": Territory(id="xuchang", name="许昌", owner_id="cao",
+            fertility=7, terrain_type=TerrainType.PLAINS, climate_zone="central",
+            population=100000, development=70,
+            neighbors=["wancheng", "luoyang"]),
+        "jiangling": Territory(id="jiangling", name="江陵", owner_id="liubiao",
+            fertility=8, terrain_type=TerrainType.PLAINS, climate_zone="central",
+            has_river=True, population=60000, development=50,
+            neighbors=["xiangyang", "jiangkou"]),
+        "jiangkou": Territory(id="jiangkou", name="江口", owner_id="",
+            fertility=5, terrain_type=TerrainType.RIVER, climate_zone="central",
+            has_river=True, population=15000, development=20,
+            neighbors=["xiangyang", "jiangling", "chaisang"]),
+        "chaisang": Territory(id="chaisang", name="柴桑", owner_id="wu",
+            fertility=7, terrain_type=TerrainType.PLAINS, climate_zone="south",
+            has_river=True, population=40000, development=40,
+            neighbors=["jiangkou", "jianye"]),
+        "jianye": Territory(id="jianye", name="建业", owner_id="wu",
+            fertility=7, terrain_type=TerrainType.PLAINS, climate_zone="south",
+            has_river=True, has_coast=True, population=70000, development=55,
+            neighbors=["chaisang", "wu"]),
+        "wu": Territory(id="wu", name="吴郡", owner_id="wu",
+            fertility=7, terrain_type=TerrainType.PLAINS, climate_zone="south",
+            has_coast=True, population=50000, development=45,
+            neighbors=["jianye", "kuaiji"]),
+        "kuaiji": Territory(id="kuaiji", name="会稽", owner_id="wu",
+            fertility=6, terrain_type=TerrainType.COAST, climate_zone="south",
+            has_coast=True, population=40000, development=35,
+            neighbors=["wu"]),
+        "luoyang": Territory(id="luoyang", name="洛阳", owner_id="cao",
+            fertility=7, terrain_type=TerrainType.PLAINS, climate_zone="north",
+            population=80000, development=60,
+            neighbors=["xuchang", "ye"]),
+        "ye": Territory(id="ye", name="邺城", owner_id="cao",
+            fertility=8, terrain_type=TerrainType.PLAINS, climate_zone="north",
+            population=120000, development=75,
+            neighbors=["luoyang"]),
+        "chengdu": Territory(id="chengdu", name="成都", owner_id="liuzhang",
+            fertility=8, terrain_type=TerrainType.MOUNTAIN, climate_zone="central",
+            population=100000, development=60,
+            neighbors=["hanshui"]),
+        "hanshui": Territory(id="hanshui", name="汉水", owner_id="",
+            fertility=6, terrain_type=TerrainType.RIVER, climate_zone="central",
+            has_river=True, population=30000, development=30,
+            neighbors=["chengdu", "jiangkou"]),
+    }
+
+    characters = {
+        "liubei": Character(id="liubei", name="刘备", alias="玄德",
+            leadership=80, might=70, intelligence=72, politics=82, charisma=99,
+            faction_id="shu", location="xinye", loyalty=100, birth=161, death=223),
+        "guanyu": Character(id="guanyu", name="关羽", alias="云长",
+            leadership=95, might=98, intelligence=75, politics=62, charisma=88,
+            faction_id="shu", location="xinye", loyalty=100, is_commanding=True,
+            sworn_brothers=["liubei", "zhangfei"], birth=160, death=220),
+        "zhangfei": Character(id="zhangfei", name="张飞", alias="翼德",
+            leadership=85, might=98, intelligence=45, politics=30, charisma=50,
+            faction_id="shu", location="xinye", loyalty=98,
+            sworn_brothers=["liubei", "guanyu"], birth=165, death=221),
+        "zhugeliang": Character(id="zhugeliang", name="诸葛亮", alias="孔明",
+            leadership=92, might=32, intelligence=100, politics=98, charisma=90,
+            faction_id="", location="longzhong", loyalty=50, birth=181, death=234),
+        "zhaoyun": Character(id="zhaoyun", name="赵云", alias="子龙",
+            leadership=89, might=95, intelligence=76, politics=67, charisma=82,
+            faction_id="shu", location="xinye", loyalty=95, birth=168, death=229),
+        "caocao": Character(id="caocao", name="曹操", alias="朝德",
+            leadership=98, might=72, intelligence=93, politics=94, charisma=92,
+            faction_id="cao", location="xuchang", loyalty=100, birth=155, death=220),
+        "sunquan": Character(id="sunquan", name="孙权", alias="仲谋",
+            leadership=75, might=60, intelligence=82, politics=88, charisma=85,
+            faction_id="wu", location="jianye", loyalty=100, birth=182, death=252),
+        "zhouyu": Character(id="zhouyu", name="周瑜", alias="公瑾",
+            leadership=95, might=65, intelligence=94, politics=80, charisma=85,
+            faction_id="wu", location="chaisang", loyalty=90, is_commanding=True,
+            birth=175, death=210),
+        "liubiao": Character(id="liubiao", name="刘表", alias="景升",
+            leadership=55, might=30, intelligence=68, politics=75, charisma=70,
+            faction_id="liubiao", location="xiangyang", loyalty=100,
+            birth=142, death=208),
+    }
+
+    factions = {
+        "shu": FactionState(id="shu", name="刘备军", ruler_id="liubei",
+            capital="xinye", territories=["xinye"],
+            strength_actual=5000, treasury=3000, food=2000,
+            tax_rate=0.2, morale_actual=70, prestige=35,
+            relations={"cao": -80, "wu": 20, "liubiao": 40}),
+        "cao": FactionState(id="cao", name="曹操军", ruler_id="caocao",
+            capital="xuchang", territories=["xuchang", "wancheng", "luoyang", "ye"],
+            strength_actual=150000, treasury=50000, food=30000,
+            tax_rate=0.4, morale_actual=80, prestige=90,
+            relations={"shu": -80, "wu": -30, "liubiao": -20}),
+        "wu": FactionState(id="wu", name="孙权军", ruler_id="sunquan",
+            capital="jianye", territories=["jianye", "wu", "kuaiji", "chaisang"],
+            strength_actual=60000, treasury=15000, food=10000,
+            tax_rate=0.3, morale_actual=75, prestige=60,
+            relations={"cao": -30, "shu": 20}),
+        "liubiao": FactionState(id="liubiao", name="刘表军", ruler_id="liubiao",
+            capital="xiangyang", territories=["xiangyang", "jiangling"],
+            strength_actual=40000, treasury=10000, food=8000,
+            tax_rate=0.3, morale_actual=50, prestige=50,
+            relations={"cao": -20, "shu": 40}),
+        "liuzhang": FactionState(id="liuzhang", name="刘璋军", ruler_id="liuzhang",
+            capital="chengdu", territories=["chengdu"],
+            strength_actual=50000, treasury=15000, food=12000,
+            tax_rate=0.3, morale_actual=55, prestige=45),
+    }
+
+    world = WorldState(
+        year=208, season=Season.WINTER, turn_number=5,
+        scenario="207", player_faction_id="shu",
+        territories=territories, characters=characters, factions=factions, armies={},
+        player_deviation=0.0,
+    )
+
+    # Check events -> Red Cliffs preconditions should fail and be marked as averted
+    proposals = hist_eng.check_events(world.year, world.season, world, deviation=world.player_deviation)
+    
+    # Assert Changbanpo is averted
+    assert "changban_208" in world.averted_events
+    # Assert Red Cliffs is blocked downstream
+    assert "red_cliffs_208" in hist_eng._blocked_downstream
+
+    # Combine averted and blocked events
+    all_averted = list(set(world.averted_events) | hist_eng._blocked_downstream)
+
+    # Query RAG:
+    # 1. Without filtering: it will retrieve 'red_cliffs_208'
+    unfiltered = rag.retrieve(208, deviation=0.0, max_events=8)
+    assert any(e["id"] == "red_cliffs_208" for e in unfiltered)
+
+    # 2. With filtering of averted events: it MUST NOT retrieve 'red_cliffs_208'
+    filtered = rag.retrieve(208, deviation=0.0, max_events=8, averted_events=all_averted)
+    assert not any(e["id"] == "red_cliffs_208" for e in filtered)
+
+
+
 # ═══════════════════════════════════════════════════════════════
 # Scenario 6: 曹操征服天下
 # ═══════════════════════════════════════════════════════════════

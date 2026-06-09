@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 
 from ..world import (
     Army,
+    BattleResult,
     Command,
     Season,
     TurnResult,
@@ -71,6 +72,12 @@ class TurnController:
         )
 
         # ── Step 2: Resource production ──
+        # Calculate troop counts per territory
+        territory_troops = {tid: 0 for tid in world_state.territories}
+        for army in world_state.armies.values():
+            if army.location in territory_troops:
+                territory_troops[army.location] += army.total_troops
+
         # Build tax_rates and tech_levels from factions
         tax_rates = {
             fid: f.tax_rate for fid, f in world_state.factions.items() if f.is_active
@@ -87,6 +94,7 @@ class TurnController:
             char_engine=self.char_engine,
             tax_rates=tax_rates,
             tech_levels=tech_levels,
+            territory_troops=territory_troops,
         )
 
         # Apply season results: update faction treasuries and food
@@ -107,6 +115,26 @@ class TurnController:
                 resource_changes[fid] = {"food_delta": 0, "tax_revenue": 0}
             resource_changes[fid]["food_delta"] += tr.food_delta
             resource_changes[fid]["tax_revenue"] += tr.tax_revenue
+
+        # Check for famine across all active factions
+        for fid, faction in world_state.factions.items():
+            if not faction.is_active:
+                continue
+            if faction.food < 0:
+                faction.food = 0
+                # Famine!
+                faction.morale_actual = max(0, faction.morale_actual - 5)
+                faction.legitimacy = max(0, faction.legitimacy - 10)
+                # Population in all territories of this faction drops by 5%
+                for tid in list(faction.territories):
+                    t = world_state.territories.get(tid)
+                    if t:
+                        pop_loss = int(t.population * 0.05)
+                        t.population = max(100, t.population - pop_loss)
+                # Log famine in resource changes
+                if fid not in resource_changes:
+                    resource_changes[fid] = {"food_delta": 0, "tax_revenue": 0}
+                resource_changes[fid]["famine_occurred"] = True
 
         # ── Step 3: Collect commands ──
         all_commands: list[Command] = list(player_commands or [])
@@ -145,6 +173,25 @@ class TurnController:
         # ── Step 8: Character updates ──
         character_events: list[dict] = []
 
+        # Annual loyalty changes (applied in Winter)
+        if season == Season.WINTER:
+            from histrategy_engine.character.loyalty import calculate_loyalty_change
+            for char in world_state.characters.values():
+                if char.alive and char.faction_id:
+                    faction = world_state.factions.get(char.faction_id)
+                    if faction:
+                        delta = calculate_loyalty_change(faction.legitimacy, char.politics)
+                        if delta != 0:
+                            char.loyalty = max(0, min(100, char.loyalty + delta))
+                            character_events.append({
+                                "type": "loyalty_change",
+                                "character_id": char.id,
+                                "character_name": char.name,
+                                "delta": delta,
+                                "new_loyalty": char.loyalty,
+                                "reason": f"势力合法性影响(当前合法性: {faction.legitimacy})"
+                            })
+
         for char_id in list(world_state.characters.keys()):
             char = world_state.characters[char_id]
             if not char.alive:
@@ -172,10 +219,40 @@ class TurnController:
                 discontented = self.char_engine.get_discontented(char.faction_id)
                 for dc in discontented:
                     if dc.id == char_id:
-                        # Chance of defection already handled by character engine
                         defections = self.char_engine.check_defections(char.faction_id)
                         for d in defections:
                             character_events.append(d)
+                            # Actually apply defection: remove from faction and clear roles
+                            defect_char = world_state.characters.get(d["character_id"])
+                            if defect_char:
+                                defect_char.faction_id = ""
+                                defect_char.is_governor = False
+                                defect_char.is_commanding = False
+                                # Clear commander reference in armies
+                                for army in world_state.armies.values():
+                                    if army.commander_id == d["character_id"]:
+                                        army.commander_id = ""
+
+        # Update faction legitimacy based on events gathered during the turn
+        from histrategy_engine.governance.legitimacy import LegitimacyState, update_legitimacy
+
+        for fid, faction in world_state.factions.items():
+            if not faction.is_active:
+                continue
+
+            events = []
+            if faction.tax_rate >= 0.4:
+                events.append("heavy_tax")
+
+            for combat in battles:
+                if combat.attacker_id == fid and combat.result in (BattleResult.VICTORY, BattleResult.DECISIVE_VICTORY):
+                    events.append("win_battle")
+                elif combat.defender_id == fid and combat.result in (BattleResult.DEFEAT, BattleResult.DECISIVE_DEFEAT):
+                    events.append("win_battle")
+
+            leg_state = LegitimacyState(current_score=faction.legitimacy)
+            updated_state = update_legitimacy(leg_state, events)
+            faction.legitimacy = updated_state.current_score
 
         # ── Step 9: State persistence (skip) ──
 
