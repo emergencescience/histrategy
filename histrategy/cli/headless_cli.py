@@ -33,7 +33,7 @@ import sys
 from ..engine.game import GameEngine
 from ..llm.adapter import LLMAdapter, detect_provider
 from ..llm.game_master import GameMaster
-from ..state.world_state import DATA_DIR, has_existing_game
+from ..state.world_state import get_data_dir, has_existing_game
 
 
 def _emit(phase: str, content: str, meta: dict | None = None):

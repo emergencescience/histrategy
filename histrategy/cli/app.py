@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import os
 
 from rich import box
 from rich.align import Align
@@ -26,7 +27,7 @@ from rich.text import Text
 from ..engine.game import GameEngine
 from ..llm.adapter import LLMAdapter, detect_provider
 from ..llm.game_master import GameMaster
-from ..state.world_state import DATA_DIR, has_existing_game
+from ..state.world_state import get_data_dir, has_existing_game
 
 console = Console()
 
@@ -92,9 +93,9 @@ def run_game(force_new: bool = False):
     if not force_new and has_existing_game():
         console.print(Panel(
             "[bold green]✓ 检测到历史存档，自动继续游戏[/]\n"
-            f"[dim]使用 --new 可强制开始新游戏 | 删除 {DATA_DIR}/ 可重置所有数据[/]",
+            f"[dim]使用 --new 可强制开始新游戏 | 删除 {get_data_dir()}/ 可重置所有数据[/]",
             border_style="green",
-            title="\U0001f4c2 继续游戏",
+            title="📂 继续游戏",
         ))
         console.print("[dim]按回车继续...[/]")
         with contextlib.suppress(EOFError, KeyboardInterrupt):
@@ -822,8 +823,17 @@ def main():
         "--host", type=str, default="127.0.0.1",
         help="API 服务器监听地址 (默认: 127.0.0.1)",
     )
+    parser.add_argument(
+        "--room", type=str, default=None,
+        help="指定隔离的游戏房间ID（使存档与配置相互独立）",
+    )
 
     args = parser.parse_args()
+
+    if args.room:
+        base_dir = os.environ.get("HISTRATEGY_DATA_DIR", os.path.expanduser("~/.histrategy"))
+        room_dir = os.path.join(base_dir, "rooms", args.room)
+        os.environ["HISTRATEGY_DATA_DIR"] = os.path.abspath(room_dir)
 
     if args.export_log:
         from ..engine.log_exporter import export_log
