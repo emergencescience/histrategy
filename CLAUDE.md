@@ -68,7 +68,11 @@ Plan Mode (LLM)  →  Player decision (free text)  →  Command Mode (LLM)
 
 ### LLM Provider Detection
 
-`LLMAdapter` in `llm/adapter.py` auto-detects the best available provider: DeepSeek > OpenAI > Tongyi > OpenRouter > Custom. Set `DEEPSEEK_API_KEY`, `OPENAI_API_KEY`, `TONGYI_API_KEY`, or `OPENROUTER_API_KEY`. Override with `LLM_PROVIDER` env var or custom endpoint via `OPENAI_API_BASE`.
+`LLMAdapter` in `llm/adapter.py` auto-detects the best available provider via a three-path design:
+
+1. **Provider-specific key** — Set ONE of `DEEPSEEK_API_KEY`, `OPENAI_API_KEY`, `TONGYI_API_KEY`, or `OPENROUTER_API_KEY`. URL and model are auto-configured.
+2. **Generic endpoint** — Set `LLM_API_BASE` + `LLM_API_KEY`. Use `LLM_MODEL` to override the model.
+3. **No key** → offline (rule-based) mode.
 
 ### State Persistence
 

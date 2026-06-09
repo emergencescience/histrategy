@@ -34,17 +34,21 @@ PROVIDER_CONFIGS = [
 
 
 def detect_provider() -> dict:
-    """Auto-detect the best available LLM provider from env vars."""
-    explicit = os.environ.get("LLM_PROVIDER", "").strip().lower()
-    for cfg in PROVIDER_CONFIGS:
-        if cfg["name"] == explicit:
-            key = os.environ.get(cfg["env_key"], "")
-            if key:
-                return {
-                    "name": cfg["name"], "api_key": key,
-                    "api_base": os.environ.get("OPENAI_API_BASE", "") or cfg["default_base"],
-                    "model": os.environ.get("LLM_MODEL", cfg["default_model"]),
-                }
+    """Auto-detect the best available LLM provider from env vars.
+
+    Three-path design (pick the first that matches):
+      1. Provider-specific API key
+         Set ONE of DEEPSEEK_API_KEY / OPENAI_API_KEY / TONGYI_API_KEY /
+         OPENROUTER_API_KEY. URL and model are auto-configured.
+         Auto-detection priority: DeepSeek > OpenAI > Tongyi > OpenRouter.
+
+      2. Generic OpenAI-compatible endpoint
+         Set LLM_API_BASE + LLM_API_KEY. Use LLM_MODEL to override
+         the model name (defaults to gpt-4o-mini).
+
+      3. No key configured → offline mode
+    """
+    # Path 1: Auto-detect by provider-specific API key
     for cfg in PROVIDER_CONFIGS:
         key = os.environ.get(cfg["env_key"], "")
         if key and not key.startswith("your-") and len(key) > 10:
@@ -53,6 +57,17 @@ def detect_provider() -> dict:
                 "api_base": os.environ.get("OPENAI_API_BASE", "") or cfg["default_base"],
                 "model": os.environ.get("LLM_MODEL", cfg["default_model"]),
             }
+
+    # Path 2: Generic OpenAI-compatible endpoint
+    generic_base = os.environ.get("LLM_API_BASE", "")
+    generic_key = os.environ.get("LLM_API_KEY", "")
+    if generic_base and generic_key:
+        return {
+            "name": "custom", "api_key": generic_key,
+            "api_base": generic_base,
+            "model": os.environ.get("LLM_MODEL", "gpt-4o-mini"),
+        }
+
     return {"name": None, "api_key": "", "api_base": "", "model": ""}
 
 
