@@ -244,3 +244,36 @@ class TestSummaryAndExportVideo:
         assert data["status"] == "success"
         mock_generate_video.assert_called_once_with(game_id)
 
+
+class TestAuthAndPersistence:
+    """Tests for JWT auth and autosave endpoint."""
+
+    def test_autosave_without_jwt_returns_degraded(self, client):
+        """Autosave without JWT should return ok=false gracefully, not 401."""
+        create_resp = client.post("/api/games", json={"faction": "shu"})
+        game_id = create_resp.json()["game_id"]
+        resp = client.post(f"/api/games/{game_id}/autosave")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["ok"] is False
+        assert "reason" in data
+
+    def test_create_game_with_llm_api_key(self, client):
+        """llm_api_key in body is accepted and sets env for LLM (not stored)."""
+        resp = client.post("/api/games", json={
+            "faction": "shu",
+            "llm_api_key": "sk-test-key-1234",
+        })
+        assert resp.status_code == 200
+        assert "game_id" in resp.json()
+
+    def test_create_game_with_session_id(self, client):
+        """session_id in body is accepted and stored in game meta."""
+        resp = client.post("/api/games", json={
+            "faction": "shu",
+            "session_id": "test-session-uuid-1234",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "game_id" in data
+

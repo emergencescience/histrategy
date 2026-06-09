@@ -24,6 +24,8 @@ class CreateGameRequest(BaseModel):
     faction: str = "shu"  # shu | cao | wu
     scenario: str = "207"
     new: bool = True
+    session_id: str | None = None      # Orchestrator session ID
+    llm_api_key: str | None = None     # User's own DeepSeek API Key (not persisted)
 
 
 class CommandRequest(BaseModel):
@@ -86,6 +88,8 @@ class FactionStatus(BaseModel):
 
 # In-memory game pool: {game_id: GameEngine}
 _games: dict[str, Any] = {}
+# Game metadata: {game_id: {"session_id": str, "jwt_token": str}}
+_game_meta: dict[str, dict] = {}
 _llm_provider: str | None = None  # Set by run_server / create_app
 
 
@@ -189,8 +193,10 @@ def create_app(llm_provider: str | None = None) -> Any:
     if llm_provider:
         _llm_provider = llm_provider
 
-    from fastapi import FastAPI
+    from fastapi import FastAPI, Header
     from fastapi.middleware.cors import CORSMiddleware
+    from histrategy.server.auth import get_current_user_id
+    from histrategy.server.persistence import save_game as persistence_save
 
     app = FastAPI(
         title="三國志略 API",
@@ -198,10 +204,23 @@ def create_app(llm_provider: str | None = None) -> Any:
         version="0.2.0",
     )
 
-    # CORS: allow all origins in MVP (localhost dev)
+    # CORS: allow Emergence ecosystem origins + env extras
+    import os as _os
+
+    _cors_origins = [
+        "http://localhost:3000",
+        "https://emergence.science",
+        "https://www.emergence.science",
+        "https://surprisal-portal.vercel.app",
+    ]
+    # Allow extra origins from env (comma-separated)
+    _extra = _os.environ.get("ALLOWED_ORIGINS", "")
+    if _extra:
+        _cors_origins.extend([o.strip() for o in _extra.split(",") if o.strip()])
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=_cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -229,11 +248,21 @@ def create_app(llm_provider: str | None = None) -> Any:
         }
 
     @app.post("/api/games")
-    def create_game(req: CreateGameRequest):
+    def create_game(req: CreateGameRequest,
+                    authorization: str | None = Header(default=None)):
         """Create a new game and return the intro scene."""
+        # Set user's LLM API key if provided (not persisted)
+        if req.llm_api_key:
+            import os as _os
+            _os.environ["DEEPSEEK_API_KEY"] = req.llm_api_key
+
         game_id, engine = _get_or_create_engine(
             faction=req.faction, scenario=req.scenario, new=req.new
         )
+
+        # Store session metadata if provided
+        if req.session_id:
+            _game_meta[game_id] = {"session_id": req.session_id}
 
         # Get intro scene
         from histrategy.engine.game import _suppress_stderr
@@ -242,6 +271,11 @@ def create_app(llm_provider: str | None = None) -> Any:
             intro = engine.get_intro_scene()
 
         status = _build_faction_status(engine)
+
+        # Clear LLM key from env after engine creation
+        if req.llm_api_key:
+            import os as _os
+            _os.environ.pop("DEEPSEEK_API_KEY", None)
 
         return {
             "game_id": game_id,
@@ -464,6 +498,65 @@ def create_app(llm_provider: str | None = None) -> Any:
             raise HTTPException(status_code=404, detail=str(e))
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to generate video: {str(e)}")
+
+    @app.post("/api/games/{game_id}/autosave")
+    def autosave_game(game_id: str,
+                      authorization: str | None = Header(default=None)):
+        """Auto-save: persist game state to Orchestrator slot 0.
+
+        Requires Authorization Bearer JWT.
+        Degrades gracefully if no JWT or ORCHESTRATOR_URL not set.
+        """
+        engine = _get_engine(game_id)
+        if not engine:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(status_code=404, content={"error": "Game not found"})
+
+        # Check for JWT
+        jwt_token = None
+        if authorization and authorization.startswith("Bearer "):
+            jwt_token = authorization[len("Bearer "):]
+
+        if not jwt_token:
+            return {"ok": False, "reason": "No JWT token provided"}
+
+        # Check ORCHESTRATOR_URL
+        import os as _os
+        orchestrator_url = _os.environ.get("ORCHESTRATOR_URL", "")
+        if not orchestrator_url:
+            return {"ok": False, "reason": "ORCHESTRATOR_URL not configured"}
+
+        status = _build_faction_status(engine)
+        meta = _game_meta.get(game_id, {})
+
+        # Build world state dict from engine
+        if engine._use_v2 and engine.world_state_v2:
+            ws = engine.world_state_v2
+            world_state = {
+                "faction_id": ws.player_faction_id,
+                "year": ws.year,
+                "turn": ws.turn_number,
+                "season": ws.season.cn,
+                "faction": status,
+            }
+        else:
+            world_state = {"faction": status}
+
+        try:
+            # Use session_id from meta, fall back to game_id
+            session_id = meta.get("session_id", game_id)
+            result = persistence_save(
+                jwt_token=jwt_token,
+                session_id=session_id,
+                slot=0,
+                world_state=world_state,
+                turn=status.get("turn", 1),
+                year=status.get("year", 207),
+                season=status.get("season", "春"),
+            )
+            return {"ok": True, "save_id": result.get("save_id")}
+        except Exception as e:
+            return {"ok": False, "reason": f"Save failed: {e}"}
 
     return app
 
