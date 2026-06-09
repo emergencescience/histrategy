@@ -17,4 +17,5 @@ RUN uv pip install --system -e . -e histrategy-engine && \
 # Expose port
 EXPOSE 8080
 
-CMD uvicorn histrategy.server.api:create_app --factory --host 0.0.0.0 --port ${PORT:-8080}
+# Shell-form CMD so $PORT is expanded
+CMD sh -c "uvicorn histrategy.server.api:create_app --factory --host 0.0.0.0 --port ${PORT:-8080}"
