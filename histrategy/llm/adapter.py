@@ -47,49 +47,19 @@ PROVIDER_CONFIGS = [
 def detect_provider() -> dict:
     """Auto-detect the best available LLM provider.
 
-    Priority:
-      1. LLM_PROVIDER env var (explicit override)
-      2. DEEPSEEK_API_KEY
-      3. OPENAI_API_KEY
-      4. TONGYI_API_KEY
-      5. OPENROUTER_API_KEY
-      6. OPENAI_API_BASE + OPENAI_API_KEY (custom endpoint)
+    Three-path design (pick the first that matches):
+      1. Provider-specific API key
+         Set ONE of DEEPSEEK_API_KEY / OPENAI_API_KEY / TONGYI_API_KEY /
+         OPENROUTER_API_KEY. URL and model are auto-configured.
+         Auto-detection priority: DeepSeek > OpenAI > Tongyi > OpenRouter.
+
+      2. Generic OpenAI-compatible endpoint
+         Set LLM_API_BASE + LLM_API_KEY. Use LLM_MODEL to override
+         the model name (defaults to gpt-4o-mini).
+
+      3. No key configured → offline mode
     """
-    explicit = os.environ.get("LLM_PROVIDER", "").strip().lower()
-
-    if explicit == "custom":
-        return {
-            "name": "custom",
-            "api_key": os.environ.get("OPENAI_API_KEY", ""),
-            "api_base": os.environ.get("OPENAI_API_BASE", "https://api.openai.com/v1"),
-            "model": os.environ.get("LLM_MODEL", "gpt-4o-mini"),
-            "supports_json_mode": True,
-        }
-
-    if explicit:
-        for cfg in PROVIDER_CONFIGS:
-            if cfg["name"] == explicit:
-                key = os.environ.get(cfg["env_key"], "")
-                if key:
-                    base_override = os.environ.get(cfg.get("env_base", ""), "")
-                    if not base_override and cfg["name"] != "openai":
-                        base_override = os.environ.get("OPENAI_API_BASE", "")
-                    return {
-                        "name": cfg["name"],
-                        "api_key": key,
-                        "api_base": base_override or cfg["default_base"],
-                        "model": os.environ.get("LLM_MODEL", cfg["default_model"]),
-                        "supports_json_mode": cfg["supports_json_mode"],
-                    }
-                return {
-                    "name": cfg["name"],
-                    "api_key": "",
-                    "api_base": os.environ.get(cfg.get("env_base", ""), "") or os.environ.get("OPENAI_API_BASE", "") or cfg["default_base"],
-                    "model": os.environ.get("LLM_MODEL", cfg["default_model"]),
-                    "supports_json_mode": cfg["supports_json_mode"],
-                }
-
-    # Auto-detect: first provider with a valid key wins
+    # Path 1: Auto-detect by provider-specific API key
     for cfg in PROVIDER_CONFIGS:
         key = os.environ.get(cfg["env_key"], "")
         if key and not key.startswith("your-") and len(key) > 10:
@@ -104,7 +74,19 @@ def detect_provider() -> dict:
                 "supports_json_mode": cfg["supports_json_mode"],
             }
 
-    # Fallback: try OPENAI_API_BASE + OPENAI_API_KEY (custom endpoint)
+    # Path 2: Generic OpenAI-compatible endpoint
+    generic_base = os.environ.get("LLM_API_BASE", "")
+    generic_key = os.environ.get("LLM_API_KEY", "")
+    if generic_base and generic_key:
+        return {
+            "name": "custom",
+            "api_key": generic_key,
+            "api_base": generic_base,
+            "model": os.environ.get("LLM_MODEL", "gpt-4o-mini"),
+            "supports_json_mode": True,
+        }
+
+    # Path 3: Legacy backward compat (OPENAI_API_BASE + OPENAI_API_KEY)
     base = os.environ.get("OPENAI_API_BASE", "")
     key = os.environ.get("OPENAI_API_KEY", "")
     if base and key:
@@ -116,6 +98,7 @@ def detect_provider() -> dict:
             "supports_json_mode": True,
         }
 
+    # No key configured → offline mode
     return {"name": None, "api_key": "", "api_base": "", "model": "", "supports_json_mode": False}
 
 

@@ -249,12 +249,22 @@ def _show_llm_command_result(result: dict):
 
 def _show_offline_plan_mode(engine: GameEngine):
     """Minimal Plan Mode for offline play."""
-    player = engine.world_state.get_player_faction()
+    v2 = getattr(engine, "_use_v2", False)
+    if v2:
+        ws = engine.world_state_v2
+        player = ws.factions.get(ws.player_faction_id)
+    else:
+        player = engine.world_state.get_player_faction()
     if not player:
         return
 
-    print(f"\n  {engine.world_state.year}年{engine.world_state.current_season_cn} | 第{engine.world_state.turn}回合")
-    print(f"  {player.name}：兵力{player.strength:,} | 经济{player.economy} | 民心{player.morale}")
+    if v2:
+        ws = engine.world_state_v2
+        print(f"\n  {ws.year}年{ws.season.cn} | 第{ws.turn_number}回合")
+        print(f"  {player.name}：兵力{player.strength_actual:,} | 经济{player.economy_actual} | 民心{player.morale_actual}")
+    else:
+        print(f"\n  {engine.world_state.year}年{engine.world_state.current_season_cn} | 第{engine.world_state.turn}回合")
+        print(f"  {player.name}：兵力{player.strength:,} | 经济{player.economy} | 民心{player.morale}")
     print()
     print("  输入你的战略决策（自由文本）：")
     print("  例如：发展内政、扩军备战、派遣使者联合袁绍、搜集敌方情报等")
