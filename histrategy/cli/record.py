@@ -575,5 +575,87 @@ border-radius:6px;padding:14px;margin:10px 0}}
 </body></html>"""
 
 
+def generate_video(session_id: str) -> str:
+    """Generate replay video for a session from PNG frames.
+    
+    Reads PNG frames from 'frames/' directory in current directory or ~/.histrategy/sessions/{session_id}/frames/
+    """
+    import os
+    import subprocess
+    from pathlib import Path
+
+    # Look for frames in potential directories
+    data_dir = Path(os.environ.get("HISTRATEGY_DATA_DIR", os.path.expanduser("~/.histrategy")))
+    possible_dirs = [
+        Path("frames"),
+        data_dir / "sessions" / session_id / "frames",
+        data_dir / "sessions" / session_id,
+        data_dir / "frames",
+    ]
+
+    frames_dir = None
+    for d in possible_dirs:
+        if d.is_dir() and (list(d.glob("*.png"))):
+            frames_dir = d
+            break
+
+    if not frames_dir:
+        frames_dir = Path("frames")
+        if not frames_dir.exists():
+            raise FileNotFoundError(f"Frames directory not found for session {session_id}")
+
+    # Ensure there are PNG files
+    png_files = sorted(frames_dir.glob("*.png"))
+    if not png_files:
+        raise FileNotFoundError(f"No PNG frames found in {frames_dir}")
+
+    # Output video path
+    output_dir = data_dir / "sessions" / session_id
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_video = (output_dir / "out.mp4").resolve()
+
+    # Determine pattern: frame_%04d.png or %04d.png
+    first_file = png_files[0].name
+    if first_file.startswith("frame_"):
+        pattern = "frame_%04d.png"
+    else:
+        # Check if first file matches a 4-digit number (e.g. 0000.png)
+        base = Path(first_file).stem
+        if base.isdigit() and len(base) == 4:
+            pattern = "%04d.png"
+        else:
+            pattern = first_file.replace(base, "%04d")  # Fallback guess
+
+    input_pattern = str(frames_dir / pattern)
+
+    # Invoke ffmpeg with exact command parameters requested:
+    # ffmpeg -y -framerate 0.5 -i frames/%04d.png -c:v libx264 -r 30 out.mp4
+    cmd = [
+        "ffmpeg", "-y",
+        "-framerate", "0.5",
+        "-i", input_pattern,
+        "-c:v", "libx264",
+        "-r", "30",
+        "-pix_fmt", "yuv420p",
+        str(output_video)
+    ]
+
+    try:
+        subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=120)
+    except FileNotFoundError:
+        # Re-raise or fallback to composite_video
+        success = composite_video(frames_dir, output_video, fps=0.5)
+        if not success:
+            raise RuntimeError("ffmpeg executable not found on system. Please install ffmpeg.")
+    except subprocess.CalledProcessError as e:
+        # Fallback to concat demuxer if direct pattern match fails
+        success = composite_video(frames_dir, output_video, fps=0.5)
+        if not success:
+            raise RuntimeError(f"ffmpeg failed: {e.stderr}")
+
+    return str(output_video)
+
+
 if __name__ == "__main__":
     main()
+

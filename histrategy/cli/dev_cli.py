@@ -27,7 +27,7 @@ import sys
 from ..engine.game import GameEngine
 from ..llm.adapter import LLMAdapter, detect_provider
 from ..llm.game_master import GameMaster
-from ..state.world_state import DATA_DIR, has_existing_game
+from ..state.world_state import get_data_dir, has_existing_game
 
 
 def run_dev(faction_choice: int | None = None, force_new: bool = False):
@@ -60,40 +60,40 @@ def run_dev(faction_choice: int | None = None, force_new: bool = False):
         _display_state(engine)
     else:
         # Faction selection — v2 207 scenario when engine is available
-    _v2_available = False
-    try:
-        from histrategy_engine import TurnController  # noqa: F401
-        _v2_available = True
-    except ImportError:
-        pass
-
-    if _v2_available:
-        factions = [
-            ("shu", "刘备", "汉室宗亲，寄居新野，三顾茅庐在即 (207)"),
-            ("cao", "曹操", "奉天子以令不臣，已据中原大半 (207)"),
-            ("wu", "孙权", "继承父兄基业，稳坐江东 (207)"),
-        ]
-    else:
-        factions = [
-            ("cao", "曹操", "乱世奸雄，奉天子以令不臣"),
-            ("shu", "刘备", "汉室宗亲，以仁德取天下"),
-            ("wu", "孙坚", "江东猛虎，据长江天险"),
-            ("yuan_shao", "袁绍", "四世三公，讨董盟主"),
-        ]
-
-    if faction_choice is None:
-        print("=== 选择势力 ===")
-        for i, (fid, name, desc) in enumerate(factions, 1):
-            print(f"  {i}. {name} - {desc}")
-        print()
+        _v2_available = False
         try:
-            choice = input("请输入编号 (1-{}): ".format(len(factions))).strip()
-            idx = int(choice) - 1 if choice.isdigit() else 0
-        except (EOFError, KeyboardInterrupt):
-            print("\n退出游戏", file=sys.stderr)
-            return
-    else:
-        idx = max(0, min(faction_choice - 1, len(factions) - 1))
+            from histrategy_engine import TurnController  # noqa: F401
+            _v2_available = True
+        except ImportError:
+            pass
+
+        if _v2_available:
+            factions = [
+                ("shu", "刘备", "汉室宗亲，寄居新野，三顾茅庐在即 (207)"),
+                ("cao", "曹操", "奉天子以令不臣，已据中原大半 (207)"),
+                ("wu", "孙权", "继承父兄基业，稳坐江东 (207)"),
+            ]
+        else:
+            factions = [
+                ("cao", "曹操", "乱世奸雄，奉天子以令不臣"),
+                ("shu", "刘备", "汉室宗亲，以仁德取天下"),
+                ("wu", "孙坚", "江东猛虎，据长江天险"),
+                ("yuan_shao", "袁绍", "四世三公，讨董盟主"),
+            ]
+
+        if faction_choice is None:
+            print("=== 选择势力 ===")
+            for i, (fid, name, desc) in enumerate(factions, 1):
+                print(f"  {i}. {name} - {desc}")
+            print()
+            try:
+                choice = input("请输入编号 (1-{}): ".format(len(factions))).strip()
+                idx = int(choice) - 1 if choice.isdigit() else 0
+            except (EOFError, KeyboardInterrupt):
+                print("\n退出游戏", file=sys.stderr)
+                return
+        else:
+            idx = max(0, min(faction_choice - 1, len(factions) - 1))
 
         fid, fname, _ = factions[idx]
         print(f"\n[系统] 已选择 {fname}", file=sys.stderr)
@@ -110,8 +110,8 @@ def run_dev(faction_choice: int | None = None, force_new: bool = False):
         print("---")
         _print_llm_stats(engine.llm)
 
-    # Main game loop
-    _game_loop(engine)
+        # Main game loop
+        _game_loop(engine)
 
 
 def _game_loop(engine: GameEngine):
@@ -395,7 +395,7 @@ def _display_state_v1(engine: GameEngine):
         print(f"粮草: {player.food:,}")
         print(f"领地: {', '.join(player.territories) if player.territories else '暂无'}")
 
-    print(f"\n存檔位置: {DATA_DIR}")
+    print(f"\n存檔位置: {get_data_dir()}")
     print("---")
 
 

@@ -340,6 +340,131 @@ def create_app(llm_provider: str | None = None) -> Any:
             })
         return {"games": games, "count": len(games)}
 
+    @app.post("/api/games/{game_id}/summary")
+    def get_game_summary(game_id: str):
+        """Generate/fetch endgame summary (chronicle) for a game."""
+        import os
+        import json
+        from pathlib import Path
+        from histrategy.llm.endgame_summary import generate_chronicle
+        from histrategy.llm.adapter import LLMAdapter
+
+        # Check if the game is active in memory
+        engine = _get_engine(game_id)
+        
+        player_events = []
+        
+        # 1. Try to load from session directory
+        data_dir = Path(os.environ.get("HISTRATEGY_DATA_DIR", os.path.expanduser("~/.histrategy")))
+        session_dir = data_dir / "sessions" / game_id
+        
+        world_paths = [
+            session_dir / "world_v2.json",
+            session_dir / "world.json",
+            session_dir / "event_history.json",
+            data_dir / "world_v2.json",
+        ]
+        
+        loaded_data = None
+        for path in world_paths:
+            if path.exists():
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        loaded_data = json.load(f)
+                    break
+                except Exception:
+                    pass
+
+        # If we loaded data, try to extract event history or completed events
+        if loaded_data:
+            if isinstance(loaded_data, dict):
+                # Try getting event_history or completed_events
+                if "event_history" in loaded_data:
+                    player_events = loaded_data["event_history"]
+                elif "completed_events" in loaded_data:
+                    # Try to map completed_events if we can, or just use them as titles
+                    completed = loaded_data["completed_events"]
+                    if engine and getattr(engine, "history_engine", None):
+                        for evt_id in completed:
+                            evt = next((e for e in engine.history_engine.all_events if e["id"] == evt_id), None)
+                            if evt:
+                                player_events.append({
+                                    "title": evt.get("title", evt_id),
+                                    "description": evt.get("description", "")
+                                })
+                            else:
+                                player_events.append({"title": evt_id, "description": ""})
+                    else:
+                        player_events = [{"title": evt_id, "description": ""} for evt_id in completed]
+            elif isinstance(loaded_data, list):
+                player_events = loaded_data
+
+        # 2. If player_events is still empty, try to get from active engine
+        if not player_events and engine:
+            if getattr(engine, "_use_v2", False) and engine.world_state_v2:
+                ws = engine.world_state_v2
+                completed = ws.completed_events
+                if getattr(engine, "history_engine", None):
+                    for evt_id in completed:
+                        evt = next((e for e in engine.history_engine.all_events if e["id"] == evt_id), None)
+                        if evt:
+                            player_events.append({
+                                "title": evt.get("title", evt_id),
+                                "description": evt.get("description", "")
+                            })
+                        else:
+                            player_events.append({"title": evt_id, "description": ""})
+                else:
+                    player_events = [{"title": evt_id, "description": ""} for evt_id in completed]
+
+        # 3. Fallback: try loading from global or local current_session_log.json
+        if not player_events:
+            log_path = data_dir / "current_session_log.json"
+            if log_path.exists():
+                try:
+                    with open(log_path, "r", encoding="utf-8") as f:
+                        log_entries = json.load(f)
+                    for entry in log_entries:
+                        player_events.append({
+                            "title": f"第{entry.get('turn')}回合 政令: 「{entry.get('player_decision')}」",
+                            "description": entry.get("aftermath", entry.get("narrative", ""))
+                        })
+                except Exception:
+                    pass
+
+        # Build LLM adapter if available
+        llm = None
+        if _llm_provider:
+            try:
+                llm = LLMAdapter(provider=_llm_provider)
+            except Exception:
+                pass
+
+        summary_text = generate_chronicle(player_events, llm_adapter=llm)
+        return {
+            "game_id": game_id,
+            "summary": summary_text,
+            "events_count": len(player_events),
+        }
+
+    @app.post("/api/games/{game_id}/export_video")
+    def export_video(game_id: str):
+        """Export replay video for a game."""
+        from histrategy.cli.record import generate_video
+        from fastapi import HTTPException
+        
+        try:
+            video_path = generate_video(game_id)
+            return {
+                "game_id": game_id,
+                "video_path": video_path,
+                "status": "success"
+            }
+        except FileNotFoundError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to generate video: {str(e)}")
+
     return app
 
 

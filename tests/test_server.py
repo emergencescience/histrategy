@@ -209,3 +209,38 @@ class TestGamePool:
         status1 = client.get(f"/api/games/{gid1}").json()["faction_status"]
         status2 = client.get(f"/api/games/{gid2}").json()["faction_status"]
         assert status1["turn"] != status2["turn"], "Games are not independent"
+
+
+class TestSummaryAndExportVideo:
+    """Tests for summary and video export endpoints."""
+
+    def test_get_game_summary(self, client):
+        create_resp = client.post("/api/games", json={"faction": "shu"})
+        game_id = create_resp.json()["game_id"]
+
+        resp = client.post(f"/api/games/{game_id}/summary")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["game_id"] == game_id
+        assert "summary" in data
+        assert "events_count" in data
+
+    def test_export_video_not_found(self, client):
+        resp = client.post("/api/games/nonexistent_game/export_video")
+        assert resp.status_code == 404
+
+    @patch("histrategy.cli.record.generate_video")
+    def test_export_video_success(self, mock_generate_video, client):
+        mock_generate_video.return_value = "/path/to/mock_video.mp4"
+        
+        create_resp = client.post("/api/games", json={"faction": "shu"})
+        game_id = create_resp.json()["game_id"]
+
+        resp = client.post(f"/api/games/{game_id}/export_video")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["game_id"] == game_id
+        assert data["video_path"] == "/path/to/mock_video.mp4"
+        assert data["status"] == "success"
+        mock_generate_video.assert_called_once_with(game_id)
+

@@ -175,15 +175,17 @@ class DomesticEngine:
 
         return int(base * season_mod * climate_mod * gov_mod * tech_mod)
 
-    def calculate_food_consumption(self, territory: Territory,
+    def calculate_food_consumption(self, territory: Territory, troops: int = 0,
                                     supply_multiplier: float = 1.0) -> int:
         """
-        Food consumed by population in one season.
+        Food consumed by population and troops in one season.
 
-        Each person consumes 0.5 units per season.
-        Winter and armies increase consumption.
+        Each soldier consumes 0.5 units per season (increased in winter by supply_multiplier).
+        Each civilian consumes 0.02 units per season.
         """
-        return int(territory.population * 0.5 * supply_multiplier)
+        civilian_cons = territory.population * 0.02
+        troop_cons = troops * 0.5 * supply_multiplier
+        return int(civilian_cons + troop_cons)
 
     # ── Population ──
 
@@ -273,6 +275,7 @@ class DomesticEngine:
         char_engine: CharacterEngine | None = None,
         tax_rates: dict[str, float] | None = None,
         tech_levels: dict[str, dict[str, int]] | None = None,
+        territory_troops: dict[str, int] | None = None,
     ) -> list[TerritoryResult]:
         """
         Full seasonal processing for all territories.
@@ -310,8 +313,9 @@ class DomesticEngine:
             food_prod = self.calculate_food_production(
                 territory, season, climate, gov_pol, tech_agri
             )
+            troops = territory_troops.get(tid, 0) if territory_troops else 0
             food_cons = self.calculate_food_consumption(
-                territory, season.supply_multiplier
+                territory, troops, season.supply_multiplier
             )
             food_delta = food_prod - food_cons
             pop_delta = self.calculate_population_growth(

@@ -45,53 +45,16 @@ def resolve_knowledge_path() -> str:
 
 
 def load_territories(knowledge_path: str | None = None) -> dict[str, Territory]:
-    """Load territory data from knowledge base."""
-    if knowledge_path is None:
-        knowledge_path = resolve_knowledge_path()
+    """Load territory data from knowledge base.
 
-    geo_path = os.path.join(knowledge_path, "geography", "territories.json")
-    if not os.path.isfile(geo_path):
-        return _default_territories()
-
-    with open(geo_path, "r") as f:
-        data = json.load(f)
-
-    territories: dict[str, Territory] = {}
-    for region in data.get("regions", []):
-        rid = region["id"]
-        # Build neighbors from region-level adjacency (regions are provinces)
-        neighbors = region.get("neighbors", [])
-
-        terrain = TERRAIN_MAP.get(region.get("terrain", "plains"), TerrainType.PLAINS)
-        territories[rid] = Territory(
-            id=rid,
-            name=region.get("name", rid),
-            fertility=region.get("fertility", 5),
-            terrain_type=terrain,
-            climate_zone=region.get("climate_zone", "central"),
-            has_river=region.get("has_river", False),
-            has_coast=region.get("has_coast", False),
-            horse_resource=region.get("horse_resource", False),
-            iron_resource=region.get("iron_resource", False),
-            salt_resource=region.get("salt_resource", False),
-            neighbors=neighbors,
-            population=region.get("population", 50000),
-            development=region.get("development", 30),
-        )
-
-    # Link territory capitals to their regions
-    for region in data.get("regions", []):
-        rid = region["id"]
-        capital_city = region.get("capital", "")
-        if capital_city and capital_city in territories:
-            # The capital is a sub-territory; for simplicity, use region-level
-            pass
-
-    return territories if territories else _default_territories()
+    Bypasses province-level geography file to return city-level territories
+    essential for the 207 scenario.
+    """
+    return _default_territories()
 
 
 def _default_territories() -> dict[str, Territory]:
-    """Minimal territory set for 207 scenario."""
+    """Complete city-level territory set for 207 scenario."""
     return {
         "xinye": Territory(
             id="xinye", name="新野", owner_id="shu",
@@ -103,7 +66,7 @@ def _default_territories() -> dict[str, Territory]:
             id="xiangyang", name="襄阳", owner_id="liubiao",
             fertility=8, terrain_type=TerrainType.PLAINS, climate_zone="central",
             has_river=True, population=80000, development=55,
-            neighbors=["xinye", "jiangling", "wancheng"],
+            neighbors=["xinye", "jiangling", "wancheng", "changsha", "jiangkou"],
         ),
         "wancheng": Territory(
             id="wancheng", name="宛城", owner_id="cao",
@@ -115,25 +78,25 @@ def _default_territories() -> dict[str, Territory]:
             id="xuchang", name="许昌", owner_id="cao",
             fertility=7, terrain_type=TerrainType.PLAINS, climate_zone="central",
             population=100000, development=70,
-            neighbors=["wancheng", "luoyang"],
+            neighbors=["wancheng", "luoyang", "puyang", "xiapi"],
         ),
         "luoyang": Territory(
             id="luoyang", name="洛阳", owner_id="cao",
             fertility=7, terrain_type=TerrainType.PLAINS, climate_zone="north",
             population=80000, development=60,
-            neighbors=["xuchang", "ye"],
+            neighbors=["xuchang", "ye", "hanshui"],
         ),
         "ye": Territory(
             id="ye", name="邺城", owner_id="cao",
             fertility=8, terrain_type=TerrainType.PLAINS, climate_zone="north",
             population=120000, development=75,
-            neighbors=["luoyang"],
+            neighbors=["luoyang", "ji", "puyang", "changshan"],
         ),
         "jiangling": Territory(
             id="jiangling", name="江陵", owner_id="liubiao",
             fertility=8, terrain_type=TerrainType.PLAINS, climate_zone="central",
             has_river=True, population=60000, development=50,
-            neighbors=["xiangyang", "jiangkou"],
+            neighbors=["xiangyang", "jiangkou", "nanjun", "jiangzhou"],
         ),
         "jiangkou": Territory(
             id="jiangkou", name="江口", owner_id="liubiao",
@@ -145,7 +108,7 @@ def _default_territories() -> dict[str, Territory]:
             id="jianye", name="建业", owner_id="wu",
             fertility=7, terrain_type=TerrainType.PLAINS, climate_zone="south",
             has_river=True, has_coast=True, population=70000, development=55,
-            neighbors=["wu", "chaisang"],
+            neighbors=["wu", "chaisang", "lujiang", "danyang"],
         ),
         "wu": Territory(
             id="wu", name="吴郡", owner_id="wu",
@@ -163,7 +126,89 @@ def _default_territories() -> dict[str, Territory]:
             id="chaisang", name="柴桑", owner_id="wu",
             fertility=7, terrain_type=TerrainType.PLAINS, climate_zone="south",
             has_river=True, population=40000, development=40,
-            neighbors=["jianye", "jiangkou"],
+            neighbors=["jianye", "jiangkou", "lujiang", "yuzhang"],
+        ),
+        # New cities for Cao Cao
+        "ji": Territory(
+            id="ji", name="蓟县", owner_id="cao",
+            fertility=5, terrain_type=TerrainType.PLAINS, climate_zone="north",
+            population=60000, development=40,
+            neighbors=["ye", "changshan"],
+        ),
+        "puyang": Territory(
+            id="puyang", name="濮阳", owner_id="cao",
+            fertility=6, terrain_type=TerrainType.PLAINS, climate_zone="north",
+            population=50000, development=45,
+            neighbors=["ye", "xuchang", "beihai"],
+        ),
+        "beihai": Territory(
+            id="beihai", name="北海", owner_id="cao",
+            fertility=6, terrain_type=TerrainType.PLAINS, climate_zone="north",
+            has_coast=True, population=45000, development=40,
+            neighbors=["puyang", "xiapi"],
+        ),
+        "xiapi": Territory(
+            id="xiapi", name="下邳", owner_id="cao",
+            fertility=7, terrain_type=TerrainType.PLAINS, climate_zone="central",
+            has_coast=True, population=70000, development=50,
+            neighbors=["beihai", "xuchang", "lujiang"],
+        ),
+        "changshan": Territory(
+            id="changshan", name="常山", owner_id="cao",
+            fertility=5, terrain_type=TerrainType.HILLS, climate_zone="north",
+            population=40000, development=30,
+            neighbors=["ye", "ji"],
+        ),
+        # New cities for Wu
+        "lujiang": Territory(
+            id="lujiang", name="庐江", owner_id="wu",
+            fertility=6, terrain_type=TerrainType.PLAINS, climate_zone="south",
+            has_river=True, population=50000, development=40,
+            neighbors=["jianye", "chaisang", "danyang", "xiapi"],
+        ),
+        "yuzhang": Territory(
+            id="yuzhang", name="豫章", owner_id="wu",
+            fertility=6, terrain_type=TerrainType.HILLS, climate_zone="south",
+            population=45000, development=35,
+            neighbors=["chaisang", "changsha"],
+        ),
+        "danyang": Territory(
+            id="danyang", name="丹阳", owner_id="wu",
+            fertility=6, terrain_type=TerrainType.HILLS, climate_zone="south",
+            population=55000, development=45,
+            neighbors=["jianye", "lujiang"],
+        ),
+        # New cities for Liubiao
+        "changsha": Territory(
+            id="changsha", name="长沙", owner_id="liubiao",
+            fertility=7, terrain_type=TerrainType.PLAINS, climate_zone="south",
+            population=50000, development=40,
+            neighbors=["xiangyang", "yuzhang"],
+        ),
+        # New cities for Liuzhang
+        "chengdu": Territory(
+            id="chengdu", name="成都", owner_id="liuzhang",
+            fertility=8, terrain_type=TerrainType.PLAINS, climate_zone="south",
+            has_river=True, population=100000, development=60,
+            neighbors=["hanshui", "jiangzhou"],
+        ),
+        "hanshui": Territory(
+            id="hanshui", name="汉中", owner_id="liuzhang",
+            fertility=6, terrain_type=TerrainType.MOUNTAIN, climate_zone="central",
+            population=40000, development=35,
+            neighbors=["chengdu", "luoyang"],
+        ),
+        "jiangzhou": Territory(
+            id="jiangzhou", name="江州", owner_id="liuzhang",
+            fertility=6, terrain_type=TerrainType.HILLS, climate_zone="south",
+            population=45000, development=35,
+            neighbors=["chengdu", "jiangling", "nanjun"],
+        ),
+        "nanjun": Territory(
+            id="nanjun", name="南郡", owner_id="liuzhang",
+            fertility=7, terrain_type=TerrainType.PLAINS, climate_zone="south",
+            population=50000, development=45,
+            neighbors=["jiangling", "jiangzhou"],
         ),
     }
 
@@ -318,6 +363,24 @@ def build_world_state(
     # Load scenario data for faction configurations
     scenario = load_scenario(scenario_id, knowledge_path)
 
+    # Override territory attributes from scenario if defined
+    if scenario and "territories" in scenario:
+        for tid, td in scenario["territories"].items():
+            if tid in territories:
+                t = territories[tid]
+                if "name" in td:
+                    t.name = td["name"]
+                if "population" in td:
+                    t.population = td["population"]
+                if "development" in td:
+                    t.development = td["development"]
+                if "terrain" in td:
+                    t.terrain_type = TERRAIN_MAP.get(td["terrain"], TerrainType.PLAINS)
+                if "climate_zone" in td:
+                    t.climate_zone = td["climate_zone"]
+                if "fertility" in td:
+                    t.fertility = td["fertility"]
+
     # Determine season
     season = Season.WINTER
     if scenario:
@@ -339,6 +402,7 @@ def build_world_state(
                 territories=list(fd.get("territories", [])),
                 is_active=fd.get("is_active_manually", True),
                 prestige=fd.get("prestige", 50),
+                legitimacy=fd.get("legitimacy", 50),
                 strength_actual=fd.get("strength", 5000),
                 economy_actual=50,
                 morale_actual=fd.get("morale_actual", 50),
