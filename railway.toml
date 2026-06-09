@@ -1,7 +1,0 @@
-[deploy]
-  healthcheckPath = "/api/health"
-  healthcheckTimeout = 30
-
-[environments.production.variables]
-  HISTRATEGY_DATA_DIR = "/tmp/histrategy"
-  LLM_MODEL = "deepseek-v4-pro"

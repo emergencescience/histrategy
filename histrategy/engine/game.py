@@ -433,25 +433,19 @@ class GameEngine:
             return self._intro_v1()
 
     def _intro_v2(self) -> dict:
-        """v2 intro: use NarrativeEngine if available."""
+        """v2 intro: template-based, no LLM — fast load."""
         ws = self.world_state_v2
         player = ws.factions.get(ws.player_faction_id)
         if not player:
             return self._fallback_intro()
 
-        # Get strategic suggestions
-        if self.narrative_engine and self.narrative_engine.is_available:
-            with _suppress_stderr():
-                suggestions = self.narrative_engine.generate_plan_suggestions(
-                    ws, ws.player_faction_id
-                )
-        else:
-            suggestions = [
-                f"【休养生息】发展{player.capital}的内政与农耕",
-                "【练兵备战】招募乡勇操练新军",
-                "【合纵连横】派遣使者联络群雄",
-                "【搜集情报】细作四出打探动向",
-            ]
+        # Use deterministic template suggestions (LLM reserved for plan phase)
+        suggestions = [
+            f"【休养生息】发展{player.capital}的内政与农耕",
+            f"【练兵备战】招募乡勇操练新军",
+            "【合纵连横】派遣使者联络群雄",
+            "【搜集情报】细作四出打探动向",
+        ]
 
         narrative = (
             f"### 天下大势\n"
@@ -482,12 +476,8 @@ class GameEngine:
         }
 
     def _intro_v1(self) -> dict:
-        """v1 intro path (unchanged)."""
-        if self.llm is not None:
-            gm = GameMaster(self.llm)
-            return gm.generate_intro(self.world_state)
-        else:
-            return self._offline_intro()
+        """v1 intro: use offline template for instant load."""
+        return self._offline_intro()
 
     # ─── Plan Data ────────────────────────────────────────────
 
