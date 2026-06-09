@@ -1,6 +1,3 @@
-[build]
-  builder = "nixpacks"
-
 [deploy]
   startCommand = "uvicorn histrategy.server.api:app --host 0.0.0.0 --port $PORT"
   healthcheckPath = "/api/health"

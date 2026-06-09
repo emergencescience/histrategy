@@ -1,0 +1,20 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Install system deps
+RUN pip install --no-cache-dir uv
+
+# Copy project files
+COPY pyproject.toml .
+COPY histrategy/ histrategy/
+COPY histrategy-engine/ histrategy-engine/
+
+# Install with uv
+RUN uv pip install --system -e . -e histrategy-engine && \
+    uv pip install --system "fastapi>=0.100.0" "uvicorn>=0.30.0" "PyJWT>=2.8.0"
+
+# Expose port
+EXPOSE 8080
+
+CMD ["uvicorn", "histrategy.server.api:app", "--host", "0.0.0.0", "--port", "8080"]
