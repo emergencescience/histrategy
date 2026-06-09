@@ -827,6 +827,14 @@ def main():
         "--room", type=str, default=None,
         help="指定隔离的游戏房间ID（使存档与配置相互独立）",
     )
+    parser.add_argument(
+        "--simulate-playthrough", action="store_true",
+        help="运行自动试玩模拟（类似 simulate_playthrough.py）并将 LLM 交互与数值变化报告导出到 playthrough_records.md",
+    )
+    parser.add_argument(
+        "--loglevel", type=str, choices=["DEBUG", "INFO", "WARNING", "ERROR"], default=None,
+        help="设置系统日志级别 (例如: DEBUG, INFO)",
+    )
 
     args = parser.parse_args()
 
@@ -834,6 +842,33 @@ def main():
         base_dir = os.environ.get("HISTRATEGY_DATA_DIR", os.path.expanduser("~/.histrategy"))
         room_dir = os.path.join(base_dir, "rooms", args.room)
         os.environ["HISTRATEGY_DATA_DIR"] = os.path.abspath(room_dir)
+
+    if args.loglevel:
+        import logging
+        log_level = getattr(logging, args.loglevel)
+        log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        log_dir = get_data_dir() / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file_path = log_dir / "histrategy.log"
+        
+        # Configure root logger explicitly to ensure it works reliably in test environments
+        root_logger = logging.getLogger()
+        root_logger.setLevel(log_level)
+        for h in list(root_logger.handlers):
+            if isinstance(h, logging.FileHandler):
+                root_logger.removeHandler(h)
+        file_handler = logging.FileHandler(str(log_file_path), encoding="utf-8")
+        file_handler.setFormatter(logging.Formatter(log_format))
+        root_logger.addHandler(file_handler)
+        print(f"[系统] 日志记录开启: Level={args.loglevel}, File={log_file_path}")
+        
+        # Log initialization message
+        logging.getLogger("histrategy").info("Histrategy CLI logging initialized.")
+
+    if args.simulate_playthrough:
+        from .simulator import run_simulation_playthrough
+        run_simulation_playthrough()
+        return
 
     if args.export_log:
         from ..engine.log_exporter import export_log

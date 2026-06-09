@@ -296,7 +296,11 @@ class LLMAdapter:
         import json
 
         try:
-            log_dir = Path(__file__).parent.parent.parent / "logs"
+            try:
+                from ..state.world_state import get_data_dir
+                log_dir = get_data_dir() / "logs"
+            except ImportError:
+                log_dir = Path(__file__).parent.parent.parent / "logs"
             log_dir.mkdir(parents=True, exist_ok=True)
 
             timestamp_str = datetime.now().isoformat()
@@ -384,7 +388,11 @@ class LLMAdapter:
         import json
 
         try:
-            log_dir = Path(__file__).parent.parent.parent / "logs"
+            try:
+                from ..state.world_state import get_data_dir
+                log_dir = get_data_dir() / "logs"
+            except ImportError:
+                log_dir = Path(__file__).parent.parent.parent / "logs"
             log_dir.mkdir(parents=True, exist_ok=True)
 
             timestamp_str = datetime.now().isoformat()

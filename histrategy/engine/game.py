@@ -768,6 +768,8 @@ class GameEngine:
         except Exception:
             pass
 
+        self._log_simulation_history()
+
         return result
 
     def _process_turn_v1(self, player_decision: str) -> dict:
@@ -817,7 +819,78 @@ class GameEngine:
         except Exception:
             pass
 
+        self._log_simulation_history()
+
         return result_dict
+
+    def _log_simulation_history(self) -> None:
+        """Write a snapshot of all factions' numerical states to simulation_history.jsonl."""
+        try:
+            from ..state.world_state import get_data_dir
+            import json
+            from datetime import datetime
+            
+            log_dir = get_data_dir() / "logs"
+            log_dir.mkdir(parents=True, exist_ok=True)
+            history_file = log_dir / "simulation_history.jsonl"
+            
+            faction_data = {}
+            
+            if self._use_v2 and self.world_state_v2 is not None:
+                ws = self.world_state_v2
+                turn_number = ws.turn_number
+                year = ws.year
+                season = ws.season.cn if hasattr(ws.season, "cn") else ws.season.value
+                player_faction = ws.player_faction_id
+                
+                for fid, f in ws.factions.items():
+                    faction_data[fid] = {
+                        "name": f.name,
+                        "capital": f.capital,
+                        "territories": list(f.territories) if f.territories else [],
+                        "strength": getattr(f, "strength_actual", getattr(f, "strength", 0)),
+                        "economy": getattr(f, "economy_actual", getattr(f, "economy", 0)),
+                        "morale": getattr(f, "morale_actual", getattr(f, "morale", 0)),
+                        "treasury": f.treasury,
+                        "food": f.food,
+                        "is_active": getattr(f, "is_active", True)
+                    }
+            elif self.world_state is not None:
+                ws = self.world_state
+                turn_number = ws.turn
+                year = ws.year
+                season = ws.current_season
+                player_faction = ws.player_faction_id
+                
+                for fid, f in ws.factions.items():
+                    faction_data[fid] = {
+                        "name": f.name,
+                        "capital": f.capital,
+                        "territories": list(f.territories) if f.territories else [],
+                        "strength": getattr(f, "strength", 0),
+                        "economy": getattr(f, "economy", 0),
+                        "morale": getattr(f, "morale", 0),
+                        "treasury": getattr(f, "treasury", 0),
+                        "food": getattr(f, "food", 0),
+                        "is_active": getattr(f, "is_active", True)
+                    }
+            else:
+                return
+                
+            entry = {
+                "timestamp": datetime.now().isoformat(),
+                "turn_number": turn_number,
+                "year": year,
+                "season": season,
+                "player_faction": player_faction,
+                "factions": faction_data
+            }
+            
+            with open(history_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("Failed to write simulation history log: %s", e)
 
     # ─── Fallbacks ────────────────────────────────────────────
 
