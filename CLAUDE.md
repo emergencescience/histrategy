@@ -85,3 +85,6 @@ Plan Mode (LLM)  →  Player decision (free text)  →  Command Mode (LLM)
 - **Plan/Command separation** — Plan = council meeting (what to do). Command = execution (how it goes).
 - **Knowledge lives in JSON** — characters, factions, regions, events are data, not code.
 - **Tests use isolated save dirs** — `HISTRATEGY_DATA_DIR` is monkeypatched to `tmp_path` in tests.
+- **Rules-as-Data (rules in YAML)** — Formula configuration is externalized in YAML templates, parsed by the rules interpreter (supporting diverse era settings).
+- **Asymmetric NPC AI (Fog of War)** — NPCs evaluate threats and plan strategies using projected LocalWorldStates, Heuristics, and LLM Monarch Planners.
+- **AI Playtesting** — Automated multi-agent headless simulations verify game balance and tuning statistics.
