@@ -94,7 +94,8 @@ _llm_provider: str | None = None  # Set by run_server / create_app
 
 
 def _get_or_create_engine(faction: str = "shu", scenario: str = "207",
-                          new: bool = True) -> tuple[str, Any]:
+                          new: bool = True,
+                          llm_api_key: str | None = None) -> tuple[str, Any]:
     """Get existing game by ID or create a new one."""
     if not new and _games:
         return list(_games.keys())[-1], list(_games.values())[-1]
@@ -102,13 +103,16 @@ def _get_or_create_engine(faction: str = "shu", scenario: str = "207",
     from histrategy.engine.game import GameEngine
     from histrategy.llm.adapter import LLMAdapter
 
-    # Build LLM adapter if provider is available
+    # Build LLM adapter if API key or server provider is available
     llm = None
-    if _llm_provider:
-        try:
-            llm = LLMAdapter(provider=_llm_provider)
-        except Exception:
-            pass
+    # Temporarily set the key so detect_provider() can find it
+    if llm_api_key:
+        import os as _os
+        _os.environ["DEEPSEEK_API_KEY"] = llm_api_key
+    try:
+        llm = LLMAdapter(provider=_llm_provider or None)
+    except Exception:
+        pass
 
     game_id = uuid.uuid4().hex[:12]
     engine = GameEngine(scenario=scenario, new_game=True, llm=llm)
@@ -251,13 +255,9 @@ def create_app(llm_provider: str | None = None) -> Any:
     def create_game(req: CreateGameRequest,
                     authorization: str | None = Header(default=None)):
         """Create a new game and return the intro scene."""
-        # Set user's LLM API key if provided (not persisted)
-        if req.llm_api_key:
-            import os as _os
-            _os.environ["DEEPSEEK_API_KEY"] = req.llm_api_key
-
         game_id, engine = _get_or_create_engine(
-            faction=req.faction, scenario=req.scenario, new=req.new
+            faction=req.faction, scenario=req.scenario, new=req.new,
+            llm_api_key=req.llm_api_key
         )
 
         # Store session metadata if provided
