@@ -1,0 +1,143 @@
+{
+  "year": 207,
+  "season": "winter",
+  "turn_number": 1,
+  "scenario": "207",
+  "player_faction_id": "shu",
+  "player_deviation": 0.0,
+  "factions": {
+    "shu": {
+      "name": "刘备",
+      "ruler_id": "liubei",
+      "capital": "xinye",
+      "territories": [
+        "xinye"
+      ],
+      "is_active": true,
+      "prestige": 35,
+      "legitimacy": 50,
+      "strength_actual": 5000,
+      "economy_actual": 50,
+      "morale_actual": 70,
+      "treasury": 3000,
+      "food": 2000,
+      "tax_rate": 0.2,
+      "relations": {
+        "cao": -80,
+        "wu": 20,
+        "liubiao": 40,
+        "liuzhang": 10
+      }
+    },
+    "cao": {
+      "name": "曹操",
+      "ruler_id": "caocao",
+      "capital": "xuchang",
+      "territories": [
+        "xuchang",
+        "wancheng",
+        "luoyang",
+        "ye",
+        "ji",
+        "puyang",
+        "beihai",
+        "xiapi",
+        "changshan"
+      ],
+      "is_active": true,
+      "prestige": 90,
+      "legitimacy": 50,
+      "strength_actual": 150000,
+      "economy_actual": 50,
+      "morale_actual": 80,
+      "treasury": 50000,
+      "food": 30000,
+      "tax_rate": 0.4,
+      "relations": {
+        "shu": -80,
+        "wu": -30,
+        "liubiao": -20,
+        "liuzhang": -10
+      }
+    },
+    "wu": {
+      "name": "孙权",
+      "ruler_id": "sunquan",
+      "capital": "jianye",
+      "territories": [
+        "jianye",
+        "wu",
+        "chaisang",
+        "lujiang",
+        "kuaiji",
+        "yuzhang",
+        "danyang"
+      ],
+      "is_active": true,
+      "prestige": 60,
+      "legitimacy": 50,
+      "strength_actual": 60000,
+      "economy_actual": 50,
+      "morale_actual": 75,
+      "treasury": 15000,
+      "food": 10000,
+      "tax_rate": 0.3,
+      "relations": {
+        "shu": 20,
+        "cao": -30,
+        "liubiao": -10,
+        "liuzhang": 0
+      }
+    },
+    "liubiao": {
+      "name": "刘表",
+      "ruler_id": "liubiao",
+      "capital": "xiangyang",
+      "territories": [
+        "xiangyang",
+        "jiangling",
+        "jiangkou",
+        "changsha"
+      ],
+      "is_active": false,
+      "prestige": 50,
+      "legitimacy": 50,
+      "strength_actual": 40000,
+      "economy_actual": 50,
+      "morale_actual": 50,
+      "treasury": 10000,
+      "food": 8000,
+      "tax_rate": 0.3,
+      "relations": {
+        "shu": 40,
+        "cao": -20,
+        "wu": -10
+      }
+    },
+    "liuzhang": {
+      "name": "刘璋",
+      "ruler_id": "liuzhang",
+      "capital": "chengdu",
+      "territories": [
+        "chengdu",
+        "hanshui",
+        "jiangzhou",
+        "nanjun"
+      ],
+      "is_active": true,
+      "prestige": 30,
+      "legitimacy": 50,
+      "strength_actual": 50000,
+      "economy_actual": 50,
+      "morale_actual": 55,
+      "treasury": 12000,
+      "food": 15000,
+      "tax_rate": 0.3,
+      "relations": {
+        "shu": 10,
+        "cao": -10,
+        "liubiao": 20
+      }
+    }
+  }
+}
