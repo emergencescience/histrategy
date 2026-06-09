@@ -1,0 +1,48 @@
+# 三國志略 — Economy rule configuration
+# All formulas are expressed as Python-evaluable expressions.
+# Variables are injected at runtime by RuleInterpreter.
+
+food_production:
+  formula: "fertility * 1000 * (1 + development/100) * season_mod * climate_mod * gov_mod * tech_mod"
+  constants:
+    base_multiplier: 1000
+    dev_divisor: 100
+
+food_consumption:
+  civilian_formula: "population * civilian_per_capita"
+  troop_formula: "troops * troop_per_capita * supply_multiplier"
+  constants:
+    civilian_per_capita: 0.02
+    troop_per_capita: 0.5
+
+population_growth:
+  surplus_threshold_high: 1.2
+  surplus_threshold_low: 1.0
+  rate_healthy: 0.015
+  rate_slow: 0.005
+  rate_shortage: -0.01
+  rate_famine: -0.03
+  formula: "population * rate * (1 + morale/100) * (1 + development/200)"
+
+tax:
+  revenue_formula: "population * tax_rate * tax_base_multiplier * gov_mod"
+  moral_thresholds:
+    - threshold: 0.2
+      penalty: 0
+    - threshold: 0.3
+      penalty: -1
+    - threshold: 0.4
+      penalty: -2
+    - threshold: 999.0
+      penalty: -3
+  constants:
+    tax_base_multiplier: 0.05
+
+development:
+  cost_formula: "150 * delta * sqrt(population/1000)"
+  constants:
+    minimum_cost: 300
+
+modifiers:
+  governor_politics: "1 + politics/200"
+  tech_agriculture: "1 + agriculture_level * 0.1"

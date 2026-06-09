@@ -3,16 +3,21 @@ Domestic Engine — economy, resources, and climate.
 
 All calculations are deterministic with seeded RNG for climate.
 No LLM involvement — pure math.
+
+Formula constants are externalized to rules/economy.yaml and loaded
+via RuleInterpreter.
 """
 
 from __future__ import annotations
 
 import hashlib
+import math
 import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from ..world import ClimateEvent, Season, Territory
+from ..rules.interpreter import RuleInterpreter
 
 if TYPE_CHECKING:
     from ..character import CharacterEngine
@@ -137,10 +142,15 @@ class DomesticEngine:
 
     All formulas are deterministic. Characters modify output via
     the CharacterEngine passed during calculation.
+
+    Formula constants are loaded from rules/economy.yaml via RuleInterpreter,
+    making them configurable without code changes.
     """
 
-    def __init__(self, climate_system: ClimateSystem | None = None):
+    def __init__(self, climate_system: ClimateSystem | None = None,
+                  rules: RuleInterpreter | None = None):
         self._climate = climate_system or ClimateSystem()
+        self._rules = rules or RuleInterpreter()
 
     @property
     def climate(self) -> ClimateSystem:
@@ -177,15 +187,24 @@ class DomesticEngine:
 
     def calculate_food_consumption(self, territory: Territory, troops: int = 0,
                                     supply_multiplier: float = 1.0) -> int:
-        """
-        Food consumed by population and troops in one season.
+        """Food consumed by population and troops in one season.
 
-        Each soldier consumes 0.5 units per season (increased in winter by supply_multiplier).
-        Each civilian consumes 0.02 units per season.
+        Constants loaded from rules/economy.yaml:
+          - civilian_per_capita (default 0.02)
+          - troop_per_capita (default 0.5)
         """
-        civilian_cons = territory.population * 0.02
-        troop_cons = troops * 0.5 * supply_multiplier
-        return int(civilian_cons + troop_cons)
+        civ = self._rules.evaluate("food_consumption.civilian_formula", {
+            "population": territory.population,
+            "civilian_per_capita": self._rules.get_constant(
+                "food_consumption.constants.civilian_per_capita"),
+        })
+        troop = self._rules.evaluate("food_consumption.troop_formula", {
+            "troops": troops,
+            "troop_per_capita": self._rules.get_constant(
+                "food_consumption.constants.troop_per_capita"),
+            "supply_multiplier": supply_multiplier,
+        })
+        return int(civ + troop)
 
     # ── Population ──
 
@@ -200,22 +219,26 @@ class DomesticEngine:
 
         surplus > 0: positive growth
         surplus < 0: famine → population decline
+
+        Rate constants loaded from rules/economy.yaml.
         """
         consumption = self.calculate_food_consumption(territory)
         total_food = food_surplus + consumption  # approximate
 
-        if total_food > consumption * 1.2:
-            # Food surplus → healthy growth
-            rate = 0.015 * (1.0 + morale / 100.0) * (1.0 + territory.development / 200.0)
+        if total_food > consumption * self._rules.get_constant(
+                "population_growth.surplus_threshold_high"):
+            rate = self._rules.evaluate("population_growth.formula", {
+                "population": 1.0,
+                "rate": self._rules.get_constant("population_growth.rate_healthy"),
+                "morale": morale,
+                "development": territory.development,
+            })
         elif total_food > consumption:
-            # Barely enough → slow growth
-            rate = 0.005
+            rate = self._rules.get_constant("population_growth.rate_slow")
         elif total_food > 0:
-            # Shortage → decline
-            rate = -0.01
+            rate = self._rules.get_constant("population_growth.rate_shortage")
         else:
-            # Famine → serious decline
-            rate = -0.03
+            rate = self._rules.get_constant("population_growth.rate_famine")
 
         return int(territory.population * rate)
 
@@ -227,25 +250,35 @@ class DomesticEngine:
         tax_rate: float,
         governor_politics: int = 0,
     ) -> int:
-        """
-        Calculate tax revenue for one season.
+        """Calculate tax revenue for one season.
 
-        base = population × tax_rate × 0.05
-        gov_mod = 1 + governor_politics/200
+        Formula loaded from rules/economy.yaml.
         """
-        base = territory.population * tax_rate * 0.05
-        gov_mod = 1.0 + governor_politics / 200.0
-        return int(base * gov_mod)
+        base = self._rules.evaluate("tax.revenue_formula", {
+            "population": territory.population,
+            "tax_rate": tax_rate,
+            "tax_base_multiplier": self._rules.get_constant(
+                "tax.constants.tax_base_multiplier"),
+            "gov_mod": 1.0 + governor_politics / 200.0,
+        })
+        return int(base)
 
     def calculate_tax_morale_impact(self, tax_rate: float) -> int:
-        """Morale penalty for high taxes. Returns negative int (0 to -5)."""
-        if tax_rate <= 0.2:
-            return 0
-        if tax_rate <= 0.3:
-            return -1
-        if tax_rate <= 0.4:
-            return -2
-        return -3  # tax_rate > 0.4
+        """Morale penalty for high taxes.
+
+        Thresholds loaded from rules/economy.yaml.
+        Returns negative int (0 to -5).
+        """
+        thresholds = self._rules.get_thresholds("tax.moral_thresholds") or [
+            {"threshold": 0.2, "penalty": 0},
+            {"threshold": 0.3, "penalty": -1},
+            {"threshold": 0.4, "penalty": -2},
+            {"threshold": 999.0, "penalty": -3},
+        ]
+        for entry in thresholds:
+            if tax_rate <= entry["threshold"]:
+                return entry["penalty"]
+        return -3
 
     # ── Development ──
 
@@ -255,14 +288,16 @@ class DomesticEngine:
         """
         Cost to increase development from current to target level.
 
+        Formula loaded from rules/economy.yaml.
         Uses sqrt scaling so large cities are more expensive but not impossibly so.
-        cost = 150 × delta × √(population / 1000)
-        Minimum cost: 300.
         """
-        import math
         delta = max(0, target_level - territory.development)
-        cost = 150 * delta * math.sqrt(territory.population / 1000.0)
-        return max(300, int(cost))
+        cost = self._rules.evaluate("development.cost_formula", {
+            "delta": delta,
+            "population": territory.population,
+        })
+        minimum = self._rules.get_constant("development.constants.minimum_cost")
+        return max(minimum, int(cost))
 
     # ── Full season tick ──
 
