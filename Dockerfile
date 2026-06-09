@@ -16,3 +16,5 @@ RUN uv pip install --system -e . -e histrategy-engine && \
 
 # Expose port
 EXPOSE 8080
+
+CMD uvicorn histrategy.server.api:app --host 0.0.0.0 --port ${PORT:-8080}
