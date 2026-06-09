@@ -121,7 +121,7 @@ def create_initial_world(player_faction_id: str) -> WorldState:
     clear_session_log()
 
     state = WorldState()
-    state.scenario = "190"
+    state.scenario = "207"
     state.player_faction_id = player_faction_id
 
     pfc = FACTION_CONFIGS.get(player_faction_id)
@@ -175,7 +175,7 @@ class GameEngine:
       Uses GameMaster (LLM) or offline_sim (template-based).
     """
 
-    def __init__(self, llm: LLMAdapter | None = None, scenario: str = "190",
+    def __init__(self, llm: LLMAdapter | None = None, scenario: str = "207",
                  new_game: bool = False, sim_engine: WorldSimEngine | None = None,
                  force_v1: bool = False):
         self.llm = llm
@@ -896,7 +896,7 @@ class GameEngine:
 
     def _fallback_intro(self) -> dict:
         return {
-            "narrative": "初平元年（190 AD），汉室倾颓，群雄逐鹿。",
+            "narrative": "建安十二年（207 AD），汉室倾颓，群雄逐鹿。",
             "npc_actions": ["董卓挟天子以令诸侯"],
             "state_changes": {"strength": 0, "economy": 0, "morale": 0,
                               "treasury": 0, "food": 0},
@@ -958,7 +958,7 @@ class GameEngine:
 
         info = intros.get(faction_key, intros["cao"])
         intro = (
-            f"初平元年（190 AD），董卓废少帝立献帝，暴虐无道，天下震动。\n\n"
+            f"建安十二年（207 AD），曹操已平定北方，虎视江南。\n\n"
             f"你，{info['name']}，字{info['alias']}，{info['desc']}。\n\n"
             f"你的帐下：{info['advisors']}，更有{info['generals']}听候调遣。\n"
         )

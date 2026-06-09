@@ -182,7 +182,7 @@ def _build_faction_status(engine) -> dict:
             "territories": player.territories,
             "morale": player.morale,
             "is_active": player.is_active,
-            "year": getattr(engine.world_state, "year", 190),
+            "year": getattr(engine.world_state, "year", 207),
             "season": getattr(engine.world_state, "current_season_cn", "春"),
             "turn": getattr(engine.world_state, "turn", 1),
         }

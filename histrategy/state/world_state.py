@@ -147,13 +147,13 @@ class WorldState:
     visible consequences.
     """
     # Time
-    year: int = 190
+    year: int = 207
     season_index: int = 0          # 0=spring, 1=summer, 2=autumn, 3=winter
     turn: int = 0
 
     # Player
     player_faction_id: str = ""
-    scenario: str = "190"          # scenario identifier
+    scenario: str = "207"          # scenario identifier
 
     # World
     factions: dict[str, FactionState] = field(default_factory=dict)
@@ -167,7 +167,7 @@ class WorldState:
     completed_events: list[str] = field(default_factory=list)
 
     # Historical guidance
-    next_major_historical_event: str = "190年：董卓之乱，曹操发矫诏讨董"
+    next_major_historical_event: str = "207年：刘备三顾茅庐，诸葛亮出山"
     player_deviation: float = 0.0  # how much history has diverged (0.0 = pure historical)
 
     SEASONS = ["spring", "summer", "autumn", "winter"]
@@ -263,38 +263,44 @@ class WorldState:
 
 # ─── Historical knowledge for LLM context ──────────────────
 
-HISTORICAL_TIMELINE_190 = [
-    "190年 春季：曹操发矫诏，号召天下诸侯讨伐董卓",
-    "190年 夏季：关东诸侯推袁绍为盟主，联军讨董",
-    "190年 秋季：董卓迁都长安，火烧洛阳",
-    "190年 冬季：诸侯联军内讧，孙坚攻入洛阳得传国玉玺",
-    "191年 春季：袁绍夺韩馥冀州，公孙瓒与袁绍冲突",
-    "191年 夏季：曹操击败青州黄巾军，收编降卒",
-    "191年 秋季：孙坚与刘表交战，战死于襄阳",
-    "191年 冬季：曹操在兖州站稳脚跟，招贤纳士",
-    "192年 春季：袁术与袁绍决裂，公孙瓒与刘备结盟",
-    "192年 夏季：董卓被吕布所杀，李傕郭汜反攻长安",
-    "192年 秋季：曹操收编青州兵三十万",
-    "192年 冬季：李傕郭汜把持朝政，献帝颠沛流离",
-    "193年 春季：曹操父亲曹嵩被陶谦部将所杀",
-    "193年 夏季：曹操攻打徐州，沿途屠杀百姓",
-    "193年 秋季：吕布趁虚袭取兖州，曹操回师",
-    "193年 冬季：曹操与吕布在濮阳大战",
-    "194年 春季：陶谦病逝，刘备领徐州牧",
-    "194年 夏季：长安大旱，人相食",
-    "194年 秋季：吕布败走徐州，投奔刘备",
-    "194年 冬季：孙策借兵渡江，开拓江东",
-    "195年 春季：曹操收复兖州，吕布投刘备",
-    "195年 夏季：献帝出逃长安，辗转至洛阳",
-    "195年 秋季：曹操迎献帝于许昌，挟天子以令诸侯",
-    "195年 冬季：曹操灭吕布于下邳",
+HISTORICAL_TIMELINE_207 = [
+    # ── 207: 三顾茅庐 ──
+    "207年 冬季：刘备三顾茅庐，诸葛亮出山，献《隆中对》",
+    # ── 208: 赤壁之战 ──
+    "208年 春季：曹操南征，刘表病逝，刘琮降曹",
+    "208年 夏季：刘备携民渡江，赵云长坂坡救阿斗",
+    "208年 秋季：诸葛亮使吴，孙刘联军抗曹",
+    "208年 冬季：赤壁之战大捷，曹操败走华容道",
+    # ── 209-210: 取荆州 ──
+    "209年 春季：刘备取荆南四郡（零陵、武陵、长沙、桂阳）",
+    "209年 夏季：孙刘联姻，刘备娶孙尚香",
+    "210年 冬季：周瑜病逝，刘备借荆州",
+    # ── 211-214: 入蜀 ──
+    "211年 冬季：刘备入蜀，留诸葛亮关羽守荆州",
+    "212年 夏季：刘备与刘璋决裂，庞统中箭身亡",
+    "214年 夏季：刘备攻克成都，领益州牧",
+    # ── 215-219: 汉中之战 ──
+    "215年 夏季：孙刘湘水划界，平分荆州",
+    "217年 冬季：刘备发动汉中战役",
+    "219年 春季：黄忠斩夏侯渊，刘备取汉中",
+    "219年 夏季：刘备自立为汉中王",
+    "219年 秋季：关羽北伐，水淹七军擒于禁斩庞德",
+    # ── 219-220: 荆州陷落 ──
+    "219年 冬季：吕蒙白衣渡江，关羽失荆州败走麦城被杀",
+    "220年 春季：曹操病逝于洛阳",
+    "220年 冬季：曹丕篡汉，东汉灭亡",
+    # ── 221-223: 夷陵之战与托孤 ──
+    "221年 夏季：刘备称帝，国号汉（蜀汉）",
+    "221年 秋季：刘备发动夷陵之战伐吴",
+    "222年 夏季：陆逊火烧连营七百里，刘备大败",
+    "223年 春季：刘备白帝城托孤诸葛亮，驾崩",
 ]
 
 
 def get_historical_context(year: int) -> str:
     """Get the historical timeline for a given year and around it."""
     relevant = []
-    for entry in HISTORICAL_TIMELINE_190:
+    for entry in HISTORICAL_TIMELINE_207:
         year_str = entry.split("年")[0]
         try:
             entry_year = int(year_str)

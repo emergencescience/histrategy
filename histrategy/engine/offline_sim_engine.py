@@ -57,7 +57,7 @@ class OfflineSimEngine(WorldSimEngine):
         This adapter bridges from WorldState to GameWorld and back.
         """
         if self._legacy_world is None:
-            self._legacy_world = GameWorld(scenario=state.scenario or "190")
+            self._legacy_world = GameWorld(scenario=state.scenario or "207")
 
         # Sync WorldState values to legacy world
         legacy_world = self._legacy_world

@@ -21,7 +21,7 @@ from ..state.world_state import (
     get_historical_context,
     get_recent_history,
     save_world,
-    HISTORICAL_TIMELINE_190,
+    HISTORICAL_TIMELINE_207,
 )
 from .adapter import LLMAdapter
 
@@ -317,7 +317,7 @@ class GameMaster:
             f"- 粮草：{player.food:,}\n"
             f"- 首都：{player.capital}\n"
             f"- 领地：{', '.join(player.territories)}\n\n"
-            f"历史背景：{HISTORICAL_TIMELINE_190[0]}\n\n"
+            f"历史背景：{HISTORICAL_TIMELINE_207[0]}\n\n"
             f"请以说书人/军师的口吻，生成三国志略的开局叙事（以Markdown格式书写，建议分为‘天下大势’与‘主公处境’两部分，有历史感，300-600字）。\n"
             f"生成3-5条其他NPC势力的开局动向（放在npc_reactions列表中），以及4个极具历史厚重感、切合局势的开局选择（放在choices列表中，如：【发布檄文】响应讨董，【深挖粮饷】稳固后方 等）。"
         )
@@ -356,26 +356,26 @@ class GameMaster:
         return {
             "narrative": (
                 "### 天下大势\n"
-                "初平元年（190 AD），汉室倾颓，诸侯并起。\n"
-                "董卓挟持天子，暴虐无道，天下英雄莫不愤慨。\n"
-                "曹操在陈留散尽家财，发矫诏号召天下诸侯共讨董卓。\n"
-                "袁绍据渤海起兵，被推举为讨董盟主。\n\n"
+                "建安十二年（207 AD），汉室倾颓，群雄逐鹿。\n"
+                "曹操已平定北方四州，挟天子以令诸侯，不日即将南征。\n"
+                "刘备屯兵新野，得诸葛亮辅佐，如鱼得水。\n"
+                "孙权继承父兄基业，坐断江东，国险民附。\n\n"
                 "### 主公处境\n"
-                "乱世已至，群雄并起。主公当审时度势，谋定而后动。"
+                "乱世已至，天下三分之势初现。主公当审时度势，谋定而后动。"
             ),
             "npc_actions": [
-                "董卓挟天子以令诸侯，作威作福，西凉铁骑防备关东",
-                "曹操在陈留招兵买马，发矫诏联络关东各路诸侯",
-                "孙坚于长沙整军备战，厉兵秣马，准备出兵北上",
+                "曹操在许昌整军备战，虎视荆襄，大军即将南下",
+                "刘备屯兵新野，三顾茅庐请出诸葛亮，正谋划隆中对策",
+                "孙权坐镇建业，周瑜训练水师，巩固江东六郡",
             ],
             "state_changes": {"strength": 0, "economy": 0, "morale": 0,
                               "treasury": 0, "food": 0, "npc_changes": {}},
             "events_occurred": [],
             "new_choices": [
-                "【发布檄文】联络天下英雄",
+                "【招贤纳士】广募天下英才",
                 "【屯田养兵】积蓄钱粮实力",
-                "【合纵连横】派使者联络袁绍",
-                "【招贤纳士】招募在野文武",
+                "【合纵连横】派使者联络盟友",
+                "【厉兵秣马】整军备战以待时机",
             ],
         }
 
