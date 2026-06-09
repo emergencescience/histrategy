@@ -112,14 +112,18 @@ class LocalWorldStateProjector:
       - The fog of war is real and strategic
     """
 
-    # Fuzz factor: border estimates show actual ± this percentage
-    ESTIMATE_FUZZ = 0.15  # ±15%
+    ESTIMATE_FUZZ = 0.15  # ±15% default
+    SCOUTED_FUZZ = 0.05   # ±5% when scouted
+
+    # Re-export from recon module for convenience
+    from .recon import ReconTracker
 
     def project(
         self,
         world_state: "WorldState",
         faction_id: str,
         border_territories: set[str] | None = None,
+        recon: "object | None" = None,
     ) -> LocalWorldState:
         """Project global state into a faction's local view.
 
@@ -277,7 +281,8 @@ class LocalWorldStateProjector:
         return borders
 
     def _estimate_garrison(
-        self, territory_id: str, world_state: "WorldState", viewer_faction_id: str
+        self, territory_id: str, world_state: "WorldState", viewer_faction_id: str,
+        recon: "object | None" = None,
     ) -> dict | None:
         """Estimate total troops in a border territory."""
         territory = world_state.territories.get(territory_id)
@@ -292,11 +297,32 @@ class LocalWorldStateProjector:
         if total == 0:
             return None
 
-        fuzz = int(total * self.ESTIMATE_FUZZ)
+        # Check for disinformation
+        if recon and hasattr(recon, 'get_disinformation'):
+            fake = recon.get_disinformation(viewer_faction_id, territory_id)
+            if fake is not None:
+                total = fake
+                fuzz = int(total * self.SCOUTED_FUZZ)
+                return {
+                    "territory_name": territory.name,
+                    "owner": territory.owner_id,
+                    "estimated_troops": f"{max(0, total - fuzz):,}~{total + fuzz:,}",
+                    "scouted": True,
+                    "disinformed": True,
+                }
+
+        # Use narrower fuzz if scouted
+        if recon and hasattr(recon, 'is_scouted'):
+            fuzz_pct = self.SCOUTED_FUZZ if recon.is_scouted(viewer_faction_id, territory_id) else self.ESTIMATE_FUZZ
+        else:
+            fuzz_pct = self.ESTIMATE_FUZZ
+
+        fuzz = int(total * fuzz_pct)
         return {
             "territory_name": territory.name,
             "owner": territory.owner_id,
             "estimated_troops": f"{max(0, total - fuzz):,}~{total + fuzz:,}",
+            "scouted": recon.is_scouted(viewer_faction_id, territory_id) if recon and hasattr(recon, 'is_scouted') else False,
         }
 
     def _char_role(
