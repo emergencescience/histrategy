@@ -43,6 +43,7 @@ if TYPE_CHECKING:
 # ─── v2 detection ─────────────────────────────────────────────────
 
 _V2_AVAILABLE = False
+_V2_IMPORT_ERROR = None
 try:
     from histrategy_engine import (  # noqa: F811
         CharacterEngine,
@@ -55,8 +56,8 @@ try:
         WorldState as V2WorldState,
     )
     _V2_AVAILABLE = True
-except ImportError:
-    pass
+except ImportError as _e:
+    _V2_IMPORT_ERROR = str(_e)
 
 # ─── Initial faction configurations (v1) ──────────────────────────
 

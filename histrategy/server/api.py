@@ -278,9 +278,9 @@ def create_app(llm_provider: str | None = None) -> Any:
         v2_available = False
         v2_error = None
         try:
-            import sys as _sys
-            from histrategy.engine.game import _V2_AVAILABLE as _v2a
+            from histrategy.engine.game import _V2_AVAILABLE as _v2a, _V2_IMPORT_ERROR as _v2err
             v2_available = _v2a
+            v2_error = _v2err
         except ImportError as e:
             v2_error = str(e)
         except Exception as e:
