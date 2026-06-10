@@ -194,8 +194,22 @@ def _build_faction_status(engine) -> dict:
 def create_app(llm_provider: str | None = None) -> Any:
     """Create and configure the FastAPI application."""
     global _llm_provider
+    
+    # Auto-detect LLM provider from environment if not explicitly set
     if llm_provider:
         _llm_provider = llm_provider
+    elif not _llm_provider:
+        import os as _os
+        if _os.environ.get("DEEPSEEK_API_KEY"):
+            _llm_provider = "deepseek"
+        elif _os.environ.get("OPENAI_API_KEY"):
+            _llm_provider = "openai"
+        elif _os.environ.get("TONGYI_API_KEY"):
+            _llm_provider = "tongyi"
+        elif _os.environ.get("OPENROUTER_API_KEY"):
+            _llm_provider = "openrouter"
+        elif _os.environ.get("LLM_API_KEY") or _os.environ.get("LLM_API_BASE"):
+            _llm_provider = "custom"
 
     from fastapi import FastAPI, Header
     from fastapi.middleware.cors import CORSMiddleware
@@ -242,12 +256,22 @@ def create_app(llm_provider: str | None = None) -> Any:
 
     @app.get("/api/health")
     def health():
+        # Actually probe LLM availability
+        llm_available = False
+        llm_provider_name = _llm_provider or "none"
+        if _llm_provider:
+            from histrategy.llm.adapter import LLMAdapter
+            try:
+                adapter = LLMAdapter(provider=_llm_provider)
+                llm_available = adapter.is_available
+            except Exception:
+                pass
         return {
             "status": "ok",
             "games_active": len(_games),
             "llm": {
-                "available": _llm_provider is not None,
-                "provider": _llm_provider or "none",
+                "available": llm_available,
+                "provider": llm_provider_name,
             },
         }
 
