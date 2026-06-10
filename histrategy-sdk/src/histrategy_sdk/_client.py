@@ -32,7 +32,7 @@ class ServerClient:
 
     def __init__(
         self,
-        base_url: str = "https://histrategy-emergence.railway.app",
+        base_url: str = "https://histrategy-production.up.railway.app",
         timeout: float = 120.0,
     ):
         self.base_url = base_url.rstrip("/")
