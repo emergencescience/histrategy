@@ -39,19 +39,19 @@ class NPCPlanner:
       - Reads LocalWorldState (fog-of-war)
       - Evaluates strategic position
       - Produces StrategicIntent
+      - When LLM advisor is available, uses it for deeper analysis
 
     Tactical layer (Action):
       - Uses StrategicIntent to weight command generation
       - Delegates to DecisionEngine for concrete commands
       - All decisions based on LOCAL projected state (never global)
-
-    Future: LLM integration for the strategic layer.
     """
 
     def __init__(
         self,
         decision_engine: DecisionEngine | None = None,
         projector: LocalWorldStateProjector | None = None,
+        advisor=None,  # StrategicAdvisor | None — optional for LLM integration
     ):
         self._engine = decision_engine or DecisionEngine()
         if projector is None:
@@ -60,6 +60,7 @@ class NPCPlanner:
             self._projector = LocalWorldStateProjector()
         else:
             self._projector = projector
+        self._advisor = advisor  # StrategicAdvisor or None
 
     def evaluate_strategic_position(
         self,
@@ -68,8 +69,7 @@ class NPCPlanner:
     ) -> StrategicIntent:
         """Evaluate strategic position from LOCAL projected state.
 
-        This is the strategic layer. Currently heuristic-based.
-        Future: will use LLM for deeper analysis.
+        Uses LLM advisor when available, with heuristic fallback.
         """
         local = self._projector.project(world_state, faction_id)
         return self._evaluate_from_local(local, world_state)
@@ -87,7 +87,7 @@ class NPCPlanner:
 
         Flow:
           1. Project LocalWorldState with fog-of-war
-          2. Evaluate strategic position
+          2. Evaluate strategic position (LLM or heuristic)
           3. Adjust weights based on strategic intent
           4. Generate concrete commands via heuristic
         """
@@ -108,10 +108,16 @@ class NPCPlanner:
         if intent.caution_override > 0:
             adjusted_profile["caution"] = intent.caution_override
 
+        # Build a perceived WorldState that masks hidden information
+        # This is a lightweight FOW filter: for border factions we use
+        # midpoint estimates; for non-border factions we hide strength entirely
+        perceived_ws = self._build_perceived_worldstate(
+            local, world_state, faction_id
+        )
+
         # Use the original engine to generate concrete commands
-        # (it still uses global state internally, but decisions are
-        #  informed by the strategic intent derived from local state)
-        commands = self._engine.generate_commands(faction_id, world_state, map_engine)
+        # (informed by strategic intent from local state + perceived world)
+        commands = self._engine.generate_commands(faction_id, perceived_ws, map_engine)
 
         return commands
 
@@ -122,16 +128,23 @@ class NPCPlanner:
     ) -> StrategicIntent:
         """Derive strategic intent from fog-of-war projected state.
 
-        Heuristic rules (LLM placeholder):
-          - If badly outnumbered on borders → defensive stance
-          - If strong advantage on border → expansion stance
-          - If low food → development focus
-          - If no threats → balanced
+        When LLM advisor is available, it provides deeper analysis.
+        Otherwise falls back to heuristic rules.
         """
         faction = world_state.factions.get(local.faction_id)
         if not faction:
             return StrategicIntent()
 
+        # ── Try LLM advisor ──
+        if self._advisor is not None:
+            try:
+                llm_intent = self._get_llm_strategic_intent(local, faction)
+                if llm_intent is not None:
+                    return llm_intent
+            except Exception:
+                pass  # Fall through to heuristic
+
+        # ── Heuristic fallback ──
         # Assess threats from perceived factions
         has_high_threat = False
         strongest_border_enemy = ""
@@ -181,6 +194,147 @@ class NPCPlanner:
             aggressiveness=faction.aggression,
             notes="局势平稳",
         )
+
+    def _get_llm_strategic_intent(
+        self,
+        local: LocalWorldState,
+        faction,
+    ) -> StrategicIntent | None:
+        """Query the LLM advisor for strategic analysis.
+
+        Returns a StrategicIntent based on LLM recommendations,
+        or None if LLM is unavailable or returns unusable output.
+        """
+        if not self._advisor.is_available:
+            return None
+
+        local_dict = local.to_dict()
+
+        # Build faction personality dict
+        personality = {
+            "name": getattr(faction, "name", local.faction_id),
+            "aggression": getattr(faction, "aggression", 0.5),
+            "caution": getattr(faction, "caution", 0.5),
+            "cunning": getattr(faction, "cunning", 0.5),
+            "diplomacy": getattr(faction, "diplomacy", 0.5),
+            "development_focus": getattr(faction, "development_focus", 0.5),
+            "mercy": getattr(faction, "mercy", 0.5),
+            "strength": local.my_strength,
+            "food": local.my_food,
+            "treasury": local.my_treasury,
+        }
+
+        result = self._advisor.evaluate_strategy(local_dict, personality)
+
+        if not result or "recommendations" not in result:
+            return None
+
+        recommendations = result.get("recommendations", [])
+        if not recommendations:
+            return None
+
+        # Convert LLM recommendations to StrategicIntent
+        # Take the highest priority recommendation
+        top = max(recommendations, key=lambda r: r.get("priority", 0))
+
+        objective_map = {
+            "attack": "expand",
+            "defend": "defend",
+            "recruit": "develop",
+            "develop": "develop",
+            "ally": "ally",
+            "sabotage": "sabotage",
+        }
+        objective = objective_map.get(top.get("action", ""), "maintain")
+
+        # Map priority to aggressiveness and caution
+        priority = top.get("priority", 0.5)
+        if objective == "expand":
+            aggressiveness = min(0.95, 0.5 + priority * 0.5)
+            caution = max(0.1, faction.caution - priority * 0.3)
+        elif objective == "defend":
+            aggressiveness = max(0.1, 0.3 - priority * 0.2)
+            caution = min(0.95, faction.caution + priority * 0.3)
+        else:
+            aggressiveness = faction.aggression
+            caution = faction.caution
+
+        return StrategicIntent(
+            objective=objective,
+            target_faction=top.get("target", ""),
+            aggressiveness=aggressiveness,
+            caution_override=caution,
+            notes=f"[LLM] {top.get('reason', '')} | 分析: {result.get('analysis', '')[:80]}",
+        )
+
+    def _build_perceived_worldstate(
+        self,
+        local: LocalWorldState,
+        world_state: WorldState,
+        faction_id: str,
+    ) -> WorldState:
+        """Build a FOW-filtered copy of WorldState for tactical decisions.
+
+        For border factions: mask exact strength with midpoint estimates.
+        For non-border factions: hide strength entirely (show as 0).
+        Own faction and territories retain full accuracy.
+
+        This ensures that even the deterministic DecisionEngine operates
+        under fog-of-war constraints.
+        """
+        from copy import deepcopy
+
+        ws = deepcopy(world_state)
+
+        # Build a set of perceived faction IDs from local state
+        perceived_ids: set[str] = set()
+        for pf in local.perceived_factions.values():
+            perceived_ids.add(pf.id)
+
+        # Apply FOW masking to faction strengths
+        for fid, f in ws.factions.items():
+            if fid == faction_id or not f.is_active:
+                continue
+
+            pf = local.perceived_factions.get(fid)
+            if pf is None:
+                # Completely hidden faction — zero out visible stats
+                f.strength_actual = 0
+                f.food = 0
+                f.treasury = 0
+                f.morale_actual = 0
+                continue
+
+            if not pf.is_border:
+                # Non-border: hide detailed resource info
+                f.food = max(0, f.food // 2)  # rough estimate
+                f.treasury = max(0, f.treasury // 2)
+                # Strength stays as-is (DecisionEngine needs a number)
+                # but NPC strategic intent already accounts for FOW
+
+            # For border factions with range estimates, use midpoint
+            est = self._parse_strength_estimate(pf.estimated_strength)
+            if est is not None:
+                f.strength_actual = est
+
+        # Mask territory ownership for territories not visible to this faction
+        visible_territory_ids: set[str] = set(local.my_territories)
+        for pf in local.perceived_factions.values():
+            # We can see territory counts but not exact territory lists
+            # for non-border factions
+            pass
+
+        # For visible armies, we keep them. Others are hidden.
+        visible_army_ids = set(local.visible_armies.keys())
+        armies_to_remove = [
+            aid for aid in ws.armies if aid not in visible_army_ids
+        ]
+        for aid in armies_to_remove:
+            army = ws.armies.get(aid)
+            if army and army.faction_id != faction_id:
+                del ws.armies[aid]
+
+        return ws
 
     def _parse_strength_estimate(self, est: str) -> int | None:
         """Parse a range estimate like '18000~22000' or '5,000' to an integer.

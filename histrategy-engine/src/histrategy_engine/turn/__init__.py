@@ -20,6 +20,7 @@ from ..world import (
 
 if TYPE_CHECKING:
     from ..ai import DecisionEngine
+    from ..ai.npc_planner import NPCPlanner
     from ..character import CharacterEngine
     from ..domestic import DomesticEngine
     from ..map import MapEngine
@@ -36,12 +37,14 @@ class TurnController:
         domestic_engine: DomesticEngine,
         military_engine: MilitaryEngine,
         decision_engine: DecisionEngine,
+        npc_planner: NPCPlanner | None = None,
     ):
         self.map_engine = map_engine
         self.char_engine = char_engine
         self.domestic_engine = domestic_engine
         self.military_engine = military_engine
         self.decision_engine = decision_engine
+        self.npc_planner = npc_planner
 
     def execute_turn(
         self,
@@ -140,7 +143,15 @@ class TurnController:
                 continue
             if fid == world_state.player_faction_id:
                 continue
-            npc_commands = self.decision_engine.generate_commands(fid, world_state, self.map_engine)
+            # Use NPCPlanner (FOW-aware) when available, fallback to raw DecisionEngine
+            if self.npc_planner is not None:
+                npc_commands = self.npc_planner.generate_commands_local(
+                    fid, world_state, self.map_engine
+                )
+            else:
+                npc_commands = self.decision_engine.generate_commands(
+                    fid, world_state, self.map_engine
+                )
             all_commands.extend(npc_commands)
 
         # ── Step 4: Command validation ──

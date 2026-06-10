@@ -249,12 +249,34 @@ class GameEngine:
         self.decision_engine = DecisionEngine()
 
         # Turn controller orchestrates the 5 core engines
+        # NPC Planner for FOW-aware NPC AI (optional LLM-based strategic advisor)
+        npc_planner = None
+        try:
+            from histrategy_engine.ai.npc_planner import NPCPlanner
+
+            advisor = None
+            if self.llm and self.llm.is_available:
+                try:
+                    from ..llm.advisor import StrategicAdvisor
+
+                    advisor = StrategicAdvisor(self.llm)
+                except Exception:
+                    pass
+
+            npc_planner = NPCPlanner(
+                decision_engine=self.decision_engine,
+                advisor=advisor,
+            )
+        except Exception:
+            pass
+
         self.turn_controller = TurnController(
             map_engine=self.map_engine,
             char_engine=self.char_engine,
             domestic_engine=self.domestic_engine,
             military_engine=self.military_engine,
             decision_engine=self.decision_engine,
+            npc_planner=npc_planner,
         )
 
         # History engine + RAG
@@ -485,12 +507,34 @@ class GameEngine:
         engine.military_engine = MilitaryEngine()
         engine.decision_engine = DecisionEngine()
 
+        # NPC Planner for FOW-aware NPC AI (optional LLM-based strategic advisor)
+        npc_planner = None
+        try:
+            from histrategy_engine.ai.npc_planner import NPCPlanner
+
+            advisor = None
+            if llm and llm.is_available:
+                try:
+                    from ..llm.advisor import StrategicAdvisor
+
+                    advisor = StrategicAdvisor(llm)
+                except Exception:
+                    pass
+
+            npc_planner = NPCPlanner(
+                decision_engine=engine.decision_engine,
+                advisor=advisor,
+            )
+        except Exception:
+            pass
+
         engine.turn_controller = TurnController(
             map_engine=engine.map_engine,
             char_engine=engine.char_engine,
             domestic_engine=engine.domestic_engine,
             military_engine=engine.military_engine,
             decision_engine=engine.decision_engine,
+            npc_planner=npc_planner,
         )
 
         try:
