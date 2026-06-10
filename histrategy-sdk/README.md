@@ -2,78 +2,74 @@
 
 Python SDK for [三國志略 (Histrategy)](https://emergence.science/play/histrategy) — AI-powered Three Kingdoms strategy game.
 
+**Fully file-based. No network, no server, no in-memory state.**
+Every turn reads from and writes to `~/.histrategy/rooms/<name>/` on disk.
+Designed for AI agents (OpenClaw, Hermes, Codex) that reset context daily.
+
 ```bash
 pip install histrategy-sdk
 ```
 
 ## Quick Start
 
-### Server Client (HTTP)
-
 ```python
-from histrategy_sdk import ServerClient
+from histrategy_sdk import Room
 
-client = ServerClient()
+# Create a new game
+room = Room.create("my-campaign", faction="shu")
 
-# Create a new game as Shu Han (刘备)
-game = client.create_game(faction="shu")
-print(game["narrative"])
-# → "建安十二年冬，刘备屯兵新野，寄居刘表麾下..."
-
-# Get strategic suggestions
-plan = client.get_plan(game["game_id"])
-for s in plan["suggestions"]:
-    print(f"  • {s}")
-
-# Execute a command
-result = client.execute_command(game["game_id"], "联吴抗曹，攻打襄阳")
+# Play a turn — reads state from disk, executes, writes back
+result = room.play("联吴抗曹，攻打襄阳")
 print(result["narrative"])
-print(f"Token usage: {result['token_usage']}")
+
+# Agent context resets overnight? No problem:
+room2 = Room.load("my-campaign")
+result2 = room2.play("休养生息，发展内政")
+print(f"Year {result2['year']}, {result2['season']}, Turn {result2['turn']}")
+print(f"⚔️{result2['faction_status']['strength']} 🍚{result2['faction_status']['food']}")
 ```
 
-### Direct Engine (In-Process)
+## File Layout
 
-```bash
-pip install histrategy-sdk[engine]
+```
+~/.histrategy/rooms/
+  my-campaign/
+    world_state.json    # Full game state (engine.to_dict())
+    turns.jsonl          # Append-only turn history
+    metadata.json        # Room metadata
+  multiplayer/shu/
+    world_state.json
+    turns.jsonl
+    metadata.json
+  multiplayer/cao/
+    ...
+  multiplayer/wu/
+    ...
 ```
 
-```python
-from histrategy_sdk import DirectEngine
+## API
 
-engine = DirectEngine(faction="cao")  # Play as 曹操
-intro = engine.get_intro()
-result = engine.execute("南征刘备，先取新野")
-
-# Save game state
-save = engine.to_dict()
-
-# Restore later
-engine2 = DirectEngine.from_dict(save)
-```
-
-## API Reference
-
-### `ServerClient`
+### `Room`
 
 | Method | Description |
 |--------|-------------|
-| `create_game(faction, scenario)` | Create new game → `GameIntro` |
-| `get_plan(game_id)` | Get advisor suggestions → `PlanData` |
-| `execute_command(game_id, decision)` | Process turn → `TurnResult` |
-| `get_status(game_id)` | Get faction resources → `FactionStatus` |
-| `restore_game(world_state)` | Restore from save → `RestoreResult` |
-| `health()` | Check server status |
+| `Room.create(name, faction)` | Create new room + save initial state |
+| `Room.load(name)` | Load room from disk |
+| `room.play(decision)` | Execute turn → auto-save to disk |
+| `room.plan()` | Get advisor suggestions |
+| `room.intro()` | Get intro scene |
+| `room.status()` | Get current faction resources |
+| `room.get_turn_history()` | Read all past turns from disk |
 
 ### `DirectEngine`
 
+Low-level in-process engine (used internally by Room):
+
 | Method | Description |
 |--------|-------------|
-| `DirectEngine(faction, llm_api_key)` | Create new in-process engine |
-| `get_intro()` | Get intro scene → `GameIntro` |
-| `get_plan()` | Get suggestions → `PlanData` |
-| `execute(decision)` | Process turn → `TurnResult` |
-| `get_status()` | Get faction status → `FactionStatus` |
-| `to_dict()` | Serialize game state |
+| `DirectEngine(faction)` | Create new engine |
+| `engine.execute(decision)` | Process turn |
+| `engine.to_dict()` | Serialize state |
 | `DirectEngine.from_dict(data)` | Restore from saved state |
 
 ### `TurnResult`
@@ -84,9 +80,33 @@ engine2 = DirectEngine.from_dict(save)
 | `aftermath` | `str` | Resource changes summary |
 | `state_changes` | `dict` | Numerical state deltas |
 | `new_suggestions` | `list[str]` | Next-turn strategy suggestions |
-| `token_usage` | `TokenUsage` | LLM token consumption |
-| `game_over` | `dict \| None` | Victory/defeat message |
-| `faction_status` | `FactionStatus` | Current resources and territories |
+| `events_occurred` | `list[str]` | Character events |
+| `npc_actions` | `list[str]` | NPC faction actions |
+| `game_over` | `dict \| None` | Victory/defeat |
+| `faction_status` | `FactionStatus` | Resources and territories |
+| `token_usage` | `TokenUsage` | LLM tokens consumed |
+
+## Multiplayer
+
+One room per faction. The world_state.json contains ALL factions,
+so any player can load the state and execute their turn:
+
+```python
+# Three players, three rooms, shared game world
+shu = Room.create("three-kingdoms/shu", faction="shu")
+cao = Room.create("three-kingdoms/cao", faction="cao")
+wu  = Room.create("three-kingdoms/wu",  faction="wu")
+
+# Player 1 (Shu)
+r = shu.play("联吴抗曹")
+# → saves to three-kingdoms/shu/world_state.json
+
+# Player 2 (Cao) — loads the world state that includes Shu's move
+# (Note: each room has its own world_state.json copy;
+#  for true shared state, all rooms should point to the same file
+#  or the orchestrator should sync after each turn)
+r = cao.play("南征刘备")
+```
 
 ## License
 

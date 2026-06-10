@@ -1,38 +1,34 @@
 """histrategy-sdk — Python SDK for 三國志略 (Histrategy).
 
-三國志略 is an AI-powered Three Kingdoms strategy game where the LLM acts
-as the game engine — generating advisor speeches, strategic suggestions,
-consequences, and NPC actions based on actual world state.
+三國志略 is an AI-powered Three Kingdoms strategy game engine.
+The SDK is purely file-based: every turn reads from and writes to
+~/.histrategy/rooms/<room>/ on disk. No network, no server, no
+in-memory state — designed for AI agents that reset context daily.
 
 Quick Start
 -----------
 
-**Option A: Remote Server (lightweight, no engine deps)**
+    from histrategy_sdk import Room
 
-    from histrategy_sdk import ServerClient
+    # Create a new game room
+    room = Room.create("my-game", faction="shu")
 
-    client = ServerClient()
-    game = client.create_game(faction="shu")
-    result = client.execute_command(game["game_id"], "联吴抗曹，攻打襄阳")
-    print(result["narrative"])
+    # Play a turn (reads state from disk, executes, writes back)
+    result = room.play("联吴抗曹，攻打襄阳")
+    print(result.narrative)
 
-**Option B: Direct Engine (in-process, needs histrategy-engine)**
+    # Come back tomorrow — state survives agent context reset
+    room2 = Room.load("my-game")
+    result2 = room2.play("休养生息")
 
-    pip install histrategy-sdk[engine]
-
-    from histrategy_sdk import DirectEngine
-
-    engine = DirectEngine(faction="shu")
-    intro = engine.get_intro()
-    result = engine.execute("联吴抗曹")
-    print(result["narrative"])
-
-    # Save and restore
-    data = engine.to_dict()
-    engine2 = DirectEngine.from_dict(data)
+    # Multiplayer: each faction has its own room
+    room_shu = Room.create("three-kingdoms/shu", faction="shu")
+    room_cao = Room.create("three-kingdoms/cao", faction="cao")
+    room_wu  = Room.create("three-kingdoms/wu", faction="wu")
 """
 
-from ._client import ServerClient
+from ._room import Room
+from ._engine import DirectEngine
 from .exceptions import (
     APIError,
     ConnectionError,
@@ -50,16 +46,9 @@ from .types import (
     TurnResult,
 )
 
-# DirectEngine is optional — import fails gracefully if histrategy not installed
-try:
-    from ._engine import DirectEngine
-except ImportError:
-    DirectEngine = None  # type: ignore[assignment]
-
 __all__ = [
-    # Client
-    "ServerClient",
-    # Engine (optional)
+    # Core API
+    "Room",
     "DirectEngine",
     # Types
     "FactionStatus",
@@ -76,4 +65,4 @@ __all__ = [
     "EngineNotAvailableError",
     "TurnExecutionError",
 ]
-__version__ = "0.1.0"
+__version__ = "0.2.0"
