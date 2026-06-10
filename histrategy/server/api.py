@@ -85,6 +85,12 @@ class FactionStatus(BaseModel):
     is_active: bool
 
 
+class RestoreGameRequest(BaseModel):
+    world_state: dict  # Full world_state dict from orchestrator save
+    session_id: str | None = None
+    llm_api_key: str | None = None
+
+
 # ─── Engine Pool ─────────────────────────────────────────────────
 
 # In-memory game pool: {game_id: GameEngine}
@@ -326,8 +332,8 @@ def create_app(llm_provider: str | None = None) -> Any:
             "faction_status": status,
         }
 
-    class RestoreGameRequest(BaseModel):
-        world_state: dict  # Full world_state dict from orchestrator save
+    class RestoreGameRequest(BaseModel):  # noqa: F811 — redefined for use inside create_app closure
+        world_state: dict
         session_id: str | None = None
         llm_api_key: str | None = None
 
@@ -339,7 +345,14 @@ def create_app(llm_provider: str | None = None) -> Any:
         Used when resuming a game from the orchestrator. The frontend passes
         the world_state from GET /sessions/{id} and gets back a game_id for
         subsequent commands.
+
+        On restore failure, returns a partial state with restore_error for
+        the frontend to handle gracefully (e.g. show error + offer new game).
         """
+        import logging
+        import traceback as _tb
+        _logger = logging.getLogger(__name__)
+
         from histrategy.engine.game import GameEngine
         from histrategy.llm.adapter import LLMAdapter
         import os as _os
@@ -352,11 +365,22 @@ def create_app(llm_provider: str | None = None) -> Any:
         except Exception:
             llm = None
 
+        restore_error = None
         try:
             engine = GameEngine.from_dict(req.world_state, llm=llm)
-        except Exception:
-            # Fallback: create new game from faction in save data
+        except Exception as e:
+            _logger.error("Game restore failed: %s\n%s", e, _tb.format_exc())
+            # Try to extract at least faction info for a new game fallback
             faction = req.world_state.get("player_faction_id", "shu")
+            saved_turn = req.world_state.get("turn_number", 1)
+            saved_year = req.world_state.get("year", 207)
+            restore_error = {
+                "message": f"Save restore failed: {str(e)[:200]}",
+                "faction": faction,
+                "saved_turn": saved_turn,
+                "saved_year": saved_year,
+            }
+            # Create a new game with the same faction so player can continue
             game_id, engine = _get_or_create_engine(faction=faction, new=True, llm_api_key=req.llm_api_key)
             if req.session_id:
                 jwt_token = None
@@ -369,6 +393,7 @@ def create_app(llm_provider: str | None = None) -> Any:
                 "faction": faction,
                 "faction_status": status,
                 "restored": False,
+                "restore_error": restore_error,
             }
 
         game_id = uuid.uuid4().hex[:12]

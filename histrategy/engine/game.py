@@ -285,35 +285,58 @@ class GameEngine:
                        "autumn": Season.AUTUMN, "winter": Season.WINTER}
         ws.season = season_map.get(season_val, Season.WINTER)
 
-        # ── Restore factions ──
+        # ── Restore factions (including new ones from gameplay) ──
         saved_factions = data.get("factions", {})
+        from histrategy_engine.world import FactionState
+
         for fid, sf in saved_factions.items():
             if fid in ws.factions:
                 f = ws.factions[fid]
-                f.name = sf.get("name", f.name)
-                f.ruler_id = sf.get("ruler_id", f.ruler_id)
-                f.capital = sf.get("capital", f.capital)
-                f.territories = list(sf.get("territories", f.territories))
-                f.is_active = sf.get("is_active", f.is_active)
-                f.prestige = sf.get("prestige", f.prestige)
-                f.legitimacy = sf.get("legitimacy", f.legitimacy)
-                f.strength_actual = sf.get("strength_actual", f.strength_actual)
-                f.economy_actual = sf.get("economy_actual", f.economy_actual)
-                f.morale_actual = sf.get("morale_actual", f.morale_actual)
-                f.treasury = sf.get("treasury", f.treasury)
-                f.food = sf.get("food", f.food)
-                f.tax_rate = sf.get("tax_rate", f.tax_rate)
-                f.relations = sf.get("relations", f.relations)
-                if "tech_levels" in sf and hasattr(f, "tech_levels"):
-                    f.tech_levels = sf["tech_levels"]
-                if "allies" in sf and hasattr(f, "allies"):
-                    f.allies = sf["allies"]
-                if "enemies" in sf and hasattr(f, "enemies"):
-                    f.enemies = sf["enemies"]
-                for attr in ("aggression", "cunning", "caution", "diplomacy",
-                             "development_focus", "mercy"):
-                    if attr in sf and hasattr(f, attr):
-                        setattr(f, attr, sf[attr])
+            else:
+                # New faction created during gameplay (e.g. rebellion, splinter)
+                # Create a minimal faction and let saved data fill it in
+                f_obj = FactionState(
+                    id=fid,
+                    name=sf.get("name", fid),
+                    ruler_id=sf.get("ruler_id", ""),
+                )
+                ws.factions[fid] = f_obj
+                f = ws.factions[fid]
+
+            f.name = sf.get("name", f.name)
+            f.ruler_id = sf.get("ruler_id", f.ruler_id)
+            f.capital = sf.get("capital", f.capital)
+            f.territories = list(sf.get("territories", f.territories))
+            f.is_active = sf.get("is_active", f.is_active)
+            f.prestige = sf.get("prestige", f.prestige)
+            f.legitimacy = sf.get("legitimacy", f.legitimacy)
+            f.strength_actual = sf.get("strength_actual", f.strength_actual)
+            f.economy_actual = sf.get("economy_actual", f.economy_actual)
+            f.morale_actual = sf.get("morale_actual", f.morale_actual)
+            f.treasury = sf.get("treasury", f.treasury)
+            f.food = sf.get("food", f.food)
+            f.tax_rate = sf.get("tax_rate", f.tax_rate)
+            f.relations = sf.get("relations", f.relations)
+            f.allies = list(sf.get("allies", f.allies))
+            f.enemies = list(sf.get("enemies", f.enemies))
+            if "tech_levels" in sf:
+                f.tech_levels = sf["tech_levels"]
+            # Restore NPC personality traits
+            for attr in ("aggression", "cunning", "caution", "diplomacy",
+                         "development_focus", "mercy"):
+                if attr in sf:
+                    setattr(f, attr, sf[attr])
+            # Restore estimated stats (seen by other factions via intel)
+            f.strength_estimated = sf.get("strength_estimated", f.strength_estimated)
+            f.economy_estimated = sf.get("economy_estimated", f.economy_estimated)
+            f.morale_estimated = sf.get("morale_estimated", f.morale_estimated)
+            # Restore espionage state
+            if "spy_network" in sf:
+                f.spy_network = sf["spy_network"]
+            if "intel_level" in sf:
+                f.intel_level = sf["intel_level"]
+            if "active_plans" in sf:
+                f.active_plans = list(sf["active_plans"])
 
         # ── Restore territory ownership ──
         territory_owners = data.get("territory_owners", {})
@@ -471,13 +494,19 @@ class GameEngine:
                     "strength_actual": f.strength_actual,
                     "economy_actual": f.economy_actual,
                     "morale_actual": f.morale_actual,
+                    "strength_estimated": f.strength_estimated,
+                    "economy_estimated": f.economy_estimated,
+                    "morale_estimated": f.morale_estimated,
                     "treasury": f.treasury,
                     "food": f.food,
                     "tax_rate": f.tax_rate,
                     "relations": dict(f.relations) if f.relations else {},
-                    "tech_levels": dict(f.tech_levels) if hasattr(f, "tech_levels") and f.tech_levels else {},
-                    "allies": list(f.allies) if hasattr(f, "allies") and f.allies else [],
-                    "enemies": list(f.enemies) if hasattr(f, "enemies") and f.enemies else [],
+                    "tech_levels": dict(f.tech_levels) if f.tech_levels else {},
+                    "allies": list(f.allies) if f.allies else [],
+                    "enemies": list(f.enemies) if f.enemies else [],
+                    "spy_network": dict(f.spy_network) if f.spy_network else {},
+                    "intel_level": getattr(f, "intel_level", 50),
+                    "active_plans": list(f.active_plans) if f.active_plans else [],
                     "aggression": getattr(f, "aggression", 0.5),
                     "cunning": getattr(f, "cunning", 0.5),
                     "caution": getattr(f, "caution", 0.5),
