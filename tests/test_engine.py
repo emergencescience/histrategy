@@ -112,26 +112,24 @@ class TestFactionSpecificity:
         assert "荀彧" in intro["narrative"]
         assert "夏侯惇" in intro["narrative"]
 
-    def test_yuan_shao_intro_references_yuan(self):
-        """Yuan Shao intro mentions his own advisors, not Cao's."""
+    def test_yuan_shao_intro_fallback(self):
+        """207 scenario: Yuan Shao (died 202) not supported — gets fallback intro."""
         from histrategy.engine.game import GameEngine
         engine = GameEngine()
         engine.set_player_faction("yuan_shao")
         intro = engine._offline_intro()
-        assert "袁绍" in intro["narrative"]
-        assert "田丰" in intro["narrative"]
-        assert "颜良" in intro["narrative"]
-        assert "曹操" not in intro["narrative"].split("你，")[1] if "你，" in intro["narrative"] else True
+        # Fallback should not crash and should contain generic narrative
+        assert intro["narrative"], "fallback intro should have narrative"
+        assert len(intro["new_choices"]) == 4, "fallback intro should have 4 choices"
 
-    def test_yuan_shao_first_choices(self):
-        """Yuan Shao should not see '联络袁绍' as an option."""
+    def test_yuan_shao_choices_no_self_reference(self):
+        """207 scenario: Yuan Shao unsupported, choices should not reference self."""
         from histrategy.engine.game import GameEngine
         engine = GameEngine()
         engine.set_player_faction("yuan_shao")
         intro = engine._offline_intro()
         choices_text = " ".join(intro["new_choices"])
-        assert "联络袁绍" not in choices_text
-        assert "盟主" in choices_text
+        assert "联络袁绍" not in choices_text, "unsupported faction should not reference itself"
 
     def test_liu_bei_intro_references_guan_yu(self):
         """Liu Bei intro mentions Guan Yu and Zhang Fei."""
