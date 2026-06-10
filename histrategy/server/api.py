@@ -326,6 +326,75 @@ def create_app(llm_provider: str | None = None) -> Any:
             "faction_status": status,
         }
 
+    class RestoreGameRequest(BaseModel):
+        world_state: dict  # Full world_state dict from orchestrator save
+        session_id: str | None = None
+        llm_api_key: str | None = None
+
+    @app.post("/api/games/restore")
+    def restore_game(req: RestoreGameRequest,
+                     authorization: str | None = Header(default=None)):
+        """Restore a game from a saved world_state dict.
+
+        Used when resuming a game from the orchestrator. The frontend passes
+        the world_state from GET /sessions/{id} and gets back a game_id for
+        subsequent commands.
+        """
+        from histrategy.engine.game import GameEngine
+        from histrategy.llm.adapter import LLMAdapter
+        import os as _os
+
+        if req.llm_api_key:
+            _os.environ["DEEPSEEK_API_KEY"] = req.llm_api_key
+
+        try:
+            llm = LLMAdapter(provider=_llm_provider or None)
+        except Exception:
+            llm = None
+
+        try:
+            engine = GameEngine.from_dict(req.world_state, llm=llm)
+        except Exception:
+            # Fallback: create new game from faction in save data
+            faction = req.world_state.get("player_faction_id", "shu")
+            game_id, engine = _get_or_create_engine(faction=faction, new=True, llm_api_key=req.llm_api_key)
+            if req.session_id:
+                jwt_token = None
+                if authorization and authorization.startswith("Bearer "):
+                    jwt_token = authorization[len("Bearer "):]
+                _game_meta[game_id] = {"session_id": req.session_id, "jwt_token": jwt_token}
+            status = _build_faction_status(engine)
+            return {
+                "game_id": game_id,
+                "faction": faction,
+                "faction_status": status,
+                "restored": False,
+            }
+
+        game_id = uuid.uuid4().hex[:12]
+        _games[game_id] = engine
+
+        if req.session_id:
+            jwt_token = None
+            if authorization and authorization.startswith("Bearer "):
+                jwt_token = authorization[len("Bearer "):]
+            _game_meta[game_id] = {"session_id": req.session_id, "jwt_token": jwt_token}
+
+        status = _build_faction_status(engine)
+
+        if req.llm_api_key:
+            _os.environ.pop("DEEPSEEK_API_KEY", None)
+
+        return {
+            "game_id": game_id,
+            "scenario": engine.scenario,
+            "faction": engine.world_state_v2.player_faction_id,
+            "faction_status": status,
+            "restored": True,
+            "restored_turn": status.get("turn", 1),
+            "restored_year": status.get("year", 207),
+        }
+
     @app.get("/api/games/{game_id}")
     def get_game(game_id: str):
         """Get current game state."""
@@ -400,7 +469,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             "turn": status.get("turn", 1),
         }
 
-        # ── Persist turn to orchestrator (best-effort, non-blocking) ──
+        # ── Persist turn AND world_state to orchestrator (best-effort) ──
         try:
             meta = _game_meta.get(game_id, {})
             session_id = meta.get("session_id", game_id)
@@ -409,7 +478,7 @@ def create_app(llm_provider: str | None = None) -> Any:
                 jwt_token = authorization[len("Bearer "):]
 
             if jwt_token and session_id:
-                from histrategy.server.persistence import append_turn as persist_turn
+                from histrategy.server.persistence import append_turn as persist_turn, save_game as persist_save
                 import os as _os
                 orchestrator_url = _os.environ.get("ORCHESTRATOR_URL", "")
                 if orchestrator_url:
@@ -434,6 +503,12 @@ def create_app(llm_provider: str | None = None) -> Any:
                         npc_tokens=usage.get("npc_tokens"),
                         sim_tokens=usage.get("sim_tokens"),
                     )
+                    # Also save world state for resume
+                    try:
+                        world_dict = engine.to_dict()
+                        persist_save(jwt_token, session_id, 0, world_dict, status.get("turn", 1), status.get("year", 207), status.get("season", "春"))
+                    except Exception:
+                        pass
         except Exception:
             pass  # Non-blocking — don't fail the game on persistence error
 

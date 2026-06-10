@@ -266,14 +266,174 @@ class GameEngine:
             return None
 
     def _rebuild_from_save(self, data: dict) -> V2WorldState:
-        """Rebuild a V2WorldState from saved JSON data."""
+        """Rebuild a V2WorldState from saved JSON data with full state restoration."""
         from .loader import build_world_state
+
         faction_id = data.get("player_faction_id", "shu")
         scenario_id = data.get("scenario", "207")
-        return build_world_state(faction_id, scenario_id, self._knowledge_path)
+
+        # Build fresh base world state from scenario data
+        ws = build_world_state(faction_id, scenario_id, self._knowledge_path)
+
+        # ── Restore time ──
+        ws.year = data.get("year", ws.year)
+        ws.turn_number = data.get("turn_number", ws.turn_number)
+        ws.player_deviation = data.get("player_deviation", 0.0)
+        season_val = data.get("season", "winter")
+        from histrategy_engine.world import Season
+        season_map = {"spring": Season.SPRING, "summer": Season.SUMMER,
+                       "autumn": Season.AUTUMN, "winter": Season.WINTER}
+        ws.season = season_map.get(season_val, Season.WINTER)
+
+        # ── Restore factions ──
+        saved_factions = data.get("factions", {})
+        for fid, sf in saved_factions.items():
+            if fid in ws.factions:
+                f = ws.factions[fid]
+                f.name = sf.get("name", f.name)
+                f.ruler_id = sf.get("ruler_id", f.ruler_id)
+                f.capital = sf.get("capital", f.capital)
+                f.territories = list(sf.get("territories", f.territories))
+                f.is_active = sf.get("is_active", f.is_active)
+                f.prestige = sf.get("prestige", f.prestige)
+                f.legitimacy = sf.get("legitimacy", f.legitimacy)
+                f.strength_actual = sf.get("strength_actual", f.strength_actual)
+                f.economy_actual = sf.get("economy_actual", f.economy_actual)
+                f.morale_actual = sf.get("morale_actual", f.morale_actual)
+                f.treasury = sf.get("treasury", f.treasury)
+                f.food = sf.get("food", f.food)
+                f.tax_rate = sf.get("tax_rate", f.tax_rate)
+                f.relations = sf.get("relations", f.relations)
+                if "tech_levels" in sf and hasattr(f, "tech_levels"):
+                    f.tech_levels = sf["tech_levels"]
+                if "allies" in sf and hasattr(f, "allies"):
+                    f.allies = sf["allies"]
+                if "enemies" in sf and hasattr(f, "enemies"):
+                    f.enemies = sf["enemies"]
+                for attr in ("aggression", "cunning", "caution", "diplomacy",
+                             "development_focus", "mercy"):
+                    if attr in sf and hasattr(f, attr):
+                        setattr(f, attr, sf[attr])
+
+        # ── Restore territory ownership ──
+        territory_owners = data.get("territory_owners", {})
+        for tid, owner_id in territory_owners.items():
+            if tid in ws.territories:
+                ws.territories[tid].owner_id = owner_id
+
+        # ── Restore character overrides ──
+        char_overrides = data.get("character_overrides", {})
+        for cid, co in char_overrides.items():
+            if cid in ws.characters:
+                c = ws.characters[cid]
+                c.faction_id = co.get("faction_id", c.faction_id)
+                c.location = co.get("location", c.location)
+                c.loyalty = co.get("loyalty", c.loyalty)
+                if "is_alive" in co and hasattr(c, "is_alive"):
+                    c.is_alive = co["is_alive"]
+
+        # ── Restore armies ──
+        saved_armies = data.get("armies", {})
+        from histrategy_engine.world import Army, UnitType
+        ws.armies = {}
+        for aid, sa in saved_armies.items():
+            units = {}
+            for unit_str, cnt in sa.get("units", {}).items():
+                try:
+                    ut = UnitType(unit_str)
+                    units[ut] = cnt
+                except ValueError:
+                    pass
+            ws.armies[aid] = Army(
+                id=aid,
+                faction_id=sa.get("faction_id", ""),
+                location=sa.get("location", ""),
+                commander_id=sa.get("commander_id", ""),
+                units=units,
+                morale=sa.get("morale", 80),
+                supply=sa.get("supply", 30),
+                training=sa.get("training", 1.0),
+            )
+
+        # ── Restore event history ──
+        ws.completed_events = set(data.get("completed_events", []))
+        ws.averted_events = set(data.get("averted_events", []))
+
+        # ── Restore history engine state ──
+        if self.history_engine:
+            for evt_id in data.get("history_triggered", []):
+                self.history_engine._triggered_events.add(evt_id)
+            for evt_id, reason in data.get("history_averted", {}).items():
+                if evt_id not in self.history_engine._averted_events:
+                    self.history_engine._averted_events[evt_id] = reason
+            self.history_engine._blocked_downstream = set(data.get("history_blocked", []))
+
+        return ws
+
+    @classmethod
+    def from_dict(cls, data: dict, llm=None) -> "GameEngine":
+        """Create a GameEngine from a saved world state dict.
+
+        Builds the full v2 engine stack and restores the world state from the dict.
+        Use this to resume a game from orchestrator-stored save data.
+        """
+        import os as _os
+        engine = cls.__new__(cls)
+        engine.llm = llm
+        engine.scenario = data.get("scenario", "207")
+
+        # Force v2 since that's what we serialize
+        from .loader import resolve_knowledge_path, build_world_state
+        engine._use_v2 = True
+
+        knowledge_path = resolve_knowledge_path()
+        engine._knowledge_path = knowledge_path
+
+        # Initialize the 7-engine stack (same as _init_v2)
+        engine.map_engine = MapEngine()
+        engine.char_engine = CharacterEngine()
+        engine.domestic_engine = DomesticEngine()
+        engine.military_engine = MilitaryEngine()
+        engine.decision_engine = DecisionEngine()
+
+        engine.turn_controller = TurnController(
+            map_engine=engine.map_engine,
+            char_engine=engine.char_engine,
+            domestic_engine=engine.domestic_engine,
+            military_engine=engine.military_engine,
+            decision_engine=engine.decision_engine,
+        )
+
+        try:
+            engine.history_engine = HistoryEngine(knowledge_path)
+        except Exception:
+            engine.history_engine = None
+
+        engine.narrative_engine = None
+        engine.intent_parser = None
+        engine.command_validator = None
+
+        if llm and llm.is_available:
+            from ..llm.narrative import NarrativeEngine
+            engine.narrative_engine = NarrativeEngine(llm)
+            from ..parser.intent import IntentParser
+            engine.intent_parser = IntentParser(llm)
+            from ..parser.validator import CommandValidator
+            engine.command_validator = CommandValidator(engine.map_engine)
+        else:
+            from ..parser.intent import IntentParser
+            engine.intent_parser = IntentParser(None)
+            from ..parser.validator import CommandValidator
+            engine.command_validator = CommandValidator(engine.map_engine)
+
+        # Restore world state from saved data
+        engine.world_state_v2 = engine._rebuild_from_save(data)
+        engine.game_started = True
+
+        return engine
 
     def _save_v2(self) -> None:
-        """Save the v2 world state to disk."""
+        """Save the v2 world state to disk with full serialization."""
         import json
         import os as _os
 
@@ -281,9 +441,18 @@ class GameEngine:
                                     _os.path.expanduser("~/.histrategy"))
         _os.makedirs(save_dir, exist_ok=True)
         v2_save = _os.path.join(save_dir, "world_v2.json")
+        data = self.to_dict()
+        with open(v2_save, "w") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
 
+    def to_dict(self) -> dict:
+        """Serialize the full v2 world state to a JSON-safe dict.
+
+        Includes factions, territories (ownership only), characters (loyalty/location),
+        armies, and event history — everything needed to restore from save.
+        """
         ws = self.world_state_v2
-        data = {
+        data: dict = {
             "year": ws.year,
             "season": ws.season.value,
             "turn_number": ws.turn_number,
@@ -295,7 +464,7 @@ class GameEngine:
                     "name": f.name,
                     "ruler_id": f.ruler_id,
                     "capital": f.capital,
-                    "territories": f.territories,
+                    "territories": list(f.territories),
                     "is_active": f.is_active,
                     "prestige": f.prestige,
                     "legitimacy": f.legitimacy,
@@ -305,14 +474,62 @@ class GameEngine:
                     "treasury": f.treasury,
                     "food": f.food,
                     "tax_rate": f.tax_rate,
-                    "relations": f.relations,
+                    "relations": dict(f.relations) if f.relations else {},
+                    "tech_levels": dict(f.tech_levels) if hasattr(f, "tech_levels") and f.tech_levels else {},
+                    "allies": list(f.allies) if hasattr(f, "allies") and f.allies else [],
+                    "enemies": list(f.enemies) if hasattr(f, "enemies") and f.enemies else [],
+                    "aggression": getattr(f, "aggression", 0.5),
+                    "cunning": getattr(f, "cunning", 0.5),
+                    "caution": getattr(f, "caution", 0.5),
+                    "diplomacy": getattr(f, "diplomacy", 0.5),
+                    "development_focus": getattr(f, "development_focus", 0.5),
+                    "mercy": getattr(f, "mercy", 0.5),
                 }
                 for fid, f in ws.factions.items()
             },
+            # Territory ownership (only what changes — not full territory data)
+            "territory_owners": {
+                tid: t.owner_id
+                for tid, t in ws.territories.items()
+            },
+            # Character overrides (only what deviates from base)
+            "character_overrides": {
+                cid: {
+                    "faction_id": c.faction_id,
+                    "location": c.location,
+                    "loyalty": c.loyalty,
+                    "is_alive": getattr(c, "is_alive", True),
+                }
+                for cid, c in ws.characters.items()
+            },
+            # Armies
+            "armies": {
+                aid: {
+                    "faction_id": a.faction_id,
+                    "location": a.location,
+                    "commander_id": a.commander_id,
+                    "units": {ut.value: cnt for ut, cnt in a.units.items()} if a.units else {},
+                    "morale": a.morale,
+                    "supply": a.supply,
+                    "training": getattr(a, "training", 1.0),
+                }
+                for aid, a in (ws.armies or {}).items()
+            },
+            # Event history
+            "completed_events": list(ws.completed_events) if ws.completed_events else [],
+            "averted_events": list(ws.averted_events) if ws.averted_events else [],
+            # History engine state
+            "history_triggered": list(self.history_engine._triggered_events) if self.history_engine else [],
+            "history_averted": (
+                {k: v for k, v in self.history_engine._averted_events.items()}
+                if self.history_engine and hasattr(self.history_engine, "_averted_events") else {}
+            ),
+            "history_blocked": (
+                list(self.history_engine._blocked_downstream)
+                if self.history_engine and hasattr(self.history_engine, "_blocked_downstream") else []
+            ),
         }
-
-        with open(v2_save, "w") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        return data
 
     # ─── v1 initialization (unchanged) ────────────────────────
 
