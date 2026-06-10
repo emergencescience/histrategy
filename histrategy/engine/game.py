@@ -330,7 +330,7 @@ class GameEngine:
         """Rebuild a V2WorldState from saved JSON data with full state restoration."""
         from .loader import build_world_state
 
-        faction_id = data.get("player_faction_id", "shu")
+        faction_id = data.get("player_faction_id") or data.get("faction_id", "shu")
         scenario_id = data.get("scenario", "207")
 
         # Build fresh base world state from scenario data
@@ -742,9 +742,15 @@ class GameEngine:
         if not player:
             return self._fallback_intro()
 
+        # Resolve capital name from territory data
+        capital_name = player.capital
+        capital_territory = ws.territories.get(player.capital)
+        if capital_territory and capital_territory.name:
+            capital_name = capital_territory.name
+
         # Use deterministic template suggestions (LLM reserved for plan phase)
         suggestions = [
-            f"【休养生息】发展{player.capital}的内政与农耕",
+            f"【休养生息】发展{capital_name}的内政与农耕",
             "【练兵备战】招募乡勇操练新军",
             "【合纵连横】派遣使者联络群雄",
             "【搜集情报】细作四出打探动向",
@@ -756,7 +762,7 @@ class GameEngine:
             f"曹操迎天子于许昌，挟天子以令诸侯，已据中原大半。\n"
             f"孙权继父兄之业，稳坐江东。\n\n"
             f"### 主公处境\n"
-            f"你，{player.name}，以{player.capital}为根基，"
+            f"你，{player.name}，以{capital_name}为根基，"
             f"麾下兵卒{player.strength_actual}，粮草{player.food}，资金{player.treasury}。\n"
             f"当审时度势，谋定而后动。"
         )

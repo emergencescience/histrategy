@@ -864,14 +864,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         # Build world state dict from engine
         if engine._use_v2 and engine.world_state_v2:
-            ws = engine.world_state_v2
-            world_state = {
-                "faction_id": ws.player_faction_id,
-                "year": ws.year,
-                "turn": ws.turn_number,
-                "season": ws.season.cn,
-                "faction": status,
-            }
+            world_state = engine.to_dict()
         else:
             world_state = {"faction": status}
 
