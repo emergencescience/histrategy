@@ -17,15 +17,15 @@ from typing import Any
 
 from pydantic import BaseModel
 
-
 # ─── Models ──────────────────────────────────────────────────────
+
 
 class CreateGameRequest(BaseModel):
     faction: str = "shu"  # shu | cao | wu
     scenario: str = "207"
     new: bool = True
-    session_id: str | None = None      # Orchestrator session ID
-    llm_api_key: str | None = None     # User's own DeepSeek API Key (not persisted)
+    session_id: str | None = None  # Orchestrator session ID
+    llm_api_key: str | None = None  # User's own DeepSeek API Key (not persisted)
     language_style: str | None = None  # "classical" | "vernacular" — narrative style preference
 
 
@@ -100,9 +100,9 @@ _game_meta: dict[str, dict] = {}
 _llm_provider: str | None = None  # Set by run_server / create_app
 
 
-def _get_or_create_engine(faction: str = "shu", scenario: str = "207",
-                          new: bool = True,
-                          llm_api_key: str | None = None) -> tuple[str, Any]:
+def _get_or_create_engine(
+    faction: str = "shu", scenario: str = "207", new: bool = True, llm_api_key: str | None = None
+) -> tuple[str, Any]:
     """Get existing game by ID or create a new one."""
     if not new and _games:
         return list(_games.keys())[-1], list(_games.values())[-1]
@@ -115,6 +115,7 @@ def _get_or_create_engine(faction: str = "shu", scenario: str = "207",
     # Temporarily set the key so detect_provider() can find it
     if llm_api_key:
         import os as _os
+
         _os.environ["DEEPSEEK_API_KEY"] = llm_api_key
     try:
         llm = LLMAdapter(provider=_llm_provider or None)
@@ -138,15 +139,32 @@ def _build_faction_status(engine) -> dict:
     """Extract player faction status from engine."""
     # City-to-Chinese-name mapping (engine stores city IDs, not province IDs)
     _CITY_NAMES: dict[str, str] = {
-        "xinye": "新野", "xiangyang": "襄阳", "jiangling": "江陵",
-        "jiangxia": "江夏", "changsha": "长沙", "chengdu": "成都",
-        "jiangzhou": "江州", "yongchang": "永昌", "jianye": "建业",
-        "lujiang": "庐江", "wujun": "吴郡", "kuaiji": "会稽",
-        "nanhai": "南海", "luoyang": "洛阳", "xuchang": "许昌",
-        "changan": "长安", "yecheng": "邺城", "beiping": "北平",
-        "hanshong": "汉中", "jinyang": "晋阳", "tianshui": "天水",
-        "wuwei": "武威", "runan": "汝南", "xiapi": "下邳",
-        "beihai": "北海", "jixian": "蓟县",
+        "xinye": "新野",
+        "xiangyang": "襄阳",
+        "jiangling": "江陵",
+        "jiangxia": "江夏",
+        "changsha": "长沙",
+        "chengdu": "成都",
+        "jiangzhou": "江州",
+        "yongchang": "永昌",
+        "jianye": "建业",
+        "lujiang": "庐江",
+        "wujun": "吴郡",
+        "kuaiji": "会稽",
+        "nanhai": "南海",
+        "luoyang": "洛阳",
+        "xuchang": "许昌",
+        "changan": "长安",
+        "yecheng": "邺城",
+        "beiping": "北平",
+        "hanshong": "汉中",
+        "jinyang": "晋阳",
+        "tianshui": "天水",
+        "wuwei": "武威",
+        "runan": "汝南",
+        "xiapi": "下邳",
+        "beihai": "北海",
+        "jixian": "蓟县",
     }
 
     if engine._use_v2:
@@ -201,12 +219,13 @@ def _build_faction_status(engine) -> dict:
 def create_app(llm_provider: str | None = None) -> Any:
     """Create and configure the FastAPI application."""
     global _llm_provider
-    
+
     # Auto-detect LLM provider from environment if not explicitly set
     if llm_provider:
         _llm_provider = llm_provider
     elif not _llm_provider:
         import os as _os
+
         if _os.environ.get("DEEPSEEK_API_KEY"):
             _llm_provider = "deepseek"
         elif _os.environ.get("OPENAI_API_KEY"):
@@ -220,7 +239,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
     from fastapi import FastAPI, Header
     from fastapi.middleware.cors import CORSMiddleware
-    from histrategy.server.auth import get_current_user_id
+
     from histrategy.server.persistence import save_game as persistence_save
 
     app = FastAPI(
@@ -256,8 +275,10 @@ def create_app(llm_provider: str | None = None) -> Any:
     @app.get("/")
     def root():
         """Serve the web client."""
-        from fastapi.responses import FileResponse
         import os as _os
+
+        from fastapi.responses import FileResponse
+
         web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
         return FileResponse(_os.path.join(web_dir, "index.html"))
 
@@ -268,17 +289,20 @@ def create_app(llm_provider: str | None = None) -> Any:
         llm_provider_name = _llm_provider or "none"
         if _llm_provider:
             from histrategy.llm.adapter import LLMAdapter
+
             try:
                 adapter = LLMAdapter(provider=_llm_provider)
                 llm_available = adapter.is_available
             except Exception:
                 pass
-        
+
         # Check v2 engine availability
         v2_available = False
         v2_error = None
         try:
-            from histrategy.engine.game import _V2_AVAILABLE as _v2a, _V2_IMPORT_ERROR as _v2err
+            from histrategy.engine.game import _V2_AVAILABLE as _v2a
+            from histrategy.engine.game import _V2_IMPORT_ERROR as _v2err
+
             v2_available = _v2a
             v2_error = _v2err
         except ImportError as e:
@@ -301,19 +325,17 @@ def create_app(llm_provider: str | None = None) -> Any:
         }
 
     @app.post("/api/games")
-    def create_game(req: CreateGameRequest,
-                    authorization: str | None = Header(default=None)):
+    def create_game(req: CreateGameRequest, authorization: str | None = Header(default=None)):
         """Create a new game and return the intro scene."""
         game_id, engine = _get_or_create_engine(
-            faction=req.faction, scenario=req.scenario, new=req.new,
-            llm_api_key=req.llm_api_key
+            faction=req.faction, scenario=req.scenario, new=req.new, llm_api_key=req.llm_api_key
         )
 
         # Store session metadata if provided
         if req.session_id:
             jwt_token = None
             if authorization and authorization.startswith("Bearer "):
-                jwt_token = authorization[len("Bearer "):]
+                jwt_token = authorization[len("Bearer ") :]
             _game_meta[game_id] = {"session_id": req.session_id, "jwt_token": jwt_token}
 
         # Store language style preference for use by engine
@@ -332,12 +354,15 @@ def create_app(llm_provider: str | None = None) -> Any:
         # Clear LLM key from env after engine creation
         if req.llm_api_key:
             import os as _os
+
             _os.environ.pop("DEEPSEEK_API_KEY", None)
 
         return {
             "game_id": game_id,
             "scenario": engine.scenario,
-            "faction": engine.world_state_v2.player_faction_id if engine._use_v2 else engine.world_state.player_faction_id,
+            "faction": engine.world_state_v2.player_faction_id
+            if engine._use_v2
+            else engine.world_state.player_faction_id,
             "intro": intro,
             "faction_status": status,
         }
@@ -348,8 +373,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         llm_api_key: str | None = None
 
     @app.post("/api/games/restore")
-    def restore_game(req: RestoreGameRequest,
-                     authorization: str | None = Header(default=None)):
+    def restore_game(req: RestoreGameRequest, authorization: str | None = Header(default=None)):
         """Restore a game from a saved world_state dict.
 
         Used when resuming a game from the orchestrator. The frontend passes
@@ -361,11 +385,13 @@ def create_app(llm_provider: str | None = None) -> Any:
         """
         import logging
         import traceback as _tb
+
         _logger = logging.getLogger(__name__)
+
+        import os as _os
 
         from histrategy.engine.game import GameEngine
         from histrategy.llm.adapter import LLMAdapter
-        import os as _os
 
         if req.llm_api_key:
             _os.environ["DEEPSEEK_API_KEY"] = req.llm_api_key
@@ -395,7 +421,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             if req.session_id:
                 jwt_token = None
                 if authorization and authorization.startswith("Bearer "):
-                    jwt_token = authorization[len("Bearer "):]
+                    jwt_token = authorization[len("Bearer ") :]
                 _game_meta[game_id] = {"session_id": req.session_id, "jwt_token": jwt_token}
             status = _build_faction_status(engine)
             return {
@@ -412,7 +438,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         if req.session_id:
             jwt_token = None
             if authorization and authorization.startswith("Bearer "):
-                jwt_token = authorization[len("Bearer "):]
+                jwt_token = authorization[len("Bearer ") :]
             _game_meta[game_id] = {"session_id": req.session_id, "jwt_token": jwt_token}
 
         status = _build_faction_status(engine)
@@ -425,7 +451,9 @@ def create_app(llm_provider: str | None = None) -> Any:
         return {
             "game_id": game_id,
             "scenario": engine.scenario,
-            "faction": engine.world_state_v2.player_faction_id if engine._use_v2 else engine.world_state.player_faction_id,
+            "faction": engine.world_state_v2.player_faction_id
+            if engine._use_v2
+            else engine.world_state.player_faction_id,
             "intro": intro,
             "faction_status": status,
             "restored": True,
@@ -439,6 +467,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         engine = _get_engine(game_id)
         if not engine:
             from fastapi.responses import JSONResponse
+
             return JSONResponse(status_code=404, content={"error": "Game not found"})
 
         status = _build_faction_status(engine)
@@ -453,6 +482,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         engine = _get_engine(game_id)
         if not engine:
             from fastapi.responses import JSONResponse
+
             return JSONResponse(status_code=404, content={"error": "Game not found"})
 
         from histrategy.engine.game import _suppress_stderr
@@ -478,12 +508,12 @@ def create_app(llm_provider: str | None = None) -> Any:
         }
 
     @app.post("/api/games/{game_id}/command")
-    def execute_command(game_id: str, req: CommandRequest,
-                        authorization: str | None = Header(default=None)):
+    def execute_command(game_id: str, req: CommandRequest, authorization: str | None = Header(default=None)):
         """Submit a decision and process the turn. Persists turn history to orchestrator."""
         engine = _get_engine(game_id)
         if not engine:
             from fastapi.responses import JSONResponse
+
             return JSONResponse(status_code=404, content={"error": "Game not found"})
 
         from histrategy.engine.game import _suppress_stderr
@@ -518,11 +548,14 @@ def create_app(llm_provider: str | None = None) -> Any:
             session_id = meta.get("session_id", game_id)
             jwt_token = meta.get("jwt_token")
             if not jwt_token and authorization and authorization.startswith("Bearer "):
-                jwt_token = authorization[len("Bearer "):]
+                jwt_token = authorization[len("Bearer ") :]
 
             if jwt_token and session_id:
-                from histrategy.server.persistence import append_turn as persist_turn, save_game as persist_save
                 import os as _os
+
+                from histrategy.server.persistence import append_turn as persist_turn
+                from histrategy.server.persistence import save_game as persist_save
+
                 orchestrator_url = _os.environ.get("ORCHESTRATOR_URL", "")
                 if orchestrator_url:
                     # Extract token usage from result if available
@@ -549,7 +582,15 @@ def create_app(llm_provider: str | None = None) -> Any:
                     # Also save world state for resume
                     try:
                         world_dict = engine.to_dict()
-                        persist_save(jwt_token, session_id, 0, world_dict, status.get("turn", 1), status.get("year", 207), status.get("season", "春"))
+                        persist_save(
+                            jwt_token,
+                            session_id,
+                            0,
+                            world_dict,
+                            status.get("turn", 1),
+                            status.get("year", 207),
+                            status.get("season", "春"),
+                        )
                     except Exception:
                         pass
         except Exception:
@@ -563,14 +604,16 @@ def create_app(llm_provider: str | None = None) -> Any:
         games = []
         for gid, engine in _games.items():
             status = _build_faction_status(engine)
-            games.append({
-                "game_id": gid,
-                "faction_name": status.get("name", "?"),
-                "year": status.get("year", 0),
-                "season": status.get("season", "?"),
-                "turn": status.get("turn", 0),
-                "is_active": status.get("is_active", True),
-            })
+            games.append(
+                {
+                    "game_id": gid,
+                    "faction_name": status.get("name", "?"),
+                    "year": status.get("year", 0),
+                    "season": status.get("season", "?"),
+                    "turn": status.get("turn", 0),
+                    "is_active": status.get("is_active", True),
+                }
+            )
         return {"games": games, "count": len(games)}
 
     @app.get("/api/credit/status")
@@ -597,8 +640,14 @@ def create_app(llm_provider: str | None = None) -> Any:
             "npc_prompt": 1500,
             "npc_completion": 800,
         }
-        total_prompt = ESTIMATED_TOKENS["plan_prompt"] + ESTIMATED_TOKENS["command_prompt"] + ESTIMATED_TOKENS["npc_prompt"]
-        total_completion = ESTIMATED_TOKENS["plan_completion"] + ESTIMATED_TOKENS["command_completion"] + ESTIMATED_TOKENS["npc_completion"]
+        total_prompt = (
+            ESTIMATED_TOKENS["plan_prompt"] + ESTIMATED_TOKENS["command_prompt"] + ESTIMATED_TOKENS["npc_prompt"]
+        )
+        total_completion = (
+            ESTIMATED_TOKENS["plan_completion"]
+            + ESTIMATED_TOKENS["command_completion"]
+            + ESTIMATED_TOKENS["npc_completion"]
+        )
         base_cost_usd = (
             total_prompt * PRICING["input_cost_per_1m_tokens"] / 1_000_000
             + total_completion * PRICING["output_cost_per_1m_tokens"] / 1_000_000
@@ -623,33 +672,34 @@ def create_app(llm_provider: str | None = None) -> Any:
     @app.post("/api/games/{game_id}/summary")
     def get_game_summary(game_id: str):
         """Generate/fetch endgame summary (chronicle) for a game."""
-        import os
         import json
+        import os
         from pathlib import Path
-        from histrategy.llm.endgame_summary import generate_chronicle
+
         from histrategy.llm.adapter import LLMAdapter
+        from histrategy.llm.endgame_summary import generate_chronicle
 
         # Check if the game is active in memory
         engine = _get_engine(game_id)
-        
+
         player_events = []
-        
+
         # 1. Try to load from session directory
         data_dir = Path(os.environ.get("HISTRATEGY_DATA_DIR", os.path.expanduser("~/.histrategy")))
         session_dir = data_dir / "sessions" / game_id
-        
+
         world_paths = [
             session_dir / "world_v2.json",
             session_dir / "world.json",
             session_dir / "event_history.json",
             data_dir / "world_v2.json",
         ]
-        
+
         loaded_data = None
         for path in world_paths:
             if path.exists():
                 try:
-                    with open(path, "r", encoding="utf-8") as f:
+                    with open(path, encoding="utf-8") as f:
                         loaded_data = json.load(f)
                     break
                 except Exception:
@@ -668,10 +718,9 @@ def create_app(llm_provider: str | None = None) -> Any:
                         for evt_id in completed:
                             evt = next((e for e in engine.history_engine.all_events if e["id"] == evt_id), None)
                             if evt:
-                                player_events.append({
-                                    "title": evt.get("title", evt_id),
-                                    "description": evt.get("description", "")
-                                })
+                                player_events.append(
+                                    {"title": evt.get("title", evt_id), "description": evt.get("description", "")}
+                                )
                             else:
                                 player_events.append({"title": evt_id, "description": ""})
                     else:
@@ -688,10 +737,9 @@ def create_app(llm_provider: str | None = None) -> Any:
                     for evt_id in completed:
                         evt = next((e for e in engine.history_engine.all_events if e["id"] == evt_id), None)
                         if evt:
-                            player_events.append({
-                                "title": evt.get("title", evt_id),
-                                "description": evt.get("description", "")
-                            })
+                            player_events.append(
+                                {"title": evt.get("title", evt_id), "description": evt.get("description", "")}
+                            )
                         else:
                             player_events.append({"title": evt_id, "description": ""})
                 else:
@@ -702,13 +750,15 @@ def create_app(llm_provider: str | None = None) -> Any:
             log_path = data_dir / "current_session_log.json"
             if log_path.exists():
                 try:
-                    with open(log_path, "r", encoding="utf-8") as f:
+                    with open(log_path, encoding="utf-8") as f:
                         log_entries = json.load(f)
                     for entry in log_entries:
-                        player_events.append({
-                            "title": f"第{entry.get('turn')}回合 政令: 「{entry.get('player_decision')}」",
-                            "description": entry.get("aftermath", entry.get("narrative", ""))
-                        })
+                        player_events.append(
+                            {
+                                "title": f"第{entry.get('turn')}回合 政令: 「{entry.get('player_decision')}」",
+                                "description": entry.get("aftermath", entry.get("narrative", "")),
+                            }
+                        )
                 except Exception:
                     pass
 
@@ -730,24 +780,20 @@ def create_app(llm_provider: str | None = None) -> Any:
     @app.post("/api/games/{game_id}/export_video")
     def export_video(game_id: str):
         """Export replay video for a game."""
-        from histrategy.cli.record import generate_video
         from fastapi import HTTPException
-        
+
+        from histrategy.cli.record import generate_video
+
         try:
             video_path = generate_video(game_id)
-            return {
-                "game_id": game_id,
-                "video_path": video_path,
-                "status": "success"
-            }
+            return {"game_id": game_id, "video_path": video_path, "status": "success"}
         except FileNotFoundError as e:
             raise HTTPException(status_code=404, detail=str(e))
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to generate video: {str(e)}")
 
     @app.post("/api/games/{game_id}/autosave")
-    def autosave_game(game_id: str,
-                      authorization: str | None = Header(default=None)):
+    def autosave_game(game_id: str, authorization: str | None = Header(default=None)):
         """Auto-save: persist game state to Orchestrator slot 0.
 
         Requires Authorization Bearer JWT.
@@ -756,18 +802,20 @@ def create_app(llm_provider: str | None = None) -> Any:
         engine = _get_engine(game_id)
         if not engine:
             from fastapi.responses import JSONResponse
+
             return JSONResponse(status_code=404, content={"error": "Game not found"})
 
         # Check for JWT
         jwt_token = None
         if authorization and authorization.startswith("Bearer "):
-            jwt_token = authorization[len("Bearer "):]
+            jwt_token = authorization[len("Bearer ") :]
 
         if not jwt_token:
             return {"ok": False, "reason": "No JWT token provided"}
 
         # Check ORCHESTRATOR_URL
         import os as _os
+
         orchestrator_url = _os.environ.get("ORCHESTRATOR_URL", "")
         if not orchestrator_url:
             return {"ok": False, "reason": "ORCHESTRATOR_URL not configured"}
@@ -813,6 +861,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 def run_server(host: str = "127.0.0.1", port: int = 8080, api_key: str | None = None):
     """Run the REST API server."""
     import os
+
     import uvicorn
 
     # Set API key from parameter or environment

@@ -20,7 +20,6 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.prompt import Prompt
-from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
 
@@ -40,13 +39,13 @@ ASCII_TITLE = r"""
 """
 
 TEMPERAMENT_STYLES = {
-    "cautious":    ("\U0001f6e1", "blue"),
-    "aggressive":  ("⚔", "red"),
-    "scheming":    ("\U0001f575", "magenta"),
-    "pragmatic":   ("\U0001f4cb", "green"),
-    "strict":      ("\U0001f4dc", "yellow"),
-    "proud":       ("\U0001f409", "bright_yellow"),
-    "friendly":    ("\U0001f91d", "cyan"),
+    "cautious": ("\U0001f6e1", "blue"),
+    "aggressive": ("⚔", "red"),
+    "scheming": ("\U0001f575", "magenta"),
+    "pragmatic": ("\U0001f4cb", "green"),
+    "strict": ("\U0001f4dc", "yellow"),
+    "proud": ("\U0001f409", "bright_yellow"),
+    "friendly": ("\U0001f91d", "cyan"),
 }
 
 
@@ -67,22 +66,26 @@ def run_game(force_new: bool = False):
     if provider_info["name"]:
         llm = LLMAdapter()
         game_master = GameMaster(llm)
-        console.print(Panel(
-            f"[bold green]✓ 检测到 {provider_info['name']} API[/] ({provider_info['model']})",
-            border_style="green",
-            title="\U0001f916 AI 游戏主持模式",
-        ))
+        console.print(
+            Panel(
+                f"[bold green]✓ 检测到 {provider_info['name']} API[/] ({provider_info['model']})",
+                border_style="green",
+                title="\U0001f916 AI 游戏主持模式",
+            )
+        )
     else:
-        console.print(Panel(
-            "[bold yellow]⚠ 未检测到 API Key，将启动离线模式[/]\n\n"
-            "离线模式基于事件驱动的规则引擎，有完整的战役/内政/外交体验。\n"
-            "要体验 AI 生成的动态叙事，请设置环境变量：\n\n"
-            "  export DEEPSEEK_API_KEY='sk-...'   # 推荐，价格低\n"
-            "  export OPENAI_API_KEY='sk-...'     # OpenAI 兼容\n"
-            "  export TONGYI_API_KEY='...'        # 通义千问\n",
-            title="三國志略 · 离线模式",
-            border_style="yellow",
-        ))
+        console.print(
+            Panel(
+                "[bold yellow]⚠ 未检测到 API Key，将启动离线模式[/]\n\n"
+                "离线模式基于事件驱动的规则引擎，有完整的战役/内政/外交体验。\n"
+                "要体验 AI 生成的动态叙事，请设置环境变量：\n\n"
+                "  export DEEPSEEK_API_KEY='sk-...'   # 推荐，价格低\n"
+                "  export OPENAI_API_KEY='sk-...'     # OpenAI 兼容\n"
+                "  export TONGYI_API_KEY='...'        # 通义千问\n",
+                title="三國志略 · 离线模式",
+                border_style="yellow",
+            )
+        )
         console.print("[dim]按回车开始...[/]")
         with contextlib.suppress(EOFError, KeyboardInterrupt):
             input()
@@ -91,12 +94,14 @@ def run_game(force_new: bool = False):
 
     # Check for existing save game
     if not force_new and has_existing_game():
-        console.print(Panel(
-            "[bold green]✓ 检测到历史存档，自动继续游戏[/]\n"
-            f"[dim]使用 --new 可强制开始新游戏 | 删除 {get_data_dir()}/ 可重置所有数据[/]",
-            border_style="green",
-            title="📂 继续游戏",
-        ))
+        console.print(
+            Panel(
+                "[bold green]✓ 检测到历史存档，自动继续游戏[/]\n"
+                f"[dim]使用 --new 可强制开始新游戏 | 删除 {get_data_dir()}/ 可重置所有数据[/]",
+                border_style="green",
+                title="📂 继续游戏",
+            )
+        )
         console.print("[dim]按回车继续...[/]")
         with contextlib.suppress(EOFError, KeyboardInterrupt):
             input()
@@ -109,33 +114,52 @@ def run_game(force_new: bool = False):
     # Check if v2 engine is available
     _v2_available = False
     import os as _os
+
     force_v1_env = _os.environ.get("HISTRATEGY_FORCE_V1", "").lower() in ("true", "1")
     if not force_v1_env:
         try:
             from histrategy_engine import TurnController  # noqa: F401
+
             _v2_available = True
         except ImportError:
             pass
 
     if _v2_available:
         factions = [
-            {"id": "shu", "name": "刘备军", "ruler": "刘备", "strength": 5000,
-             "description": "汉室宗亲，寄居新野，三顾茅庐在即"},
-            {"id": "cao", "name": "曹操军", "ruler": "曹操", "strength": 150000,
-             "description": "奉天子以令不臣，已据中原大半"},
-            {"id": "wu", "name": "孙权军", "ruler": "孙权", "strength": 60000,
-             "description": "继承父兄基业，稳坐江东"},
+            {
+                "id": "shu",
+                "name": "刘备军",
+                "ruler": "刘备",
+                "strength": 5000,
+                "description": "汉室宗亲，寄居新野，三顾茅庐在即",
+            },
+            {
+                "id": "cao",
+                "name": "曹操军",
+                "ruler": "曹操",
+                "strength": 150000,
+                "description": "奉天子以令不臣，已据中原大半",
+            },
+            {"id": "wu", "name": "孙权军", "ruler": "孙权", "strength": 60000, "description": "继承父兄基业，稳坐江东"},
         ]
     else:
         factions = [
-            {"id": "cao", "name": "曹操军", "ruler": "曹操", "strength": 30000,
-             "description": "乱世奸雄，奉天子以令不臣"},
-            {"id": "shu", "name": "刘备军", "ruler": "刘备", "strength": 5000,
-             "description": "汉室宗亲，以仁德取天下"},
-            {"id": "wu", "name": "孙坚军", "ruler": "孙坚", "strength": 20000,
-             "description": "江东猛虎，据长江天险"},
-            {"id": "yuan_shao", "name": "袁绍军", "ruler": "袁绍", "strength": 80000,
-             "description": "四世三公，讨董盟主"},
+            {
+                "id": "cao",
+                "name": "曹操军",
+                "ruler": "曹操",
+                "strength": 30000,
+                "description": "乱世奸雄，奉天子以令不臣",
+            },
+            {"id": "shu", "name": "刘备军", "ruler": "刘备", "strength": 5000, "description": "汉室宗亲，以仁德取天下"},
+            {"id": "wu", "name": "孙坚军", "ruler": "孙坚", "strength": 20000, "description": "江东猛虎，据长江天险"},
+            {
+                "id": "yuan_shao",
+                "name": "袁绍军",
+                "ruler": "袁绍",
+                "strength": 80000,
+                "description": "四世三公，讨董盟主",
+            },
         ]
 
     console.print("\n[bold cyan]选择你的君主[/]\n")
@@ -148,15 +172,12 @@ def run_game(force_new: bool = False):
     faction_table.add_column("简介", width=35)
 
     for i, f in enumerate(factions, 1):
-        faction_table.add_row(str(i), f["name"], f["ruler"],
-                              f"{f['strength']:,}", f["description"])
+        faction_table.add_row(str(i), f["name"], f["ruler"], f"{f['strength']:,}", f["description"])
 
     console.print(faction_table)
     console.print()
 
-    choice = Prompt.ask("请选择",
-                        choices=[str(i) for i in range(1, len(factions) + 1)],
-                        default="1")
+    choice = Prompt.ask("请选择", choices=[str(i) for i in range(1, len(factions) + 1)], default="1")
     selected = factions[int(choice) - 1]
     engine.set_player_faction(selected["id"])
 
@@ -186,15 +207,12 @@ def _game_loop(engine: GameEngine):
             alive = player and player.is_active and player.strength > 0
 
         if not alive:
-            _display_game_over({
-                "type": "defeat",
-                "message": (
-                    "# 势力覆灭\n\n"
-                    "你的势力已经不复存在。\n"
-                    "乱世之中，成王败寇。\n\n"
-                    "感谢游玩《三國志略》。"
-                ),
-            })
+            _display_game_over(
+                {
+                    "type": "defeat",
+                    "message": ("# 势力覆灭\n\n你的势力已经不复存在。\n乱世之中，成王败寇。\n\n感谢游玩《三國志略》。"),
+                }
+            )
             break
 
         # === PLAN MODE ===========================================
@@ -237,6 +255,7 @@ def _game_loop(engine: GameEngine):
 
 # ─── LLM Plan Mode Display ──────────────────────────────────
 
+
 def _display_llm_plan_mode(engine: GameEngine):
     """Display LLM-generated Plan Mode: advisor court + suggestions in a single unified panel."""
     with console.status("[yellow]谋臣正在商议国策...[/]", spinner="dots"):
@@ -246,10 +265,12 @@ def _display_llm_plan_mode(engine: GameEngine):
     summary = plan.get("season_summary", "")
     if summary:
         console.print()
-        console.print(Align(
-            Text(summary, style="italic bright_cyan"),
-            align="center",
-        ))
+        console.print(
+            Align(
+                Text(summary, style="italic bright_cyan"),
+                align="center",
+            )
+        )
 
     # Construct unified Markdown text
     court_dialogue = plan.get("court_dialogue", "")
@@ -279,18 +300,21 @@ def _display_llm_plan_mode(engine: GameEngine):
 
     if court_md:
         console.print()
-        console.print(Panel(
-            Markdown("\n".join(court_md)),
-            border_style="bright_magenta",
-            title="🏛️ 议事厅 - 谋臣献策",
-            title_align="left",
-            padding=(1, 2),
-        ))
+        console.print(
+            Panel(
+                Markdown("\n".join(court_md)),
+                border_style="bright_magenta",
+                title="🏛️ 议事厅 - 谋臣献策",
+                title_align="left",
+                padding=(1, 2),
+            )
+        )
 
     _print_llm_stats(engine.llm)
 
 
 # ─── LLM Command Mode Display ───────────────────────────────
+
 
 def _display_llm_command_result(result: dict, llm: LLMAdapter | None = None):
     """Display LLM Command Mode results as a single unified historical chronicle."""
@@ -332,13 +356,15 @@ def _display_llm_command_result(result: dict, llm: LLMAdapter | None = None):
 
     if chronicle_md:
         console.print()
-        console.print(Panel(
-            Markdown("\n".join(chronicle_md)),
-            border_style="bright_yellow",
-            title="📜 局势推演纪事",
-            title_align="left",
-            padding=(1, 2),
-        ))
+        console.print(
+            Panel(
+                Markdown("\n".join(chronicle_md)),
+                border_style="bright_yellow",
+                title="📜 局势推演纪事",
+                title_align="left",
+                padding=(1, 2),
+            )
+        )
 
     _print_llm_stats(llm)
 
@@ -363,6 +389,7 @@ def _print_llm_stats(llm: LLMAdapter | None):
 
 # ─── Offline Fallback Displays ───────────────────────────────
 
+
 def _display_offline_plan_mode(engine: GameEngine):
     """Minimal Plan Mode prompt for offline play in unified layout."""
     player = engine.world_state.get_player_faction()
@@ -370,7 +397,9 @@ def _display_offline_plan_mode(engine: GameEngine):
         return
 
     plan = engine.get_plan_data()
-    summary = plan.get("season_summary", f"{engine.world_state.year}年{engine.world_state.current_season_cn}，天下纷争未休。")
+    summary = plan.get(
+        "season_summary", f"{engine.world_state.year}年{engine.world_state.current_season_cn}，天下纷争未休。"
+    )
     suggestions = plan.get("suggestions", [])
 
     court_md = []
@@ -397,13 +426,15 @@ def _display_offline_plan_mode(engine: GameEngine):
         court_md.append("")
 
     console.print()
-    console.print(Panel(
-        Markdown("\n".join(court_md)),
-        border_style="bright_magenta",
-        title="🏛️ 议事厅 - 谋臣献策 (离线)",
-        title_align="left",
-        padding=(1, 2),
-    ))
+    console.print(
+        Panel(
+            Markdown("\n".join(court_md)),
+            border_style="bright_magenta",
+            title="🏛️ 议事厅 - 谋臣献策 (离线)",
+            title_align="left",
+            padding=(1, 2),
+        )
+    )
 
 
 def _display_offline_command_result(engine: GameEngine, result: dict):
@@ -428,15 +459,15 @@ def _display_offline_command_result(engine: GameEngine, result: dict):
         chronicle_md.append("")
 
     # State changes
-    player_changes = {
-        k: v for k, v in changes.items()
-        if k not in ("npc_changes", "before", "after") and v
-    }
+    player_changes = {k: v for k, v in changes.items() if k not in ("npc_changes", "before", "after") and v}
     if player_changes:
         chronicle_md.append("### 📊 势力变动")
         labels = {
-            "strength": "兵力", "economy": "经济", "morale": "民心",
-            "treasury": "资金", "food": "粮草",
+            "strength": "兵力",
+            "economy": "经济",
+            "morale": "民心",
+            "treasury": "资金",
+            "food": "粮草",
         }
         for key in sorted(player_changes):
             val = player_changes[key]
@@ -499,39 +530,46 @@ def _display_offline_command_result(engine: GameEngine, result: dict):
 
     if chronicle_md:
         console.print()
-        console.print(Panel(
-            Markdown("\n".join(chronicle_md)),
-            border_style="bright_yellow",
-            title="📜 局势推演纪事 (离线)",
-            title_align="left",
-            padding=(1, 2),
-        ))
+        console.print(
+            Panel(
+                Markdown("\n".join(chronicle_md)),
+                border_style="bright_yellow",
+                title="📜 局势推演纪事 (离线)",
+                title_align="left",
+                padding=(1, 2),
+            )
+        )
 
 
 # ─── Intro Display ──────────────────────────────────────────
+
 
 def _display_intro(engine: GameEngine, intro: dict):
     """Display the introductory scene."""
     narrative = intro.get("narrative", "")
     if narrative:
         console.print()
-        console.print(Panel(
-            Markdown(narrative),
-            border_style="green",
-            title="\U0001f4dc 序幕",
-            title_align="left",
-            padding=(1, 2),
-        ))
+        console.print(
+            Panel(
+                Markdown(narrative),
+                border_style="green",
+                title="\U0001f4dc 序幕",
+                title_align="left",
+                padding=(1, 2),
+            )
+        )
 
     npc_actions = intro.get("npc_actions", [])
     if npc_actions:
         console.print()
-        console.print(Panel(
-            "\n".join(f"  ⚔ {a}" for a in npc_actions),
-            border_style="yellow",
-            title="\U0001f30d 天下大势",
-            title_align="left",
-        ))
+        console.print(
+            Panel(
+                "\n".join(f"  ⚔ {a}" for a in npc_actions),
+                border_style="yellow",
+                title="\U0001f30d 天下大势",
+                title_align="left",
+            )
+        )
 
     choices = intro.get("new_choices", [])
     if choices:
@@ -541,15 +579,18 @@ def _display_intro(engine: GameEngine, intro: dict):
             num = c.split(".", 1)[0].strip() if "." in c else "?"
             text = c.split(".", 1)[1].strip() if "." in c else c
             choice_grid.add_row(f"[bold yellow]{num}.[/]", text)
-        console.print(Panel(
-            choice_grid,
-            border_style="cyan",
-            title="\U0001f3af 开局选择",
-            title_align="left",
-        ))
+        console.print(
+            Panel(
+                choice_grid,
+                border_style="cyan",
+                title="\U0001f3af 开局选择",
+                title_align="left",
+            )
+        )
 
 
 # ─── Shared UI Components ────────────────────────────────────
+
 
 def _show_status_header(engine: GameEngine, is_intro: bool = False):
     """Show a compact status header."""
@@ -626,13 +667,14 @@ def _display_state_v2(engine: GameEngine):
     player = ws.factions.get(ws.player_faction_id) if ws else None
 
     console.print()
-    console.print(Panel(
-        f"[bold yellow]{ws.year}年 {ws.season.cn}[/] | "
-        f"第 {ws.turn_number} 回合",
-        border_style="bright_blue",
-        title="\U0001f30d 天下状态 (物理引擎)",
-        title_align="left",
-    ))
+    console.print(
+        Panel(
+            f"[bold yellow]{ws.year}年 {ws.season.cn}[/] | 第 {ws.turn_number} 回合",
+            border_style="bright_blue",
+            title="\U0001f30d 天下状态 (物理引擎)",
+            title_align="left",
+        )
+    )
 
     if player:
         state_table = Table(box=box.SIMPLE, border_style="dim")
@@ -646,10 +688,12 @@ def _display_state_v2(engine: GameEngine):
         state_table.add_row("粮草", f"{player.food:,}")
         state_table.add_row("税率", f"{player.tax_rate:.0%}")
         state_table.add_row("首都", player.capital or "—")
-        state_table.add_row("领地", ", ".join(
-            f"{ws.territories[t].name}({t})" if t in ws.territories else t
-            for t in player.territories
-        ) if player.territories else "暂无")
+        state_table.add_row(
+            "领地",
+            ", ".join(f"{ws.territories[t].name}({t})" if t in ws.territories else t for t in player.territories)
+            if player.territories
+            else "暂无",
+        )
         console.print(state_table)
 
         # Territory details
@@ -665,19 +709,19 @@ def _display_state_v2(engine: GameEngine):
                 if t:
                     # Count troops here
                     troops = sum(
-                        a.total_troops for a in ws.armies.values()
+                        a.total_troops
+                        for a in ws.armies.values()
                         if a.location == tid and a.faction_id == ws.player_faction_id
                     )
                     terr_table.add_row(
-                        f"{t.name} ({t.id})", f"{t.population:,}",
-                        f"{t.development}", f"{troops:,}",
+                        f"{t.name} ({t.id})",
+                        f"{t.population:,}",
+                        f"{t.development}",
+                        f"{troops:,}",
                     )
             console.print(terr_table)
 
-    other_factions = [
-        (fid, fs) for fid, fs in ws.factions.items()
-        if fs.is_active and fid != ws.player_faction_id
-    ]
+    other_factions = [(fid, fs) for fid, fs in ws.factions.items() if fs.is_active and fid != ws.player_faction_id]
     if other_factions:
         console.print()
         faction_table = Table(box=box.SIMPLE, border_style="dim")
@@ -689,8 +733,10 @@ def _display_state_v2(engine: GameEngine):
             rel = fs.relations.get(ws.player_faction_id, 0) if fs.relations else 0
             rel_str = f"{rel:+d}" if rel else "0"
             faction_table.add_row(
-                fs.name, f"{fs.strength_actual:,}",
-                str(len(fs.territories)), rel_str,
+                fs.name,
+                f"{fs.strength_actual:,}",
+                str(len(fs.territories)),
+                rel_str,
             )
         console.print(faction_table)
 
@@ -701,13 +747,14 @@ def _display_state_v1(engine: GameEngine):
     player = ws.get_player_faction()
 
     console.print()
-    console.print(Panel(
-        f"[bold yellow]{ws.year}年 {_season_cn(ws.current_season)}[/] | "
-        f"第 {ws.turn} 回合",
-        border_style="bright_blue",
-        title="\U0001f30d 天下状态",
-        title_align="left",
-    ))
+    console.print(
+        Panel(
+            f"[bold yellow]{ws.year}年 {_season_cn(ws.current_season)}[/] | 第 {ws.turn} 回合",
+            border_style="bright_blue",
+            title="\U0001f30d 天下状态",
+            title_align="left",
+        )
+    )
 
     if player:
         state_table = Table(box=box.SIMPLE, border_style="dim")
@@ -723,10 +770,7 @@ def _display_state_v1(engine: GameEngine):
         state_table.add_row("领地", ", ".join(player.territories) if player.territories else "暂无")
         console.print(state_table)
 
-    other_factions = [
-        (fid, fs) for fid, fs in ws.factions.items()
-        if fs.is_active and fid != ws.player_faction_id
-    ]
+    other_factions = [(fid, fs) for fid, fs in ws.factions.items() if fs.is_active and fid != ws.player_faction_id]
     if other_factions:
         console.print()
         faction_table = Table(box=box.SIMPLE, border_style="dim")
@@ -736,43 +780,52 @@ def _display_state_v1(engine: GameEngine):
         faction_table.add_column("民心", justify="right")
         for _fid, fs in other_factions[:8]:
             faction_table.add_row(
-                fs.name, f"{fs.strength:,}",
-                f"{fs.economy}", f"{fs.morale}",
+                fs.name,
+                f"{fs.strength:,}",
+                f"{fs.economy}",
+                f"{fs.morale}",
             )
         console.print(faction_table)
 
 
 def _print_title():
     """Print the game title ASCII art (once at startup)."""
-    console.print(Panel(
-        Align(Text(ASCII_TITLE, style="bold yellow"), align="center"),
-        border_style="red",
-        padding=1,
-    ))
-    console.print(Align(
-        "[italic yellow]初平元年，汉室倾颓，群雄逐鹿。\n"
-        "你将扮演一方诸侯，在这个风云激荡的时代书写你的传奇。[/]",
-        align="center",
-    ))
+    console.print(
+        Panel(
+            Align(Text(ASCII_TITLE, style="bold yellow"), align="center"),
+            border_style="red",
+            padding=1,
+        )
+    )
+    console.print(
+        Align(
+            "[italic yellow]初平元年，汉室倾颓，群雄逐鹿。\n你将扮演一方诸侯，在这个风云激荡的时代书写你的传奇。[/]",
+            align="center",
+        )
+    )
 
 
 def _display_game_over(game_over: dict):
     """Display game over screen."""
     console.print()
-    console.print(Panel(
-        Markdown(game_over["message"]),
-        border_style="bright_red" if game_over["type"] == "defeat" else "bright_green",
-        title="\U0001f3c1 游戏结束",
-        title_align="center",
-        padding=2,
-    ))
+    console.print(
+        Panel(
+            Markdown(game_over["message"]),
+            border_style="bright_red" if game_over["type"] == "defeat" else "bright_green",
+            title="\U0001f3c1 游戏结束",
+            title_align="center",
+            padding=2,
+        )
+    )
     console.print()
 
 
 def _season_cn(season: str) -> str:
     mapping = {
-        "spring": "春季", "summer": "夏季",
-        "autumn": "秋季", "winter": "冬季",
+        "spring": "春季",
+        "summer": "夏季",
+        "autumn": "秋季",
+        "winter": "冬季",
     }
     return mapping.get(season, season)
 
@@ -784,55 +837,75 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
-        "--headless", action="store_true",
+        "--headless",
+        action="store_true",
         help="启动无头模式（JSON结构化输出，适合飞书桥接）",
     )
     parser.add_argument(
-        "--dev", action="store_true",
+        "--dev",
+        action="store_true",
         help="启动开发模式（纯文本输入/输出，适合测试）",
     )
     parser.add_argument(
-        "--new", action="store_true",
+        "--new",
+        action="store_true",
         help="强制开始新游戏（忽略存档）",
     )
     parser.add_argument(
-        "--faction", type=int, choices=range(1, 5),
+        "--faction",
+        type=int,
+        choices=range(1, 5),
         help="直接选择势力编号（跳过选人界面，仅开发模式）",
     )
     parser.add_argument(
-        "--export-log", type=str,
+        "--export-log",
+        type=str,
         help="将当前游戏战绩导出为 Markdown 或 JSON 格式 (例如: --export-log output.md)",
     )
     parser.add_argument(
-        "--serve", action="store_true",
+        "--serve",
+        action="store_true",
         help="启动 REST API 服务器（Web 客户端后端）",
     )
     parser.add_argument(
-        "--api-key", type=str, default=None,
+        "--api-key",
+        type=str,
+        default=None,
         help="DeepSeek API Key (或设置 DEEPSEEK_API_KEY 环境变量)",
     )
     parser.add_argument(
-        "--record", action="store_true",
+        "--record",
+        action="store_true",
         help="启动录制管线 — Headless 游戏 → 视频",
     )
     parser.add_argument(
-        "--port", type=int, default=8080,
+        "--port",
+        type=int,
+        default=8080,
         help="API 服务器端口 (默认: 8080)",
     )
     parser.add_argument(
-        "--host", type=str, default="127.0.0.1",
+        "--host",
+        type=str,
+        default="127.0.0.1",
         help="API 服务器监听地址 (默认: 127.0.0.1)",
     )
     parser.add_argument(
-        "--room", type=str, default=None,
+        "--room",
+        type=str,
+        default=None,
         help="指定隔离的游戏房间ID（使存档与配置相互独立）",
     )
     parser.add_argument(
-        "--simulate-playthrough", action="store_true",
+        "--simulate-playthrough",
+        action="store_true",
         help="运行自动试玩模拟（类似 simulate_playthrough.py）并将 LLM 交互与数值变化报告导出到 playthrough_records.md",
     )
     parser.add_argument(
-        "--loglevel", type=str, choices=["DEBUG", "INFO", "WARNING", "ERROR"], default=None,
+        "--loglevel",
+        type=str,
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        default=None,
         help="设置系统日志级别 (例如: DEBUG, INFO)",
     )
 
@@ -845,12 +918,13 @@ def main():
 
     if args.loglevel:
         import logging
+
         log_level = getattr(logging, args.loglevel)
         log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         log_dir = get_data_dir() / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
         log_file_path = log_dir / "histrategy.log"
-        
+
         # Configure root logger explicitly to ensure it works reliably in test environments
         root_logger = logging.getLogger()
         root_logger.setLevel(log_level)
@@ -861,46 +935,51 @@ def main():
         file_handler.setFormatter(logging.Formatter(log_format))
         root_logger.addHandler(file_handler)
         print(f"[系统] 日志记录开启: Level={args.loglevel}, File={log_file_path}")
-        
+
         # Log initialization message
         logging.getLogger("histrategy").info("Histrategy CLI logging initialized.")
 
     if args.simulate_playthrough:
         from .simulator import run_simulation_playthrough
+
         run_simulation_playthrough()
         return
 
     if args.export_log:
         from ..engine.log_exporter import export_log
+
         fmt = "json" if args.export_log.endswith(".json") else "markdown"
         success = export_log(args.export_log, format_type=fmt)
         if success:
             print(f"[系统] 成功导出战绩至 {args.export_log}")
         else:
-            print(f"[错误] 导出失败，可能没有当前会话日志或路径无效")
+            print("[错误] 导出失败，可能没有当前会话日志或路径无效")
         return
 
     if args.headless:
         from .headless_cli import run_headless
+
         run_headless(faction_choice=args.faction, force_new=args.new)
         return
 
     if args.serve:
         from ..server.api import run_server
+
         run_server(host=args.host, port=args.port, api_key=args.api_key)
         return
 
     if args.record:
-        from .record import main as record_main
         import sys as _sys
-        _sys.argv = ["record",
-                     "--faction", args.faction or "shu",
-                     "--turns", "10"]
+
+        from .record import main as record_main
+
+        _sys.argv = ["record", "--faction", args.faction or "shu", "--turns", "10"]
         record_main()
         return
 
     if args.dev:
         from .dev_cli import run_dev
+
         run_dev(faction_choice=args.faction, force_new=args.new)
         return
 
@@ -911,4 +990,5 @@ def main():
     except Exception as e:
         console.print(f"\n[red]游戏出错：{e}[/]")
         import traceback
+
         console.print(traceback.format_exc())

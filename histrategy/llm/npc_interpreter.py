@@ -14,10 +14,9 @@ Cost: ~800 input + ~400 output tokens/turn at temperature 0.6
 
 from __future__ import annotations
 
-import json
 import logging
 
-from ..state.npc_state import NPCState, NPCMood
+from ..state.npc_state import NPCState
 from ..state.world_state import WorldState
 
 logger = logging.getLogger(__name__)
@@ -88,8 +87,7 @@ class NPCInterpreter:
         if not npc_states:
             return {}
 
-        context = self._build_context(state, player_action, npc_states,
-                                       relevant_character_ids)
+        context = self._build_context(state, player_action, npc_states, relevant_character_ids)
         messages = [
             {"role": "system", "content": NPC_INTERPRETER_SYSTEM},
             {"role": "user", "content": context},
@@ -161,8 +159,7 @@ class NPCInterpreter:
             if npc.mood.is_warning:
                 emoji = "⚠️" if npc.mood.is_danger else "💬"
                 warnings.append(
-                    f"{emoji} {cid} 当前心情：{npc.mood.value}"
-                    + (f"（{npc.grievance}）" if npc.grievance else "")
+                    f"{emoji} {cid} 当前心情：{npc.mood.value}" + (f"（{npc.grievance}）" if npc.grievance else "")
                 )
         return warnings
 

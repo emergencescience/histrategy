@@ -8,7 +8,6 @@ fastapi is not installed (it's an optional dependency).
 
 from __future__ import annotations
 
-import sys
 from unittest.mock import patch
 
 import pytest
@@ -59,9 +58,14 @@ class TestCreateGame:
     """POST /api/games — create new game."""
 
     def test_create_game_shu_207(self, client):
-        resp = client.post("/api/games", json={
-            "faction": "shu", "scenario": "207", "new": True,
-        })
+        resp = client.post(
+            "/api/games",
+            json={
+                "faction": "shu",
+                "scenario": "207",
+                "new": True,
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert "game_id" in data
@@ -72,9 +76,14 @@ class TestCreateGame:
         assert data["faction_status"]["is_active"] is True
 
     def test_create_game_cao(self, client):
-        resp = client.post("/api/games", json={
-            "faction": "cao", "scenario": "207", "new": True,
-        })
+        resp = client.post(
+            "/api/games",
+            json={
+                "faction": "cao",
+                "scenario": "207",
+                "new": True,
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert "game_id" in data
@@ -133,9 +142,12 @@ class TestCommandMode:
         create_resp = client.post("/api/games", json={"faction": "shu"})
         game_id = create_resp.json()["game_id"]
 
-        resp = client.post(f"/api/games/{game_id}/command", json={
-            "decision": "发展农业",
-        })
+        resp = client.post(
+            f"/api/games/{game_id}/command",
+            json={
+                "decision": "发展农业",
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert "narrative" in data
@@ -152,9 +164,12 @@ class TestCommandMode:
 
         decisions = ["发展农业", "招募乡勇", "派遣使者联络孙权"]
         for decision in decisions:
-            resp = client.post(f"/api/games/{game_id}/command", json={
-                "decision": decision,
-            })
+            resp = client.post(
+                f"/api/games/{game_id}/command",
+                json={
+                    "decision": decision,
+                },
+            )
             assert resp.status_code == 200
             data = resp.json()
             assert data.get("game_over") is None, f"Unexpected game over on turn: {data.get('turn')}"
@@ -166,9 +181,12 @@ class TestCommandMode:
         assert status["turn"] >= 3
 
     def test_command_nonexistent_game(self, client):
-        resp = client.post("/api/games/nonexistent/command", json={
-            "decision": "test",
-        })
+        resp = client.post(
+            "/api/games/nonexistent/command",
+            json={
+                "decision": "test",
+            },
+        )
         assert resp.status_code == 404
 
 
@@ -232,7 +250,7 @@ class TestSummaryAndExportVideo:
     @patch("histrategy.cli.record.generate_video")
     def test_export_video_success(self, mock_generate_video, client):
         mock_generate_video.return_value = "/path/to/mock_video.mp4"
-        
+
         create_resp = client.post("/api/games", json={"faction": "shu"})
         game_id = create_resp.json()["game_id"]
 
@@ -260,19 +278,25 @@ class TestAuthAndPersistence:
 
     def test_create_game_with_llm_api_key(self, client):
         """llm_api_key in body is accepted and sets env for LLM (not stored)."""
-        resp = client.post("/api/games", json={
-            "faction": "shu",
-            "llm_api_key": "sk-test-key-1234",
-        })
+        resp = client.post(
+            "/api/games",
+            json={
+                "faction": "shu",
+                "llm_api_key": "sk-test-key-1234",
+            },
+        )
         assert resp.status_code == 200
         assert "game_id" in resp.json()
 
     def test_create_game_with_session_id(self, client):
         """session_id in body is accepted and stored in game meta."""
-        resp = client.post("/api/games", json={
-            "faction": "shu",
-            "session_id": "test-session-uuid-1234",
-        })
+        resp = client.post(
+            "/api/games",
+            json={
+                "faction": "shu",
+                "session_id": "test-session-uuid-1234",
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert "game_id" in data
@@ -299,14 +323,18 @@ class TestRestoreGame:
 
         # Build a serialized world state (simulating orchestrator save)
         from histrategy.server.api import _games
+
         engine = _games.get(game_id)
         assert engine is not None, "Engine not found in game pool"
         saved_state = engine.to_dict()
 
         # Restore from saved state
-        restore_resp = client.post("/api/games/restore", json={
-            "world_state": saved_state,
-        })
+        restore_resp = client.post(
+            "/api/games/restore",
+            json={
+                "world_state": saved_state,
+            },
+        )
         assert restore_resp.status_code == 200
         restore_data = restore_resp.json()
         assert restore_data["restored"] is True
@@ -333,13 +361,17 @@ class TestRestoreGame:
 
         # Save and restore
         from histrategy.server.api import _games
+
         engine = _games.get(game_id)
         assert engine is not None, "Engine not found in game pool"
         saved_state = engine.to_dict()
 
-        restore_resp = client.post("/api/games/restore", json={
-            "world_state": saved_state,
-        })
+        restore_resp = client.post(
+            "/api/games/restore",
+            json={
+                "world_state": saved_state,
+            },
+        )
         assert restore_resp.status_code == 200
         restore_data = restore_resp.json()
 
@@ -359,28 +391,38 @@ class TestRestoreGame:
 
         # Save and restore
         from histrategy.server.api import _games
+
         engine = _games.get(game_id)
         assert engine is not None, "Engine not found in game pool"
         saved_state = engine.to_dict()
 
-        restore_resp = client.post("/api/games/restore", json={
-            "world_state": saved_state,
-        })
+        restore_resp = client.post(
+            "/api/games/restore",
+            json={
+                "world_state": saved_state,
+            },
+        )
         restored_id = restore_resp.json()["game_id"]
 
         # Continue playing from restored state
-        resp = client.post(f"/api/games/{restored_id}/command", json={
-            "decision": "派遣使者联络孙权",
-        })
+        resp = client.post(
+            f"/api/games/{restored_id}/command",
+            json={
+                "decision": "派遣使者联络孙权",
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data.get("game_over") is None, "Game should not be over after restore+play"
 
     def test_restore_minimal_state_succeeds(self, client):
         """Even with minimal world_state data, restore creates a playable game."""
-        resp = client.post("/api/games/restore", json={
-            "world_state": {"player_faction_id": "cao", "scenario": "207"},
-        })
+        resp = client.post(
+            "/api/games/restore",
+            json={
+                "world_state": {"player_faction_id": "cao", "scenario": "207"},
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["restored"] is True
@@ -392,4 +434,3 @@ class TestRestoreGame:
         assert plan_resp.status_code == 200
         plan = plan_resp.json()
         assert len(plan["suggestions"]) > 0
-

@@ -89,6 +89,7 @@ MAX_ADJUSTMENT_PCT = 0.25  # 25% max allowed adjustment
 @dataclass
 class FrictionEvent:
     """A single non-linear event added by LLM alignment."""
+
     type: str  # weather, terrain, human, deception
     title: str
     description: str
@@ -114,6 +115,7 @@ class FrictionEvent:
 @dataclass
 class AlignmentResult:
     """Result of the alignment process."""
+
     approved: bool
     attempt_count: int
     friction_events: list[FrictionEvent] = field(default_factory=list)
@@ -133,7 +135,7 @@ class AlignmentEngine:
       5. Return approved AlignmentResult
     """
 
-    def __init__(self, llm: "LLMAdapter"):
+    def __init__(self, llm: LLMAdapter):
         self._llm = llm
         self._retries = 0
 
@@ -189,9 +191,7 @@ class AlignmentEngine:
                     )
 
                 # Retry with feedback
-                context = self._build_retry_context(
-                    context, validation["issues"], validation.get("suggested_fix", "")
-                )
+                context = self._build_retry_context(context, validation["issues"], validation.get("suggested_fix", ""))
 
             except Exception:
                 pass
@@ -236,10 +236,7 @@ class AlignmentEngine:
                 food_d = changes.get("food_delta", 0)
                 tax_r = changes.get("tax_revenue", 0)
                 spent = changes.get("treasury_spent", 0)
-                parts.append(
-                    f"- {name}：粮草{'%+d' % food_d}，税收{'+%d' % tax_r}，"
-                    f"支出{spent}" if spent else ""
-                )
+                parts.append(f"- {name}：粮草{'%+d' % food_d}，税收{'+%d' % tax_r}，支出{spent}" if spent else "")
 
         # Climate
         if climate_events:
@@ -256,9 +253,7 @@ class AlignmentEngine:
 
         return "\n".join(parts)
 
-    def _build_retry_context(
-        self, original_context: str, issues: list[str], suggested_fix: str
-    ) -> str:
+    def _build_retry_context(self, original_context: str, issues: list[str], suggested_fix: str) -> str:
         """Build context for retry with validation feedback."""
         return (
             original_context
@@ -283,6 +278,7 @@ class AlignmentEngine:
         except json.JSONDecodeError:
             # Try extracting from markdown block
             import re
+
             match = re.search(r'\{[^{}]*"friction_events"[^{}]*\[.*?\][^{}]*\}', raw_response, re.DOTALL)
             if match:
                 try:
@@ -295,24 +291,24 @@ class AlignmentEngine:
         events = []
         for item in data.get("friction_events", []):
             try:
-                events.append(FrictionEvent(
-                    type=item.get("type", "unknown"),
-                    title=item.get("title", ""),
-                    description=item.get("description", ""),
-                    affected_faction=item.get("affected_faction", ""),
-                    affected_stat=item.get("affected_stat", ""),
-                    original_value=float(item.get("original_value", 0)),
-                    adjusted_value=float(item.get("adjusted_value", 0)),
-                    adjustment_pct=float(item.get("adjustment_pct", 0)),
-                ))
+                events.append(
+                    FrictionEvent(
+                        type=item.get("type", "unknown"),
+                        title=item.get("title", ""),
+                        description=item.get("description", ""),
+                        affected_faction=item.get("affected_faction", ""),
+                        affected_stat=item.get("affected_stat", ""),
+                        original_value=float(item.get("original_value", 0)),
+                        adjusted_value=float(item.get("adjusted_value", 0)),
+                        adjustment_pct=float(item.get("adjustment_pct", 0)),
+                    )
+                )
             except (ValueError, KeyError, TypeError):
                 continue
 
         return events
 
-    def _validate_events(
-        self, events: list[FrictionEvent], turn_result: dict
-    ) -> dict:
+    def _validate_events(self, events: list[FrictionEvent], turn_result: dict) -> dict:
         """Validate that all adjustments are within allowed bounds.
 
         Returns {'approved': bool, 'issues': [...]}
@@ -335,6 +331,10 @@ class AlignmentEngine:
                 issues.append(f"「{event.title}」缺少合理的叙事理由")
 
         if issues:
-            return {"approved": False, "issues": issues, "suggested_fix": "请缩小调整幅度至 ±25% 以内，并为每个事件补充三国历史背景的叙事理由。"}
+            return {
+                "approved": False,
+                "issues": issues,
+                "suggested_fix": "请缩小调整幅度至 ±25% 以内，并为每个事件补充三国历史背景的叙事理由。",
+            }
 
         return {"approved": True, "issues": []}

@@ -16,8 +16,8 @@ import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ..world import ClimateEvent, Season, Territory
 from ..rules.interpreter import RuleInterpreter
+from ..world import ClimateEvent, Season, Territory
 
 if TYPE_CHECKING:
     from ..character import CharacterEngine
@@ -29,45 +29,105 @@ if TYPE_CHECKING:
 CLIMATE_PROBABILITIES: dict[tuple[str, str], dict[ClimateEvent, float]] = {
     # (climate_zone, season) → {event: probability}
     # Spring
-    ("north", "spring"):   {ClimateEvent.NORMAL: 0.65, ClimateEvent.DROUGHT: 0.10,
-                            ClimateEvent.FLOOD: 0.10, ClimateEvent.PESTILENCE: 0.05,
-                            ClimateEvent.BUMPER_HARVEST: 0.05, ClimateEvent.COLD_WAVE: 0.05},
-    ("central", "spring"): {ClimateEvent.NORMAL: 0.60, ClimateEvent.DROUGHT: 0.08,
-                            ClimateEvent.FLOOD: 0.12, ClimateEvent.PESTILENCE: 0.05,
-                            ClimateEvent.BUMPER_HARVEST: 0.08, ClimateEvent.COLD_WAVE: 0.07},
-    ("south", "spring"):   {ClimateEvent.NORMAL: 0.55, ClimateEvent.DROUGHT: 0.05,
-                            ClimateEvent.FLOOD: 0.18, ClimateEvent.PESTILENCE: 0.08,
-                            ClimateEvent.BUMPER_HARVEST: 0.10, ClimateEvent.COLD_WAVE: 0.04},
+    ("north", "spring"): {
+        ClimateEvent.NORMAL: 0.65,
+        ClimateEvent.DROUGHT: 0.10,
+        ClimateEvent.FLOOD: 0.10,
+        ClimateEvent.PESTILENCE: 0.05,
+        ClimateEvent.BUMPER_HARVEST: 0.05,
+        ClimateEvent.COLD_WAVE: 0.05,
+    },
+    ("central", "spring"): {
+        ClimateEvent.NORMAL: 0.60,
+        ClimateEvent.DROUGHT: 0.08,
+        ClimateEvent.FLOOD: 0.12,
+        ClimateEvent.PESTILENCE: 0.05,
+        ClimateEvent.BUMPER_HARVEST: 0.08,
+        ClimateEvent.COLD_WAVE: 0.07,
+    },
+    ("south", "spring"): {
+        ClimateEvent.NORMAL: 0.55,
+        ClimateEvent.DROUGHT: 0.05,
+        ClimateEvent.FLOOD: 0.18,
+        ClimateEvent.PESTILENCE: 0.08,
+        ClimateEvent.BUMPER_HARVEST: 0.10,
+        ClimateEvent.COLD_WAVE: 0.04,
+    },
     # Summer
-    ("north", "summer"):   {ClimateEvent.NORMAL: 0.60, ClimateEvent.DROUGHT: 0.15,
-                            ClimateEvent.FLOOD: 0.05, ClimateEvent.PESTILENCE: 0.08,
-                            ClimateEvent.BUMPER_HARVEST: 0.07, ClimateEvent.COLD_WAVE: 0.0},
-    ("central", "summer"): {ClimateEvent.NORMAL: 0.55, ClimateEvent.DROUGHT: 0.10,
-                            ClimateEvent.FLOOD: 0.10, ClimateEvent.PESTILENCE: 0.08,
-                            ClimateEvent.BUMPER_HARVEST: 0.12, ClimateEvent.COLD_WAVE: 0.0},
-    ("south", "summer"):   {ClimateEvent.NORMAL: 0.50, ClimateEvent.DROUGHT: 0.05,
-                            ClimateEvent.FLOOD: 0.15, ClimateEvent.PESTILENCE: 0.12,
-                            ClimateEvent.BUMPER_HARVEST: 0.10, ClimateEvent.COLD_WAVE: 0.0},
+    ("north", "summer"): {
+        ClimateEvent.NORMAL: 0.60,
+        ClimateEvent.DROUGHT: 0.15,
+        ClimateEvent.FLOOD: 0.05,
+        ClimateEvent.PESTILENCE: 0.08,
+        ClimateEvent.BUMPER_HARVEST: 0.07,
+        ClimateEvent.COLD_WAVE: 0.0,
+    },
+    ("central", "summer"): {
+        ClimateEvent.NORMAL: 0.55,
+        ClimateEvent.DROUGHT: 0.10,
+        ClimateEvent.FLOOD: 0.10,
+        ClimateEvent.PESTILENCE: 0.08,
+        ClimateEvent.BUMPER_HARVEST: 0.12,
+        ClimateEvent.COLD_WAVE: 0.0,
+    },
+    ("south", "summer"): {
+        ClimateEvent.NORMAL: 0.50,
+        ClimateEvent.DROUGHT: 0.05,
+        ClimateEvent.FLOOD: 0.15,
+        ClimateEvent.PESTILENCE: 0.12,
+        ClimateEvent.BUMPER_HARVEST: 0.10,
+        ClimateEvent.COLD_WAVE: 0.0,
+    },
     # Autumn
-    ("north", "autumn"):   {ClimateEvent.NORMAL: 0.65, ClimateEvent.DROUGHT: 0.05,
-                            ClimateEvent.FLOOD: 0.05, ClimateEvent.PESTILENCE: 0.03,
-                            ClimateEvent.BUMPER_HARVEST: 0.10, ClimateEvent.COLD_WAVE: 0.07},
-    ("central", "autumn"): {ClimateEvent.NORMAL: 0.60, ClimateEvent.DROUGHT: 0.05,
-                            ClimateEvent.FLOOD: 0.10, ClimateEvent.PESTILENCE: 0.05,
-                            ClimateEvent.BUMPER_HARVEST: 0.12, ClimateEvent.COLD_WAVE: 0.05},
-    ("south", "autumn"):   {ClimateEvent.NORMAL: 0.55, ClimateEvent.DROUGHT: 0.03,
-                            ClimateEvent.FLOOD: 0.15, ClimateEvent.PESTILENCE: 0.07,
-                            ClimateEvent.BUMPER_HARVEST: 0.12, ClimateEvent.COLD_WAVE: 0.03},
+    ("north", "autumn"): {
+        ClimateEvent.NORMAL: 0.65,
+        ClimateEvent.DROUGHT: 0.05,
+        ClimateEvent.FLOOD: 0.05,
+        ClimateEvent.PESTILENCE: 0.03,
+        ClimateEvent.BUMPER_HARVEST: 0.10,
+        ClimateEvent.COLD_WAVE: 0.07,
+    },
+    ("central", "autumn"): {
+        ClimateEvent.NORMAL: 0.60,
+        ClimateEvent.DROUGHT: 0.05,
+        ClimateEvent.FLOOD: 0.10,
+        ClimateEvent.PESTILENCE: 0.05,
+        ClimateEvent.BUMPER_HARVEST: 0.12,
+        ClimateEvent.COLD_WAVE: 0.05,
+    },
+    ("south", "autumn"): {
+        ClimateEvent.NORMAL: 0.55,
+        ClimateEvent.DROUGHT: 0.03,
+        ClimateEvent.FLOOD: 0.15,
+        ClimateEvent.PESTILENCE: 0.07,
+        ClimateEvent.BUMPER_HARVEST: 0.12,
+        ClimateEvent.COLD_WAVE: 0.03,
+    },
     # Winter
-    ("north", "winter"):   {ClimateEvent.NORMAL: 0.55, ClimateEvent.DROUGHT: 0.0,
-                            ClimateEvent.FLOOD: 0.0, ClimateEvent.PESTILENCE: 0.0,
-                            ClimateEvent.BUMPER_HARVEST: 0.0, ClimateEvent.COLD_WAVE: 0.30},
-    ("central", "winter"): {ClimateEvent.NORMAL: 0.60, ClimateEvent.DROUGHT: 0.0,
-                            ClimateEvent.FLOOD: 0.0, ClimateEvent.PESTILENCE: 0.0,
-                            ClimateEvent.BUMPER_HARVEST: 0.0, ClimateEvent.COLD_WAVE: 0.20},
-    ("south", "winter"):   {ClimateEvent.NORMAL: 0.70, ClimateEvent.DROUGHT: 0.0,
-                            ClimateEvent.FLOOD: 0.05, ClimateEvent.PESTILENCE: 0.0,
-                            ClimateEvent.BUMPER_HARVEST: 0.0, ClimateEvent.COLD_WAVE: 0.05},
+    ("north", "winter"): {
+        ClimateEvent.NORMAL: 0.55,
+        ClimateEvent.DROUGHT: 0.0,
+        ClimateEvent.FLOOD: 0.0,
+        ClimateEvent.PESTILENCE: 0.0,
+        ClimateEvent.BUMPER_HARVEST: 0.0,
+        ClimateEvent.COLD_WAVE: 0.30,
+    },
+    ("central", "winter"): {
+        ClimateEvent.NORMAL: 0.60,
+        ClimateEvent.DROUGHT: 0.0,
+        ClimateEvent.FLOOD: 0.0,
+        ClimateEvent.PESTILENCE: 0.0,
+        ClimateEvent.BUMPER_HARVEST: 0.0,
+        ClimateEvent.COLD_WAVE: 0.20,
+    },
+    ("south", "winter"): {
+        ClimateEvent.NORMAL: 0.70,
+        ClimateEvent.DROUGHT: 0.0,
+        ClimateEvent.FLOOD: 0.05,
+        ClimateEvent.PESTILENCE: 0.0,
+        ClimateEvent.BUMPER_HARVEST: 0.0,
+        ClimateEvent.COLD_WAVE: 0.05,
+    },
 }
 
 
@@ -81,8 +141,9 @@ def _seeded_random(seed: str) -> random.Random:
 class ClimateSystem:
     """Seasonal climate with deterministic seeded randomness."""
 
-    def roll_climate(self, territory: Territory, season: Season,
-                      year: int, turn: int) -> ClimateEvent:
+    def roll_climate(
+        self, territory: Territory, season: Season, year: int, turn: int
+    ) -> ClimateEvent:
         """
         Roll a climate event for a territory.
 
@@ -110,13 +171,11 @@ class ClimateSystem:
 
         return ClimateEvent.NORMAL
 
-    def roll_all(self, territories: dict[str, Territory], season: Season,
-                  year: int, turn: int) -> dict[str, ClimateEvent]:
+    def roll_all(
+        self, territories: dict[str, Territory], season: Season, year: int, turn: int
+    ) -> dict[str, ClimateEvent]:
         """Roll climate for all territories."""
-        return {
-            tid: self.roll_climate(t, season, year, turn)
-            for tid, t in territories.items()
-        }
+        return {tid: self.roll_climate(t, season, year, turn) for tid, t in territories.items()}
 
 
 # ─── Domestic calculations ─────────────────────────────────────
@@ -125,6 +184,7 @@ class ClimateSystem:
 @dataclass
 class TerritoryResult:
     """Per-territory result of a domestic season tick."""
+
     territory_id: str
     food_produced: int
     food_consumed: int
@@ -147,8 +207,9 @@ class DomesticEngine:
     making them configurable without code changes.
     """
 
-    def __init__(self, climate_system: ClimateSystem | None = None,
-                  rules: RuleInterpreter | None = None):
+    def __init__(
+        self, climate_system: ClimateSystem | None = None, rules: RuleInterpreter | None = None
+    ):
         self._climate = climate_system or ClimateSystem()
         self._rules = rules or RuleInterpreter()
 
@@ -185,25 +246,34 @@ class DomesticEngine:
 
         return int(base * season_mod * climate_mod * gov_mod * tech_mod)
 
-    def calculate_food_consumption(self, territory: Territory, troops: int = 0,
-                                    supply_multiplier: float = 1.0) -> int:
+    def calculate_food_consumption(
+        self, territory: Territory, troops: int = 0, supply_multiplier: float = 1.0
+    ) -> int:
         """Food consumed by population and troops in one season.
 
         Constants loaded from rules/economy.yaml:
           - civilian_per_capita (default 0.02)
           - troop_per_capita (default 0.5)
         """
-        civ = self._rules.evaluate("food_consumption.civilian_formula", {
-            "population": territory.population,
-            "civilian_per_capita": self._rules.get_constant(
-                "food_consumption.constants.civilian_per_capita"),
-        })
-        troop = self._rules.evaluate("food_consumption.troop_formula", {
-            "troops": troops,
-            "troop_per_capita": self._rules.get_constant(
-                "food_consumption.constants.troop_per_capita"),
-            "supply_multiplier": supply_multiplier,
-        })
+        civ = self._rules.evaluate(
+            "food_consumption.civilian_formula",
+            {
+                "population": territory.population,
+                "civilian_per_capita": self._rules.get_constant(
+                    "food_consumption.constants.civilian_per_capita"
+                ),
+            },
+        )
+        troop = self._rules.evaluate(
+            "food_consumption.troop_formula",
+            {
+                "troops": troops,
+                "troop_per_capita": self._rules.get_constant(
+                    "food_consumption.constants.troop_per_capita"
+                ),
+                "supply_multiplier": supply_multiplier,
+            },
+        )
         return int(civ + troop)
 
     # ── Population ──
@@ -226,13 +296,17 @@ class DomesticEngine:
         total_food = food_surplus + consumption  # approximate
 
         if total_food > consumption * self._rules.get_constant(
-                "population_growth.surplus_threshold_high"):
-            rate = self._rules.evaluate("population_growth.formula", {
-                "population": 1.0,
-                "rate": self._rules.get_constant("population_growth.rate_healthy"),
-                "morale": morale,
-                "development": territory.development,
-            })
+            "population_growth.surplus_threshold_high"
+        ):
+            rate = self._rules.evaluate(
+                "population_growth.formula",
+                {
+                    "population": 1.0,
+                    "rate": self._rules.get_constant("population_growth.rate_healthy"),
+                    "morale": morale,
+                    "development": territory.development,
+                },
+            )
         elif total_food > consumption:
             rate = self._rules.get_constant("population_growth.rate_slow")
         elif total_food > 0:
@@ -254,13 +328,17 @@ class DomesticEngine:
 
         Formula loaded from rules/economy.yaml.
         """
-        base = self._rules.evaluate("tax.revenue_formula", {
-            "population": territory.population,
-            "tax_rate": tax_rate,
-            "tax_base_multiplier": self._rules.get_constant(
-                "tax.constants.tax_base_multiplier"),
-            "gov_mod": 1.0 + governor_politics / 200.0,
-        })
+        base = self._rules.evaluate(
+            "tax.revenue_formula",
+            {
+                "population": territory.population,
+                "tax_rate": tax_rate,
+                "tax_base_multiplier": self._rules.get_constant(
+                    "tax.constants.tax_base_multiplier"
+                ),
+                "gov_mod": 1.0 + governor_politics / 200.0,
+            },
+        )
         return int(base)
 
     def calculate_tax_morale_impact(self, tax_rate: float) -> int:
@@ -282,9 +360,7 @@ class DomesticEngine:
 
     # ── Development ──
 
-    def calculate_development_cost(
-        self, territory: Territory, target_level: int
-    ) -> int:
+    def calculate_development_cost(self, territory: Territory, target_level: int) -> int:
         """
         Cost to increase development from current to target level.
 
@@ -292,10 +368,13 @@ class DomesticEngine:
         Uses sqrt scaling so large cities are more expensive but not impossibly so.
         """
         delta = max(0, target_level - territory.development)
-        cost = self._rules.evaluate("development.cost_formula", {
-            "delta": delta,
-            "population": territory.population,
-        })
+        cost = self._rules.evaluate(
+            "development.cost_formula",
+            {
+                "delta": delta,
+                "population": territory.population,
+            },
+        )
         minimum = self._rules.get_constant("development.constants.minimum_cost")
         return max(minimum, int(cost))
 
@@ -349,12 +428,12 @@ class DomesticEngine:
                 territory, season, climate, gov_pol, tech_agri
             )
             troops = territory_troops.get(tid, 0) if territory_troops else 0
-            food_cons = self.calculate_food_consumption(
-                territory, troops, season.supply_multiplier
-            )
+            food_cons = self.calculate_food_consumption(territory, troops, season.supply_multiplier)
             food_delta = food_prod - food_cons
             pop_delta = self.calculate_population_growth(
-                territory, food_delta, morale=50  # default, caller can override
+                territory,
+                food_delta,
+                morale=50,  # default, caller can override
             )
             tax_rev = self.calculate_tax_revenue(territory, tax_rate, gov_pol)
             morale_change = self.calculate_tax_morale_impact(tax_rate)
@@ -362,16 +441,18 @@ class DomesticEngine:
             # Apply changes to territory
             territory.population = max(100, territory.population + pop_delta)
 
-            results.append(TerritoryResult(
-                territory_id=tid,
-                food_produced=food_prod,
-                food_consumed=food_cons,
-                food_delta=food_delta,
-                population_delta=pop_delta,
-                tax_revenue=tax_rev,
-                development_change=0,
-                morale_change=morale_change,
-                climate_event=climate,
-            ))
+            results.append(
+                TerritoryResult(
+                    territory_id=tid,
+                    food_produced=food_prod,
+                    food_consumed=food_cons,
+                    food_delta=food_delta,
+                    population_delta=pop_delta,
+                    tax_revenue=tax_rev,
+                    development_change=0,
+                    morale_change=morale_change,
+                    climate_event=climate,
+                )
+            )
 
         return results

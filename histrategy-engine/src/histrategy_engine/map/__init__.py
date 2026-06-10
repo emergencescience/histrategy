@@ -21,28 +21,28 @@ if TYPE_CHECKING:
 
 TERRAIN_MODIFIERS: dict[tuple[TerrainType, UnitType], dict[str, float]] = {
     # (terrain, unit) → {attack_mod, defense_mod, move_cost}
-    (TerrainType.PLAINS, UnitType.INFANTRY):     {"attack": 1.0, "defense": 1.0, "move": 1.0},
-    (TerrainType.PLAINS, UnitType.CAVALRY):      {"attack": 1.3, "defense": 0.9, "move": 0.6},
-    (TerrainType.PLAINS, UnitType.ARCHER):       {"attack": 1.0, "defense": 0.8, "move": 1.0},
-    (TerrainType.PLAINS, UnitType.NAVY):         {"attack": 0.1, "defense": 0.1, "move": 99},
-    (TerrainType.HILLS, UnitType.INFANTRY):      {"attack": 1.0, "defense": 1.2, "move": 1.3},
-    (TerrainType.HILLS, UnitType.CAVALRY):       {"attack": 0.8, "defense": 0.9, "move": 1.8},
-    (TerrainType.HILLS, UnitType.ARCHER):        {"attack": 1.1, "defense": 1.0, "move": 1.2},
-    (TerrainType.HILLS, UnitType.NAVY):          {"attack": 0.1, "defense": 0.1, "move": 99},
-    (TerrainType.MOUNTAIN, UnitType.INFANTRY):   {"attack": 0.7, "defense": 1.5, "move": 2.5},
-    (TerrainType.MOUNTAIN, UnitType.CAVALRY):    {"attack": 0.3, "defense": 0.6, "move": 4.0},
-    (TerrainType.MOUNTAIN, UnitType.ARCHER):     {"attack": 1.2, "defense": 1.3, "move": 2.0},
-    (TerrainType.MOUNTAIN, UnitType.NAVY):       {"attack": 0.0, "defense": 0.0, "move": 99},
-    (TerrainType.FOREST, UnitType.INFANTRY):     {"attack": 0.9, "defense": 1.3, "move": 1.4},
-    (TerrainType.FOREST, UnitType.CAVALRY):      {"attack": 0.5, "defense": 0.7, "move": 2.2},
-    (TerrainType.FOREST, UnitType.ARCHER):       {"attack": 0.7, "defense": 1.4, "move": 1.5},
-    (TerrainType.FOREST, UnitType.NAVY):         {"attack": 0.0, "defense": 0.0, "move": 99},
-    (TerrainType.WETLAND, UnitType.INFANTRY):    {"attack": 0.8, "defense": 1.0, "move": 2.0},
-    (TerrainType.WETLAND, UnitType.CAVALRY):     {"attack": 0.4, "defense": 0.5, "move": 3.5},
-    (TerrainType.WETLAND, UnitType.ARCHER):      {"attack": 0.8, "defense": 0.9, "move": 2.0},
-    (TerrainType.WETLAND, UnitType.NAVY):        {"attack": 0.1, "defense": 0.1, "move": 99},
-    (TerrainType.RIVER, UnitType.NAVY):          {"attack": 1.5, "defense": 1.2, "move": 0.5},
-    (TerrainType.COAST, UnitType.NAVY):          {"attack": 1.3, "defense": 1.1, "move": 0.7},
+    (TerrainType.PLAINS, UnitType.INFANTRY): {"attack": 1.0, "defense": 1.0, "move": 1.0},
+    (TerrainType.PLAINS, UnitType.CAVALRY): {"attack": 1.3, "defense": 0.9, "move": 0.6},
+    (TerrainType.PLAINS, UnitType.ARCHER): {"attack": 1.0, "defense": 0.8, "move": 1.0},
+    (TerrainType.PLAINS, UnitType.NAVY): {"attack": 0.1, "defense": 0.1, "move": 99},
+    (TerrainType.HILLS, UnitType.INFANTRY): {"attack": 1.0, "defense": 1.2, "move": 1.3},
+    (TerrainType.HILLS, UnitType.CAVALRY): {"attack": 0.8, "defense": 0.9, "move": 1.8},
+    (TerrainType.HILLS, UnitType.ARCHER): {"attack": 1.1, "defense": 1.0, "move": 1.2},
+    (TerrainType.HILLS, UnitType.NAVY): {"attack": 0.1, "defense": 0.1, "move": 99},
+    (TerrainType.MOUNTAIN, UnitType.INFANTRY): {"attack": 0.7, "defense": 1.5, "move": 2.5},
+    (TerrainType.MOUNTAIN, UnitType.CAVALRY): {"attack": 0.3, "defense": 0.6, "move": 4.0},
+    (TerrainType.MOUNTAIN, UnitType.ARCHER): {"attack": 1.2, "defense": 1.3, "move": 2.0},
+    (TerrainType.MOUNTAIN, UnitType.NAVY): {"attack": 0.0, "defense": 0.0, "move": 99},
+    (TerrainType.FOREST, UnitType.INFANTRY): {"attack": 0.9, "defense": 1.3, "move": 1.4},
+    (TerrainType.FOREST, UnitType.CAVALRY): {"attack": 0.5, "defense": 0.7, "move": 2.2},
+    (TerrainType.FOREST, UnitType.ARCHER): {"attack": 0.7, "defense": 1.4, "move": 1.5},
+    (TerrainType.FOREST, UnitType.NAVY): {"attack": 0.0, "defense": 0.0, "move": 99},
+    (TerrainType.WETLAND, UnitType.INFANTRY): {"attack": 0.8, "defense": 1.0, "move": 2.0},
+    (TerrainType.WETLAND, UnitType.CAVALRY): {"attack": 0.4, "defense": 0.5, "move": 3.5},
+    (TerrainType.WETLAND, UnitType.ARCHER): {"attack": 0.8, "defense": 0.9, "move": 2.0},
+    (TerrainType.WETLAND, UnitType.NAVY): {"attack": 0.1, "defense": 0.1, "move": 99},
+    (TerrainType.RIVER, UnitType.NAVY): {"attack": 1.5, "defense": 1.2, "move": 0.5},
+    (TerrainType.COAST, UnitType.NAVY): {"attack": 1.3, "defense": 1.1, "move": 0.7},
 }
 
 # Default for any (terrain, unit) not explicitly defined
@@ -58,9 +58,9 @@ def _get_mod(terrain: TerrainType, unit: UnitType, key: str) -> float:
 
 @dataclass
 class PathResult:
-    path: list[str]       # ordered territory IDs from origin to dest
-    total_cost: float     # sum of movement costs
-    turns_required: int   # how many game turns this takes
+    path: list[str]  # ordered territory IDs from origin to dest
+    total_cost: float  # sum of movement costs
+    turns_required: int  # how many game turns this takes
     blocked_by: str = ""  # strategic_point_id if blocked
 
 

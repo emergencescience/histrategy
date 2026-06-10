@@ -18,24 +18,44 @@ if TYPE_CHECKING:
 
 DEFAULT_PROFILES: dict[str, dict[str, float]] = {
     "caocao": {
-        "aggression": 0.8, "cunning": 0.9, "caution": 0.3,
-        "diplomacy": 0.5, "development": 0.6, "mercy": 0.2,
+        "aggression": 0.8,
+        "cunning": 0.9,
+        "caution": 0.3,
+        "diplomacy": 0.5,
+        "development": 0.6,
+        "mercy": 0.2,
     },
     "liubei": {
-        "aggression": 0.3, "cunning": 0.3, "caution": 0.7,
-        "diplomacy": 0.8, "development": 0.8, "mercy": 0.95,
+        "aggression": 0.3,
+        "cunning": 0.3,
+        "caution": 0.7,
+        "diplomacy": 0.8,
+        "development": 0.8,
+        "mercy": 0.95,
     },
     "sunquan": {
-        "aggression": 0.6, "cunning": 0.6, "caution": 0.5,
-        "diplomacy": 0.6, "development": 0.6, "mercy": 0.5,
+        "aggression": 0.6,
+        "cunning": 0.6,
+        "caution": 0.5,
+        "diplomacy": 0.6,
+        "development": 0.6,
+        "mercy": 0.5,
     },
     "yuanshao": {
-        "aggression": 0.5, "cunning": 0.6, "caution": 0.7,
-        "diplomacy": 0.7, "development": 0.5, "mercy": 0.6,
+        "aggression": 0.5,
+        "cunning": 0.6,
+        "caution": 0.7,
+        "diplomacy": 0.7,
+        "development": 0.5,
+        "mercy": 0.6,
     },
     "dongzhuo": {
-        "aggression": 0.9, "cunning": 0.5, "caution": 0.1,
-        "diplomacy": 0.1, "development": 0.2, "mercy": 0.05,
+        "aggression": 0.9,
+        "cunning": 0.5,
+        "caution": 0.1,
+        "diplomacy": 0.1,
+        "development": 0.2,
+        "mercy": 0.05,
     },
 }
 
@@ -50,8 +70,14 @@ class DecisionEngine:
         """Get personality profile, falling back to a balanced default."""
         return self._profiles.get(
             faction_id,
-            {"aggression": 0.5, "cunning": 0.5, "caution": 0.5,
-             "diplomacy": 0.5, "development": 0.5, "mercy": 0.5},
+            {
+                "aggression": 0.5,
+                "cunning": 0.5,
+                "caution": 0.5,
+                "diplomacy": 0.5,
+                "development": 0.5,
+                "mercy": 0.5,
+            },
         )
 
     # ── Threat evaluation ──
@@ -146,12 +172,14 @@ class DecisionEngine:
 
                 # Unowned territory → occupy
                 if not neighbor_territory.owner_id:
-                    opportunities.append({
-                        "type": "occupy",
-                        "territory_id": neighbor_id,
-                        "territory_name": neighbor_territory.name,
-                        "score": 0.8,
-                    })
+                    opportunities.append(
+                        {
+                            "type": "occupy",
+                            "territory_id": neighbor_id,
+                            "territory_name": neighbor_territory.name,
+                            "score": 0.8,
+                        }
+                    )
                     continue
 
                 # Own territory → skip
@@ -168,15 +196,17 @@ class DecisionEngine:
                 strength_ratio = enemy_strength / my_strength if my_strength > 0 else float("inf")
 
                 if strength_ratio < 0.6:
-                    opportunities.append({
-                        "type": "attack",
-                        "territory_id": neighbor_id,
-                        "territory_name": neighbor_territory.name,
-                        "enemy_faction_id": enemy_id,
-                        "enemy_faction_name": enemy_faction.name,
-                        "strength_ratio": strength_ratio,
-                        "score": 0.7 * (1.0 - strength_ratio),
-                    })
+                    opportunities.append(
+                        {
+                            "type": "attack",
+                            "territory_id": neighbor_id,
+                            "territory_name": neighbor_territory.name,
+                            "enemy_faction_id": enemy_id,
+                            "enemy_faction_name": enemy_faction.name,
+                            "strength_ratio": strength_ratio,
+                            "score": 0.7 * (1.0 - strength_ratio),
+                        }
+                    )
 
         # Sort by score descending
         opportunities.sort(key=lambda o: o["score"], reverse=True)
@@ -223,7 +253,11 @@ class DecisionEngine:
         treasury_ok = faction.treasury > 2000
 
         from ..world import HistoricalMode
-        is_historical = getattr(world_state, "historical_mode", HistoricalMode.HISTORICAL) == HistoricalMode.HISTORICAL
+
+        is_historical = (
+            getattr(world_state, "historical_mode", HistoricalMode.HISTORICAL)
+            == HistoricalMode.HISTORICAL
+        )
 
         if is_historical:
             commands: list[Command] = []
@@ -254,18 +288,22 @@ class DecisionEngine:
 
             if attack_opps and aggression > 0.4:
                 opp = attack_opps[0]
-                commands.append(Command(
-                    type="attack",
-                    params={"target_territory": opp["territory_id"]},
-                    faction_id=faction_id,
-                ))
+                commands.append(
+                    Command(
+                        type="attack",
+                        params={"target_territory": opp["territory_id"]},
+                        faction_id=faction_id,
+                    )
+                )
             elif occupy_opps and aggression > 0.2:
                 opp = occupy_opps[0]
-                commands.append(Command(
-                    type="move",
-                    params={"destination": opp["territory_id"]},
-                    faction_id=faction_id,
-                ))
+                commands.append(
+                    Command(
+                        type="move",
+                        params={"destination": opp["territory_id"]},
+                        faction_id=faction_id,
+                    )
+                )
             elif faction.territories:
                 commands.append(self._make_develop_command(faction))
         else:
@@ -286,7 +324,8 @@ class DecisionEngine:
         return Command(
             type="recruit",
             params={
-                "territory": faction.capital or (faction.territories[0] if faction.territories else ""),
+                "territory": faction.capital
+                or (faction.territories[0] if faction.territories else ""),
                 "unit_type": "infantry",
                 "amount": 500,
             },
@@ -297,7 +336,8 @@ class DecisionEngine:
         return Command(
             type="develop",
             params={
-                "territory": faction.capital or (faction.territories[0] if faction.territories else ""),
+                "territory": faction.capital
+                or (faction.territories[0] if faction.territories else ""),
             },
             faction_id=faction.id,
         )

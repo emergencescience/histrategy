@@ -21,8 +21,8 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from pathlib import Path
 
-
 # ─── Mood enum ────────────────────────────────────────────────────
+
 
 class NPCMood(str, Enum):
     """NPC emotional state. Ordered from most positive to most dangerous.
@@ -33,18 +33,18 @@ class NPCMood(str, Enum):
       ANGRY → PLOTTING needs 1 more turn
     Players get at least 3 turns of warning before PLOTTING.
     """
-    LOYAL = "loyal"           # Extra loyalty — advisor actively supports player
-    CONTENT = "content"       # Normal state — no issues
-    FRUSTRATED = "frustrated" # Warning level — advisor unhappy, hints surfaced
-    ANGRY = "angry"           # Danger level — advisor may leak intel or disobey
-    SCHEMING = "scheming"     # High danger — advisor forming court faction against player
-    PLOTTING = "plotting"     # Critical — betrayal or defection imminent (1-2 turns)
+
+    LOYAL = "loyal"  # Extra loyalty — advisor actively supports player
+    CONTENT = "content"  # Normal state — no issues
+    FRUSTRATED = "frustrated"  # Warning level — advisor unhappy, hints surfaced
+    ANGRY = "angry"  # Danger level — advisor may leak intel or disobey
+    SCHEMING = "scheming"  # High danger — advisor forming court faction against player
+    PLOTTING = "plotting"  # Critical — betrayal or defection imminent (1-2 turns)
 
     @property
     def danger_level(self) -> int:
         """0 = safe, 5 = imminent betrayal."""
-        order = [self.LOYAL, self.CONTENT, self.FRUSTRATED,
-                 self.ANGRY, self.SCHEMING, self.PLOTTING]
+        order = [self.LOYAL, self.CONTENT, self.FRUSTRATED, self.ANGRY, self.SCHEMING, self.PLOTTING]
         try:
             return order.index(self)
         except ValueError:
@@ -64,8 +64,7 @@ class NPCMood(str, Enum):
 
     def shift_toward(self, direction: int) -> NPCMood:
         """Shift mood by direction (-1=improve, +1=worsen). Max 1 step."""
-        order = [NPCMood.LOYAL, NPCMood.CONTENT, NPCMood.FRUSTRATED,
-                 NPCMood.ANGRY, NPCMood.SCHEMING, NPCMood.PLOTTING]
+        order = [NPCMood.LOYAL, NPCMood.CONTENT, NPCMood.FRUSTRATED, NPCMood.ANGRY, NPCMood.SCHEMING, NPCMood.PLOTTING]
         idx = self.danger_level
         new_idx = max(0, min(len(order) - 1, idx + direction))
         return order[new_idx]
@@ -73,16 +72,18 @@ class NPCMood(str, Enum):
 
 # ─── NPCState ─────────────────────────────────────────────────────
 
+
 @dataclass
 class NPCState:
     """Emotional state of a single NPC (character in the game world).
 
     Stored in ~/.histrategy/npc_states.json per character_id.
     """
+
     character_id: str
-    loyalty: int = 80              # 0-100 overall loyalty score
+    loyalty: int = 80  # 0-100 overall loyalty score
     mood: NPCMood = NPCMood.CONTENT
-    grievance: str = ""            # One-sentence reason for unhappiness (in Chinese)
+    grievance: str = ""  # One-sentence reason for unhappiness (in Chinese)
     key_events: list[str] = field(default_factory=list)  # e.g. ["turn_3_ignored"]
     is_plotting: bool = False
     turns_at_current_mood: int = 0  # How long they've been at this mood
@@ -123,6 +124,7 @@ class NPCState:
 
 # ─── Save / Load ──────────────────────────────────────────────────
 
+
 def _npc_states_file() -> Path:
     override = os.environ.get("HISTRATEGY_DATA_DIR")
     base = Path(override).expanduser() if override else Path.home() / ".histrategy"
@@ -147,8 +149,7 @@ def save_npc_states(states: dict[str, NPCState]) -> None:
     path = _npc_states_file()
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
-        json.dump({cid: s.to_dict() for cid, s in states.items()},
-                  f, ensure_ascii=False, indent=2)
+        json.dump({cid: s.to_dict() for cid, s in states.items()}, f, ensure_ascii=False, indent=2)
 
 
 def get_or_create_npc_state(

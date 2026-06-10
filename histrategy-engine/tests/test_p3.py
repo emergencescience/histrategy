@@ -11,15 +11,11 @@ import tempfile
 import pytest
 
 from histrategy_engine import (
-    Army,
     Character,
-    CharacterEngine,
     EventProposal,
     FactionState,
-    HistoricalEvent,
     HistoricalRAG,
     HistoryEngine,
-    MapEngine,
     Season,
     TerrainType,
     Territory,
@@ -43,9 +39,7 @@ SAMPLE_TIMELINE = {
             "participants": ["liubei", "zhugeliang"],
             "gravity": 0.95,
             "preconditions": {"liubei_location": "xinye"},
-            "outcomes": [
-                {"id": "zhuge_joins", "description": "诸葛亮加入刘备", "effects": {}}
-            ],
+            "outcomes": [{"id": "zhuge_joins", "description": "诸葛亮加入刘备", "effects": {}}],
             "butterfly_effects": {"triggered": ["liubiao_death_208"]},
         },
         {
@@ -58,9 +52,7 @@ SAMPLE_TIMELINE = {
             "participants": ["liubiao", "caocao"],
             "gravity": 0.9,
             "preconditions": {},
-            "outcomes": [
-                {"id": "cao_takes", "description": "曹操接管荆州", "effects": {}}
-            ],
+            "outcomes": [{"id": "cao_takes", "description": "曹操接管荆州", "effects": {}}],
             "butterfly_effects": {"triggered": ["red_cliffs_208"]},
         },
         {
@@ -73,9 +65,7 @@ SAMPLE_TIMELINE = {
             "participants": ["caocao", "sunquan", "liubei", "zhouyu"],
             "gravity": 0.95,
             "preconditions": {"sunliu_alliance": True},
-            "outcomes": [
-                {"id": "alliance_victory", "description": "联军大胜", "effects": {}}
-            ],
+            "outcomes": [{"id": "alliance_victory", "description": "联军大胜", "effects": {}}],
             "butterfly_effects": {"triggered": ["jingnan_campaign_209"]},
         },
         {
@@ -88,9 +78,7 @@ SAMPLE_TIMELINE = {
             "participants": ["liubei", "guanyu"],
             "gravity": 0.8,
             "preconditions": {"red_cliffs_won": True},
-            "outcomes": [
-                {"id": "four_commanderies", "description": "尽得四郡", "effects": {}}
-            ],
+            "outcomes": [{"id": "four_commanderies", "description": "尽得四郡", "effects": {}}],
             "butterfly_effects": {"triggered": ["sunliu_marriage_209"]},
         },
         {
@@ -103,9 +91,7 @@ SAMPLE_TIMELINE = {
             "participants": ["liubei", "sunshangxiang"],
             "gravity": 0.7,
             "preconditions": {"sunliu_alliance": True},
-            "outcomes": [
-                {"id": "marriage_ok", "description": "联姻成功", "effects": {}}
-            ],
+            "outcomes": [{"id": "marriage_ok", "description": "联姻成功", "effects": {}}],
             "butterfly_effects": {"triggered": ["zhouyu_death_210"]},
         },
         {
@@ -118,9 +104,7 @@ SAMPLE_TIMELINE = {
             "participants": ["zhouyu"],
             "gravity": 0.8,
             "preconditions": {"zhouyu_alive": True},
-            "outcomes": [
-                {"id": "zhouyu_dies", "description": "周瑜病逝", "effects": {}}
-            ],
+            "outcomes": [{"id": "zhouyu_dies", "description": "周瑜病逝", "effects": {}}],
             "butterfly_effects": {"triggered": []},
         },
         {
@@ -133,9 +117,7 @@ SAMPLE_TIMELINE = {
             "participants": ["guanyu", "yujin"],
             "gravity": 0.9,
             "preconditions": {"guanyu_guards_jingzhou": True},
-            "outcomes": [
-                {"id": "guanyu_killed", "description": "关羽被杀", "effects": {}}
-            ],
+            "outcomes": [{"id": "guanyu_killed", "description": "关羽被杀", "effects": {}}],
             "butterfly_effects": {"triggered": ["caocao_death_220", "yiling_battle_221"]},
         },
         {
@@ -148,9 +130,7 @@ SAMPLE_TIMELINE = {
             "participants": ["caocao"],
             "gravity": 0.9,
             "preconditions": {"caocao_alive": True},
-            "outcomes": [
-                {"id": "cao_dies", "description": "曹操病逝", "effects": {}}
-            ],
+            "outcomes": [{"id": "cao_dies", "description": "曹操病逝", "effects": {}}],
             "butterfly_effects": {"triggered": []},
         },
         {
@@ -163,9 +143,7 @@ SAMPLE_TIMELINE = {
             "participants": ["liubei", "luxun"],
             "gravity": 0.9,
             "preconditions": {"guanyu_dead": True},
-            "outcomes": [
-                {"id": "wu_victory", "description": "陆逊大胜", "effects": {}}
-            ],
+            "outcomes": [{"id": "wu_victory", "description": "陆逊大胜", "effects": {}}],
             "butterfly_effects": {"triggered": ["baidi_tuogu_223"]},
         },
         {
@@ -178,9 +156,7 @@ SAMPLE_TIMELINE = {
             "participants": ["liubei", "zhugeliang"],
             "gravity": 0.95,
             "preconditions": {"liubei_alive": True, "yiling_lost": True},
-            "outcomes": [
-                {"id": "liubei_dies", "description": "刘备病逝", "effects": {}}
-            ],
+            "outcomes": [{"id": "liubei_dies", "description": "刘备病逝", "effects": {}}],
             "butterfly_effects": {"triggered": []},
         },
     ],
@@ -190,15 +166,51 @@ SAMPLE_TIMELINE = {
 SAMPLE_CHARACTERS = {
     "roster_id": "test",
     "characters": [
-        {"id": "liubei", "name": "刘备", "faction": "shu", "location": "xinye",
-         "birth": 161, "death": 223,
-         "stats": {"leadership": 80, "might": 70, "intelligence": 72, "politics": 82, "charisma": 99}},
-        {"id": "guanyu", "name": "关羽", "faction": "shu", "location": "xinye",
-         "birth": 160, "death": 220,
-         "stats": {"leadership": 95, "might": 98, "intelligence": 75, "politics": 62, "charisma": 88}},
-        {"id": "zhugeliang", "name": "诸葛亮", "faction": "shu", "location": "longzhong",
-         "birth": 181, "death": 234,
-         "stats": {"leadership": 92, "might": 32, "intelligence": 100, "politics": 98, "charisma": 90}},
+        {
+            "id": "liubei",
+            "name": "刘备",
+            "faction": "shu",
+            "location": "xinye",
+            "birth": 161,
+            "death": 223,
+            "stats": {
+                "leadership": 80,
+                "might": 70,
+                "intelligence": 72,
+                "politics": 82,
+                "charisma": 99,
+            },
+        },
+        {
+            "id": "guanyu",
+            "name": "关羽",
+            "faction": "shu",
+            "location": "xinye",
+            "birth": 160,
+            "death": 220,
+            "stats": {
+                "leadership": 95,
+                "might": 98,
+                "intelligence": 75,
+                "politics": 62,
+                "charisma": 88,
+            },
+        },
+        {
+            "id": "zhugeliang",
+            "name": "诸葛亮",
+            "faction": "shu",
+            "location": "longzhong",
+            "birth": 181,
+            "death": 234,
+            "stats": {
+                "leadership": 92,
+                "might": 32,
+                "intelligence": 100,
+                "politics": 98,
+                "charisma": 90,
+            },
+        },
     ],
 }
 
@@ -234,12 +246,15 @@ def knowledge_dir():
         geo_dir = os.path.join(tmpdir, "geography")
         os.makedirs(geo_dir)
         with open(os.path.join(geo_dir, "territories.json"), "w") as f:
-            json.dump({
-                "regions": [
-                    {"id": "jingzhou", "name": "荆州", "fertility": 8},
-                    {"id": "yizhou", "name": "益州", "fertility": 8},
-                ]
-            }, f)
+            json.dump(
+                {
+                    "regions": [
+                        {"id": "jingzhou", "name": "荆州", "fertility": 8},
+                        {"id": "yizhou", "name": "益州", "fertility": 8},
+                    ]
+                },
+                f,
+            )
 
         yield tmpdir
 
@@ -260,66 +275,174 @@ def rag(knowledge_dir):
 def world_state():
     """Minimal world state for testing."""
     territories = {
-        "xinye": Territory(id="xinye", name="新野", owner_id="shu",
-            fertility=6, terrain_type=TerrainType.PLAINS, climate_zone="central",
-            population=30000, development=25,
-            neighbors=["xiangyang", "wancheng"]),
-        "xiangyang": Territory(id="xiangyang", name="襄阳", owner_id="liubiao",
-            fertility=8, terrain_type=TerrainType.PLAINS, climate_zone="central",
-            population=80000, development=55,
-            neighbors=["xinye", "jiangling"]),
-        "wancheng": Territory(id="wancheng", name="宛城", owner_id="cao",
-            fertility=7, terrain_type=TerrainType.PLAINS, climate_zone="central",
-            population=50000, development=45,
-            neighbors=["xinye"]),
-        "jiangling": Territory(id="jiangling", name="江陵", owner_id="liubiao",
-            fertility=8, terrain_type=TerrainType.PLAINS, climate_zone="central",
-            has_river=True, population=60000, development=50,
-            neighbors=["xiangyang"]),
+        "xinye": Territory(
+            id="xinye",
+            name="新野",
+            owner_id="shu",
+            fertility=6,
+            terrain_type=TerrainType.PLAINS,
+            climate_zone="central",
+            population=30000,
+            development=25,
+            neighbors=["xiangyang", "wancheng"],
+        ),
+        "xiangyang": Territory(
+            id="xiangyang",
+            name="襄阳",
+            owner_id="liubiao",
+            fertility=8,
+            terrain_type=TerrainType.PLAINS,
+            climate_zone="central",
+            population=80000,
+            development=55,
+            neighbors=["xinye", "jiangling"],
+        ),
+        "wancheng": Territory(
+            id="wancheng",
+            name="宛城",
+            owner_id="cao",
+            fertility=7,
+            terrain_type=TerrainType.PLAINS,
+            climate_zone="central",
+            population=50000,
+            development=45,
+            neighbors=["xinye"],
+        ),
+        "jiangling": Territory(
+            id="jiangling",
+            name="江陵",
+            owner_id="liubiao",
+            fertility=8,
+            terrain_type=TerrainType.PLAINS,
+            climate_zone="central",
+            has_river=True,
+            population=60000,
+            development=50,
+            neighbors=["xiangyang"],
+        ),
     }
 
     characters = {
-        "liubei": Character(id="liubei", name="刘备", alias="玄德",
-            leadership=80, might=70, intelligence=72, politics=82, charisma=99,
-            faction_id="shu", location="xinye", loyalty=100,
-            birth=161, death=223),
-        "guanyu": Character(id="guanyu", name="关羽", alias="云长",
-            leadership=95, might=98, intelligence=75, politics=62, charisma=88,
-            faction_id="shu", location="xinye", loyalty=100,
-            birth=160, death=220),
-        "zhugeliang": Character(id="zhugeliang", name="诸葛亮", alias="孔明",
-            leadership=92, might=32, intelligence=100, politics=98, charisma=90,
-            faction_id="shu", location="xinye", loyalty=95,
-            birth=181, death=234),
-        "caocao": Character(id="caocao", name="曹操", alias="孟德",
-            leadership=98, might=72, intelligence=93, politics=94, charisma=92,
-            faction_id="cao", location="xuchang", loyalty=100,
-            birth=155, death=220),
-        "liubiao": Character(id="liubiao", name="刘表", alias="景升",
-            leadership=55, might=30, intelligence=68, politics=75, charisma=70,
-            faction_id="liubiao", location="xiangyang", loyalty=100,
-            birth=142, death=208),
+        "liubei": Character(
+            id="liubei",
+            name="刘备",
+            alias="玄德",
+            leadership=80,
+            might=70,
+            intelligence=72,
+            politics=82,
+            charisma=99,
+            faction_id="shu",
+            location="xinye",
+            loyalty=100,
+            birth=161,
+            death=223,
+        ),
+        "guanyu": Character(
+            id="guanyu",
+            name="关羽",
+            alias="云长",
+            leadership=95,
+            might=98,
+            intelligence=75,
+            politics=62,
+            charisma=88,
+            faction_id="shu",
+            location="xinye",
+            loyalty=100,
+            birth=160,
+            death=220,
+        ),
+        "zhugeliang": Character(
+            id="zhugeliang",
+            name="诸葛亮",
+            alias="孔明",
+            leadership=92,
+            might=32,
+            intelligence=100,
+            politics=98,
+            charisma=90,
+            faction_id="shu",
+            location="xinye",
+            loyalty=95,
+            birth=181,
+            death=234,
+        ),
+        "caocao": Character(
+            id="caocao",
+            name="曹操",
+            alias="孟德",
+            leadership=98,
+            might=72,
+            intelligence=93,
+            politics=94,
+            charisma=92,
+            faction_id="cao",
+            location="xuchang",
+            loyalty=100,
+            birth=155,
+            death=220,
+        ),
+        "liubiao": Character(
+            id="liubiao",
+            name="刘表",
+            alias="景升",
+            leadership=55,
+            might=30,
+            intelligence=68,
+            politics=75,
+            charisma=70,
+            faction_id="liubiao",
+            location="xiangyang",
+            loyalty=100,
+            birth=142,
+            death=208,
+        ),
     }
 
     factions = {
-        "shu": FactionState(id="shu", name="刘备军", ruler_id="liubei",
-            capital="xinye", territories=["xinye"],
-            relations={"cao": -80, "wu": 20, "liubiao": 40}),
-        "cao": FactionState(id="cao", name="曹操军", ruler_id="caocao",
-            capital="wancheng", territories=["wancheng"],
-            relations={"shu": -80, "wu": -30}),
-        "wu": FactionState(id="wu", name="孙权军", ruler_id="sunquan",
-            capital="jianye", territories=[],
-            relations={"shu": 20, "cao": -30}),
-        "liubiao": FactionState(id="liubiao", name="刘表军", ruler_id="liubiao",
-            capital="xiangyang", territories=["xiangyang", "jiangling"],
-            relations={"shu": 40, "cao": -20}),
+        "shu": FactionState(
+            id="shu",
+            name="刘备军",
+            ruler_id="liubei",
+            capital="xinye",
+            territories=["xinye"],
+            relations={"cao": -80, "wu": 20, "liubiao": 40},
+        ),
+        "cao": FactionState(
+            id="cao",
+            name="曹操军",
+            ruler_id="caocao",
+            capital="wancheng",
+            territories=["wancheng"],
+            relations={"shu": -80, "wu": -30},
+        ),
+        "wu": FactionState(
+            id="wu",
+            name="孙权军",
+            ruler_id="sunquan",
+            capital="jianye",
+            territories=[],
+            relations={"shu": 20, "cao": -30},
+        ),
+        "liubiao": FactionState(
+            id="liubiao",
+            name="刘表军",
+            ruler_id="liubiao",
+            capital="xiangyang",
+            territories=["xiangyang", "jiangling"],
+            relations={"shu": 40, "cao": -20},
+        ),
     }
 
     return WorldState(
-        year=207, season=Season.WINTER, turn_number=1,
+        year=207,
+        season=Season.WINTER,
+        turn_number=1,
         player_faction_id="shu",
-        territories=territories, characters=characters, factions=factions,
+        territories=territories,
+        characters=characters,
+        factions=factions,
     )
 
 
@@ -673,8 +796,9 @@ class TestLLMContext:
         events = rag.retrieve(208, deviation=0.0, max_events=5)
         context = rag.build_llm_context(events)
         # At least one event should have participants listed
-        found = any("参与人物" in ctx_line for ctx_line in context.split("\n")
-                   if "参与人物" in ctx_line)
+        found = any(
+            "参与人物" in ctx_line for ctx_line in context.split("\n") if "参与人物" in ctx_line
+        )
         # Actually check "参与" list
         assert "参与人物" in context
 
@@ -770,6 +894,7 @@ class TestEdgeCases:
 
     def test_event_proposal_fields_exist(self):
         from histrategy_engine.world import EventProposal
+
         p = EventProposal(event_id="test", title="测试", effects={}, narrative_hint="提示")
         assert p.event_id == "test"
         assert p.title == "测试"

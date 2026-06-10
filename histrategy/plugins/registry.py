@@ -58,6 +58,7 @@ def get_plugins_by_type(
 def get_world_engine_plugin(plugins: list[HistrategyPlugin]):
     """Return the first registered WorldEnginePlugin, or None."""
     from .interface import WorldEnginePlugin
+
     for p in plugins:
         if isinstance(p, WorldEnginePlugin):
             return p

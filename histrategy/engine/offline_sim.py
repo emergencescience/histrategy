@@ -6,6 +6,7 @@ Design philosophy (小龙虾/OpenClaw):
 3. 本地文件: 存档/读档/玩家档案
 4. 能力系统: 势力有独特技能和特质
 """
+
 from __future__ import annotations
 
 import json
@@ -23,12 +24,14 @@ if TYPE_CHECKING:
 
 DATA_DIR = Path(__file__).parent.parent / "knowledge" / "data"
 
+
 def _load_knowledge(filename: str) -> list[dict]:
     path = DATA_DIR / filename
     if path.exists():
         with open(path) as f:
             return json.load(f)
     return []
+
 
 CHARACTERS = _load_knowledge("characters.json")
 FACTIONS_RAW = _load_knowledge("factions.json")
@@ -97,8 +100,9 @@ def save_player_memory(memory: dict):
         json.dump(memory, f, ensure_ascii=False, indent=2)
 
 
-def add_memory_entry(memory: dict, turn: int, year: int, season: str,
-                     decision: str, narrative_snippet: str, event: str = ""):
+def add_memory_entry(
+    memory: dict, turn: int, year: int, season: str, decision: str, narrative_snippet: str, event: str = ""
+):
     """Add a turn entry to narrative memory."""
     entry = {
         "turn": turn,
@@ -136,8 +140,7 @@ EVENT_CHAINS = {
                     "{dong_reaction}"
                 ),
                 "effects": {"morale": 5, "economy": -2, "strength": 5000, "treasury": -500},
-                "npc_effects": {"yuan_shao": {"morale": 10, "strength": 10000},
-                                "dongzhuo": {"morale": -5}},
+                "npc_effects": {"yuan_shao": {"morale": 10, "strength": 10000}, "dongzhuo": {"morale": -5}},
             },
             {
                 "title": "诸侯各怀鬼胎",
@@ -149,8 +152,7 @@ EVENT_CHAINS = {
                     "{player_impact}"
                 ),
                 "effects": {"morale": -3, "economy": -5},
-                "npc_effects": {"dongzhuo": {"economy": -10, "morale": -10},
-                                "yuan_shao": {"morale": -3}},
+                "npc_effects": {"dongzhuo": {"economy": -10, "morale": -10}, "yuan_shao": {"morale": -3}},
             },
             {
                 "title": "联盟瓦解，群雄割据",
@@ -160,8 +162,7 @@ EVENT_CHAINS = {
                     "天下进入真正的群雄割据时代——弱者被吞并，强者愈强。"
                 ),
                 "effects": {"morale": -5, "economy": -3},
-                "npc_effects": {"liu_biao": {"strength": 8000, "economy": 5},
-                                "other": {"strength": 3000}},
+                "npc_effects": {"liu_biao": {"strength": 8000, "economy": 5}, "other": {"strength": 3000}},
             },
         ],
     },
@@ -199,15 +200,23 @@ RANDOM_EVENTS = [
 
 
 CAPITAL_NAMES = {
-    "xuchang": "许昌", "pingyuan": "平原", "changsha": "长沙",
-    "yecheng": "邺城", "changan": "长安", "luoyang": "洛阳",
+    "xuchang": "许昌",
+    "pingyuan": "平原",
+    "changsha": "长沙",
+    "yecheng": "邺城",
+    "changan": "长安",
+    "luoyang": "洛阳",
 }
 
 # ─── Season narratives (regional-aware) ────────────────────────
 
 TENDENCY_CN = {
-    "hostile": "好战", "neutral": "中立", "calculating": "善谋",
-    "friendly": "友善", "pragmatic": "务实", "arrogant": "傲慢",
+    "hostile": "好战",
+    "neutral": "中立",
+    "calculating": "善谋",
+    "friendly": "友善",
+    "pragmatic": "务实",
+    "arrogant": "傲慢",
     "defensive": "守成",
 }
 
@@ -238,6 +247,7 @@ SEASON_FLAVOR = {
 
 
 # ─── Main simulation ───────────────────────────────────────────
+
 
 def simulate_turn_offline(world: GameWorld, player_decision: str) -> dict:
     """Knowledge-driven offline simulation with memory.
@@ -318,9 +328,7 @@ def simulate_turn_offline(world: GameWorld, player_decision: str) -> dict:
         if not past_snippet:
             past_snippet = past_narrative[:40]
         if past_snippet:
-            narrative_parts.append(
-                f"\n📖 回想起来，自「{past_snippet}」已经过去了……"
-            )
+            narrative_parts.append(f"\n📖 回想起来，自「{past_snippet}」已经过去了……")
 
     # ── Apply effects ──
     _apply_effects(player, base_effects)
@@ -329,9 +337,13 @@ def simulate_turn_offline(world: GameWorld, player_decision: str) -> dict:
 
     # ── Stats summary ──
     narrative_parts.append("")
-    for key, label in [("strength", "兵力"), ("economy", "经济"),
-                        ("morale", "民心"), ("treasury", "资金"),
-                        ("food", "粮草")]:
+    for key, label in [
+        ("strength", "兵力"),
+        ("economy", "经济"),
+        ("morale", "民心"),
+        ("treasury", "资金"),
+        ("food", "粮草"),
+    ]:
         change = base_effects.get(key, 0)
         if change:
             new_val = getattr(player, key, 0)
@@ -339,8 +351,7 @@ def simulate_turn_offline(world: GameWorld, player_decision: str) -> dict:
 
     # Save memory
     intro = narrative_parts[1] if len(narrative_parts) > 1 else narrative_parts[0] if narrative_parts else ""
-    add_memory_entry(memory, world.turn_count, world.current_year,
-                     world.current_season, player_decision, intro)
+    add_memory_entry(memory, world.turn_count, world.current_year, world.current_season, player_decision, intro)
 
     # ── Check game over ──
     game_over = _check_game_over(world, memory)
@@ -352,11 +363,11 @@ def simulate_turn_offline(world: GameWorld, player_decision: str) -> dict:
     # ── Events from knowledge base ──
     events_occurred = _check_knowledge_events(world)
 
-    return _make_result(narrative_parts, npc_actions, {}, events_occurred,
-                        aftermath=aftermath_text)
+    return _make_result(narrative_parts, npc_actions, {}, events_occurred, aftermath=aftermath_text)
 
 
 # ─── Knowledge helpers ─────────────────────────────────────────
+
 
 def _get_character_effects(faction: Faction) -> dict:
     """Get state effects from the ruler's personality traits."""
@@ -400,9 +411,10 @@ def _get_knowledge_intro(world: GameWorld, faction: Faction) -> str:
     flavor = random.choice(flavors)
 
     try:
-        return f"【{world.current_year}年 · {'春夏秋冬'[['spring','summer','autumn','winter'].index(world.current_season)]}季】\n" + \
-               flavor.format(capital=capital_name, leader=leader_name,
-                             faction=faction.name, region=capital_name)
+        return (
+            f"【{world.current_year}年 · {'春夏秋冬'[['spring', 'summer', 'autumn', 'winter'].index(world.current_season)]}季】\n"
+            + flavor.format(capital=capital_name, leader=leader_name, faction=faction.name, region=capital_name)
+        )
     except (KeyError, ValueError):
         return f"【{world.current_year}年 · {world.current_season}季】\n{flavor}"
 
@@ -427,8 +439,7 @@ def _get_personality_narrative(faction: Faction, effects: dict) -> list[str]:
     return lines
 
 
-def _process_event_chain_knowledge(world: GameWorld, player: Faction,
-                                   memory: dict) -> str | None:
+def _process_event_chain_knowledge(world: GameWorld, player: Faction, memory: dict) -> str | None:
     """Process active event chains with knowledge-aware templates."""
     log_text = "\n".join(world.history_log)
     decision_text = " ".join(d.get("decision", "") for d in memory["decisions"])
@@ -457,8 +468,10 @@ def _process_event_chain_knowledge(world: GameWorld, player: Faction,
             dong_char = None
             yuan_shao_char = None
             for c in CHARACTERS:
-                if c["id"] == "dongzhuo": dong_char = c
-                if c["id"] == "yuanshao": yuan_shao_char = c
+                if c["id"] == "dongzhuo":
+                    dong_char = c
+                if c["id"] == "yuanshao":
+                    yuan_shao_char = c
 
             ye_city = "邺城"
             dong_react = "董卓闻讯大惊，召集李傕、郭汜等西凉将领商议对策。"
@@ -475,11 +488,13 @@ def _process_event_chain_knowledge(world: GameWorld, player: Faction,
             try:
                 # Record this stage as completed
                 world.history_log.append(f"[事件链] {chain_name}: {stage['title']}")
-                return f"\n📜 **{stage['title']}**\n" + \
-                       template.format(ye_city=ye_city, dong_reaction=dong_react,
-                                       yuan_shu_behavior=yuan_shu_behavior,
-                                       player_impact=player_impact,
-                                       new_power_rise=new_power)
+                return f"\n📜 **{stage['title']}**\n" + template.format(
+                    ye_city=ye_city,
+                    dong_reaction=dong_react,
+                    yuan_shu_behavior=yuan_shu_behavior,
+                    player_impact=player_impact,
+                    new_power_rise=new_power,
+                )
             except KeyError:
                 world.history_log.append(f"[事件链] {chain_name}: {stage['title']}")
                 return f"\n📜 **{stage['title']}**\n" + stage["narrative_template"]
@@ -487,8 +502,7 @@ def _process_event_chain_knowledge(world: GameWorld, player: Faction,
     return None
 
 
-def _try_random_event(player: Faction, memory: dict,
-                      world: GameWorld) -> dict | None:
+def _try_random_event(player: Faction, memory: dict, world: GameWorld) -> dict | None:
     """Try to trigger a random event with knowledge-aware narrative."""
     if random.random() > 0.45:
         return None
@@ -498,8 +512,7 @@ def _try_random_event(player: Faction, memory: dict,
         return None
 
     # Fill knowledge-aware template
-    enemies = [f for f in world.factions.values()
-               if f.is_active and f.id != world.player_faction_id]
+    enemies = [f for f in world.factions.values() if f.is_active and f.id != world.player_faction_id]
     enemy_name = random.choice(enemies).name if enemies else "敌军"
     directions = ["东方", "西方", "北方", "南方", "西北", "东北"]
     stylenames = ["清瘦", "仙风道骨", "儒雅", "豪迈", "朴拙"]
@@ -509,8 +522,10 @@ def _try_random_event(player: Faction, memory: dict,
     template = event.get("narrative_template", event.get("narrative", ""))
     try:
         narrative = template.format(
-            enemy=enemy_name, direction=random.choice(directions),
-            style=random.choice(stylenames), name=random.choice(names_list),
+            enemy=enemy_name,
+            direction=random.choice(directions),
+            style=random.choice(stylenames),
+            name=random.choice(names_list),
             adjective=random.choice(adjectives),
         )
     except KeyError:
@@ -523,8 +538,7 @@ def _try_random_event(player: Faction, memory: dict,
     }
 
 
-def _simulate_npcs_knowledge(world: GameWorld, player_intent: str,
-                             player: Faction) -> tuple[list[str], dict]:
+def _simulate_npcs_knowledge(world: GameWorld, player_intent: str, player: Faction) -> tuple[list[str], dict]:
     """Simulate NPCs using faction personality data."""
     actions = []
     changes = {}
@@ -560,7 +574,7 @@ def _simulate_npcs_knowledge(world: GameWorld, player_intent: str,
             change["morale"] = change.get("morale", 0) + 2
 
         # Hostile factions react to military buildup
-        if (tendency == "hostile" and player_intent == "military"):
+        if tendency == "hostile" and player_intent == "military":
             change["strength"] = change.get("strength", 0) + random.randint(2000, 5000)
 
         # Friendly factions are open to diplomacy
@@ -578,12 +592,12 @@ def _simulate_npcs_knowledge(world: GameWorld, player_intent: str,
     return actions, changes
 
 
-def _generate_faction_dynamics(world: GameWorld,
-                               player: Faction) -> list[dict]:
+def _generate_faction_dynamics(world: GameWorld, player: Faction) -> list[dict]:
     """Generate emergent faction dynamics (wars, alliances)."""
     events = []
-    strong = [f for f in world.factions.values()
-              if f.is_active and f.id != world.player_faction_id and f.strength > 25000]
+    strong = [
+        f for f in world.factions.values() if f.is_active and f.id != world.player_faction_id and f.strength > 25000
+    ]
 
     if len(strong) >= 2 and random.random() < 0.12:
         a, b = random.sample(strong, 2)
@@ -591,24 +605,30 @@ def _generate_faction_dynamics(world: GameWorld,
         # Find personality traits
         a_raw, b_raw = None, None
         for rf in FACTIONS_RAW:
-            if rf["id"] == a.id: a_raw = rf
-            if rf["id"] == b.id: b_raw = rf
+            if rf["id"] == a.id:
+                a_raw = rf
+            if rf["id"] == b.id:
+                b_raw = rf
 
         a_tendency = a_raw.get("diplomacy_tendency", "neutral") if a_raw else "neutral"
         b_tendency = b_raw.get("diplomacy_tendency", "neutral") if b_raw else "neutral"
 
         if random.random() < 0.5 or a_tendency == "hostile" or b_tendency == "hostile":
-            events.append({
-                "narrative": f"{a.name}（{TENDENCY_CN.get(a_tendency, a_tendency)}）与{b.name}（{TENDENCY_CN.get(b_tendency, b_tendency)}）因边境冲突爆发了局部战争！",
-                "effects": {"economy": -1, "morale": -1},
-                "npc_msg": f"🔥 {a.name} 与 {b.name} 正在交战中！",
-            })
+            events.append(
+                {
+                    "narrative": f"{a.name}（{TENDENCY_CN.get(a_tendency, a_tendency)}）与{b.name}（{TENDENCY_CN.get(b_tendency, b_tendency)}）因边境冲突爆发了局部战争！",
+                    "effects": {"economy": -1, "morale": -1},
+                    "npc_msg": f"🔥 {a.name} 与 {b.name} 正在交战中！",
+                }
+            )
         else:
-            events.append({
-                "narrative": f"有消息称{a.name}与{b.name}秘密结成了同盟。",
-                "effects": {"morale": -2},
-                "npc_msg": f"🔗 {a.name} 与 {b.name} 结成了同盟。",
-            })
+            events.append(
+                {
+                    "narrative": f"有消息称{a.name}与{b.name}秘密结成了同盟。",
+                    "effects": {"morale": -2},
+                    "npc_msg": f"🔗 {a.name} 与 {b.name} 结成了同盟。",
+                }
+            )
 
     return events
 
@@ -648,7 +668,7 @@ def _check_game_over(world: GameWorld, memory: dict) -> dict | None:
                 f"🎉 **大业已成！**\n\n"
                 f"{ruler_name}的军队已达 120,000 人，\n"
                 f"天下无人能与你抗衡。诸侯纷纷遣使纳贡，\n"
-                f"史书记载：{ruler_name}用了{turns}个回合（约{turns*3}个月）\n"
+                f"史书记载：{ruler_name}用了{turns}个回合（约{turns * 3}个月）\n"
                 f"从一方诸侯成长为天下霸主。\n\n"
                 f"🏆 **最终评分**：{_calculate_score(world, memory, ruler_name)}"
             ),
@@ -727,6 +747,7 @@ def _calculate_score(world: GameWorld, memory: dict, ruler: str) -> str:
 
 # ─── Helper functions ──────────────────────────────────────────
 
+
 def _classify_intent(text: str) -> str:
     # Multi-char keywords (higher priority)
     economy_bigrams = ["发展经济", "屯田", "兴修水利", "内政", "建设", "发展"]
@@ -743,20 +764,27 @@ def _classify_intent(text: str) -> str:
 
     # Bigrams get 3x weight
     score = {}
-    for k, v in [("economy", economy_bigrams), ("military", military_bigrams),
-                  ("diplomacy", diplomacy_bigrams), ("defense", defense_bigrams),
-                  ("spy", spy_bigrams)]:
+    for k, v in [
+        ("economy", economy_bigrams),
+        ("military", military_bigrams),
+        ("diplomacy", diplomacy_bigrams),
+        ("defense", defense_bigrams),
+        ("spy", spy_bigrams),
+    ]:
         score[k] = sum(3 for kw in v if kw in text)
 
     # Single chars get 1x weight, but subtract if already counted by bigrams
-    for k, v in [("military", military), ("economy", economy),
-                  ("diplomacy", diplomacy), ("defense", defense),
-                  ("spy", spy)]:
+    for k, v in [
+        ("military", military),
+        ("economy", economy),
+        ("diplomacy", diplomacy),
+        ("defense", defense),
+        ("spy", spy),
+    ]:
         score[k] = score.get(k, 0) + sum(1 for kw in v if kw in text)
 
     if text.strip().isdigit():
-        return {1: "military", 2: "economy", 3: "diplomacy",
-                4: "defense", 5: "spy"}.get(int(text.strip()), "economy")
+        return {1: "military", 2: "economy", 3: "diplomacy", 4: "defense", 5: "spy"}.get(int(text.strip()), "economy")
 
     best = max(score, key=score.get)
     return best if score[best] > 0 else "economy"
@@ -765,29 +793,48 @@ def _classify_intent(text: str) -> str:
 def _compute_base_effects(intent: str, player: Faction) -> dict:
     effects = {"strength": 0, "economy": 0, "morale": 0, "treasury": 0, "food": 0}
     if intent == "military":
-        effects.update(strength=random.randint(2000, 5000), treasury=-random.randint(500, 1500),
-                       food=-random.randint(200, 500), morale=random.randint(0, 2),
-                       economy=-random.randint(0, 2))
+        effects.update(
+            strength=random.randint(2000, 5000),
+            treasury=-random.randint(500, 1500),
+            food=-random.randint(200, 500),
+            morale=random.randint(0, 2),
+            economy=-random.randint(0, 2),
+        )
     elif intent == "economy":
-        effects.update(economy=random.randint(1, 4), food=random.randint(200, 800),
-                       treasury=random.randint(100, 500), morale=random.randint(1, 3),
-                       strength=random.randint(0, 500))
+        effects.update(
+            economy=random.randint(1, 4),
+            food=random.randint(200, 800),
+            treasury=random.randint(100, 500),
+            morale=random.randint(1, 3),
+            strength=random.randint(0, 500),
+        )
     elif intent == "diplomacy":
-        effects.update(morale=random.randint(0, 2), treasury=-random.randint(100, 300),
-                       economy=random.randint(0, 2), strength=random.randint(0, 500))
+        effects.update(
+            morale=random.randint(0, 2),
+            treasury=-random.randint(100, 300),
+            economy=random.randint(0, 2),
+            strength=random.randint(0, 500),
+        )
     elif intent == "defense":
-        effects.update(morale=random.randint(1, 3), strength=random.randint(500, 2000),
-                       treasury=-random.randint(200, 500), food=-random.randint(100, 200))
+        effects.update(
+            morale=random.randint(1, 3),
+            strength=random.randint(500, 2000),
+            treasury=-random.randint(200, 500),
+            food=-random.randint(100, 200),
+        )
     elif intent == "spy":
         effects.update(treasury=-random.randint(200, 500), strength=random.randint(0, 300))
     else:
-        effects.update(economy=random.randint(0, 2), morale=random.randint(0, 2),
-                       treasury=random.randint(50, 200), food=random.randint(50, 200))
+        effects.update(
+            economy=random.randint(0, 2),
+            morale=random.randint(0, 2),
+            treasury=random.randint(50, 200),
+            food=random.randint(50, 200),
+        )
     return effects
 
 
-def _get_action_narrative(intent: str, player: Faction,
-                          world: GameWorld, player_decision: str = "") -> str:
+def _get_action_narrative(intent: str, player: Faction, world: GameWorld, player_decision: str = "") -> str:
     """Generate action narrative that reflects what the player actually said."""
     ruler = "君主"
     for c in CHARACTERS:
@@ -818,28 +865,16 @@ def _get_action_narrative(intent: str, player: Faction,
             f"各地青壮年纷纷投军报效，军需官忙得不可开交。"
         ),
         "economy": (
-            f"你推行「{decision_short}」的方略，减免赋税，兴修水利。{capital}一带\n"
-            f"百姓安居乐业，田野间一片繁忙景象。"
+            f"你推行「{decision_short}」的方略，减免赋税，兴修水利。{capital}一带\n百姓安居乐业，田野间一片繁忙景象。"
         ),
-        "diplomacy": (
-            f"你决定「{decision_short}」。精干使节携带厚礼与书信，\n"
-            f"出使各方势力。外交的帷幕缓缓拉开。"
-        ),
-        "defense": (
-            f"你下令「{decision_short}」。{ruler}巡视边境，\n"
-            f"加固城防工事，{capital}城头的旗帜在风中飘扬。"
-        ),
-        "spy": (
-            f"你密令「{decision_short}」。数名精锐细作连夜出发，\n"
-            f"消失在夜色中——他们的回报将决定下一步的棋局。"
-        ),
+        "diplomacy": (f"你决定「{decision_short}」。精干使节携带厚礼与书信，\n出使各方势力。外交的帷幕缓缓拉开。"),
+        "defense": (f"你下令「{decision_short}」。{ruler}巡视边境，\n加固城防工事，{capital}城头的旗帜在风中飘扬。"),
+        "spy": (f"你密令「{decision_short}」。数名精锐细作连夜出发，\n消失在夜色中——他们的回报将决定下一步的棋局。"),
     }
-    return narratives.get(intent,
-        f"{ruler}决定「{decision_short}」。采取了稳健的治理方针，各方面稳步发展。")
+    return narratives.get(intent, f"{ruler}决定「{decision_short}」。采取了稳健的治理方针，各方面稳步发展。")
 
 
-def _compute_aftermath(player_decision: str, world: GameWorld,
-                      player: Faction) -> str:
+def _compute_aftermath(player_decision: str, world: GameWorld, player: Faction) -> str:
     """Generate specific consequences based on player's actual words."""
     text = player_decision.lower()
     effects = []
@@ -866,8 +901,7 @@ def _compute_aftermath(player_decision: str, world: GameWorld,
             break
 
     # Find enemies for filler
-    enemies = [f for f in world.factions.values()
-               if f.is_active and f.id != world.player_faction_id]
+    enemies = [f for f in world.factions.values() if f.is_active and f.id != world.player_faction_id]
     enemy_name = random.choice(enemies).name if enemies else "敌军"
 
     for keywords, consequence in keyword_map:
@@ -900,9 +934,13 @@ def _merge_effects(base: dict, addition: dict) -> None:
 
 def _apply_effects(player: Faction, effects: dict) -> None:
     clamped = {"economy": (0, 100), "morale": (0, 100)}
-    for key, attr in [("strength", "strength"), ("economy", "economy"),
-                       ("morale", "morale"), ("treasury", "treasury"),
-                       ("food", "food")]:
+    for key, attr in [
+        ("strength", "strength"),
+        ("economy", "economy"),
+        ("morale", "morale"),
+        ("treasury", "treasury"),
+        ("food", "food"),
+    ]:
         change = effects.get(key, 0)
         if change:
             current = getattr(player, attr, 0)
@@ -954,13 +992,17 @@ def _generate_choices(intent: str, world: GameWorld) -> list[str]:
     return choices[:6]
 
 
-def _make_result(narrative_parts: list, npc_actions: list,
-                 state: dict, events: list,
-                 game_over: dict | None = None,
-                 aftermath: str = "",
-                 choices: list[str] | None = None,
-                 seeds: list[dict] | None = None,
-                 bureaucracy: list[dict] | None = None) -> dict:
+def _make_result(
+    narrative_parts: list,
+    npc_actions: list,
+    state: dict,
+    events: list,
+    game_over: dict | None = None,
+    aftermath: str = "",
+    choices: list[str] | None = None,
+    seeds: list[dict] | None = None,
+    bureaucracy: list[dict] | None = None,
+) -> dict:
     return {
         "narrative": "\n".join(narrative_parts),
         "npc_actions": npc_actions or ["天下局势正在微妙变化中……"],

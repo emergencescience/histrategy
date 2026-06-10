@@ -51,9 +51,7 @@ class FeishuAdapter(IMAdapter):
 
     # ─── Interactive card rendering ────────────────────────
 
-    def render_interactive_card(
-        self, title: str, body: str, actions: list[dict] | None = None
-    ) -> dict[str, Any]:
+    def render_interactive_card(self, title: str, body: str, actions: list[dict] | None = None) -> dict[str, Any]:
         """Build a Feishu interactive card as proper JSON structure.
 
         When connected to Feishu API, this can be sent as msg_type='interactive'.
@@ -74,9 +72,7 @@ class FeishuAdapter(IMAdapter):
             "content_type": "interactive",
         }
 
-    def _build_card_json(
-        self, title: str, body: str, actions: list[dict] | None = None
-    ) -> dict[str, Any]:
+    def _build_card_json(self, title: str, body: str, actions: list[dict] | None = None) -> dict[str, Any]:
         """Build a Feishu card JSON structure.
 
         Conforms to Feishu Message Card schema:
@@ -101,17 +97,21 @@ class FeishuAdapter(IMAdapter):
                 value = action.get("value", "")
                 btn_type = action.get("type", "default")
 
-                action_elements.append({
-                    "tag": "button",
-                    "text": {"tag": "plain_text", "content": label},
-                    "type": btn_type,
-                    "value": {"command": value},
-                })
+                action_elements.append(
+                    {
+                        "tag": "button",
+                        "text": {"tag": "plain_text", "content": label},
+                        "type": btn_type,
+                        "value": {"command": value},
+                    }
+                )
 
-            elements.append({
-                "tag": "action",
-                "actions": action_elements,
-            })
+            elements.append(
+                {
+                    "tag": "action",
+                    "actions": action_elements,
+                }
+            )
 
         return {
             "header": header,
@@ -170,11 +170,13 @@ class FeishuAdapter(IMAdapter):
         # Build action buttons from suggestions
         actions = []
         for i, s in enumerate(suggestions[:5]):
-            actions.append({
-                "label": f"{i + 1}. {s}",
-                "value": s,
-                "type": "primary" if i == 0 else "default",
-            })
+            actions.append(
+                {
+                    "label": f"{i + 1}. {s}",
+                    "value": s,
+                    "type": "primary" if i == 0 else "default",
+                }
+            )
 
         return self.render_interactive_card(title, body, actions)
 
@@ -202,7 +204,11 @@ class FeishuAdapter(IMAdapter):
         title = f"⚔️ 战斗报告 — {location}"
 
         outcome_emoji = {
-            "大胜": "🎉", "胜利": "✅", "平局": "🤝", "败北": "⚠️", "大败": "💔",
+            "大胜": "🎉",
+            "胜利": "✅",
+            "平局": "🤝",
+            "败北": "⚠️",
+            "大败": "💔",
         }
         emoji = outcome_emoji.get(result_cn, "⚔️")
 
@@ -345,8 +351,7 @@ class FeishuAdapter(IMAdapter):
         body_parts.append("⚔️ **军事**")
         for army in armies:
             body_parts.append(
-                f"• {army['id']} @ {army['location']} | "
-                f"兵力: {army.get('troops', 0):,} | 士气: {army.get('morale', 0)}"
+                f"• {army['id']} @ {army['location']} | 兵力: {army.get('troops', 0):,} | 士气: {army.get('morale', 0)}"
             )
         body_parts.append(f"**总兵力: {total_troops:,}**")
         body_parts.append("")
@@ -412,11 +417,17 @@ class FeishuAdapter(IMAdapter):
     def _stat_emoji(key: str) -> str:
         """Map stat keys to emoji icons."""
         emoji_map = {
-            "领地": "🏰", "领土": "🏰",
-            "兵力": "⚔️", "军队": "⚔️", "总兵力": "⚔️",
-            "粮草": "🌾", "粮食": "🌾",
+            "领地": "🏰",
+            "领土": "🏰",
+            "兵力": "⚔️",
+            "军队": "⚔️",
+            "总兵力": "⚔️",
+            "粮草": "🌾",
+            "粮食": "🌾",
             "声望": "⭐",
-            "金库": "💰", "资金": "💰", "金币": "💰",
+            "金库": "💰",
+            "资金": "💰",
+            "金币": "💰",
             "税率": "📊",
             "发展度": "📈",
         }

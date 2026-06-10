@@ -12,12 +12,9 @@ Falls back to v1 when histrategy-engine is not importable.
 from __future__ import annotations
 
 import os
-import sys
 from typing import TYPE_CHECKING
 
 # ─── v1 imports (always available) ────────────────────────────────
-
-from ..engine.offline_sim import simulate_turn_offline
 from ..engine.world import GameWorld
 from ..engine.world_sim_interface import WorldSimEngine
 from ..llm.adapter import LLMAdapter
@@ -31,14 +28,15 @@ from ..state.world_state import (
 )
 
 if TYPE_CHECKING:
-    from histrategy_engine.world import TurnResult, WorldState as V2WorldState
-    from histrategy_engine.turn import TurnController
-    from histrategy_engine.map import MapEngine
+    from histrategy_engine.ai import DecisionEngine
     from histrategy_engine.character import CharacterEngine
     from histrategy_engine.domestic import DomesticEngine
-    from histrategy_engine.military import MilitaryEngine
-    from histrategy_engine.ai import DecisionEngine
     from histrategy_engine.history import HistoryEngine
+    from histrategy_engine.map import MapEngine
+    from histrategy_engine.military import MilitaryEngine
+    from histrategy_engine.turn import TurnController
+    from histrategy_engine.world import TurnResult
+    from histrategy_engine.world import WorldState as V2WorldState
 
 # ─── v2 detection ─────────────────────────────────────────────────
 
@@ -53,8 +51,11 @@ try:
         MapEngine,
         MilitaryEngine,
         TurnController,
+    )
+    from histrategy_engine import (
         WorldState as V2WorldState,
     )
+
     _V2_AVAILABLE = True
 except ImportError as _e:
     _V2_IMPORT_ERROR = str(_e)
@@ -63,48 +64,92 @@ except ImportError as _e:
 
 FACTION_CONFIGS = {
     "cao": {
-        "name": "曹操", "ruler": "caocao",
-        "capital": "xuchang", "territories": ["xuchang", "luoyang", "yecheng", "changan"],
-        "strength": 80000, "economy": 75, "morale": 75,
-        "treasury": 20000, "food": 15000,
+        "name": "曹操",
+        "ruler": "caocao",
+        "capital": "xuchang",
+        "territories": ["xuchang", "luoyang", "yecheng", "changan"],
+        "strength": 80000,
+        "economy": 75,
+        "morale": 75,
+        "treasury": 20000,
+        "food": 15000,
     },
     "shu": {
-        "name": "刘备", "ruler": "liubei",
-        "capital": "xinye", "territories": ["xinye"],
-        "strength": 8000, "economy": 30, "morale": 85,
-        "treasury": 3000, "food": 3000,
+        "name": "刘备",
+        "ruler": "liubei",
+        "capital": "xinye",
+        "territories": ["xinye"],
+        "strength": 8000,
+        "economy": 30,
+        "morale": 85,
+        "treasury": 3000,
+        "food": 3000,
     },
     "wu": {
-        "name": "孙权", "ruler": "sunquan",
-        "capital": "jianye", "territories": ["jianye", "wujun", "kuaiji", "lujiang"],
-        "strength": 50000, "economy": 60, "morale": 80,
-        "treasury": 12000, "food": 10000,
+        "name": "孙权",
+        "ruler": "sunquan",
+        "capital": "jianye",
+        "territories": ["jianye", "wujun", "kuaiji", "lujiang"],
+        "strength": 50000,
+        "economy": 60,
+        "morale": 80,
+        "treasury": 12000,
+        "food": 10000,
     },
 }
 
 NPC_FACTION_CONFIGS = {
-    "liubiao": {"name": "刘表", "ruler": "liubiao",
-                "capital": "xiangyang", "territories": ["xiangyang", "jiangling", "jiangxia"],
-                "strength": 40000, "economy": 60, "morale": 55,
-                "treasury": 15000, "food": 10000},
-    "zhanglu": {"name": "张鲁", "ruler": "zhanglu",
-                "capital": "hanshui", "territories": ["hanshui"],
-                "strength": 15000, "economy": 40, "morale": 70,
-                "treasury": 5000, "food": 5000},
-    "liuzhang": {"name": "刘璋", "ruler": "liuzhang",
-                 "capital": "chengdu", "territories": ["chengdu", "jiangzhou"],
-                 "strength": 35000, "economy": 55, "morale": 50,
-                 "treasury": 10000, "food": 8000},
-    "machao": {"name": "马超", "ruler": "machao",
-               "capital": "tianshui", "territories": ["tianshui", "wuwei"],
-               "strength": 25000, "economy": 45, "morale": 75,
-               "treasury": 6000, "food": 5000},
+    "liubiao": {
+        "name": "刘表",
+        "ruler": "liubiao",
+        "capital": "xiangyang",
+        "territories": ["xiangyang", "jiangling", "jiangxia"],
+        "strength": 40000,
+        "economy": 60,
+        "morale": 55,
+        "treasury": 15000,
+        "food": 10000,
+    },
+    "zhanglu": {
+        "name": "张鲁",
+        "ruler": "zhanglu",
+        "capital": "hanshui",
+        "territories": ["hanshui"],
+        "strength": 15000,
+        "economy": 40,
+        "morale": 70,
+        "treasury": 5000,
+        "food": 5000,
+    },
+    "liuzhang": {
+        "name": "刘璋",
+        "ruler": "liuzhang",
+        "capital": "chengdu",
+        "territories": ["chengdu", "jiangzhou"],
+        "strength": 35000,
+        "economy": 55,
+        "morale": 50,
+        "treasury": 10000,
+        "food": 8000,
+    },
+    "machao": {
+        "name": "马超",
+        "ruler": "machao",
+        "capital": "tianshui",
+        "territories": ["tianshui", "wuwei"],
+        "strength": 25000,
+        "economy": 45,
+        "morale": 75,
+        "treasury": 6000,
+        "food": 5000,
+    },
 }
 
 
 def create_initial_world(player_faction_id: str) -> WorldState:
     """Create a fresh world state for a new game (v1)."""
     from ..engine.log_exporter import clear_session_log
+
     clear_session_log()
 
     state = WorldState()
@@ -114,7 +159,8 @@ def create_initial_world(player_faction_id: str) -> WorldState:
     pfc = FACTION_CONFIGS.get(player_faction_id)
     if pfc:
         state.factions[player_faction_id] = FactionState(
-            id=player_faction_id, **{k: v for k, v in pfc.items() if k != "ruler"},
+            id=player_faction_id,
+            **{k: v for k, v in pfc.items() if k != "ruler"},
             ruler_id=pfc["ruler"],
         )
 
@@ -122,15 +168,19 @@ def create_initial_world(player_faction_id: str) -> WorldState:
         # Skip the NPC that matches the player's faction
         skip = False
         if (
-            player_faction_id == "cao" and fid == "caocao"
-            or player_faction_id == "shu" and fid == "liubei"
-            or player_faction_id == "wu" and fid == "sunquan"
+            player_faction_id == "cao"
+            and fid == "caocao"
+            or player_faction_id == "shu"
+            and fid == "liubei"
+            or player_faction_id == "wu"
+            and fid == "sunquan"
         ):
             skip = True
 
         if not skip:
             state.factions[fid] = FactionState(
-                id=fid, **{k: v for k, v in fc.items() if k != "ruler"},
+                id=fid,
+                **{k: v for k, v in fc.items() if k != "ruler"},
                 ruler_id=fc["ruler"],
             )
 
@@ -162,9 +212,14 @@ class GameEngine:
       Uses GameMaster (LLM) or offline_sim (template-based).
     """
 
-    def __init__(self, llm: LLMAdapter | None = None, scenario: str = "207",
-                 new_game: bool = False, sim_engine: WorldSimEngine | None = None,
-                 force_v1: bool = False):
+    def __init__(
+        self,
+        llm: LLMAdapter | None = None,
+        scenario: str = "207",
+        new_game: bool = False,
+        sim_engine: WorldSimEngine | None = None,
+        force_v1: bool = False,
+    ):
         self.llm = llm
         self.scenario = scenario
         force_v1_env = os.environ.get("HISTRATEGY_FORCE_V1", "").lower() in ("true", "1")
@@ -180,7 +235,7 @@ class GameEngine:
 
     def _init_v2(self, scenario: str, new_game: bool) -> None:
         """Initialize the v2 engine stack."""
-        from .loader import build_world_state, resolve_knowledge_path
+        from .loader import resolve_knowledge_path
 
         knowledge_path = resolve_knowledge_path()
         self._knowledge_path = knowledge_path
@@ -214,19 +269,24 @@ class GameEngine:
 
         if self.llm and self.llm.is_available:
             from ..llm.narrative import NarrativeEngine
+
             self.narrative_engine = NarrativeEngine(self.llm)
 
             from ..parser.intent import IntentParser
+
             self.intent_parser = IntentParser(self.llm)
 
             from ..parser.validator import CommandValidator
+
             self.command_validator = CommandValidator(self.map_engine)
         else:
             # Offline mode: still have parser/validator (keyword-based)
             from ..parser.intent import IntentParser
+
             self.intent_parser = IntentParser(None)  # keyword fallback
 
             from ..parser.validator import CommandValidator
+
             self.command_validator = CommandValidator(self.map_engine)
 
         # Try to load existing game or create new
@@ -252,14 +312,13 @@ class GameEngine:
         import json
         import os as _os
 
-        save_dir = os.environ.get("HISTRATEGY_DATA_DIR",
-                                    _os.path.expanduser("~/.histrategy"))
+        save_dir = os.environ.get("HISTRATEGY_DATA_DIR", _os.path.expanduser("~/.histrategy"))
         v2_save = _os.path.join(save_dir, "world_v2.json")
         if not _os.path.isfile(v2_save):
             return None
 
         try:
-            with open(v2_save, "r") as f:
+            with open(v2_save) as f:
                 data = json.load(f)
             # Reconstruct from saved JSON (simplified: rebuild from factions)
             return self._rebuild_from_save(data)
@@ -282,8 +341,13 @@ class GameEngine:
         ws.player_deviation = data.get("player_deviation", 0.0)
         season_val = data.get("season", "winter")
         from histrategy_engine.world import Season
-        season_map = {"spring": Season.SPRING, "summer": Season.SUMMER,
-                       "autumn": Season.AUTUMN, "winter": Season.WINTER}
+
+        season_map = {
+            "spring": Season.SPRING,
+            "summer": Season.SUMMER,
+            "autumn": Season.AUTUMN,
+            "winter": Season.WINTER,
+        }
         ws.season = season_map.get(season_val, Season.WINTER)
 
         # ── Restore factions (including new ones from gameplay) ──
@@ -323,8 +387,7 @@ class GameEngine:
             if "tech_levels" in sf:
                 f.tech_levels = sf["tech_levels"]
             # Restore NPC personality traits
-            for attr in ("aggression", "cunning", "caution", "diplomacy",
-                         "development_focus", "mercy"):
+            for attr in ("aggression", "cunning", "caution", "diplomacy", "development_focus", "mercy"):
                 if attr in sf:
                     setattr(f, attr, sf[attr])
             # Restore estimated stats (seen by other factions via intel)
@@ -359,6 +422,7 @@ class GameEngine:
         # ── Restore armies ──
         saved_armies = data.get("armies", {})
         from histrategy_engine.world import Army, UnitType
+
         ws.armies = {}
         for aid, sa in saved_armies.items():
             units = {}
@@ -395,19 +459,19 @@ class GameEngine:
         return ws
 
     @classmethod
-    def from_dict(cls, data: dict, llm=None) -> "GameEngine":
+    def from_dict(cls, data: dict, llm=None) -> GameEngine:
         """Create a GameEngine from a saved world state dict.
 
         Builds the full v2 engine stack and restores the world state from the dict.
         Use this to resume a game from orchestrator-stored save data.
         """
-        import os as _os
         engine = cls.__new__(cls)
         engine.llm = llm
         engine.scenario = data.get("scenario", "207")
 
         # Force v2 since that's what we serialize
-        from .loader import resolve_knowledge_path, build_world_state
+        from .loader import resolve_knowledge_path
+
         engine._use_v2 = True
 
         knowledge_path = resolve_knowledge_path()
@@ -439,15 +503,20 @@ class GameEngine:
 
         if llm and llm.is_available:
             from ..llm.narrative import NarrativeEngine
+
             engine.narrative_engine = NarrativeEngine(llm)
             from ..parser.intent import IntentParser
+
             engine.intent_parser = IntentParser(llm)
             from ..parser.validator import CommandValidator
+
             engine.command_validator = CommandValidator(engine.map_engine)
         else:
             from ..parser.intent import IntentParser
+
             engine.intent_parser = IntentParser(None)
             from ..parser.validator import CommandValidator
+
             engine.command_validator = CommandValidator(engine.map_engine)
 
         # Restore world state from saved data
@@ -461,8 +530,7 @@ class GameEngine:
         import json
         import os as _os
 
-        save_dir = os.environ.get("HISTRATEGY_DATA_DIR",
-                                    _os.path.expanduser("~/.histrategy"))
+        save_dir = os.environ.get("HISTRATEGY_DATA_DIR", _os.path.expanduser("~/.histrategy"))
         _os.makedirs(save_dir, exist_ok=True)
         v2_save = _os.path.join(save_dir, "world_v2.json")
         data = self.to_dict()
@@ -518,10 +586,7 @@ class GameEngine:
                 for fid, f in ws.factions.items()
             },
             # Territory ownership (only what changes — not full territory data)
-            "territory_owners": {
-                tid: t.owner_id
-                for tid, t in ws.territories.items()
-            },
+            "territory_owners": {tid: t.owner_id for tid, t in ws.territories.items()},
             # Character overrides (only what deviates from base)
             "character_overrides": {
                 cid: {
@@ -552,11 +617,13 @@ class GameEngine:
             "history_triggered": list(self.history_engine._triggered_events) if self.history_engine else [],
             "history_averted": (
                 {k: v for k, v in self.history_engine._averted_events.items()}
-                if self.history_engine and hasattr(self.history_engine, "_averted_events") else {}
+                if self.history_engine and hasattr(self.history_engine, "_averted_events")
+                else {}
             ),
             "history_blocked": (
                 list(self.history_engine._blocked_downstream)
-                if self.history_engine and hasattr(self.history_engine, "_blocked_downstream") else []
+                if self.history_engine and hasattr(self.history_engine, "_blocked_downstream")
+                else []
             ),
         }
         return data
@@ -570,11 +637,13 @@ class GameEngine:
         if sim_engine is not None:
             self.sim_engine = sim_engine
         elif llm is not None:
-            from ..llm.llm_sim_engine import LLMSimEngine
             from ..engine.resilient_sim_engine import ResilientSimEngine
+            from ..llm.llm_sim_engine import LLMSimEngine
+
             self.sim_engine = ResilientSimEngine(LLMSimEngine(llm))
         else:
             from ..engine.offline_sim_engine import OfflineSimEngine
+
             self.sim_engine = OfflineSimEngine()
 
         if not new_game and has_existing_game():
@@ -675,7 +744,7 @@ class GameEngine:
         # Use deterministic template suggestions (LLM reserved for plan phase)
         suggestions = [
             f"【休养生息】发展{player.capital}的内政与农耕",
-            f"【练兵备战】招募乡勇操练新军",
+            "【练兵备战】招募乡勇操练新军",
             "【合纵连横】派遣使者联络群雄",
             "【搜集情报】细作四出打探动向",
         ]
@@ -695,10 +764,7 @@ class GameEngine:
         for fid, fs in ws.factions.items():
             if not fs.is_active or fid == ws.player_faction_id:
                 continue
-            npc_actions.append(
-                f"{fs.name}据有{len(fs.territories)}城，"
-                f"兵力{fs.strength_actual:,}。"
-            )
+            npc_actions.append(f"{fs.name}据有{len(fs.territories)}城，兵力{fs.strength_actual:,}。")
 
         return {
             "narrative": narrative,
@@ -741,9 +807,7 @@ class GameEngine:
         # Generate suggestions from narrative engine
         if self.narrative_engine and self.narrative_engine.is_available:
             with _suppress_stderr():
-                suggestions = self.narrative_engine.generate_plan_suggestions(
-                    ws, ws.player_faction_id
-                )
+                suggestions = self.narrative_engine.generate_plan_suggestions(ws, ws.player_faction_id)
         else:
             suggestions = self._offline_v2_suggestions()
 
@@ -779,15 +843,9 @@ class GameEngine:
                         if nf and nf.is_active:
                             rel = nf.relations.get(ws.player_faction_id, 0)
                             rel_str = "敌对" if rel < -30 else ("中立" if rel < 30 else "友好")
-                            court_parts.append(
-                                f"边境警报：{nid}（{nt.name}）方向，"
-                                f"{nf.name}军为{rel_str}关系。"
-                            )
+                            court_parts.append(f"边境警报：{nid}（{nt.name}）方向，{nf.name}军为{rel_str}关系。")
 
-        season_summary = (
-            f"{ws.year}年{ws.season.cn}，"
-            f"天下纷争未休，{player.name}当何去何从？"
-        )
+        season_summary = f"{ws.year}年{ws.season.cn}，天下纷争未休，{player.name}当何去何从？"
 
         return {
             "court_dialogue": "\n".join(court_parts),
@@ -840,9 +898,7 @@ class GameEngine:
         # Step 1: Parse player intent into commands
         player_commands = []
         if self.intent_parser:
-            player_commands = self.intent_parser.parse(
-                player_decision, ws.player_faction_id
-            )
+            player_commands = self.intent_parser.parse(player_decision, ws.player_faction_id)
 
         # Step 2: Validate commands
         if self.command_validator:
@@ -873,14 +929,16 @@ class GameEngine:
                 )
                 for prop in proposals:
                     apply_event_effects(ws, prop.effects.get("effects", {}))
-                    turn_result.history_events.append({
-                        "event_id": prop.event_id,
-                        "title": prop.title,
-                        "outcome": prop.effects.get("outcome", "default"),
-                        "description": prop.effects.get("outcome_description", ""),
-                        "effects": prop.effects.get("effects", {}),
-                    })
-            except Exception as e:
+                    turn_result.history_events.append(
+                        {
+                            "event_id": prop.event_id,
+                            "title": prop.title,
+                            "outcome": prop.effects.get("outcome", "default"),
+                            "description": prop.effects.get("outcome_description", ""),
+                            "effects": prop.effects.get("effects", {}),
+                        }
+                    )
+            except Exception:
                 pass
 
         # Step 5 & 6: Generate narrative and plan suggestions (Parallelized)
@@ -900,25 +958,27 @@ class GameEngine:
 
         if self.narrative_engine and self.narrative_engine.is_available:
             import concurrent.futures
+
             with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
                 # Submit both tasks
                 future_narrative = executor.submit(
                     self.narrative_engine.generate_turn_narrative,
                     turn_result,
                     deviation=ws.player_deviation,
-                    averted_events=averted_list
+                    averted_events=averted_list,
+                    world_state=ws,
                 )
                 future_suggestions = executor.submit(
                     self.narrative_engine.generate_plan_suggestions, ws, ws.player_faction_id
                 )
-                
+
                 # Retrieve results with error fallback
                 try:
                     with _suppress_stderr():
                         narrative_text = future_narrative.result(timeout=30)
                 except Exception:
                     narrative_text = self._offline_v2_narrative(turn_result)
-                
+
                 try:
                     with _suppress_stderr():
                         new_choices = future_suggestions.result(timeout=30)
@@ -934,18 +994,11 @@ class GameEngine:
         if not player or not player.is_active or player.strength_actual <= 0:
             game_over = {
                 "type": "defeat",
-                "message": (
-                    "# 势力覆灭\n\n"
-                    "你的势力已经不复存在。\n"
-                    "乱世之中，成王败寇。\n\n"
-                    "感谢游玩《三國志略》。"
-                ),
+                "message": ("# 势力覆灭\n\n你的势力已经不复存在。\n乱世之中，成王败寇。\n\n感谢游玩《三國志略》。"),
             }
 
         # Check if all territory has been unified
-        active_factions = [
-            fid for fid, f in ws.factions.items() if f.is_active and f.strength_actual > 0
-        ]
+        active_factions = [fid for fid, f in ws.factions.items() if f.is_active and f.strength_actual > 0]
         if len(active_factions) == 1 and active_factions[0] == ws.player_faction_id:
             game_over = {
                 "type": "victory",
@@ -963,10 +1016,10 @@ class GameEngine:
 
         # Track LLM token usage via cumulative counters (works across parallel calls)
         _usage = {
-            "command_tokens": 0,   # Narrative + Suggestions (all LLM calls this turn)
-            "plan_tokens": 0,      # Suggestions generation
-            "npc_tokens": 0,       # NPC AI (not yet tracked separately)
-            "sim_tokens": 0,       # Deterministic simulation (free)
+            "command_tokens": 0,  # Narrative + Suggestions (all LLM calls this turn)
+            "plan_tokens": 0,  # Suggestions generation
+            "npc_tokens": 0,  # NPC AI (not yet tracked separately)
+            "sim_tokens": 0,  # Deterministic simulation (free)
         }
         if self.narrative_engine and self.narrative_engine.is_available:
             llm = getattr(self.narrative_engine, "llm", None)
@@ -987,28 +1040,27 @@ class GameEngine:
         if resource_changes.get("morale_delta", 0) != 0:
             sign = "+" if resource_changes["morale_delta"] > 0 else ""
             aftermath_parts.append(f"民心{sign}{resource_changes['morale_delta']}")
-        
+
         # Extract the last 2-3 sentences of narrative as summary
         if narrative_text:
             import re as _re
+
             sentences = _re.split(r"[。！？]", narrative_text)
             sentences = [s.strip() for s in sentences if s.strip()]
             summary_sentences = sentences[-2:] if len(sentences) > 2 else sentences[-1:]
             aftermath_text = "。".join(summary_sentences) + "。"
         else:
             aftermath_text = "局势已定，天下大势尽在掌握。\n"
-        
+
         if aftermath_parts:
             aftermath_text = "本回合：" + "，".join(aftermath_parts) + "。" + "\n\n" + aftermath_text
-        
+
         result = {
             "narrative": narrative_text,
             "aftermath": aftermath_text,
-            "bureaucracy": [{
-                "department": "军机处",
-                "official": "参军",
-                "action": f"执行{len(player_commands)}项军令"
-            }],
+            "bureaucracy": [
+                {"department": "军机处", "official": "参军", "action": f"执行{len(player_commands)}项军令"}
+            ],
             "state_changes": {
                 "food": resource_changes.get("food_delta", 0),
                 "treasury": resource_changes.get("tax_revenue", 0),
@@ -1021,7 +1073,9 @@ class GameEngine:
                 and evt["id"] not in self.history_engine.averted_events
                 and evt["id"] not in self.history_engine._blocked_downstream
                 and abs(evt["year"] - ws.year) <= 1
-            ] if self.history_engine else [],
+            ]
+            if self.history_engine
+            else [],
             "npc_reactions": [],
             "npc_actions": [],
             "events_occurred": turn_result.character_events,
@@ -1034,10 +1088,7 @@ class GameEngine:
         if player and self.history_engine:
             try:
                 if ws.player_deviation > 0.0:
-                    result["aftermath"] = (
-                        f"【史官注：历史偏离度 {ws.player_deviation:.2f}】\n\n"
-                        + result["aftermath"]
-                    )
+                    result["aftermath"] = f"【史官注：历史偏离度 {ws.player_deviation:.2f}】\n\n" + result["aftermath"]
             except Exception:
                 pass
 
@@ -1047,9 +1098,13 @@ class GameEngine:
         # Log turn
         try:
             from ..engine.log_exporter import append_to_session_log
+
             append_to_session_log(
-                ws.turn_number, ws.year, ws.season.value,
-                player_decision, result,
+                ws.turn_number,
+                ws.year,
+                ws.season.value,
+                player_decision,
+                result,
             )
         except Exception:
             pass
@@ -1070,8 +1125,7 @@ class GameEngine:
             "aftermath": sim_result.aftermath,
             "bureaucracy": sim_result.bureaucracy,
             "state_changes": (
-                sim_result.state_changes or
-                (sim_result.short_term.get("changes", {}) if sim_result.short_term else {})
+                sim_result.state_changes or (sim_result.short_term.get("changes", {}) if sim_result.short_term else {})
             ),
             "seeds": sim_result.seeds,
             "npc_reactions": sim_result.npc_reactions or sim_result.npc_actions or [],
@@ -1082,6 +1136,7 @@ class GameEngine:
 
         # Process NPC dramatic events
         from ..engine.npc_events import process_npc_drastic_events
+
         npc_evt_res = process_npc_drastic_events(self.world_state)
 
         if npc_evt_res["events_occurred"]:
@@ -1097,10 +1152,13 @@ class GameEngine:
 
         try:
             from ..engine.log_exporter import append_to_session_log
+
             append_to_session_log(
-                self.world_state.turn, self.world_state.year,
+                self.world_state.turn,
+                self.world_state.year,
                 self.world_state.current_season,
-                player_decision, result_dict,
+                player_decision,
+                result_dict,
             )
         except Exception:
             pass
@@ -1112,23 +1170,24 @@ class GameEngine:
     def _log_simulation_history(self) -> None:
         """Write a snapshot of all factions' numerical states to simulation_history.jsonl."""
         try:
-            from ..state.world_state import get_data_dir
             import json
             from datetime import datetime
-            
+
+            from ..state.world_state import get_data_dir
+
             log_dir = get_data_dir() / "logs"
             log_dir.mkdir(parents=True, exist_ok=True)
             history_file = log_dir / "simulation_history.jsonl"
-            
+
             faction_data = {}
-            
+
             if self._use_v2 and self.world_state_v2 is not None:
                 ws = self.world_state_v2
                 turn_number = ws.turn_number
                 year = ws.year
                 season = ws.season.cn if hasattr(ws.season, "cn") else ws.season.value
                 player_faction = ws.player_faction_id
-                
+
                 for fid, f in ws.factions.items():
                     faction_data[fid] = {
                         "name": f.name,
@@ -1139,7 +1198,7 @@ class GameEngine:
                         "morale": getattr(f, "morale_actual", getattr(f, "morale", 0)),
                         "treasury": f.treasury,
                         "food": f.food,
-                        "is_active": getattr(f, "is_active", True)
+                        "is_active": getattr(f, "is_active", True),
                     }
             elif self.world_state is not None:
                 ws = self.world_state
@@ -1147,7 +1206,7 @@ class GameEngine:
                 year = ws.year
                 season = ws.current_season
                 player_faction = ws.player_faction_id
-                
+
                 for fid, f in ws.factions.items():
                     faction_data[fid] = {
                         "name": f.name,
@@ -1158,24 +1217,25 @@ class GameEngine:
                         "morale": getattr(f, "morale", 0),
                         "treasury": getattr(f, "treasury", 0),
                         "food": getattr(f, "food", 0),
-                        "is_active": getattr(f, "is_active", True)
+                        "is_active": getattr(f, "is_active", True),
                     }
             else:
                 return
-                
+
             entry = {
                 "timestamp": datetime.now().isoformat(),
                 "turn_number": turn_number,
                 "year": year,
                 "season": season,
                 "player_faction": player_faction,
-                "factions": faction_data
+                "factions": faction_data,
             }
-            
+
             with open(history_file, "a", encoding="utf-8") as f:
                 f.write(json.dumps(entry, ensure_ascii=False) + "\n")
         except Exception as e:
             import logging
+
             logging.getLogger(__name__).warning("Failed to write simulation history log: %s", e)
 
     # ─── Fallbacks ────────────────────────────────────────────
@@ -1184,8 +1244,7 @@ class GameEngine:
         return {
             "narrative": "建安十二年（公元207年），汉室倾颓，群雄逐鹿。",
             "npc_actions": ["曹操平定北方，虎视江南", "孙权坐断江东，周瑜操练水军"],
-            "state_changes": {"strength": 0, "economy": 0, "morale": 0,
-                              "treasury": 0, "food": 0},
+            "state_changes": {"strength": 0, "economy": 0, "morale": 0, "treasury": 0, "food": 0},
             "events_occurred": [],
             "new_choices": ["1. 发展经济", "2. 整军备战", "3. 结交盟友", "4. 搜集情报"],
         }
@@ -1201,10 +1260,7 @@ class GameEngine:
             if player:
                 player_name = player.name
 
-        court_msg = (
-            f"【内政会议】\n\n"
-            f"群臣趋前侍立。时局动荡，军资匮乏，众将皆望向{player_name}，等待决断。"
-        )
+        court_msg = f"【内政会议】\n\n群臣趋前侍立。时局动荡，军资匮乏，众将皆望向{player_name}，等待决断。"
         return {
             "court_dialogue": court_msg,
             "suggestions": [
@@ -1224,18 +1280,30 @@ class GameEngine:
 
         faction_key = self.world_state.player_faction_id
         intros = {
-            "cao": {"name": "曹操", "alias": "孟德", "location": "许昌",
-                    "desc": "挟天子以令诸侯，已平定北方，虎视江南",
-                    "advisors": "荀彧（文若）运筹帷幄，程昱（仲德）深谋远虑",
-                    "generals": "夏侯惇、曹仁、张辽、徐晃等猛将"},
-            "shu": {"name": "刘备", "alias": "玄德", "location": "新野",
-                    "desc": "寄居荆州刘表帐下，屯兵新野小城，求贤若渴",
-                    "advisors": "徐庶（元直）暂为军师，简雍（宪和）奔走联络",
-                    "generals": "关羽（云长）、张飞（翼德）、赵云（子龙）"},
-            "wu": {"name": "孙权", "alias": "仲谋", "location": "建业",
-                   "desc": "继父兄之业，坐断东南，待时而动",
-                   "advisors": "周瑜（公瑾）为大都督，鲁肃（子敬）谋划长远",
-                   "generals": "程普、黄盖、甘宁、周泰等江东宿将"},
+            "cao": {
+                "name": "曹操",
+                "alias": "孟德",
+                "location": "许昌",
+                "desc": "挟天子以令诸侯，已平定北方，虎视江南",
+                "advisors": "荀彧（文若）运筹帷幄，程昱（仲德）深谋远虑",
+                "generals": "夏侯惇、曹仁、张辽、徐晃等猛将",
+            },
+            "shu": {
+                "name": "刘备",
+                "alias": "玄德",
+                "location": "新野",
+                "desc": "寄居荆州刘表帐下，屯兵新野小城，求贤若渴",
+                "advisors": "徐庶（元直）暂为军师，简雍（宪和）奔走联络",
+                "generals": "关羽（云长）、张飞（翼德）、赵云（子龙）",
+            },
+            "wu": {
+                "name": "孙权",
+                "alias": "仲谋",
+                "location": "建业",
+                "desc": "继父兄之业，坐断东南，待时而动",
+                "advisors": "周瑜（公瑾）为大都督，鲁肃（子敬）谋划长远",
+                "generals": "程普、黄盖、甘宁、周泰等江东宿将",
+            },
         }
 
         info = intros.get(faction_key, intros["cao"])
@@ -1277,12 +1345,15 @@ class GameEngine:
             ],
             "state_changes": {},
             "events_occurred": [],
-            "new_choices": choices.get(faction_key, [
-                "1. 发展经济和军力",
-                "2. 派使者联络盟友",
-                "3. 整军备战",
-                "4. 搜集情报",
-            ]),
+            "new_choices": choices.get(
+                faction_key,
+                [
+                    "1. 发展经济和军力",
+                    "2. 派使者联络盟友",
+                    "3. 整军备战",
+                    "4. 搜集情报",
+                ],
+            ),
         }
 
     def _offline_v2_suggestions(self) -> list[str]:
@@ -1294,30 +1365,24 @@ class GameEngine:
 
         suggestions = []
         if player.food < 3000 and player.territories:
-            suggestions.append(
-                f"【劝课农桑】发展{player.territories[0]}的农业，提升粮食产量。"
-            )
+            suggestions.append(f"【劝课农桑】发展{player.territories[0]}的农业，提升粮食产量。")
         if player.strength_actual < 10000 and player.treasury > 2000 and player.territories:
-            suggestions.append(
-                f"【征募乡勇】在{player.territories[0]}招募步兵，增强军力。"
-            )
+            suggestions.append(f"【征募乡勇】在{player.territories[0]}招募步兵，增强军力。")
         if not suggestions and player.territories:
-            suggestions.append(
-                f"【固本培元】发展{player.territories[0]}，提升开发度。"
-            )
+            suggestions.append(f"【固本培元】发展{player.territories[0]}，提升开发度。")
         suggestions.append("【合纵连横】审视外交局势，联络盟友。")
         return suggestions[:4]
 
     def _offline_v2_narrative(self, turn_result: TurnResult) -> str:
         """Offline narrative from turn result."""
         from ..llm.narrative import NarrativeEngine
+
         dummy = NarrativeEngine(None)
         return dummy._offline_narrative(turn_result)
 
 
 def _suppress_stderr():
     """Context manager to suppress stderr during optional LLM calls."""
-    import contextlib
     import sys as _sys
 
     class _Suppress:
@@ -1390,7 +1455,7 @@ def apply_event_effects(world_state: V2WorldState, effects: dict) -> None:
             target_fid = V2_FACTION_MAP.get(value, value)
             for tid in ["xiangyang", "jiangling", "jiangxia", "changsha", "lingling", "wuling", "guiyang", "nanyang"]:
                 transfer_territory(tid, target_fid)
-                
+
         # e.g. "liubei_controls": "yizhou"
         elif key.endswith("_controls") and value:
             target_fid = V2_FACTION_MAP.get(key.split("_")[0], key.split("_")[0])
@@ -1398,7 +1463,16 @@ def apply_event_effects(world_state: V2WorldState, effects: dict) -> None:
                 for tid in ["chengdu", "hanshui", "hanzhong", "ziyang", "baqi"]:
                     transfer_territory(tid, target_fid)
             elif value == "jingzhou":
-                for tid in ["xiangyang", "jiangling", "jiangxia", "changsha", "lingling", "wuling", "guiyang", "nanyang"]:
+                for tid in [
+                    "xiangyang",
+                    "jiangling",
+                    "jiangxia",
+                    "changsha",
+                    "lingling",
+                    "wuling",
+                    "guiyang",
+                    "nanyang",
+                ]:
                     transfer_territory(tid, target_fid)
 
         # e.g., "liubei_territories_add": ["wuling", "changsha", "lingling", "guiyang"]

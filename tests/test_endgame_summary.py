@@ -1,10 +1,12 @@
-import pytest
 from unittest.mock import MagicMock
+
 from histrategy.llm.endgame_summary import generate_chronicle
+
 
 def test_generate_chronicle_empty():
     res = generate_chronicle([])
     assert "默默无闻" in res
+
 
 def test_generate_chronicle_offline_fallback():
     events = [
@@ -17,6 +19,7 @@ def test_generate_chronicle_offline_fallback():
     assert "赤壁之战" in res
     assert "史官曰" in res
     assert "评曰" in res
+
 
 def test_generate_chronicle_llm():
     events = ["起兵讨董", "收复徐州"]

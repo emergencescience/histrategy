@@ -62,8 +62,7 @@ class MultiplayerSession:
         # Auto-assign faction
         assigned_factions = {slot.faction_id for slot in self.players.values()}
         available_factions = [
-            fid for fid in ["shu", "cao", "wu", "liubiao", "liuzhang", "yuan", "ma"]
-            if fid not in assigned_factions
+            fid for fid in ["shu", "cao", "wu", "liubiao", "liuzhang", "yuan", "ma"] if fid not in assigned_factions
         ]
         faction_id = available_factions[0] if available_factions else f"custom_{user_id}"
 
@@ -144,20 +143,24 @@ class MultiplayerSession:
             lines.append("**玩家列表**")
             for user_id, slot in self.players.items():
                 host_mark = " 👑" if user_id == self.host_user_id else ""
-                turn_mark = " 🎯" if (
-                    self.game_phase == GamePhase.PLAYING
-                    and user_id == self.turn_order[self.current_turn_index]
-                    if self.turn_order and self.current_turn_index < len(self.turn_order)
-                    else False
-                ) else ""
+                turn_mark = (
+                    " 🎯"
+                    if (
+                        self.game_phase == GamePhase.PLAYING and user_id == self.turn_order[self.current_turn_index]
+                        if self.turn_order and self.current_turn_index < len(self.turn_order)
+                        else False
+                    )
+                    else ""
+                )
                 spec_mark = " 👁️" if slot.is_spectator else ""
                 faction_name = {
-                    "shu": "蜀(刘备)", "cao": "魏(曹操)", "wu": "吴(孙权)",
-                    "liubiao": "荆(刘表)", "liuzhang": "益(刘璋)",
+                    "shu": "蜀(刘备)",
+                    "cao": "魏(曹操)",
+                    "wu": "吴(孙权)",
+                    "liubiao": "荆(刘表)",
+                    "liuzhang": "益(刘璋)",
                 }.get(slot.faction_id, slot.faction_id)
-                lines.append(
-                    f"- {slot.display_name}{host_mark}{turn_mark}{spec_mark} | {faction_name}"
-                )
+                lines.append(f"- {slot.display_name}{host_mark}{turn_mark}{spec_mark} | {faction_name}")
             lines.append("")
 
         if self.game_phase == GamePhase.PLAYING:

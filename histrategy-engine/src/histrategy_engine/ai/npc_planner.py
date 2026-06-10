@@ -6,10 +6,10 @@ NPCs should use this (not raw DecisionEngine) for fog-of-war compliant play.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ..world import Command, FactionState, WorldState
+from ..world import Command, WorldState
 from . import DecisionEngine
 
 if TYPE_CHECKING:
@@ -51,11 +51,12 @@ class NPCPlanner:
     def __init__(
         self,
         decision_engine: DecisionEngine | None = None,
-        projector: "LocalWorldStateProjector | None" = None,
+        projector: LocalWorldStateProjector | None = None,
     ):
         self._engine = decision_engine or DecisionEngine()
         if projector is None:
             from .fog_of_war import LocalWorldStateProjector
+
             self._projector = LocalWorldStateProjector()
         else:
             self._projector = projector
@@ -116,7 +117,7 @@ class NPCPlanner:
 
     def _evaluate_from_local(
         self,
-        local: "LocalWorldState",
+        local: LocalWorldState,
         world_state: WorldState,
     ) -> StrategicIntent:
         """Derive strategic intent from fog-of-war projected state.

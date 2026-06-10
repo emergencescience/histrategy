@@ -8,7 +8,6 @@ and a small set of allowed functions are available.
 from __future__ import annotations
 
 import math
-import os
 from pathlib import Path
 
 import yaml

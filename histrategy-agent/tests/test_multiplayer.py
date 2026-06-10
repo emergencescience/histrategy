@@ -1,6 +1,6 @@
 """Tests for MultiplayerSession — group chat multiplayer state management."""
 
-from histrategy_agent.multiplayer import MultiplayerSession, GamePhase, PlayerSlot
+from histrategy_agent.multiplayer import GamePhase, MultiplayerSession, PlayerSlot
 
 
 class TestPlayerSlot:
@@ -38,9 +38,7 @@ class TestMultiplayerSession:
         assert len(session.players) == 0
 
     def test_add_player(self):
-        session = MultiplayerSession(
-            session_id="group_abc", host_user_id="host_user"
-        )
+        session = MultiplayerSession(session_id="group_abc", host_user_id="host_user")
         slot = session.add_player("player1", "赵将军")
         assert slot.user_id == "player1"
         assert slot.display_name == "赵将军"
@@ -48,9 +46,7 @@ class TestMultiplayerSession:
         assert "player1" in session.players
 
     def test_add_multiple_players_assigns_different_factions(self):
-        session = MultiplayerSession(
-            session_id="group_abc", host_user_id="host"
-        )
+        session = MultiplayerSession(session_id="group_abc", host_user_id="host")
         s1 = session.add_player("p1", "刘备")
         s2 = session.add_player("p2", "曹操")
         s3 = session.add_player("p3", "孙权")
@@ -61,18 +57,14 @@ class TestMultiplayerSession:
         assert len(session.players) == 3
 
     def test_add_player_returns_existing(self):
-        session = MultiplayerSession(
-            session_id="group_abc", host_user_id="host"
-        )
+        session = MultiplayerSession(session_id="group_abc", host_user_id="host")
         s1 = session.add_player("p1", "Player One")
         s2 = session.add_player("p1", "Player One Again")  # same user
         assert s1 is s2
         assert s1.display_name == "Player One"  # original name kept
 
     def test_cannot_add_after_game_started(self):
-        session = MultiplayerSession(
-            session_id="group_abc", host_user_id="host"
-        )
+        session = MultiplayerSession(session_id="group_abc", host_user_id="host")
         session.add_player("p1", "Player 1")
         session.start_game()
         try:
@@ -82,9 +74,7 @@ class TestMultiplayerSession:
             pass
 
     def test_remove_player(self):
-        session = MultiplayerSession(
-            session_id="group_abc", host_user_id="host"
-        )
+        session = MultiplayerSession(session_id="group_abc", host_user_id="host")
         session.add_player("p1", "Player 1")
         session.add_player("p2", "Player 2")
         assert "p1" in session.players
@@ -93,17 +83,13 @@ class TestMultiplayerSession:
         assert "p1" not in session.players
 
     def test_cannot_remove_host(self):
-        session = MultiplayerSession(
-            session_id="group_abc", host_user_id="host"
-        )
+        session = MultiplayerSession(session_id="group_abc", host_user_id="host")
         session.add_player("host", "Host Player")
         assert session.remove_player("host") is False
         assert "host" in session.players
 
     def test_start_game(self):
-        session = MultiplayerSession(
-            session_id="group_abc", host_user_id="host"
-        )
+        session = MultiplayerSession(session_id="group_abc", host_user_id="host")
         session.add_player("p1", "P1")
         session.add_player("p2", "P2")
 
@@ -113,9 +99,7 @@ class TestMultiplayerSession:
         assert len(session.turn_order) == 2
 
     def test_get_current_player(self):
-        session = MultiplayerSession(
-            session_id="group_abc", host_user_id="host"
-        )
+        session = MultiplayerSession(session_id="group_abc", host_user_id="host")
         session.add_player("p1", "P1")
         session.add_player("p2", "P2")
         session.start_game()
@@ -125,9 +109,7 @@ class TestMultiplayerSession:
         assert current.user_id in ("p1", "p2")  # shuffled
 
     def test_advance_turn(self):
-        session = MultiplayerSession(
-            session_id="group_abc", host_user_id="host"
-        )
+        session = MultiplayerSession(session_id="group_abc", host_user_id="host")
         session.add_player("p1", "P1")
         session.add_player("p2", "P2")
         session.start_game()
@@ -139,9 +121,7 @@ class TestMultiplayerSession:
         assert first.user_id != second.user_id
 
     def test_full_round_cycles_back(self):
-        session = MultiplayerSession(
-            session_id="group_abc", host_user_id="host"
-        )
+        session = MultiplayerSession(session_id="group_abc", host_user_id="host")
         session.add_player("p1", "P1")
         session.start_game()
 
@@ -150,9 +130,7 @@ class TestMultiplayerSession:
         assert current is not None
 
     def test_end_game(self):
-        session = MultiplayerSession(
-            session_id="group_abc", host_user_id="host"
-        )
+        session = MultiplayerSession(session_id="group_abc", host_user_id="host")
         session.add_player("p1", "P1")
         session.start_game()
 
@@ -161,9 +139,7 @@ class TestMultiplayerSession:
         assert session.get_current_player() is None
 
     def test_status_message_lobby(self):
-        session = MultiplayerSession(
-            session_id="group_abc", host_user_id="host"
-        )
+        session = MultiplayerSession(session_id="group_abc", host_user_id="host")
         session.add_player("host", "房主")
         session.add_player("p2", "玩家二")
 
@@ -173,9 +149,7 @@ class TestMultiplayerSession:
         assert "join" in msg
 
     def test_status_message_playing(self):
-        session = MultiplayerSession(
-            session_id="group_abc", host_user_id="host"
-        )
+        session = MultiplayerSession(session_id="group_abc", host_user_id="host")
         session.add_player("host", "房主")
         session.start_game()
 
@@ -184,9 +158,7 @@ class TestMultiplayerSession:
         assert "当前行动" in msg
 
     def test_max_players(self):
-        session = MultiplayerSession(
-            session_id="group_abc", host_user_id="host"
-        )
+        session = MultiplayerSession(session_id="group_abc", host_user_id="host")
         for i in range(7):
             session.add_player(f"p{i}", f"Player {i}")
         assert len(session.players) == 7

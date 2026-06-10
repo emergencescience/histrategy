@@ -11,10 +11,10 @@ from __future__ import annotations
 import json
 import os
 import re
-from typing import Any
 
 try:
     import httpx
+
     HAS_HTTPX = True
 except ImportError:
     HAS_HTTPX = False
@@ -22,14 +22,30 @@ except ImportError:
 
 # Provider auto-detection (priority order)
 PROVIDER_CONFIGS = [
-    {"name": "deepseek", "env_key": "DEEPSEEK_API_KEY",
-     "default_base": "https://api.deepseek.com", "default_model": "deepseek-v4-pro"},
-    {"name": "openai", "env_key": "OPENAI_API_KEY",
-     "default_base": "https://api.openai.com/v1", "default_model": "gpt-4o-mini"},
-    {"name": "tongyi", "env_key": "TONGYI_API_KEY",
-     "default_base": "https://dashscope.aliyuncs.com/compatible-mode/v1", "default_model": "qwen-max"},
-    {"name": "openrouter", "env_key": "OPENROUTER_API_KEY",
-     "default_base": "https://openrouter.ai/api/v1", "default_model": "deepseek/deepseek-v4-pro"},
+    {
+        "name": "deepseek",
+        "env_key": "DEEPSEEK_API_KEY",
+        "default_base": "https://api.deepseek.com",
+        "default_model": "deepseek-v4-pro",
+    },
+    {
+        "name": "openai",
+        "env_key": "OPENAI_API_KEY",
+        "default_base": "https://api.openai.com/v1",
+        "default_model": "gpt-4o-mini",
+    },
+    {
+        "name": "tongyi",
+        "env_key": "TONGYI_API_KEY",
+        "default_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "default_model": "qwen-max",
+    },
+    {
+        "name": "openrouter",
+        "env_key": "OPENROUTER_API_KEY",
+        "default_base": "https://openrouter.ai/api/v1",
+        "default_model": "deepseek/deepseek-v4-pro",
+    },
 ]
 
 
@@ -53,7 +69,8 @@ def detect_provider() -> dict:
         key = os.environ.get(cfg["env_key"], "")
         if key and not key.startswith("your-") and len(key) > 10:
             return {
-                "name": cfg["name"], "api_key": key,
+                "name": cfg["name"],
+                "api_key": key,
                 "api_base": os.environ.get("OPENAI_API_BASE", "") or cfg["default_base"],
                 "model": os.environ.get("LLM_MODEL", cfg["default_model"]),
             }
@@ -63,7 +80,8 @@ def detect_provider() -> dict:
     generic_key = os.environ.get("LLM_API_KEY", "")
     if generic_base and generic_key:
         return {
-            "name": "custom", "api_key": generic_key,
+            "name": "custom",
+            "api_key": generic_key,
             "api_base": generic_base,
             "model": os.environ.get("LLM_MODEL", "gpt-4o-mini"),
         }
@@ -102,31 +120,39 @@ class LLMClient:
         )
         return True
 
-    def chat(self, messages: list[dict], temperature: float = 0.8,
-             max_tokens: int = 1024) -> str | None:
+    def chat(self, messages: list[dict], temperature: float = 0.8, max_tokens: int = 1024) -> str | None:
         """Send a chat completion. Returns None if unavailable."""
         if not self._ensure_client():
             return None
         try:
-            resp = self._client.post("/chat/completions", json={
-                "model": self._model, "messages": messages,
-                "temperature": temperature, "max_tokens": max_tokens,
-            })
+            resp = self._client.post(
+                "/chat/completions",
+                json={
+                    "model": self._model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                },
+            )
             resp.raise_for_status()
             return resp.json()["choices"][0]["message"]["content"]
         except Exception:
             return None
 
-    def chat_structured(self, messages: list[dict], temperature: float = 0.3,
-                        max_tokens: int = 2048) -> dict | None:
+    def chat_structured(self, messages: list[dict], temperature: float = 0.3, max_tokens: int = 2048) -> dict | None:
         """Chat with JSON-structured output. Returns None if unavailable."""
         if not self._ensure_client():
             return None
         try:
-            resp = self._client.post("/chat/completions", json={
-                "model": self._model, "messages": messages,
-                "temperature": temperature, "max_tokens": max_tokens,
-            })
+            resp = self._client.post(
+                "/chat/completions",
+                json={
+                    "model": self._model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                },
+            )
             resp.raise_for_status()
             content = resp.json()["choices"][0]["message"]["content"]
             # Extract JSON from response

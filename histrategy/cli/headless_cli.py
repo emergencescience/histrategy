@@ -33,7 +33,7 @@ import sys
 from ..engine.game import GameEngine
 from ..llm.adapter import LLMAdapter, detect_provider
 from ..llm.game_master import GameMaster
-from ..state.world_state import get_data_dir, has_existing_game
+from ..state.world_state import has_existing_game
 
 
 def _emit(phase: str, content: str, meta: dict | None = None):
@@ -193,15 +193,15 @@ def _format_command_markdown(result: dict) -> str:
         lines.append("")
 
     state_changes = result.get("state_changes", {})
-    player_changes = {
-        k: v for k, v in state_changes.items()
-        if k not in ("npc_changes", "before", "after") and v
-    }
+    player_changes = {k: v for k, v in state_changes.items() if k not in ("npc_changes", "before", "after") and v}
     if player_changes:
         lines.append("**📊 势力变动**")
         labels = {
-            "strength": "兵力", "economy": "经济", "morale": "民心",
-            "treasury": "资金", "food": "粮草",
+            "strength": "兵力",
+            "economy": "经济",
+            "morale": "民心",
+            "treasury": "资金",
+            "food": "粮草",
         }
         for key in sorted(player_changes):
             val = player_changes[key]
@@ -340,7 +340,9 @@ def _game_loop(engine: GameEngine):
             else:
                 alive = player and player.is_active and player.strength > 0
             if not alive:
-                _emit("GAMEOVER", "**势力覆灭**\n\n你的势力已经不复存在。乱世之中，成王败寇。\n\n感谢游玩《三國志略》。")
+                _emit(
+                    "GAMEOVER", "**势力覆灭**\n\n你的势力已经不复存在。乱世之中，成王败寇。\n\n感谢游玩《三國志略》。"
+                )
                 break
 
             # === PLAN MODE ===
@@ -350,7 +352,10 @@ def _game_loop(engine: GameEngine):
             _emit_status(engine)
 
             # === WAIT FOR DECISION ===
-            _emit("DECISION", "你的战略决策：\n(自由输入 — 如同真实军师一般下达命令)\n输入 `plan` 重开议事 | `state` 查看状态 | `exit` 退出")
+            _emit(
+                "DECISION",
+                "你的战略决策：\n(自由输入 — 如同真实军师一般下达命令)\n输入 `plan` 重开议事 | `state` 查看状态 | `exit` 退出",
+            )
 
             try:
                 line = sys.stdin.readline()
@@ -394,6 +399,7 @@ def _game_loop(engine: GameEngine):
         except Exception as e:
             _emit("ERROR", f"游戏发生错误：{e}")
             import traceback
+
             _emit("ERROR", traceback.format_exc())
             break
 
@@ -414,10 +420,7 @@ def _display_state(engine: GameEngine):
             lines.append(f"粮草: {player.food:,}")
             lines.append(f"首都: {player.capital or '—'}")
             lines.append(f"领地: {', '.join(player.territories) if player.territories else '暂无'}")
-        other_factions = [
-            (fid, fs) for fid, fs in ws.factions.items()
-            if fs.is_active and fid != ws.player_faction_id
-        ]
+        other_factions = [(fid, fs) for fid, fs in ws.factions.items() if fs.is_active and fid != ws.player_faction_id]
         if other_factions:
             lines.append("")
             lines.append("**其他势力**")
@@ -435,14 +438,10 @@ def _display_state(engine: GameEngine):
             lines.append(f"粮草: {player.food:,}")
             lines.append(f"首都: {player.capital or '—'}")
             lines.append(f"领地: {', '.join(player.territories) if player.territories else '暂无'}")
-        other_factions = [
-            (fid, fs) for fid, fs in ws.factions.items()
-            if fs.is_active and fid != ws.player_faction_id
-        ]
+        other_factions = [(fid, fs) for fid, fs in ws.factions.items() if fs.is_active and fid != ws.player_faction_id]
         if other_factions:
             lines.append("")
             lines.append("**其他势力**")
             for _fid, fs in other_factions[:8]:
                 lines.append(f"  {fs.name}: 兵{fs.strength:,} 领{len(fs.territories)}")
     _emit("STATE", "\\n".join(lines))
-

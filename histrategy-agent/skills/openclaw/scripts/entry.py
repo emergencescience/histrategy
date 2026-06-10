@@ -9,7 +9,6 @@ Reads JSON from stdin (OpenClaw convention), returns JSON to stdout.
 """
 
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -17,10 +16,10 @@ from pathlib import Path
 _AGENT_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_AGENT_DIR / "src"))
 
-from histrategy_agent.session import GameSessionManager
-from histrategy_agent.turn_processor import TurnProcessor
 from histrategy_agent.format_engine import FormatEngine
 from histrategy_agent.im_adapters.feishu import FeishuAdapter
+from histrategy_agent.session import GameSessionManager
+from histrategy_agent.turn_processor import TurnProcessor
 
 
 def _get_adapter(platform: str = "feishu"):
@@ -104,11 +103,24 @@ def handle_message(message: dict) -> dict:
 
     # ---- Faction selection ----
     faction_map = {
-        "刘备": "shu", "liubei": "shu", "shu": "shu", "1": "shu",
-        "曹操": "cao", "caocao": "cao", "cao": "cao", "2": "cao",
-        "孙权": "wu", "sunquan": "wu", "wu": "wu", "3": "wu",
-        "刘表": "liubiao", "liubiao": "liubiao", "4": "liubiao",
-        "刘璋": "liuzhang", "liuzhang": "liuzhang", "5": "liuzhang",
+        "刘备": "shu",
+        "liubei": "shu",
+        "shu": "shu",
+        "1": "shu",
+        "曹操": "cao",
+        "caocao": "cao",
+        "cao": "cao",
+        "2": "cao",
+        "孙权": "wu",
+        "sunquan": "wu",
+        "wu": "wu",
+        "3": "wu",
+        "刘表": "liubiao",
+        "liubiao": "liubiao",
+        "4": "liubiao",
+        "刘璋": "liuzhang",
+        "liuzhang": "liuzhang",
+        "5": "liuzhang",
     }
     faction_id = faction_map.get(text)
     if faction_id and not manager.get_session(platform, chat_id):
@@ -120,8 +132,7 @@ def handle_message(message: dict) -> dict:
     if not session:
         return {
             "text": (
-                "⚠️ No game active. Type '/histrategy new' to start.\n\n"
-                "Available factions: 刘备, 曹操, 孙权, 刘表, 刘璋"
+                "⚠️ No game active. Type '/histrategy new' to start.\n\nAvailable factions: 刘备, 曹操, 孙权, 刘表, 刘璋"
             ),
         }
 

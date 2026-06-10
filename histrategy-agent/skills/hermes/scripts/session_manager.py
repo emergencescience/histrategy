@@ -14,7 +14,6 @@ if str(_CORE_PATH) not in sys.path:
 
 from histrategy_agent.session import GameSessionManager
 
-
 # ─── Faction selection helpers ─────────────────────────────
 
 FACTION_CHOICES = {
@@ -35,18 +34,14 @@ def load_or_create_session(platform: str, chat_id: str):
     return manager.get_session(platform, chat_id)
 
 
-def create_new_session(
-    platform: str, chat_id: str, faction_id: str = DEFAULT_FACTION
-):
+def create_new_session(platform: str, chat_id: str, faction_id: str = DEFAULT_FACTION):
     """Create a fresh game session and return it with onboarding text."""
     manager = GameSessionManager()
 
     # Delete any existing session first
     manager.delete_session(platform, chat_id)
 
-    session = manager.get_or_create(
-        platform, chat_id, faction_id=faction_id, scenario=DEFAULT_SCENARIO
-    )
+    session = manager.get_or_create(platform, chat_id, faction_id=faction_id, scenario=DEFAULT_SCENARIO)
 
     from histrategy_agent.format_engine import FormatEngine
 

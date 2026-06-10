@@ -4,19 +4,17 @@ import json
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from histrategy.llm.advisor import (
     ADVISOR_SYSTEM_PROMPT,
     StrategicAdvisor,
-    AdvisorRecommendation,
 )
 
 
 class FakeLLM:
     """Fake LLM for testing."""
+
     def __init__(self, response=""):
         self.response = response
         self.is_available = True
@@ -99,13 +97,15 @@ class TestStrategicAdvisor:
 
     def test_llm_advisor_handles_json(self):
         """LLM response should be parsed correctly."""
-        llm = FakeLLM(json.dumps({
-            "analysis": "当前局势险恶",
-            "recommendations": [
-                {"action": "defend", "target": "曹操", "priority": 0.9, "reason": "曹军势大"}
-            ],
-            "risk_assessment": "极高风险",
-        }))
+        llm = FakeLLM(
+            json.dumps(
+                {
+                    "analysis": "当前局势险恶",
+                    "recommendations": [{"action": "defend", "target": "曹操", "priority": 0.9, "reason": "曹军势大"}],
+                    "risk_assessment": "极高风险",
+                }
+            )
+        )
         advisor = StrategicAdvisor(llm)
         local = make_local_state()
         result = advisor.evaluate_strategy(local)

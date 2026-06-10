@@ -15,8 +15,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from histrategy_engine.world import Command, WorldState
     from histrategy_engine.map import MapEngine
+    from histrategy_engine.world import Command, WorldState
 
 
 class CommandValidator:
@@ -216,9 +216,7 @@ class CommandValidator:
         target_faction = world_state.factions.get(target)
         return target_faction is not None and target_faction.is_active
 
-    def _validate_character_command(
-        self, cmd: Command, world_state: WorldState
-    ) -> bool:
+    def _validate_character_command(self, cmd: Command, world_state: WorldState) -> bool:
         """Validate character-related commands (appoint, dismiss)."""
         char_id = cmd.params.get("character", "")
         if not char_id:
@@ -230,10 +228,7 @@ class CommandValidator:
         if not char.alive:
             return False
 
-        if cmd.type == "appoint":
-            # Character must be in the faction
-            return char.faction_id == cmd.faction_id
-        elif cmd.type == "dismiss":
+        if cmd.type == "appoint" or cmd.type == "dismiss":
             # Character must be in the faction
             return char.faction_id == cmd.faction_id
 

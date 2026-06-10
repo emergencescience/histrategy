@@ -7,7 +7,8 @@ for multiple consecutive turns.
 from __future__ import annotations
 
 import random
-from ..state.world_state import WorldState, FactionState
+
+from ..state.world_state import WorldState
 
 
 def process_npc_drastic_events(state: WorldState) -> dict:
@@ -35,10 +36,7 @@ def process_npc_drastic_events(state: WorldState) -> dict:
         }
 
     # Find active NPC factions we could defect to
-    other_factions = [
-        fid for fid, fs in state.factions.items()
-        if fs.is_active and fid != state.player_faction_id
-    ]
+    other_factions = [fid for fid, fs in state.factions.items() if fs.is_active and fid != state.player_faction_id]
     target_faction_id = random.choice(other_factions) if other_factions else None
 
     # Scan NPC states
@@ -51,7 +49,7 @@ def process_npc_drastic_events(state: WorldState) -> dict:
             if target_faction_id:
                 target_fac = state.factions[target_faction_id]
                 target_name = target_fac.name
-                
+
                 # Update character allegiance in world state
                 if cid in state.characters:
                     state.characters[cid].faction_id = target_faction_id
@@ -61,11 +59,11 @@ def process_npc_drastic_events(state: WorldState) -> dict:
                 # Apply mechanical impact
                 lost_troops = min(5000, int(player_fac.strength * 0.15))
                 lost_gold = min(1000, int(player_fac.treasury * 0.20))
-                
+
                 player_fac.strength = max(1000, player_fac.strength - lost_troops)
                 player_fac.treasury = max(0, player_fac.treasury - lost_gold)
                 player_fac.morale = max(10, player_fac.morale - 10)
-                
+
                 target_fac.strength += lost_troops
                 target_fac.treasury += lost_gold
 
@@ -80,11 +78,11 @@ def process_npc_drastic_events(state: WorldState) -> dict:
                 # Defect and become independent / leave
                 if cid in state.characters:
                     state.characters[cid].alive = False  # marks them as gone
-                
+
                 lost_troops = min(2000, int(player_fac.strength * 0.08))
                 player_fac.strength = max(1000, player_fac.strength - lost_troops)
                 player_fac.morale = max(10, player_fac.morale - 5)
-                
+
                 player_changes["strength"] -= lost_troops
                 player_changes["morale"] -= 5
 

@@ -187,9 +187,7 @@ class MilitaryEngine:
                 reason="已在目标位置",
             )
 
-        path_result = map_engine.find_path(
-            army.location, destination, army.faction_id
-        )
+        path_result = map_engine.find_path(army.location, destination, army.faction_id)
 
         if not path_result.path or path_result.total_cost == float("inf"):
             return MoveResult(
@@ -310,7 +308,9 @@ class MilitaryEngine:
             territory_captured=territory_captured,
         )
 
-    def _calculate_power(self, army: Army, is_attack: bool, terrain: TerrainType | None = None) -> float:
+    def _calculate_power(
+        self, army: Army, is_attack: bool, terrain: TerrainType | None = None
+    ) -> float:
         power = 0.0
         for unit_type, count in army.units.items():
             if count <= 0:
@@ -326,7 +326,9 @@ class MilitaryEngine:
             power += count * effective_stat * (army.morale / 100.0) * army.training
         return power
 
-    def _unit_terrain_bonus(self, unit_type: UnitType, terrain: TerrainType | None, is_attack: bool) -> float:
+    def _unit_terrain_bonus(
+        self, unit_type: UnitType, terrain: TerrainType | None, is_attack: bool
+    ) -> float:
         """Get special terrain bonus for a unit type (e.g., cavalry on plains)."""
         if terrain is None:
             return 0.0

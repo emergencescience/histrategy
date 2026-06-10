@@ -63,6 +63,7 @@ def run_dev(faction_choice: int | None = None, force_new: bool = False):
         _v2_available = False
         try:
             from histrategy_engine import TurnController  # noqa: F401
+
             _v2_available = True
         except ImportError:
             pass
@@ -87,7 +88,7 @@ def run_dev(faction_choice: int | None = None, force_new: bool = False):
                 print(f"  {i}. {name} - {desc}")
             print()
             try:
-                choice = input("请输入编号 (1-{}): ".format(len(factions))).strip()
+                choice = input(f"请输入编号 (1-{len(factions)}): ").strip()
                 idx = int(choice) - 1 if choice.isdigit() else 0
             except (EOFError, KeyboardInterrupt):
                 print("\n退出游戏", file=sys.stderr)
@@ -170,6 +171,7 @@ def _game_loop(engine: GameEngine):
 
 # ─── LLM-Driven Plan Mode ──────────────────────────────────
 
+
 def _show_llm_plan_mode(engine: GameEngine):
     """Generate and display LLM-driven Plan Mode (advisor court + suggestions)."""
     plan = engine.get_plan_data()
@@ -247,6 +249,7 @@ def _show_llm_command_result(result: dict):
 
 # ─── Offline Fallbacks ──────────────────────────────────────
 
+
 def _show_offline_plan_mode(engine: GameEngine):
     """Minimal Plan Mode for offline play."""
     v2 = getattr(engine, "_use_v2", False)
@@ -261,9 +264,13 @@ def _show_offline_plan_mode(engine: GameEngine):
     if v2:
         ws = engine.world_state_v2
         print(f"\n  {ws.year}年{ws.season.cn} | 第{ws.turn_number}回合")
-        print(f"  {player.name}：兵力{player.strength_actual:,} | 经济{player.economy_actual} | 民心{player.morale_actual}")
+        print(
+            f"  {player.name}：兵力{player.strength_actual:,} | 经济{player.economy_actual} | 民心{player.morale_actual}"
+        )
     else:
-        print(f"\n  {engine.world_state.year}年{engine.world_state.current_season_cn} | 第{engine.world_state.turn}回合")
+        print(
+            f"\n  {engine.world_state.year}年{engine.world_state.current_season_cn} | 第{engine.world_state.turn}回合"
+        )
         print(f"  {player.name}：兵力{player.strength:,} | 经济{player.economy} | 民心{player.morale}")
     print()
     print("  输入你的战略决策（自由文本）：")
@@ -296,16 +303,16 @@ def _show_offline_command_result(result: dict):
     # State changes
     changes = result.get("state_changes", {})
     if changes:
-        player_changes = {
-            k: v for k, v in changes.items()
-            if k not in ("npc_changes", "changes", "before", "after")
-        }
+        player_changes = {k: v for k, v in changes.items() if k not in ("npc_changes", "changes", "before", "after")}
         if any(player_changes.values()):
             print()
             print("  本季变化:")
             labels = {
-                "strength": "兵力", "economy": "经济", "morale": "民心",
-                "treasury": "资金", "food": "粮草",
+                "strength": "兵力",
+                "economy": "经济",
+                "morale": "民心",
+                "treasury": "资金",
+                "food": "粮草",
             }
             for key, val in sorted(player_changes.items()):
                 if val:
@@ -348,6 +355,7 @@ def _show_offline_command_result(result: dict):
 
 # ─── State Display ──────────────────────────────────────────
 
+
 def _display_state(engine: GameEngine):
     """Show the current game state — v2 or v1."""
     if getattr(engine, "_use_v2", False):
@@ -372,11 +380,7 @@ def _display_state_v2(engine: GameEngine):
         print(f"粮草: {player.food:,}")
         print(f"税率: {player.tax_rate:.0%}")
         print(f"首都: {player.capital}")
-        names = [
-            f"{ws.territories[t].name}({t})"
-            if t in ws.territories else t
-            for t in player.territories
-        ]
+        names = [f"{ws.territories[t].name}({t})" if t in ws.territories else t for t in player.territories]
         print(f"领地: {', '.join(names) if names else '暂无'}")
 
     # Other factions

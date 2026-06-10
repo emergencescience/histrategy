@@ -1,11 +1,10 @@
 """Tests for GameSessionManager — session CRUD and persistence."""
 
-import json
 import tempfile
 from pathlib import Path
 
-from histrategy_agent.session import GameSessionManager, _to_dict, _from_dict, _coerce_value
-from histrategy_engine import FactionState, Territory, TerrainType, Season, WorldState
+from histrategy_agent.session import GameSessionManager, _coerce_value, _from_dict, _to_dict
+from histrategy_engine import FactionState, Season, TerrainType, Territory, WorldState
 
 
 class TestGameSessionManager:
@@ -132,14 +131,24 @@ class TestGameSessionManager:
 
 class TestSerializationHelpers:
     """Unit tests for the _to_dict / _from_dict / _coerce_value helpers."""
+
     def test_faction_state_roundtrip(self):
         fs = FactionState(
-            id="test", name="Test", ruler_id="r1",
-            capital="cap1", territories=["t1", "t2"],
-            prestige=50, strength_actual=1000, strength_estimated=1000,
-            treasury=500, food=300, tax_rate=0.3,
-            morale_actual=70, morale_estimated=70,
-            economy_actual=50, economy_estimated=50,
+            id="test",
+            name="Test",
+            ruler_id="r1",
+            capital="cap1",
+            territories=["t1", "t2"],
+            prestige=50,
+            strength_actual=1000,
+            strength_estimated=1000,
+            treasury=500,
+            food=300,
+            tax_rate=0.3,
+            morale_actual=70,
+            morale_estimated=70,
+            economy_actual=50,
+            economy_estimated=50,
             relations={"ally": 80, "enemy": -50},
             tech_levels={"agriculture": 3},
         )
@@ -155,8 +164,11 @@ class TestSerializationHelpers:
 
     def test_territory_roundtrip(self):
         t = Territory(
-            id="xinye", name="新野", owner_id="shu",
-            population=30000, development=25,
+            id="xinye",
+            name="新野",
+            owner_id="shu",
+            population=30000,
+            development=25,
             terrain_type=TerrainType.PLAINS,
             neighbors=["wancheng", "xiangyang"],
         )

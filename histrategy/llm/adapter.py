@@ -1,4 +1,5 @@
 """LLM adapter for 三國志略 — Multi-provider support."""
+
 from __future__ import annotations
 
 import json
@@ -116,10 +117,8 @@ class LLMAdapter:
 
         # Explicit overrides take precedence
         self.api_key = api_key or self.provider_config["api_key"] or ""
-        self.api_base = (api_base or self.provider_config["api_base"]
-                         or "https://api.openai.com/v1")
-        self.model = (model or self.provider_config["model"]
-                      or "gpt-4o-mini")
+        self.api_base = api_base or self.provider_config["api_base"] or "https://api.openai.com/v1"
+        self.model = model or self.provider_config["model"] or "gpt-4o-mini"
         self.supports_json = self.provider_config["supports_json_mode"]
         self.provider_name = provider or self.provider_config["name"] or "none"
         self.last_call_stats = None
@@ -146,16 +145,15 @@ class LLMAdapter:
         """Check if API is configured and ready."""
         return bool(self.api_key) and self.client is not None
 
-    def chat(self, messages: list[dict], temperature: float = 0.7,
-             max_tokens: int = 2048) -> str:
+    def chat(self, messages: list[dict], temperature: float = 0.7, max_tokens: int = 2048) -> str:
         """Send a chat completion request."""
         if not self.is_available:
             raise RuntimeError(
-                "No API key configured. Set DEEPSEEK_API_KEY, OPENAI_API_KEY, "
-                "or TONGYI_API_KEY environment variable."
+                "No API key configured. Set DEEPSEEK_API_KEY, OPENAI_API_KEY, or TONGYI_API_KEY environment variable."
             )
 
         import time
+
         start_time = time.perf_counter()
         response = None
         try:
@@ -194,8 +192,7 @@ class LLMAdapter:
         """
         if not self.is_available:
             raise RuntimeError(
-                "No API key configured. Set DEEPSEEK_API_KEY, OPENAI_API_KEY, "
-                "or TONGYI_API_KEY environment variable."
+                "No API key configured. Set DEEPSEEK_API_KEY, OPENAI_API_KEY, or TONGYI_API_KEY environment variable."
             )
 
         payload = {
@@ -215,6 +212,7 @@ class LLMAdapter:
                 payload["response_format"] = {"type": "json_object"}
 
         import time
+
         start_time = time.perf_counter()
         response = None
         try:
@@ -302,16 +300,18 @@ class LLMAdapter:
             self._write_to_log_files(messages, response_data, latency, self.last_call_stats)
         except Exception as e:
             import sys
+
             print(f"[Warning] Failed to record/log LLM usage: {e}", file=sys.stderr)
 
     def _write_to_log_files(self, messages: list[dict], response_data: dict, latency: float, stats: dict) -> None:
+        import json
         from datetime import datetime
         from pathlib import Path
-        import json
 
         try:
             try:
                 from ..state.world_state import get_data_dir
+
                 log_dir = get_data_dir() / "logs"
             except ImportError:
                 log_dir = Path(__file__).parent.parent.parent / "logs"
@@ -375,9 +375,12 @@ class LLMAdapter:
 
         except Exception as e:
             import sys
+
             print(f"[Warning] Failed to write LLM log: {e}", file=sys.stderr)
 
-    def _record_error_and_log(self, messages: list[dict], exception: Exception, latency: float, response: httpx.Response | None = None) -> None:
+    def _record_error_and_log(
+        self, messages: list[dict], exception: Exception, latency: float, response: httpx.Response | None = None
+    ) -> None:
         """Log LLM call errors to self.last_call_stats and write to logs."""
         try:
             self.last_call_stats = {
@@ -394,16 +397,20 @@ class LLMAdapter:
             self._write_error_to_log_files(messages, exception, latency, response)
         except Exception as log_err:
             import sys
+
             print(f"[Warning] Failed to log LLM error: {log_err}", file=sys.stderr)
 
-    def _write_error_to_log_files(self, messages: list[dict], exception: Exception, latency: float, response: httpx.Response | None = None) -> None:
+    def _write_error_to_log_files(
+        self, messages: list[dict], exception: Exception, latency: float, response: httpx.Response | None = None
+    ) -> None:
+        import json
         from datetime import datetime
         from pathlib import Path
-        import json
 
         try:
             try:
                 from ..state.world_state import get_data_dir
+
                 log_dir = get_data_dir() / "logs"
             except ImportError:
                 log_dir = Path(__file__).parent.parent.parent / "logs"
@@ -441,7 +448,7 @@ class LLMAdapter:
                 f"Provider:          {self.provider_name}\n",
                 f"Model:             {self.model}\n",
                 f"Latency:           {latency:.2f}s\n",
-                f"Status:            ERROR\n",
+                "Status:            ERROR\n",
                 f"Exception:         {str(exception)}\n",
             ]
             if status_code is not None:
@@ -466,4 +473,5 @@ class LLMAdapter:
 
         except Exception as e:
             import sys
+
             print(f"[Warning] Failed to write LLM error log: {e}", file=sys.stderr)

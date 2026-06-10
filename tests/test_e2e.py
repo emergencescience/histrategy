@@ -9,9 +9,10 @@ These tests run the full CLI game with canned inputs and verify:
 
 Run with: pytest tests/ -v
 """
-import subprocess
+
 import json
 import os
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -22,6 +23,7 @@ import pytest
 HISTRATEGY_DIR = Path(__file__).parent.parent
 GAME_CMD = [sys.executable, "-m", "histrategy"]
 
+
 @pytest.fixture(autouse=True)
 def isolated_save_dir(tmp_path, monkeypatch):
     """Run each E2E test with an isolated save directory."""
@@ -30,8 +32,7 @@ def isolated_save_dir(tmp_path, monkeypatch):
     yield
 
 
-def run_game(input_sequence: str, timeout: int = 30,
-             with_api_key: bool = False) -> tuple[str, int]:
+def run_game(input_sequence: str, timeout: int = 30, with_api_key: bool = False) -> tuple[str, int]:
     """Run the game with given input sequence and return (stdout, exit_code).
 
     By default, strips all API keys so the game runs in offline mode.
@@ -166,18 +167,20 @@ class TestKnowledgeBase:
     def test_characters_have_factions(self):
         """All characters should reference valid faction IDs."""
         from histrategy.engine.world import GameWorld
+
         world = GameWorld("190")
         for char_id, char in world.characters.items():
-            assert char.faction in world.factions, \
-                f"Character {char.name} references unknown faction {char.faction}"
+            assert char.faction in world.factions, f"Character {char.name} references unknown faction {char.faction}"
 
     def test_regions_have_owners(self):
         """All regions should have valid owners."""
         from histrategy.engine.world import GameWorld
+
         world = GameWorld("190")
         for region_id, region in world.regions.items():
-            assert region.owner in world.factions or region.owner == "other", \
+            assert region.owner in world.factions or region.owner == "other", (
                 f"Region {region.name} has unknown owner {region.owner}"
+            )
 
 
 class TestDataIntegrity:

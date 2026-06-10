@@ -10,12 +10,13 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..world import Army, WorldState
+    from ..world import WorldState
 
 
 @dataclass
 class PerceivedFaction:
     """What a faction looks like from another faction's perspective."""
+
     id: str
     name: str
     estimated_strength: str = "???"
@@ -77,8 +78,12 @@ class LocalWorldState:
                 "morale": self.my_morale,
                 "territories": self.my_territories,
                 "characters": {
-                    cid: {"name": cd["name"], "loyalty": cd["loyalty"],
-                          "leadership": cd["leadership"], "role": cd.get("role", "")}
+                    cid: {
+                        "name": cd["name"],
+                        "loyalty": cd["loyalty"],
+                        "leadership": cd["leadership"],
+                        "role": cd.get("role", ""),
+                    }
                     for cid, cd in self.my_characters.items()
                 },
             },
@@ -113,17 +118,17 @@ class LocalWorldStateProjector:
     """
 
     ESTIMATE_FUZZ = 0.15  # ±15% default
-    SCOUTED_FUZZ = 0.05   # ±5% when scouted
+    SCOUTED_FUZZ = 0.05  # ±5% when scouted
 
     # Re-export from recon module for convenience
     from .recon import ReconTracker
 
     def project(
         self,
-        world_state: "WorldState",
+        world_state: WorldState,
         faction_id: str,
         border_territories: set[str] | None = None,
-        recon: "object | None" = None,
+        recon: object | None = None,
     ) -> LocalWorldState:
         """Project global state into a faction's local view.
 
@@ -142,7 +147,8 @@ class LocalWorldStateProjector:
                 faction_id=faction_id,
                 year=world_state.year,
                 season_str=world_state.season.cn
-                if hasattr(world_state.season, "cn") else str(world_state.season),
+                if hasattr(world_state.season, "cn")
+                else str(world_state.season),
                 turn=getattr(world_state, "turn_number", 0),
             )
 
@@ -154,7 +160,8 @@ class LocalWorldStateProjector:
             faction_id=faction_id,
             year=world_state.year,
             season_str=world_state.season.cn
-            if hasattr(world_state.season, "cn") else str(world_state.season),
+            if hasattr(world_state.season, "cn")
+            else str(world_state.season),
             turn=getattr(world_state, "turn_number", 0),
             # Own faction — full visibility
             my_treasury=faction.treasury,
@@ -182,9 +189,9 @@ class LocalWorldStateProjector:
             if fid == faction_id or not f.is_active:
                 continue
 
-            is_border = bool(
-                border_territories & set(f.territories)
-            ) or bool(set(faction.territories) & set(f.territories))
+            is_border = bool(border_territories & set(f.territories)) or bool(
+                set(faction.territories) & set(f.territories)
+            )
 
             is_allied = fid in (faction.allies or []) or faction_id in (f.allies or [])
 
@@ -261,9 +268,7 @@ class LocalWorldStateProjector:
 
         return local
 
-    def _compute_borders(
-        self, world_state: "WorldState", faction_id: str
-    ) -> set[str]:
+    def _compute_borders(self, world_state: WorldState, faction_id: str) -> set[str]:
         """Find all territories bordering the given faction."""
         faction = world_state.factions.get(faction_id)
         if not faction:
@@ -281,8 +286,11 @@ class LocalWorldStateProjector:
         return borders
 
     def _estimate_garrison(
-        self, territory_id: str, world_state: "WorldState", viewer_faction_id: str,
-        recon: "object | None" = None,
+        self,
+        territory_id: str,
+        world_state: WorldState,
+        viewer_faction_id: str,
+        recon: object | None = None,
     ) -> dict | None:
         """Estimate total troops in a border territory."""
         territory = world_state.territories.get(territory_id)
@@ -298,7 +306,7 @@ class LocalWorldStateProjector:
             return None
 
         # Check for disinformation
-        if recon and hasattr(recon, 'get_disinformation'):
+        if recon and hasattr(recon, "get_disinformation"):
             fake = recon.get_disinformation(viewer_faction_id, territory_id)
             if fake is not None:
                 total = fake
@@ -312,8 +320,12 @@ class LocalWorldStateProjector:
                 }
 
         # Use narrower fuzz if scouted
-        if recon and hasattr(recon, 'is_scouted'):
-            fuzz_pct = self.SCOUTED_FUZZ if recon.is_scouted(viewer_faction_id, territory_id) else self.ESTIMATE_FUZZ
+        if recon and hasattr(recon, "is_scouted"):
+            fuzz_pct = (
+                self.SCOUTED_FUZZ
+                if recon.is_scouted(viewer_faction_id, territory_id)
+                else self.ESTIMATE_FUZZ
+            )
         else:
             fuzz_pct = self.ESTIMATE_FUZZ
 
@@ -322,15 +334,19 @@ class LocalWorldStateProjector:
             "territory_name": territory.name,
             "owner": territory.owner_id,
             "estimated_troops": f"{max(0, total - fuzz):,}~{total + fuzz:,}",
-            "scouted": recon.is_scouted(viewer_faction_id, territory_id) if recon and hasattr(recon, 'is_scouted') else False,
+            "scouted": recon.is_scouted(viewer_faction_id, territory_id)
+            if recon and hasattr(recon, "is_scouted")
+            else False,
         }
 
-    def _char_role(
-        self, char: "Character", faction_id: str, world_state: "WorldState"
-    ) -> str:
+    def _char_role(self, char: Character, faction_id: str, world_state: WorldState) -> str:
         """Determine a character's role (governor, commander, etc.)."""
         if char.is_governor:
-            for tid in world_state.factions[faction_id].territories if faction_id in world_state.factions else []:
+            for tid in (
+                world_state.factions[faction_id].territories
+                if faction_id in world_state.factions
+                else []
+            ):
                 pass  # Governor detection would need territory-tracking logic
             return "太守"
         if char.is_commanding:

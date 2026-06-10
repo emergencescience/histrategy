@@ -6,5 +6,5 @@ def calculate_loyalty_change(legitimacy: int, politics: int) -> int:
     delta = (legitimacy - 50) / 10.0
     if politics > 80:
         delta -= 2.0
-        
+
     return int(delta)

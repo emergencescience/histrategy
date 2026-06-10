@@ -37,9 +37,7 @@ class ReconTracker:
         self._scouted[key] = self.SCOUT_DURATION
         return f"侦察成功：{territory_id} 将于 {self.SCOUT_DURATION} 回合内显示精确驻军"
 
-    def disinform(
-        self, faction_id: str, territory_id: str, fake_troops: int
-    ) -> str:
+    def disinform(self, faction_id: str, territory_id: str, fake_troops: int) -> str:
         """Plant false information about garrison size."""
         key = (faction_id, territory_id)
         self._disinformed[key] = fake_troops
@@ -49,9 +47,7 @@ class ReconTracker:
         """Check if a territory is currently scouted by this faction."""
         return self._scouted.get((faction_id, territory_id), 0) > 0
 
-    def get_disinformation(
-        self, faction_id: str, territory_id: str
-    ) -> int | None:
+    def get_disinformation(self, faction_id: str, territory_id: str) -> int | None:
         """Get fake troop count if disinformation is active, else None."""
         return self._disinformed.get((faction_id, territory_id))
 
@@ -74,7 +70,7 @@ class ReconTracker:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ReconTracker":
+    def from_dict(cls, data: dict) -> ReconTracker:
         """Deserialize from persistence."""
         tracker = cls()
         for key_str, turns in data.get("scouted", {}).items():

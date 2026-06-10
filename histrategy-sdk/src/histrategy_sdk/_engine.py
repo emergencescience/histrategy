@@ -8,10 +8,8 @@ Requires: pip install histrategy-sdk[engine]
 
 from __future__ import annotations
 
-from typing import Any
-
 from .exceptions import EngineNotAvailableError, TurnExecutionError
-from .types import FactionStatus, GameIntro, PlanData, RestoreResult, TurnResult
+from .types import FactionStatus, GameIntro, PlanData, TurnResult
 
 
 class DirectEngine:
@@ -196,7 +194,7 @@ class DirectEngine:
         data: dict,
         llm_api_key: str | None = None,
         llm_provider: str | None = None,
-    ) -> "DirectEngine":
+    ) -> DirectEngine:
         """Restore a game from a previously saved world_state dict.
 
         Args:
@@ -236,9 +234,18 @@ class DirectEngine:
         player = ws.factions.get(ws.player_faction_id)
         if not player:
             return FactionStatus(
-                name="?", faction_id="?", strength=0, food=0, treasury=0,
-                territories=[], territory_names=[], morale=0, is_active=False,
-                year=ws.year, season=ws.season.cn if hasattr(ws.season, "cn") else ws.season.value, turn=ws.turn_number,
+                name="?",
+                faction_id="?",
+                strength=0,
+                food=0,
+                treasury=0,
+                territories=[],
+                territory_names=[],
+                morale=0,
+                is_active=False,
+                year=ws.year,
+                season=ws.season.cn if hasattr(ws.season, "cn") else ws.season.value,
+                turn=ws.turn_number,
             )
 
         # Resolve territory names

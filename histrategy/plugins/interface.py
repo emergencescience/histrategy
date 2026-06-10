@@ -22,19 +22,20 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..state.world_state import WorldState
     from ..engine.world_sim_interface import SimResult
+    from ..state.world_state import WorldState
 
 
 class PluginType(Enum):
     WORLD_ENGINE = "world_engine"
-    KNOWLEDGE    = "knowledge"
-    NPC_AGENT    = "npc_agent"
-    UI           = "ui"
-    NARRATIVE    = "narrative"
+    KNOWLEDGE = "knowledge"
+    NPC_AGENT = "npc_agent"
+    UI = "ui"
+    NARRATIVE = "narrative"
 
 
 # ─── Base Plugin ──────────────────────────────────────────────────
+
 
 class HistrategyPlugin(ABC):
     """Base class for all histrategy plugins."""
@@ -61,6 +62,7 @@ class HistrategyPlugin(ABC):
 
 
 # ─── WorldEnginePlugin ────────────────────────────────────────────
+
 
 class WorldEnginePlugin(HistrategyPlugin):
     """Implement a custom world simulation engine.
@@ -91,6 +93,7 @@ class WorldEnginePlugin(HistrategyPlugin):
 
 
 # ─── KnowledgePlugin ─────────────────────────────────────────────
+
 
 class KnowledgePlugin(HistrategyPlugin):
     """Provide an alternate historical knowledge base.
@@ -130,6 +133,7 @@ class KnowledgePlugin(HistrategyPlugin):
 
 # ─── NPCAgentPlugin ──────────────────────────────────────────────
 
+
 class NPCAgentPlugin(HistrategyPlugin):
     """Provide an alternate NPC behavior engine.
 
@@ -154,6 +158,7 @@ class NPCAgentPlugin(HistrategyPlugin):
 
 
 # ─── UIPlugin ────────────────────────────────────────────────────
+
 
 class UIPlugin(HistrategyPlugin):
     """Decorate the headless engine with a UI.
@@ -185,6 +190,7 @@ class UIPlugin(HistrategyPlugin):
 
 
 # ─── NarrativePlugin ─────────────────────────────────────────────
+
 
 class NarrativePlugin(HistrategyPlugin):
     """Provide an alternate narrative director.

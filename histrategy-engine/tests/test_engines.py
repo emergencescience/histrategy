@@ -5,6 +5,7 @@ Coverage target: ≥ 80%
 """
 
 import pytest
+
 from histrategy_engine import (
     Character,
     CharacterEngine,
@@ -12,15 +13,12 @@ from histrategy_engine import (
     ClimateSystem,
     DomesticEngine,
     MapEngine,
-    PathResult,
     Season,
-    StrategicPoint,
     TerrainType,
     Territory,
     TerritoryResult,
     UnitType,
 )
-
 
 # ═══════════════════════════════════════════════════════════════
 # Fixtures
@@ -32,33 +30,60 @@ def three_kingdoms_map() -> dict[str, Territory]:
     """Simplified 207 scenario map — 5 key territories."""
     return {
         "xinye": Territory(
-            id="xinye", name="新野", owner_id="shu",
-            fertility=6, terrain_type=TerrainType.PLAINS, climate_zone="central",
-            population=30000, development=25,
+            id="xinye",
+            name="新野",
+            owner_id="shu",
+            fertility=6,
+            terrain_type=TerrainType.PLAINS,
+            climate_zone="central",
+            population=30000,
+            development=25,
             neighbors=["xiangyang", "wancheng"],
         ),
         "xiangyang": Territory(
-            id="xiangyang", name="襄阳", owner_id="liubiao",
-            fertility=8, terrain_type=TerrainType.PLAINS, climate_zone="central",
-            has_river=True, population=80000, development=55,
+            id="xiangyang",
+            name="襄阳",
+            owner_id="liubiao",
+            fertility=8,
+            terrain_type=TerrainType.PLAINS,
+            climate_zone="central",
+            has_river=True,
+            population=80000,
+            development=55,
             neighbors=["xinye", "jiangling", "wancheng"],
         ),
         "wancheng": Territory(
-            id="wancheng", name="宛城", owner_id="cao",
-            fertility=7, terrain_type=TerrainType.PLAINS, climate_zone="central",
-            population=50000, development=45,
+            id="wancheng",
+            name="宛城",
+            owner_id="cao",
+            fertility=7,
+            terrain_type=TerrainType.PLAINS,
+            climate_zone="central",
+            population=50000,
+            development=45,
             neighbors=["xinye", "xiangyang", "xuchang"],
         ),
         "xuchang": Territory(
-            id="xuchang", name="许昌", owner_id="cao",
-            fertility=7, terrain_type=TerrainType.PLAINS, climate_zone="central",
-            population=100000, development=70,
+            id="xuchang",
+            name="许昌",
+            owner_id="cao",
+            fertility=7,
+            terrain_type=TerrainType.PLAINS,
+            climate_zone="central",
+            population=100000,
+            development=70,
             neighbors=["wancheng"],
         ),
         "jiangling": Territory(
-            id="jiangling", name="江陵", owner_id="liubiao",
-            fertility=8, terrain_type=TerrainType.PLAINS, climate_zone="central",
-            has_river=True, population=60000, development=50,
+            id="jiangling",
+            name="江陵",
+            owner_id="liubiao",
+            fertility=8,
+            terrain_type=TerrainType.PLAINS,
+            climate_zone="central",
+            has_river=True,
+            population=60000,
+            development=50,
             neighbors=["xiangyang"],
         ),
     }
@@ -75,35 +100,73 @@ def map_engine(three_kingdoms_map) -> MapEngine:
 def sample_characters() -> dict[str, Character]:
     return {
         "zhugeliang": Character(
-            id="zhugeliang", name="诸葛亮", alias="孔明",
-            leadership=92, might=32, intelligence=100, politics=98, charisma=90,
+            id="zhugeliang",
+            name="诸葛亮",
+            alias="孔明",
+            leadership=92,
+            might=32,
+            intelligence=100,
+            politics=98,
+            charisma=90,
             skills=["火攻", "奇门遁甲", "屯田", "八阵图"],
-            faction_id="shu", location="xinye", loyalty=95,
-            is_governor=False, birth=181, death=234,
+            faction_id="shu",
+            location="xinye",
+            loyalty=95,
+            is_governor=False,
+            birth=181,
+            death=234,
         ),
         "guanyu": Character(
-            id="guanyu", name="关羽", alias="云长",
-            leadership=95, might=98, intelligence=75, politics=62, charisma=88,
+            id="guanyu",
+            name="关羽",
+            alias="云长",
+            leadership=95,
+            might=98,
+            intelligence=75,
+            politics=62,
+            charisma=88,
             skills=["骑兵指挥", "青龙偃月", "水淹"],
             sworn_brothers=["liubei", "zhangfei"],
-            faction_id="shu", location="xinye", loyalty=100,
-            is_commanding=True, birth=160, death=220,
+            faction_id="shu",
+            location="xinye",
+            loyalty=100,
+            is_commanding=True,
+            birth=160,
+            death=220,
         ),
         "zhangfei": Character(
-            id="zhangfei", name="张飞", alias="翼德",
-            leadership=85, might=98, intelligence=45, politics=30, charisma=50,
+            id="zhangfei",
+            name="张飞",
+            alias="翼德",
+            leadership=85,
+            might=98,
+            intelligence=45,
+            politics=30,
+            charisma=50,
             skills=["骑兵指挥", "丈八蛇矛", "酒疯"],
             sworn_brothers=["liubei", "guanyu"],
-            faction_id="shu", location="xinye", loyalty=98,
-            birth=165, death=221,
+            faction_id="shu",
+            location="xinye",
+            loyalty=98,
+            birth=165,
+            death=221,
         ),
         "liubei": Character(
-            id="liubei", name="刘备", alias="玄德",
-            leadership=80, might=70, intelligence=72, politics=82, charisma=99,
+            id="liubei",
+            name="刘备",
+            alias="玄德",
+            leadership=80,
+            might=70,
+            intelligence=72,
+            politics=82,
+            charisma=99,
             skills=["人德", "号召", "仁政"],
             sworn_brothers=["guanyu", "zhangfei"],
-            faction_id="shu", location="xinye", loyalty=100,
-            birth=161, death=223,
+            faction_id="shu",
+            location="xinye",
+            loyalty=100,
+            birth=161,
+            death=223,
         ),
     }
 
@@ -128,7 +191,9 @@ class TestMapEngineTerrain:
     def test_mountain_cavalry_penalty(self, map_engine):
         # Add a mountain territory
         mountain = Territory(
-            id="hanshan", name="寒山", terrain_type=TerrainType.MOUNTAIN,
+            id="hanshan",
+            name="寒山",
+            terrain_type=TerrainType.MOUNTAIN,
             neighbors=[],
         )
         territories = {**map_engine.territories, "hanshan": mountain}
@@ -270,12 +335,9 @@ class TestCharacterLife:
 
     def test_deviation_extends_life(self, char_engine):
         # High deviation → lower death probability
-        deaths_normal = sum(
-            1 for _ in range(100) if char_engine.check_natural_death("guanyu", 220)
-        )
+        deaths_normal = sum(1 for _ in range(100) if char_engine.check_natural_death("guanyu", 220))
         deaths_deviated = sum(
-            1 for _ in range(100)
-            if char_engine.check_natural_death("guanyu", 220, deviation=0.8)
+            1 for _ in range(100) if char_engine.check_natural_death("guanyu", 220, deviation=0.8)
         )
         # Deviation should reduce death count
         assert deaths_deviated <= deaths_normal + 15  # allowance for randomness
@@ -284,9 +346,7 @@ class TestCharacterLife:
         impacts = char_engine.kill_character("guanyu")
         assert not char_engine.get("guanyu").alive
         # zhangfei is sworn brother → -30 loyalty
-        assert any(
-            i["character_id"] == "zhangfei" and i["delta"] == -30 for i in impacts
-        )
+        assert any(i["character_id"] == "zhangfei" and i["delta"] == -30 for i in impacts)
 
 
 class TestCharacterRelationships:
@@ -342,47 +402,35 @@ class TestFoodProduction:
     def test_spring_base_production(self):
         engine = DomesticEngine()
         territory = Territory(id="test", name="测试", fertility=8, development=50)
-        food = engine.calculate_food_production(
-            territory, Season.SPRING, ClimateEvent.NORMAL
-        )
+        food = engine.calculate_food_production(territory, Season.SPRING, ClimateEvent.NORMAL)
         # 8 × 1000 × 1.5 × 0.3 × 1.0 = 3600
         assert food == 3600
 
     def test_autumn_peak_production(self):
         engine = DomesticEngine()
         territory = Territory(id="test", name="测试", fertility=8, development=50)
-        food = engine.calculate_food_production(
-            territory, Season.AUTUMN, ClimateEvent.NORMAL
-        )
+        food = engine.calculate_food_production(territory, Season.AUTUMN, ClimateEvent.NORMAL)
         # 8 × 1000 × 1.5 × 1.2 × 1.0 = 14400
         assert food == 14400
 
     def test_winter_near_zero(self):
         engine = DomesticEngine()
         territory = Territory(id="test", name="测试", fertility=8, development=50)
-        food = engine.calculate_food_production(
-            territory, Season.WINTER, ClimateEvent.NORMAL
-        )
+        food = engine.calculate_food_production(territory, Season.WINTER, ClimateEvent.NORMAL)
         # 8 × 1000 × 1.5 × 0.05 × 1.0 = 600
         assert food < 1000
 
     def test_drought_reduces_food(self):
         engine = DomesticEngine()
         territory = Territory(id="test", name="测试", fertility=8, development=50)
-        normal = engine.calculate_food_production(
-            territory, Season.AUTUMN, ClimateEvent.NORMAL
-        )
-        drought = engine.calculate_food_production(
-            territory, Season.AUTUMN, ClimateEvent.DROUGHT
-        )
+        normal = engine.calculate_food_production(territory, Season.AUTUMN, ClimateEvent.NORMAL)
+        drought = engine.calculate_food_production(territory, Season.AUTUMN, ClimateEvent.DROUGHT)
         assert drought < normal * 0.5
 
     def test_bumper_harvest_boosts(self):
         engine = DomesticEngine()
         territory = Territory(id="test", name="测试", fertility=8, development=50)
-        normal = engine.calculate_food_production(
-            territory, Season.AUTUMN, ClimateEvent.NORMAL
-        )
+        normal = engine.calculate_food_production(territory, Season.AUTUMN, ClimateEvent.NORMAL)
         bumper = engine.calculate_food_production(
             territory, Season.AUTUMN, ClimateEvent.BUMPER_HARVEST
         )
@@ -403,9 +451,7 @@ class TestFoodProduction:
     def test_tech_increases_food(self):
         engine = DomesticEngine()
         territory = Territory(id="test", name="测试", fertility=8, development=50)
-        base = engine.calculate_food_production(
-            territory, Season.SUMMER, ClimateEvent.NORMAL
-        )
+        base = engine.calculate_food_production(territory, Season.SUMMER, ClimateEvent.NORMAL)
         with_tech = engine.calculate_food_production(
             territory, Season.SUMMER, ClimateEvent.NORMAL, tech_agriculture=3
         )
@@ -425,9 +471,7 @@ class TestPopulationGrowth:
         engine = DomesticEngine()
         territory = Territory(id="test", name="测试", population=50000, development=50)
         # Severe food shortage → population decline
-        growth = engine.calculate_population_growth(
-            territory, food_surplus=-10000, morale=30
-        )
+        growth = engine.calculate_population_growth(territory, food_surplus=-10000, morale=30)
         assert growth < 0  # population should decline
 
 
@@ -472,11 +516,20 @@ class TestSeasonProcessing:
     def test_process_season_returns_results(self):
         engine = DomesticEngine()
         territories = {
-            "test": Territory(id="test", name="测试", fertility=6, development=40,
-                              population=30000, climate_zone="central"),
+            "test": Territory(
+                id="test",
+                name="测试",
+                fertility=6,
+                development=40,
+                population=30000,
+                climate_zone="central",
+            ),
         }
         results = engine.process_season(
-            territories, Season.AUTUMN, year=207, turn=1,
+            territories,
+            Season.AUTUMN,
+            year=207,
+            turn=1,
             tax_rates={"test": 0.3},
         )
         assert len(results) == 1

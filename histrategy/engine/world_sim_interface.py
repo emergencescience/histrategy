@@ -38,7 +38,7 @@ class SimResult:
 
     # Narrative
     narrative: str = ""
-    aftermath: str = ""                   # 1-3 sentence consequence summary
+    aftermath: str = ""  # 1-3 sentence consequence summary
 
     # Execution detail
     bureaucracy: list[dict] = field(default_factory=list)
@@ -56,7 +56,7 @@ class SimResult:
 
     # World events
     npc_reactions: list[str] = field(default_factory=list)
-    npc_actions: list[str] = field(default_factory=list)    # aliases for offline compat
+    npc_actions: list[str] = field(default_factory=list)  # aliases for offline compat
     events_occurred: list[str] = field(default_factory=list)
 
     # Updated state (engine must return this)

@@ -35,15 +35,15 @@ class Faction:
     description: str
     capital: str
     territories: list[str]
-    strength: int       # 兵力
-    economy: int        # 经济 0-100
-    morale: int         # 民心 0-100
-    intel_level: int    # 情报 0-100
-    aggression: int     # 侵略性 0-100
+    strength: int  # 兵力
+    economy: int  # 经济 0-100
+    morale: int  # 民心 0-100
+    intel_level: int  # 情报 0-100
+    aggression: int  # 侵略性 0-100
     diplomacy_tendency: str
     is_active: bool = True
     treasury: int = 10000  # 资金
-    food: int = 5000      # 粮草
+    food: int = 5000  # 粮草
 
 
 @dataclass
@@ -152,15 +152,17 @@ class GameWorld:
 
         with open(DATA_DIR / "events.json") as f:
             for e in json.load(f):
-                self.events.append(HistoricalEvent(
-                    year=e["year"],
-                    season=e["season"],
-                    title=e["title"],
-                    description=e["description"],
-                    trigger=e["trigger"],
-                    effects=e["effects"],
-                    is_historical=e["is_historical"],
-                ))
+                self.events.append(
+                    HistoricalEvent(
+                        year=e["year"],
+                        season=e["season"],
+                        title=e["title"],
+                        description=e["description"],
+                        trigger=e["trigger"],
+                        effects=e["effects"],
+                        is_historical=e["is_historical"],
+                    )
+                )
 
     def _validate_on_load(self):
         """Validate cross-references and field integrity after loading data.
@@ -173,47 +175,37 @@ class GameWorld:
         # Characters reference valid factions
         for char in self.characters.values():
             if char.faction not in self.factions:
-                issues.append(
-                    f"Character '{char.name}' ({char.id}) references "
-                    f"unknown faction '{char.faction}'"
-                )
+                issues.append(f"Character '{char.name}' ({char.id}) references unknown faction '{char.faction}'")
 
         # Factions reference valid ruler characters
         for fa in self.factions.values():
             if fa.ruler_id and fa.ruler_id not in self.characters:
-                issues.append(
-                    f"Faction '{fa.name}' ({fa.id}) references "
-                    f"unknown ruler_id '{fa.ruler_id}'"
-                )
+                issues.append(f"Faction '{fa.name}' ({fa.id}) references unknown ruler_id '{fa.ruler_id}'")
 
         # Faction starting_territories reference valid regions
         for fa in self.factions.values():
             for t in fa.territories:
                 if t not in self.regions:
-                    issues.append(
-                        f"Faction '{fa.name}' ({fa.id}) has "
-                        f"unknown territory '{t}'"
-                    )
+                    issues.append(f"Faction '{fa.name}' ({fa.id}) has unknown territory '{t}'")
 
         # Region neighbors reference valid regions (by pinyin ID or Chinese name)
         region_names = {r.name: r.id for r in self.regions.values()}
         for r in self.regions.values():
             for n in r.neighbors:
                 if n not in self.regions and n not in region_names:
-                    issues.append(
-                        f"Region '{r.name}' ({r.id}) has "
-                        f"unknown neighbor '{n}'"
-                    )
+                    issues.append(f"Region '{r.name}' ({r.id}) has unknown neighbor '{n}'")
 
         # Stats range checks (warn, don't clamp — let game logic handle it)
         for fa in self.factions.values():
-            for attr, label in [("economy", "economy"), ("morale", "morale"),
-                                ("intel_level", "intel"), ("aggression", "aggression")]:
+            for attr, label in [
+                ("economy", "economy"),
+                ("morale", "morale"),
+                ("intel_level", "intel"),
+                ("aggression", "aggression"),
+            ]:
                 val = getattr(fa, attr, 0)
                 if not (0 <= val <= 100):
-                    issues.append(
-                        f"Faction '{fa.name}' ({fa.id}): {label}={val} out of range 0–100"
-                    )
+                    issues.append(f"Faction '{fa.name}' ({fa.id}): {label}={val} out of range 0–100")
 
         for issue in issues:
             warnings.warn(f"Data integrity: {issue}", stacklevel=2)
@@ -280,23 +272,30 @@ class GameWorld:
                 "treasury": player.treasury if player else 0,
                 "food": player.food if player else 0,
                 "territories": [self.regions[t].name for t in (player.territories if player else [])],
-            } if player else None,
+            }
+            if player
+            else None,
             "all_factions": [
                 {
                     "id": f.id,
                     "name": f.name,
-                    "ruler": self.characters[f.ruler_id].name if f.ruler_id and f.ruler_id in self.characters else "无主",
+                    "ruler": self.characters[f.ruler_id].name
+                    if f.ruler_id and f.ruler_id in self.characters
+                    else "无主",
                     "strength": f.strength,
                     "economy": f.economy,
                     "territory_count": len(f.territories),
                     "relation_to_player": "unknown",
                 }
-                for f in all_factions if f.id != self.player_faction_id
+                for f in all_factions
+                if f.id != self.player_faction_id
             ],
             "player_characters": [
                 {"name": c.name, "alias": c.alias, "skills": c.skills, "loyalty": c.loyalty}
                 for c in self.get_faction_characters(self.player_faction_id)
-            ] if self.player_faction_id else [],
+            ]
+            if self.player_faction_id
+            else [],
             "recent_history": self.history_log[-5:],
             "completed_events": self.completed_events,
         }
@@ -307,14 +306,16 @@ class GameWorld:
         regions_data = []
         for r in self.regions.values():
             owner_name = self.factions[r.owner].name if r.owner in self.factions else "无主"
-            regions_data.append({
-                "name": r.name,
-                "owner": owner_name,
-                "owner_id": r.owner,
-                "development": r.development,
-                "garrison": r.garrison,
-                "value": r.strategic_value,
-            })
+            regions_data.append(
+                {
+                    "name": r.name,
+                    "owner": owner_name,
+                    "owner_id": r.owner,
+                    "development": r.development,
+                    "garrison": r.garrison,
+                    "value": r.strategic_value,
+                }
+            )
         return regions_data
 
     def apply_effects(self, player_decision: str, narrative: str, state_changes: dict):

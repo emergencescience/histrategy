@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import json
 import time
-from pathlib import Path
 
 from ..engine.game import GameEngine
 from ..llm.adapter import LLMAdapter, detect_provider
@@ -68,7 +67,7 @@ def run_simulation_playthrough() -> None:
                 "food": getattr(f, "food", 0),
                 "treasury": getattr(f, "treasury", 0),
                 "morale": getattr(f, "morale_actual", getattr(f, "morale", 0)),
-                "is_active": getattr(f, "is_active", True)
+                "is_active": getattr(f, "is_active", True),
             }
         return details
 
@@ -88,21 +87,23 @@ def run_simulation_playthrough() -> None:
     intro = engine.get_intro_scene()
     plan = engine.get_plan_data()
 
-    playthrough_log.append({
-        "turn": 0,
-        "year": ws.year,
-        "season": ws.season.cn if hasattr(ws.season, "cn") else ws.current_season,
-        "phase": "intro",
-        "narrative": intro.get("narrative", ""),
-        "suggestions": plan.get("suggestions", []),
-        "factions": get_faction_details(ws),
-        "llm_calls": []
-    })
+    playthrough_log.append(
+        {
+            "turn": 0,
+            "year": ws.year,
+            "season": ws.season.cn if hasattr(ws.season, "cn") else ws.current_season,
+            "phase": "intro",
+            "narrative": intro.get("narrative", ""),
+            "suggestions": plan.get("suggestions", []),
+            "factions": get_faction_details(ws),
+            "llm_calls": [],
+        }
+    )
 
     decisions = [
         "派关羽张飞去卧龙岗三顾茅庐，务必请诸葛亮出山相助",
         "诸葛亮既出，请军师分析天下形势，制定隆中对策",
-        "趁曹操北征乌桓无暇南顾，发展新野农业民生"
+        "趁曹操北征乌桓无暇南顾，发展新野农业民生",
     ]
 
     for t, decision in enumerate(decisions, 1):
@@ -126,19 +127,21 @@ def run_simulation_playthrough() -> None:
         else:
             current_ws = engine.world_state
 
-        playthrough_log.append({
-            "turn": t,
-            "year": current_ws.year,
-            "season": current_ws.season.cn if hasattr(current_ws.season, "cn") else current_ws.current_season,
-            "phase": "command",
-            "decision": decision,
-            "narrative": result.get("aftermath", result.get("narrative", "")),
-            "state_changes": result.get("state_changes", {}),
-            "events": result.get("events_occurred", []),
-            "suggestions": plan_data.get("suggestions", []),
-            "factions": get_faction_details(current_ws),
-            "llm_calls": new_calls
-        })
+        playthrough_log.append(
+            {
+                "turn": t,
+                "year": current_ws.year,
+                "season": current_ws.season.cn if hasattr(current_ws.season, "cn") else current_ws.current_season,
+                "phase": "command",
+                "decision": decision,
+                "narrative": result.get("aftermath", result.get("narrative", "")),
+                "state_changes": result.get("state_changes", {}),
+                "events": result.get("events_occurred", []),
+                "suggestions": plan_data.get("suggestions", []),
+                "factions": get_faction_details(current_ws),
+                "llm_calls": new_calls,
+            }
+        )
 
     # Format the playthrough record to Markdown
     md_lines = [
@@ -147,7 +150,7 @@ def run_simulation_playthrough() -> None:
         "本报告记录了一局由 V2 引擎（7-引擎数值后台 + LLM 叙事层）驱动的实战推演细节。报告中包含每回合的**完整 NPC 势力数值状态变化**以及**大模型交互的完整 Prompt 与 Response**。",
         "",
         "---",
-        ""
+        "",
     ]
 
     for entry in playthrough_log:
@@ -177,7 +180,9 @@ def run_simulation_playthrough() -> None:
             if not f["is_active"]:
                 continue
             territories_str = ", ".join(f["territories"])
-            md_lines.append(f"| {f['name']} ({fid}) | {len(f['territories'])} | {territories_str} | {f['strength']:,} | {f['food']:,} | {f['treasury']:,} | {f['morale']} |")
+            md_lines.append(
+                f"| {f['name']} ({fid}) | {len(f['territories'])} | {territories_str} | {f['strength']:,} | {f['food']:,} | {f['treasury']:,} | {f['morale']} |"
+            )
         md_lines.append("")
 
         md_lines.append("### 📜 局势叙事")
@@ -187,7 +192,9 @@ def run_simulation_playthrough() -> None:
         if entry["llm_calls"]:
             md_lines.append("### 🤖 大模型 Prompt & Response 记录")
             for i, call in enumerate(entry["llm_calls"], 1):
-                md_lines.append(f"#### 调用 {i}: Model={call.get('model')} (Latency={call.get('latency_seconds', 0.0):.2f}s)")
+                md_lines.append(
+                    f"#### 调用 {i}: Model={call.get('model')} (Latency={call.get('latency_seconds', 0.0):.2f}s)"
+                )
                 md_lines.append("")
                 md_lines.append("<details>")
                 md_lines.append("<summary>展开查看完整 Prompt & Response</summary>")

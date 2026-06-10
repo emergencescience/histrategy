@@ -19,11 +19,11 @@ See: docs/design-iterations.md — v0.3 narrative arc rationale
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
-
 # ─── Arc Goal ─────────────────────────────────────────────────────
+
 
 @dataclass
 class ArcGoal:
@@ -32,12 +32,13 @@ class ArcGoal:
     Not a guarantee — a gravitational pull. High player deviation weakens
     the pull. Low deviation keeps history on track.
     """
-    event_id: str                  # matches events.json id
-    title: str                     # e.g. "官渡之战"
-    target_turn: int               # ideal turn for this to occur
-    deadline_turn: int             # last reasonable turn before it's "missed"
-    gravity: float = 0.7           # 0.0 = ignore, 1.0 = strong pull
-    hint_template: str = ""        # Chinese hint injected into GM prompt
+
+    event_id: str  # matches events.json id
+    title: str  # e.g. "官渡之战"
+    target_turn: int  # ideal turn for this to occur
+    deadline_turn: int  # last reasonable turn before it's "missed"
+    gravity: float = 0.7  # 0.0 = ignore, 1.0 = strong pull
+    hint_template: str = ""  # Chinese hint injected into GM prompt
     completed: bool = False
     missed: bool = False
 
@@ -89,6 +90,7 @@ DEFAULT_ARC_GOALS = [
 
 
 # ─── NarrativeDirector ────────────────────────────────────────────
+
 
 class NarrativeDirector:
     """Tracks narrative arc goals and steers the game master toward them.
@@ -151,9 +153,9 @@ class NarrativeDirector:
     def _compute_hint(self, turn: int, deviation: float) -> str:
         """Find the most pressing upcoming arc goal and return its hint."""
         candidates = [
-            g for g in self._goals
-            if not g.completed and not g.missed
-            and g.target_turn <= turn + 8  # lookahead window of 8 turns
+            g
+            for g in self._goals
+            if not g.completed and not g.missed and g.target_turn <= turn + 8  # lookahead window of 8 turns
         ]
         if not candidates:
             return ""

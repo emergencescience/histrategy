@@ -27,7 +27,6 @@ from pathlib import Path
 from .npc_state import NPCState, load_npc_states, save_npc_states
 
 
-
 class HistoricalMode(Enum):
     HISTORICAL = "historical"
     DIVERGENT = "divergent"
@@ -35,6 +34,7 @@ class HistoricalMode(Enum):
 
 
 # ─── File paths ─────────────────────────────────────────────
+
 
 def get_data_dir() -> Path:
     """Return the active save directory.
@@ -84,15 +84,16 @@ CHARACTER_PROFILES_FILE = _character_profiles_file()
 @dataclass
 class FactionState:
     """State of a single faction at a point in time."""
+
     id: str
     name: str
     ruler_id: str
     capital: str
-    strength: int = 5000           # troops
-    economy: int = 50              # 0-100
-    morale: int = 50               # 0-100
-    treasury: int = 5000           # gold
-    food: int = 3000               # grain
+    strength: int = 5000  # troops
+    economy: int = 50  # 0-100
+    morale: int = 50  # 0-100
+    treasury: int = 5000  # gold
+    food: int = 3000  # grain
     territories: list[str] = field(default_factory=list)
     is_active: bool = True
     personality_applied: str = ""  # last personality-driven narrative tag
@@ -101,23 +102,25 @@ class FactionState:
 @dataclass
 class CharacterState:
     """Dynamic state of a character (may change over game)."""
+
     id: str
     name: str
     faction_id: str
-    loyalty: int = 80             # 0-100
+    loyalty: int = 80  # 0-100
     alive: bool = True
     location: str = ""
-    role: str = "general"         # general, advisor, spy, governor
+    role: str = "general"  # general, advisor, spy, governor
     recent_actions: list[str] = field(default_factory=list)
 
 
 @dataclass
 class TerritoryState:
     """State of a territory/region."""
+
     id: str
     name: str
-    owner_id: str                  # faction id
-    economy: int = 50              # 0-100
+    owner_id: str  # faction id
+    economy: int = 50  # 0-100
     population: int = 10000
     garrison: int = 1000
     resources: dict = field(default_factory=lambda: {"grain": 1000, "gold": 500, "iron": 200})
@@ -126,11 +129,12 @@ class TerritoryState:
 @dataclass
 class EventEntry:
     """A single event in the timeline."""
+
     year: int
     season: str
     turn: int
     description: str
-    type: str = "event"           # event, battle, decision, diplomatic, natural
+    type: str = "event"  # event, battle, decision, diplomatic, natural
     faction_id: str = ""
     is_historical: bool = False
     player_involved: bool = False
@@ -146,21 +150,21 @@ class WorldState:
     This enables truly emergent gameplay where every decision has
     visible consequences.
     """
+
     # Time
     year: int = 207
-    season_index: int = 0          # 0=spring, 1=summer, 2=autumn, 3=winter
+    season_index: int = 0  # 0=spring, 1=summer, 2=autumn, 3=winter
     turn: int = 0
 
     # Player
     player_faction_id: str = ""
-    scenario: str = "207"          # scenario identifier
+    scenario: str = "207"  # scenario identifier
 
     # World
     factions: dict[str, FactionState] = field(default_factory=dict)
     characters: dict[str, CharacterState] = field(default_factory=dict)
     territories: dict[str, TerritoryState] = field(default_factory=dict)
     npc_states: dict[str, NPCState] = field(default_factory=dict)
-
 
     # Events & history
     event_log: list = field(default_factory=list)
@@ -190,7 +194,6 @@ class WorldState:
         else:
             return HistoricalMode.FREEFORM
 
-
     def advance_turn(self):
         """Advance by one turn (one season)."""
         self.turn += 1
@@ -211,18 +214,10 @@ class WorldState:
             "scenario": self.scenario,
             "next_major_historical_event": self.next_major_historical_event,
             "player_deviation": round(self.player_deviation, 2),
-            "factions": {
-                fid: asdict(fs)
-                for fid, fs in self.factions.items()
-                if fs.is_active
-            },
+            "factions": {fid: asdict(fs) for fid, fs in self.factions.items() if fs.is_active},
             "player_faction_id": self.player_faction_id,
             "completed_events": self.completed_events,
-            "npc_states": {
-                cid: ns.to_dict()
-                for cid, ns in self.npc_states.items()
-            },
-
+            "npc_states": {cid: ns.to_dict() for cid, ns in self.npc_states.items()},
         }
 
     def from_dict(self, data: dict) -> WorldState:
@@ -232,9 +227,7 @@ class WorldState:
         self.turn = data.get("turn", self.turn)
         self.scenario = data.get("scenario", self.scenario)
         self.player_faction_id = data.get("player_faction_id", self.player_faction_id)
-        self.next_major_historical_event = data.get(
-            "next_major_historical_event", self.next_major_historical_event
-        )
+        self.next_major_historical_event = data.get("next_major_historical_event", self.next_major_historical_event)
         self.player_deviation = data.get("player_deviation", self.player_deviation)
 
         if "factions" in data:
@@ -252,11 +245,7 @@ class WorldState:
             self.completed_events = data["completed_events"]
 
         if "npc_states" in data:
-            self.npc_states = {
-                cid: NPCState.from_dict(nsd)
-                for cid, nsd in data["npc_states"].items()
-            }
-
+            self.npc_states = {cid: NPCState.from_dict(nsd) for cid, nsd in data["npc_states"].items()}
 
         return self
 
@@ -347,7 +336,6 @@ def load_world() -> WorldState | None:
         return state
     except (json.JSONDecodeError, OSError):
         return None
-
 
 
 def save_relationships(rels: dict[str, dict[str, int]]):

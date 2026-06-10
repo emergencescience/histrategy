@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from pathlib import Path
+
+from ..engine.narrative_director import NarrativeDirector
 from ..engine.world_sim_interface import SimResult, WorldSimEngine
 from ..state.world_state import WorldState
-from ..engine.narrative_director import NarrativeDirector
 from .adapter import LLMAdapter
 from .game_master import GameMaster
 
@@ -42,7 +43,7 @@ class LLMSimEngine(WorldSimEngine):
         """Run Command Mode and return a SimResult."""
         pressure_hint = self._narrative_director.get_pressure_hint(state.turn, state.player_deviation)
         result = self._gm.generate_command_mode(state, player_action, pressure_hint=pressure_hint)
-        
+
         # Mark completed events
         updated_state = result.get("world_state", state)
         if updated_state and updated_state.completed_events:
@@ -62,4 +63,3 @@ class LLMSimEngine(WorldSimEngine):
             engine_id=self.engine_id,
             used_llm=True,
         )
-

@@ -39,9 +39,7 @@ class FormatEngine:
             lines.append("")
 
         lines.append("⚔️ **我军态势**")
-        territories = "、".join(
-            t.get("name", "") for t in ws.get("territories", [])
-        ) or "无"
+        territories = "、".join(t.get("name", "") for t in ws.get("territories", [])) or "无"
         lines.append(f"| 领地 | {territories} |")
         lines.append(f"| 兵力 | {ws.get('total_troops', 0):,} |")
         lines.append(f"| 粮草 | {ws.get('food', 0):,} |")
@@ -90,9 +88,7 @@ class FormatEngine:
         total_troops = 0
         for army in ws.armies.values():
             if army.faction_id == session.player_faction_id:
-                unit_desc = "、".join(
-                    f"{ut.value}{c}" for ut, c in army.units.items() if c > 0
-                )
+                unit_desc = "、".join(f"{ut.value}{c}" for ut, c in army.units.items() if c > 0)
                 lines.append(
                     f"- {army.id} 位置: {army.location} | "
                     f"兵力: {army.total_troops:,} ({unit_desc}) | "
@@ -151,8 +147,7 @@ class FormatEngine:
             marker = "★" if tid == capital_id else "  "
             name = territory.name
             neighbors = " → ".join(
-                world_state.territories[n].name if n in world_state.territories else n
-                for n in territory.neighbors[:2]
+                world_state.territories[n].name if n in world_state.territories else n for n in territory.neighbors[:2]
             )
             lines.append(f"[{symbol}] {name:<6} → {neighbors}")
 
@@ -177,8 +172,8 @@ class FormatEngine:
         lines = []
         lines.append(f"⚔️ **战斗报告** — {battle.location}")
         lines.append("")
-        lines.append(f"| 内容 | 详情 |")
-        lines.append(f"|------|------|")
+        lines.append("| 内容 | 详情 |")
+        lines.append("|------|------|")
         lines.append(f"| 攻击方 | {battle.attacker_id} |")
         lines.append(f"| 防守方 | {battle.defender_id} |")
         lines.append(f"| 结果 | **{result_text}** |")
@@ -239,13 +234,13 @@ class FormatEngine:
         )
 
         lines = []
-        lines.append(f"🎌 **三國志略** — 新游戏开始！")
+        lines.append("🎌 **三國志略** — 新游戏开始！")
         lines.append("")
         lines.append(f"**{faction.name}势力**")
         lines.append("")
         lines.append(intro)
         lines.append("")
-        lines.append(f"📅 **建安207年 · 冬**")
+        lines.append("📅 **建安207年 · 冬**")
         lines.append(f"💰 金库: {faction.treasury:,} | 🌾 粮草: {faction.food:,} | ⭐ 声望: {faction.prestige}")
         lines.append("")
         lines.append("💡 **玩法提示**")

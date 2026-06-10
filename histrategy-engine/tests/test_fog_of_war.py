@@ -3,14 +3,10 @@
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from histrategy_engine.ai.fog_of_war import (
-    LocalWorldState,
     LocalWorldStateProjector,
-    PerceivedFaction,
 )
 from histrategy_engine.world import (
     Army,
@@ -31,30 +27,48 @@ def make_multi_faction_world() -> WorldState:
 
     # Factions
     cao = FactionState(
-        id="cao", name="曹操军", ruler_id="caocao",
-        capital="xuchang", territories=["xuchang", "wancheng"],
-        treasury=50000, food=30000,
-        legitimacy=50, allies=[], enemies=["shu"],
+        id="cao",
+        name="曹操军",
+        ruler_id="caocao",
+        capital="xuchang",
+        territories=["xuchang", "wancheng"],
+        treasury=50000,
+        food=30000,
+        legitimacy=50,
+        allies=[],
+        enemies=["shu"],
     )
     cao.strength_actual = 150000
     cao.economy_actual = 80
     cao.morale_actual = 75
 
     shu = FactionState(
-        id="shu", name="刘备军", ruler_id="liubei",
-        capital="xinye", territories=["xinye"],
-        treasury=3000, food=2000,
-        legitimacy=40, allies=[], enemies=["cao"],
+        id="shu",
+        name="刘备军",
+        ruler_id="liubei",
+        capital="xinye",
+        territories=["xinye"],
+        treasury=3000,
+        food=2000,
+        legitimacy=40,
+        allies=[],
+        enemies=["cao"],
     )
     shu.strength_actual = 5000
     shu.economy_actual = 30
     shu.morale_actual = 70
 
     wu = FactionState(
-        id="wu", name="孙权军", ruler_id="sunquan",
-        capital="jianye", territories=["jianye", "wujun", "yuzhang"],
-        treasury=20000, food=15000,
-        legitimacy=60, allies=["shu"], enemies=["cao"],
+        id="wu",
+        name="孙权军",
+        ruler_id="sunquan",
+        capital="jianye",
+        territories=["jianye", "wujun", "yuzhang"],
+        treasury=20000,
+        food=15000,
+        legitimacy=60,
+        allies=["shu"],
+        enemies=["cao"],
     )
     wu.strength_actual = 60000
     wu.economy_actual = 70
@@ -64,65 +78,150 @@ def make_multi_faction_world() -> WorldState:
     ws.player_faction_id = "shu"
 
     # Characters
-    zhugeliang = Character(id="zhugeliang", name="诸葛亮", faction_id="shu",
-                           loyalty=95, leadership=92, politics=98, intelligence=100)
-    zhaoyun = Character(id="zhaoyun", name="赵云", faction_id="shu",
-                        loyalty=90, leadership=88, politics=50, intelligence=70,
-                        is_commanding=True)
-    caocao_c = Character(id="caocao", name="曹操", faction_id="cao",
-                         loyalty=100, leadership=98, politics=95, intelligence=96)
-    simayi = Character(id="simayi", name="司马懿", faction_id="cao",
-                       loyalty=70, leadership=85, politics=92, intelligence=98,
-                       is_governor=True)
+    zhugeliang = Character(
+        id="zhugeliang",
+        name="诸葛亮",
+        faction_id="shu",
+        loyalty=95,
+        leadership=92,
+        politics=98,
+        intelligence=100,
+    )
+    zhaoyun = Character(
+        id="zhaoyun",
+        name="赵云",
+        faction_id="shu",
+        loyalty=90,
+        leadership=88,
+        politics=50,
+        intelligence=70,
+        is_commanding=True,
+    )
+    caocao_c = Character(
+        id="caocao",
+        name="曹操",
+        faction_id="cao",
+        loyalty=100,
+        leadership=98,
+        politics=95,
+        intelligence=96,
+    )
+    simayi = Character(
+        id="simayi",
+        name="司马懿",
+        faction_id="cao",
+        loyalty=70,
+        leadership=85,
+        politics=92,
+        intelligence=98,
+        is_governor=True,
+    )
     ws.characters = {
-        "zhugeliang": zhugeliang, "zhaoyun": zhaoyun,
-        "caocao": caocao_c, "simayi": simayi,
+        "zhugeliang": zhugeliang,
+        "zhaoyun": zhaoyun,
+        "caocao": caocao_c,
+        "simayi": simayi,
     }
 
     # Territories with adjacency
-    xuchang = Territory(id="xuchang", name="许昌", owner_id="cao",
-                        climate_zone="central", population=200000,
-                        fertility=80, development=50,
-                        neighbors=["wancheng"])
-    wancheng = Territory(id="wancheng", name="宛城", owner_id="cao",
-                         climate_zone="central", population=80000,
-                         fertility=60, development=35,
-                         neighbors=["xuchang", "xinye"])
-    xinye = Territory(id="xinye", name="新野", owner_id="shu",
-                      climate_zone="central", population=30000,
-                      fertility=60, development=30,
-                      neighbors=["wancheng"])
-    jianye = Territory(id="jianye", name="建业", owner_id="wu",
-                       climate_zone="south", population=100000,
-                       fertility=70, development=55,
-                       neighbors=["wujun"])
-    wujun = Territory(id="wujun", name="吴郡", owner_id="wu",
-                      climate_zone="south", population=80000,
-                      fertility=75, development=40,
-                      neighbors=["jianye"])
-    yuzhang = Territory(id="yuzhang", name="豫章", owner_id="wu",
-                        climate_zone="south", population=60000,
-                        fertility=50, development=25,
-                        neighbors=["wujun"])
+    xuchang = Territory(
+        id="xuchang",
+        name="许昌",
+        owner_id="cao",
+        climate_zone="central",
+        population=200000,
+        fertility=80,
+        development=50,
+        neighbors=["wancheng"],
+    )
+    wancheng = Territory(
+        id="wancheng",
+        name="宛城",
+        owner_id="cao",
+        climate_zone="central",
+        population=80000,
+        fertility=60,
+        development=35,
+        neighbors=["xuchang", "xinye"],
+    )
+    xinye = Territory(
+        id="xinye",
+        name="新野",
+        owner_id="shu",
+        climate_zone="central",
+        population=30000,
+        fertility=60,
+        development=30,
+        neighbors=["wancheng"],
+    )
+    jianye = Territory(
+        id="jianye",
+        name="建业",
+        owner_id="wu",
+        climate_zone="south",
+        population=100000,
+        fertility=70,
+        development=55,
+        neighbors=["wujun"],
+    )
+    wujun = Territory(
+        id="wujun",
+        name="吴郡",
+        owner_id="wu",
+        climate_zone="south",
+        population=80000,
+        fertility=75,
+        development=40,
+        neighbors=["jianye"],
+    )
+    yuzhang = Territory(
+        id="yuzhang",
+        name="豫章",
+        owner_id="wu",
+        climate_zone="south",
+        population=60000,
+        fertility=50,
+        development=25,
+        neighbors=["wujun"],
+    )
     ws.territories = {
-        "xuchang": xuchang, "wancheng": wancheng, "xinye": xinye,
-        "jianye": jianye, "wujun": wujun, "yuzhang": yuzhang,
+        "xuchang": xuchang,
+        "wancheng": wancheng,
+        "xinye": xinye,
+        "jianye": jianye,
+        "wujun": wujun,
+        "yuzhang": yuzhang,
     }
 
     # Armies
     ws.armies = {
-        "army_cao_1": Army(id="army_cao_1", faction_id="cao",
-                           location="wancheng", commander_id="caocao",
-                           morale=85, units={}),
-        "army_shu_1": Army(id="army_shu_1", faction_id="shu",
-                           location="xinye", commander_id="zhaoyun",
-                           morale=80, units={}),
-        "army_wu_1": Army(id="army_wu_1", faction_id="wu",
-                          location="jianye", commander_id="",
-                          morale=90, units={}),
-        "army_hidden": Army(id="army_hidden", faction_id="cao",
-                            location="xuchang", commander_id="simayi",
-                            morale=90, units={}),
+        "army_cao_1": Army(
+            id="army_cao_1",
+            faction_id="cao",
+            location="wancheng",
+            commander_id="caocao",
+            morale=85,
+            units={},
+        ),
+        "army_shu_1": Army(
+            id="army_shu_1",
+            faction_id="shu",
+            location="xinye",
+            commander_id="zhaoyun",
+            morale=80,
+            units={},
+        ),
+        "army_wu_1": Army(
+            id="army_wu_1", faction_id="wu", location="jianye", commander_id="", morale=90, units={}
+        ),
+        "army_hidden": Army(
+            id="army_hidden",
+            faction_id="cao",
+            location="xuchang",
+            commander_id="simayi",
+            morale=90,
+            units={},
+        ),
     }
     # Set troop counts
     ws.armies["army_cao_1"].units["infantry"] = 20000  # 20000 on border

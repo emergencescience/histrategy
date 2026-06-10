@@ -7,6 +7,7 @@ from typing import TypedDict
 
 class FactionStatus(TypedDict, total=False):
     """Current status of the player's faction."""
+
     name: str
     faction_id: str
     strength: int
@@ -23,6 +24,7 @@ class FactionStatus(TypedDict, total=False):
 
 class GameIntro(TypedDict):
     """Response from create_game / restore_game."""
+
     game_id: str
     scenario: str
     faction: str
@@ -33,6 +35,7 @@ class GameIntro(TypedDict):
 
 class PlanData(TypedDict):
     """Response from get_plan."""
+
     game_id: str
     court_dialogue: str
     suggestions: list[str]
@@ -45,6 +48,7 @@ class PlanData(TypedDict):
 
 class TurnResult(TypedDict):
     """Response from execute_command."""
+
     game_id: str
     narrative: str
     aftermath: str
@@ -62,6 +66,7 @@ class TurnResult(TypedDict):
 
 class TokenUsage(TypedDict, total=False):
     """LLM token consumption for a turn."""
+
     command_tokens: int
     plan_tokens: int
     npc_tokens: int
@@ -70,6 +75,7 @@ class TokenUsage(TypedDict, total=False):
 
 class RestoreResult(TypedDict):
     """Response from restore_game."""
+
     game_id: str
     scenario: str
     faction: str

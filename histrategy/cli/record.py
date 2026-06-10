@@ -56,10 +56,12 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="只生成帧，不合成视频")
     args = parser.parse_args()
 
-    output = (Path(args.output) if args.output else REPO_ROOT / "demo" / f"v2-{args.faction}-{args.turns}t.mp4").resolve()
+    output = (
+        Path(args.output) if args.output else REPO_ROOT / "demo" / f"v2-{args.faction}-{args.turns}t.mp4"
+    ).resolve()
     frames_dir = Path(args.frames_dir) if args.frames_dir else Path(tempfile.mkdtemp(prefix="histrategy-frames-"))
 
-    print(f"🎬 三國志略 录制管线")
+    print("🎬 三國志略 录制管线")
     print(f"   势力: {args.faction}  剧本: {args.scenario}  回合: {args.turns}")
     print(f"   输出: {output}")
     print(f"   帧目录: {frames_dir}")
@@ -90,7 +92,7 @@ def main():
 
         # Cleanup temp frames
         shutil.rmtree(frames_dir, ignore_errors=True)
-        print(f"   🧹 已清理临时帧目录")
+        print("   🧹 已清理临时帧目录")
     else:
         print(f"   ❌ 视频合成失败! 帧保留在: {frames_dir}")
 
@@ -113,15 +115,17 @@ def run_headless_game(faction: str, scenario: str, turns: int) -> list[dict]:
         intro = engine.get_intro_scene()
         plan = engine.get_plan_data()
 
-    turns_data.append({
-        "turn": 0,
-        "phase": "intro",
-        "narrative": intro.get("narrative", ""),
-        "suggestions": plan.get("suggestions", []),
-        "season_summary": plan.get("season_summary", ""),
-        "faction_status": _extract_status(engine),
-        "all_factions": _extract_all_factions(engine),
-    })
+    turns_data.append(
+        {
+            "turn": 0,
+            "phase": "intro",
+            "narrative": intro.get("narrative", ""),
+            "suggestions": plan.get("suggestions", []),
+            "season_summary": plan.get("season_summary", ""),
+            "faction_status": _extract_status(engine),
+            "all_factions": _extract_all_factions(engine),
+        }
+    )
 
     # Decision sequence
     decisions = DEFAULT_DECISIONS[:turns]
@@ -136,22 +140,24 @@ def run_headless_game(faction: str, scenario: str, turns: int) -> list[dict]:
         with _suppress_stderr():
             plan_data = engine.get_plan_data()
 
-        turns_data.append({
-            "turn": i + 1,
-            "phase": "command",
-            "decision": decision,
-            "narrative": result.get("aftermath", result.get("narrative", "")),
-            "state_changes": result.get("state_changes", {}),
-            "events": result.get("events_occurred", []),
-            "suggestions": plan_data.get("suggestions", []),
-            "season_summary": plan_data.get("season_summary", ""),
-            "faction_status": _extract_status(engine),
-            "all_factions": _extract_all_factions(engine),
-            "game_over": result.get("game_over"),
-        })
+        turns_data.append(
+            {
+                "turn": i + 1,
+                "phase": "command",
+                "decision": decision,
+                "narrative": result.get("aftermath", result.get("narrative", "")),
+                "state_changes": result.get("state_changes", {}),
+                "events": result.get("events_occurred", []),
+                "suggestions": plan_data.get("suggestions", []),
+                "season_summary": plan_data.get("season_summary", ""),
+                "faction_status": _extract_status(engine),
+                "all_factions": _extract_all_factions(engine),
+                "game_over": result.get("game_over"),
+            }
+        )
 
         if result.get("game_over"):
-            print(f"   ⚠️ 游戏在第{i+1}回合结束: {result['game_over'].get('type', '?')}")
+            print(f"   ⚠️ 游戏在第{i + 1}回合结束: {result['game_over'].get('type', '?')}")
             break
 
     return turns_data
@@ -188,13 +194,15 @@ def _extract_all_factions(engine) -> list[dict]:
     factions = []
     for fid, f in ws.factions.items():
         if f.is_active and f.strength_actual > 0:
-            factions.append({
-                "id": fid,
-                "name": f.name,
-                "strength": f.strength_actual,
-                "territories": f.territories,
-                "is_player": fid == ws.player_faction_id,
-            })
+            factions.append(
+                {
+                    "id": fid,
+                    "name": f.name,
+                    "strength": f.strength_actual,
+                    "territories": f.territories,
+                    "is_player": fid == ws.player_faction_id,
+                }
+            )
     return factions
 
 
@@ -245,7 +253,7 @@ def render_frames(turns_data: list[dict], template: str, output_dir: Path) -> li
                 page.screenshot(path=str(png_path), full_page=False)
                 png_frames.append(png_path)
                 if (i + 1) % 3 == 0:
-                    print(f"   📸 {i+1}/{len(frames)} 帧已截图")
+                    print(f"   📸 {i + 1}/{len(frames)} 帧已截图")
 
             browser.close()
             return png_frames
@@ -294,15 +302,17 @@ def _render_fallback_pngs(turns_data: list[dict], output_dir: Path) -> list[Path
 
         # Header
         status = turn.get("faction_status", {})
-        header = f"三國志略 · 第{turn.get('turn',0)}回合"
+        header = f"三國志略 · 第{turn.get('turn', 0)}回合"
         draw.text((24, 16), header, fill=(212, 160, 23), font=font_title)
 
         # Stats
-        stats = (f"{status.get('year','?')}年{status.get('season','?')}  │  "
-                 f"兵力 {status.get('strength',0):,}  │  "
-                 f"粮草 {status.get('food',0):,}  │  "
-                 f"资金 {status.get('treasury',0):,}  │  "
-                 f"领地 {status.get('territories',0)}城")
+        stats = (
+            f"{status.get('year', '?')}年{status.get('season', '?')}  │  "
+            f"兵力 {status.get('strength', 0):,}  │  "
+            f"粮草 {status.get('food', 0):,}  │  "
+            f"资金 {status.get('treasury', 0):,}  │  "
+            f"领地 {status.get('territories', 0)}城"
+        )
         draw.text((24, 48), stats, fill=(200, 200, 200), font=font_small)
 
         # Narrative panel background
@@ -330,7 +340,7 @@ def _render_fallback_pngs(turns_data: list[dict], output_dir: Path) -> list[Path
         # Word-wrap decision text
         words = decision
         y2 = 130
-        for chunk in [words[i:i+18] for i in range(0, len(words), 18)]:
+        for chunk in [words[i : i + 18] for i in range(0, len(words), 18)]:
             draw.text((816, y2), chunk, fill=(245, 230, 200), font=font_small)
             y2 += 22
 
@@ -341,7 +351,7 @@ def _render_fallback_pngs(turns_data: list[dict], output_dir: Path) -> list[Path
         y3 = 260
         for s in suggestions[:4]:
             text = s
-            for chunk in [text[i:i+20] for i in range(0, len(text), 20)]:
+            for chunk in [text[i : i + 20] for i in range(0, len(text), 20)]:
                 draw.text((816, y3), chunk, fill=(200, 200, 200), font=font_small)
                 y3 += 20
             y3 += 4
@@ -493,23 +503,36 @@ def composite_video(frames_dir: Path, output: Path, fps: float = 0.5) -> bool:
     with open(concat_file, "w") as f:
         for png in png_files:
             f.write(f"file '{png.name}'\n")
-            f.write(f"duration {1.0/fps}\n")
+            f.write(f"duration {1.0 / fps}\n")
         # Last frame needs a final duration entry
         f.write(f"file '{png_files[-1].name}'\n")
 
     try:
-        subprocess.run([
-            "ffmpeg", "-y",
-            "-f", "concat",
-            "-safe", "0",
-            "-i", str(concat_file),
-            "-vf", "fps=30,format=yuv420p",
-            "-c:v", "libx264",
-            "-preset", "fast",
-            "-pix_fmt", "yuv420p",
-            str(output),
-        ], check=True, capture_output=True, timeout=120,
-           cwd=str(frames_dir))
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                str(concat_file),
+                "-vf",
+                "fps=30,format=yuv420p",
+                "-c:v",
+                "libx264",
+                "-preset",
+                "fast",
+                "-pix_fmt",
+                "yuv420p",
+                str(output),
+            ],
+            check=True,
+            capture_output=True,
+            timeout=120,
+            cwd=str(frames_dir),
+        )
         return output.exists()
     except FileNotFoundError:
         print("   ⚠️ ffmpeg 未安装 — 无法合成视频")
@@ -577,7 +600,7 @@ border-radius:6px;padding:14px;margin:10px 0}}
 
 def generate_video(session_id: str) -> str:
     """Generate replay video for a session from PNG frames.
-    
+
     Reads PNG frames from 'frames/' directory in current directory or ~/.histrategy/sessions/{session_id}/frames/
     """
     import os
@@ -631,13 +654,19 @@ def generate_video(session_id: str) -> str:
     # Invoke ffmpeg with exact command parameters requested:
     # ffmpeg -y -framerate 0.5 -i frames/%04d.png -c:v libx264 -r 30 out.mp4
     cmd = [
-        "ffmpeg", "-y",
-        "-framerate", "0.5",
-        "-i", input_pattern,
-        "-c:v", "libx264",
-        "-r", "30",
-        "-pix_fmt", "yuv420p",
-        str(output_video)
+        "ffmpeg",
+        "-y",
+        "-framerate",
+        "0.5",
+        "-i",
+        input_pattern,
+        "-c:v",
+        "libx264",
+        "-r",
+        "30",
+        "-pix_fmt",
+        "yuv420p",
+        str(output_video),
     ]
 
     try:
@@ -658,4 +687,3 @@ def generate_video(session_id: str) -> str:
 
 if __name__ == "__main__":
     main()
-

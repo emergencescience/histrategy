@@ -6,9 +6,6 @@ Tests the integration layer connecting players to the physics engine.
 
 import os
 import sys
-from unittest.mock import MagicMock, patch
-
-import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -17,7 +14,6 @@ from histrategy_engine import (
     Character,
     CharacterEngine,
     ClimateEvent,
-    ClimateSystem,
     Command,
     DecisionEngine,
     DomesticEngine,
@@ -29,113 +25,194 @@ from histrategy_engine import (
     TerrainType,
     Territory,
     TurnController,
-    TurnResult,
     UnitType,
     WorldState,
 )
 
 # ─── Knowledge path ───────────────────────────────────────────────
 
-KNOWLEDGE_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "..", "histrategy-knowledge"
-)
+KNOWLEDGE_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "histrategy-knowledge")
 
 
 # ═══════════════════════════════════════════════════════════════
 # Helpers
 # ═══════════════════════════════════════════════════════════════
 
+
 def make_minimal_world() -> WorldState:
     """Create a minimal world for parser/validator testing."""
     territories = {
         "xinye": Territory(
-            id="xinye", name="新野", owner_id="shu",
-            fertility=6, terrain_type=TerrainType.PLAINS, climate_zone="central",
-            population=30000, development=25,
+            id="xinye",
+            name="新野",
+            owner_id="shu",
+            fertility=6,
+            terrain_type=TerrainType.PLAINS,
+            climate_zone="central",
+            population=30000,
+            development=25,
             neighbors=["xiangyang", "wancheng"],
         ),
         "xiangyang": Territory(
-            id="xiangyang", name="襄阳", owner_id="liubiao",
-            fertility=8, terrain_type=TerrainType.PLAINS, climate_zone="central",
-            has_river=True, population=80000, development=55,
+            id="xiangyang",
+            name="襄阳",
+            owner_id="liubiao",
+            fertility=8,
+            terrain_type=TerrainType.PLAINS,
+            climate_zone="central",
+            has_river=True,
+            population=80000,
+            development=55,
             neighbors=["xinye", "jiangling", "wancheng"],
         ),
         "wancheng": Territory(
-            id="wancheng", name="宛城", owner_id="cao",
-            fertility=7, terrain_type=TerrainType.PLAINS, climate_zone="central",
-            population=50000, development=45,
+            id="wancheng",
+            name="宛城",
+            owner_id="cao",
+            fertility=7,
+            terrain_type=TerrainType.PLAINS,
+            climate_zone="central",
+            population=50000,
+            development=45,
             neighbors=["xinye", "xiangyang", "xuchang"],
         ),
         "xuchang": Territory(
-            id="xuchang", name="许昌", owner_id="cao",
-            fertility=7, terrain_type=TerrainType.PLAINS, climate_zone="central",
-            population=100000, development=70,
+            id="xuchang",
+            name="许昌",
+            owner_id="cao",
+            fertility=7,
+            terrain_type=TerrainType.PLAINS,
+            climate_zone="central",
+            population=100000,
+            development=70,
             neighbors=["wancheng"],
         ),
         "jiangling": Territory(
-            id="jiangling", name="江陵", owner_id="liubiao",
-            fertility=8, terrain_type=TerrainType.PLAINS, climate_zone="central",
-            has_river=True, population=60000, development=50,
+            id="jiangling",
+            name="江陵",
+            owner_id="liubiao",
+            fertility=8,
+            terrain_type=TerrainType.PLAINS,
+            climate_zone="central",
+            has_river=True,
+            population=60000,
+            development=50,
             neighbors=["xiangyang"],
         ),
     }
 
     characters = {
-        "liubei": Character(id="liubei", name="刘备", faction_id="shu",
-                            location="xinye", loyalty=100, birth=161, death=223),
-        "guanyu": Character(id="guanyu", name="关羽", faction_id="shu",
-                            location="xinye", loyalty=100, is_commanding=True,
-                            birth=160, death=220),
-        "caocao": Character(id="caocao", name="曹操", faction_id="cao",
-                            location="xuchang", loyalty=100, birth=155, death=220),
+        "liubei": Character(
+            id="liubei",
+            name="刘备",
+            faction_id="shu",
+            location="xinye",
+            loyalty=100,
+            birth=161,
+            death=223,
+        ),
+        "guanyu": Character(
+            id="guanyu",
+            name="关羽",
+            faction_id="shu",
+            location="xinye",
+            loyalty=100,
+            is_commanding=True,
+            birth=160,
+            death=220,
+        ),
+        "caocao": Character(
+            id="caocao",
+            name="曹操",
+            faction_id="cao",
+            location="xuchang",
+            loyalty=100,
+            birth=155,
+            death=220,
+        ),
     }
 
     factions = {
         "shu": FactionState(
-            id="shu", name="刘备军", ruler_id="liubei",
-            capital="xinye", territories=["xinye"],
-            strength_actual=5000, treasury=3000, food=2000,
-            tax_rate=0.2, morale_actual=70,
+            id="shu",
+            name="刘备军",
+            ruler_id="liubei",
+            capital="xinye",
+            territories=["xinye"],
+            strength_actual=5000,
+            treasury=3000,
+            food=2000,
+            tax_rate=0.2,
+            morale_actual=70,
             relations={"cao": -80, "liubiao": 40},
         ),
         "cao": FactionState(
-            id="cao", name="曹操军", ruler_id="caocao",
-            capital="xuchang", territories=["xuchang", "wancheng"],
-            strength_actual=150000, treasury=50000, food=30000,
-            tax_rate=0.4, morale_actual=80,
+            id="cao",
+            name="曹操军",
+            ruler_id="caocao",
+            capital="xuchang",
+            territories=["xuchang", "wancheng"],
+            strength_actual=150000,
+            treasury=50000,
+            food=30000,
+            tax_rate=0.4,
+            morale_actual=80,
             relations={"shu": -80, "liubiao": -20},
         ),
         "liubiao": FactionState(
-            id="liubiao", name="刘表军", ruler_id="liubiao_if_any",
-            capital="xiangyang", territories=["xiangyang", "jiangling"],
-            strength_actual=40000, treasury=10000, food=8000,
-            tax_rate=0.3, morale_actual=50,
+            id="liubiao",
+            name="刘表军",
+            ruler_id="liubiao_if_any",
+            capital="xiangyang",
+            territories=["xiangyang", "jiangling"],
+            strength_actual=40000,
+            treasury=10000,
+            food=8000,
+            tax_rate=0.3,
+            morale_actual=50,
             relations={"shu": 40, "cao": -20},
         ),
     }
 
     armies = {
         "army_shu_1": Army(
-            id="army_shu_1", faction_id="shu", location="xinye",
-            commander_id="guanyu", units={UnitType.INFANTRY: 1500},
-            morale=85, training=1.0, supply=30,
+            id="army_shu_1",
+            faction_id="shu",
+            location="xinye",
+            commander_id="guanyu",
+            units={UnitType.INFANTRY: 1500},
+            morale=85,
+            training=1.0,
+            supply=30,
         ),
         "army_cao_1": Army(
-            id="army_cao_1", faction_id="cao", location="wancheng",
-            units={UnitType.INFANTRY: 5000}, morale=80, training=1.0, supply=30,
+            id="army_cao_1",
+            faction_id="cao",
+            location="wancheng",
+            units={UnitType.INFANTRY: 5000},
+            morale=80,
+            training=1.0,
+            supply=30,
         ),
     }
 
     return WorldState(
-        year=207, season=Season.WINTER, turn_number=1,
-        scenario="207", player_faction_id="shu",
-        territories=territories, characters=characters, factions=factions, armies=armies,
+        year=207,
+        season=Season.WINTER,
+        turn_number=1,
+        scenario="207",
+        player_faction_id="shu",
+        territories=territories,
+        characters=characters,
+        factions=factions,
+        armies=armies,
     )
 
 
 # ═══════════════════════════════════════════════════════════════
 # CommandValidator Tests
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestCommandValidator:
     """Test the CommandValidator against physics engine constraints."""
@@ -149,8 +226,10 @@ class TestCommandValidator:
     @property
     def validator(self):
         import sys
+
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
         from histrategy.parser.validator import CommandValidator
+
         return CommandValidator(self.map_engine)
 
     def test_recruit_too_large(self):
@@ -284,10 +363,20 @@ class TestCommandValidator:
     def test_multiple_commands_mixed_validity(self):
         """Mix of valid and invalid commands — only valid return."""
         cmds = [
-            Command(type="recruit", params={"territory": "xinye", "unit_type": "infantry", "amount": 500}, faction_id="shu"),
-            Command(type="recruit", params={"territory": "wancheng", "unit_type": "infantry", "amount": 500}, faction_id="shu"),  # invalid: not owned
+            Command(
+                type="recruit",
+                params={"territory": "xinye", "unit_type": "infantry", "amount": 500},
+                faction_id="shu",
+            ),
+            Command(
+                type="recruit",
+                params={"territory": "wancheng", "unit_type": "infantry", "amount": 500},
+                faction_id="shu",
+            ),  # invalid: not owned
             Command(type="develop", params={"territory": "xinye"}, faction_id="shu"),
-            Command(type="attack", params={"target_territory": "xinye"}, faction_id="shu"),  # invalid: own territory
+            Command(
+                type="attack", params={"target_territory": "xinye"}, faction_id="shu"
+            ),  # invalid: own territory
         ]
         valid = self.validator.validate(cmds, self.world)
         assert len(valid) == 2
@@ -298,13 +387,16 @@ class TestCommandValidator:
 # IntentParser Tests (keyword fallback)
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestIntentParserKeyword:
     """Test the IntentParser keyword-based fallback parser."""
 
     def setup_method(self):
         import sys
+
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
         from histrategy.parser.intent import IntentParser
+
         # No LLM → keyword fallback
         self.parser = IntentParser(None)
 
@@ -365,6 +457,7 @@ class TestIntentParserKeyword:
 # E2E Integration Tests (minimal, quick)
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestE2EIntegration:
     """Minimal E2E tests that exercise the full engine pipeline."""
 
@@ -393,7 +486,10 @@ class TestE2EIntegration:
             Command(type="develop", params={"territory": "xinye"}, faction_id="shu"),
         ]
         result = self.turn_controller.execute_turn(
-            self.world, player_commands=cmds, year=207, turn_number=1,
+            self.world,
+            player_commands=cmds,
+            year=207,
+            turn_number=1,
         )
 
         assert result is not None
@@ -410,7 +506,10 @@ class TestE2EIntegration:
                 Command(type="develop", params={"territory": "xinye"}, faction_id="shu"),
             ]
             result = self.turn_controller.execute_turn(
-                self.world, player_commands=cmds, year=self.world.year, turn_number=tn,
+                self.world,
+                player_commands=cmds,
+                year=self.world.year,
+                turn_number=tn,
             )
             assert result is not None
 
@@ -428,15 +527,20 @@ class TestE2EIntegration:
 
         # Validate
         import sys
+
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
         from histrategy.parser.validator import CommandValidator
+
         validator = CommandValidator(self.map_engine)
         valid = validator.validate([cmd], self.world)
         assert len(valid) == 1
 
         # Execute
         result = self.turn_controller.execute_turn(
-            self.world, player_commands=valid, year=207, turn_number=1,
+            self.world,
+            player_commands=valid,
+            year=207,
+            turn_number=1,
         )
         assert result is not None
 
@@ -446,7 +550,10 @@ class TestE2EIntegration:
             Command(type="develop", params={"territory": "xinye"}, faction_id="shu"),
         ]
         result = self.turn_controller.execute_turn(
-            self.world, player_commands=cmds, year=207, turn_number=1,
+            self.world,
+            player_commands=cmds,
+            year=207,
+            turn_number=1,
         )
 
         assert hasattr(result, "climate_events")
@@ -459,7 +566,10 @@ class TestE2EIntegration:
         """NPC factions should generate autonomous commands."""
         # Execute turn without any player commands
         result = self.turn_controller.execute_turn(
-            self.world, player_commands=[], year=207, turn_number=1,
+            self.world,
+            player_commands=[],
+            year=207,
+            turn_number=1,
         )
         assert result is not None
         # NPC (cao, liubiao) should generate their own commands internally
@@ -468,6 +578,7 @@ class TestE2EIntegration:
 # ═══════════════════════════════════════════════════════════════
 # TurnController Extended Tests
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestTurnControllerExtended:
     """Additional TurnController validation checks."""
@@ -484,8 +595,10 @@ class TestTurnControllerExtended:
         self.char_engine.load_characters(self.world.characters)
 
         self.tc = TurnController(
-            self.map_engine, self.char_engine,
-            self.domestic_engine, self.military_engine,
+            self.map_engine,
+            self.char_engine,
+            self.domestic_engine,
+            self.military_engine,
             self.decision_engine,
         )
 
@@ -500,7 +613,9 @@ class TestTurnControllerExtended:
         assert self.world.year == 207
         assert self.world.season == Season.WINTER
         for tn in range(1, 5):
-            self.tc.execute_turn(self.world, player_commands=[], year=self.world.year, turn_number=tn)
+            self.tc.execute_turn(
+                self.world, player_commands=[], year=self.world.year, turn_number=tn
+            )
         assert self.world.year == 208
         assert self.world.season == Season.WINTER
 
@@ -511,9 +626,16 @@ class TestTurnControllerExtended:
         for tid in self.world.territories:
             assert tid in result.climate_events
         # At least some should be NORMAL
-        assert any(v in (ClimateEvent.NORMAL, ClimateEvent.DROUGHT,
-                         ClimateEvent.FLOOD, ClimateEvent.COLD_WAVE)
-                   for v in result.climate_events.values())
+        assert any(
+            v
+            in (
+                ClimateEvent.NORMAL,
+                ClimateEvent.DROUGHT,
+                ClimateEvent.FLOOD,
+                ClimateEvent.COLD_WAVE,
+            )
+            for v in result.climate_events.values()
+        )
 
     def test_resource_production(self):
         """Resource production should generate food and tax."""
@@ -553,13 +675,20 @@ class TestTurnControllerExtended:
 # Knowledge Loader Tests
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestKnowledgeLoader:
     """Test the knowledge-to-engine dataclass loader."""
 
     def setup_method(self):
         import sys
+
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
-        from histrategy.engine.loader import load_territories, load_characters, resolve_knowledge_path
+        from histrategy.engine.loader import (
+            load_characters,
+            load_territories,
+            resolve_knowledge_path,
+        )
+
         self.load_territories = load_territories
         self.load_characters = load_characters
         self.resolve_knowledge_path = resolve_knowledge_path
@@ -584,8 +713,10 @@ class TestKnowledgeLoader:
 
     def test_build_world_state(self):
         import sys
+
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
         from histrategy.engine.loader import build_world_state
+
         ws = build_world_state("shu", "207")
         assert ws.player_faction_id == "shu"
         assert ws.year == 207
@@ -600,6 +731,7 @@ class TestKnowledgeLoader:
 # ═══════════════════════════════════════════════════════════════
 # HistoricalRAG Tests
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestHistoricalRAG:
     """Test the RAG retriever for historical event context."""

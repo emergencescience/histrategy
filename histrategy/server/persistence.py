@@ -4,19 +4,20 @@ Persistence client — wraps Orchestrator /games/histrategy/* endpoints.
 All methods are synchronous (httpx). Called from FastAPI route handlers.
 ORCHESTRATOR_URL default: https://api.emergence.science
 """
+
 import os
-from typing import Optional
 
 import httpx
 
 ORCHESTRATOR_URL = os.environ.get("ORCHESTRATOR_URL", "https://api.emergence.science").rstrip("/")
 _TIMEOUT = 10.0  # seconds
 
+
 def _headers(jwt_token: str) -> dict:
     return {"Authorization": f"Bearer {jwt_token}", "Content-Type": "application/json"}
 
-def create_session(jwt_token: str, scenario: str, faction: str,
-                   preferences: dict | None = None) -> dict:
+
+def create_session(jwt_token: str, scenario: str, faction: str, preferences: dict | None = None) -> dict:
     """POST /games/histrategy/sessions → {session_id, ...}"""
     body = {"scenario": scenario, "faction": faction}
     if preferences:
@@ -30,6 +31,7 @@ def create_session(jwt_token: str, scenario: str, faction: str,
     r.raise_for_status()
     return r.json()
 
+
 def list_sessions(jwt_token: str) -> list[dict]:
     """GET /games/histrategy/sessions → [{session_id, ...}, ...]"""
     r = httpx.get(
@@ -40,20 +42,20 @@ def list_sessions(jwt_token: str) -> list[dict]:
     r.raise_for_status()
     return r.json().get("sessions", [])
 
-def save_game(jwt_token: str, session_id: str, slot: int,
-              world_state: dict, turn: int, year: int, season: str) -> dict:
+
+def save_game(jwt_token: str, session_id: str, slot: int, world_state: dict, turn: int, year: int, season: str) -> dict:
     """PUT /games/histrategy/sessions/{session_id}/save → {ok: true}"""
     r = httpx.put(
         f"{ORCHESTRATOR_URL}/games/histrategy/sessions/{session_id}/save",
-        json={"slot": slot, "world_state": world_state,
-              "turn": turn, "year": year, "season": season},
+        json={"slot": slot, "world_state": world_state, "turn": turn, "year": year, "season": season},
         headers=_headers(jwt_token),
         timeout=_TIMEOUT,
     )
     r.raise_for_status()
     return r.json()
 
-def load_game(jwt_token: str, session_id: str) -> Optional[dict]:
+
+def load_game(jwt_token: str, session_id: str) -> dict | None:
     """GET /games/histrategy/sessions/{session_id} → session detail with latest save"""
     r = httpx.get(
         f"{ORCHESTRATOR_URL}/games/histrategy/sessions/{session_id}",
@@ -68,6 +70,7 @@ def load_game(jwt_token: str, session_id: str) -> Optional[dict]:
 
 # ── Turn History ─────────────────────────────────────────────
 
+
 def append_turn(
     jwt_token: str,
     session_id: str,
@@ -75,17 +78,17 @@ def append_turn(
     year: int,
     season: str,
     player_decision: str = "",
-    court_dialogue: Optional[dict] = None,
-    suggestions: Optional[list] = None,
-    narrative: Optional[str] = None,
-    aftermath: Optional[str] = None,
-    bureaucracy: Optional[list] = None,
-    npc_reactions: Optional[list] = None,
-    state_changes: Optional[dict] = None,
-    plan_tokens: Optional[int] = None,
-    command_tokens: Optional[int] = None,
-    npc_tokens: Optional[int] = None,
-    sim_tokens: Optional[int] = None,
+    court_dialogue: dict | None = None,
+    suggestions: list | None = None,
+    narrative: str | None = None,
+    aftermath: str | None = None,
+    bureaucracy: list | None = None,
+    npc_reactions: list | None = None,
+    state_changes: dict | None = None,
+    plan_tokens: int | None = None,
+    command_tokens: int | None = None,
+    npc_tokens: int | None = None,
+    sim_tokens: int | None = None,
 ) -> dict:
     """POST /games/histrategy/sessions/{session_id}/turns → {ok, turn_id}"""
     r = httpx.post(

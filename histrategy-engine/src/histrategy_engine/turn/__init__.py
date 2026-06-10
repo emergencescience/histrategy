@@ -73,18 +73,14 @@ class TurnController:
 
         # ── Step 2: Resource production ──
         # Calculate troop counts per territory
-        territory_troops = {tid: 0 for tid in world_state.territories}
+        territory_troops = dict.fromkeys(world_state.territories, 0)
         for army in world_state.armies.values():
             if army.location in territory_troops:
                 territory_troops[army.location] += army.total_troops
 
         # Build tax_rates and tech_levels from factions
-        tax_rates = {
-            fid: f.tax_rate for fid, f in world_state.factions.items() if f.is_active
-        }
-        tech_levels = {
-            fid: f.tech_levels for fid, f in world_state.factions.items() if f.is_active
-        }
+        tax_rates = {fid: f.tax_rate for fid, f in world_state.factions.items() if f.is_active}
+        tech_levels = {fid: f.tech_levels for fid, f in world_state.factions.items() if f.is_active}
 
         territory_results = self.domestic_engine.process_season(
             world_state.territories,
@@ -144,9 +140,7 @@ class TurnController:
                 continue
             if fid == world_state.player_faction_id:
                 continue
-            npc_commands = self.decision_engine.generate_commands(
-                fid, world_state, self.map_engine
-            )
+            npc_commands = self.decision_engine.generate_commands(fid, world_state, self.map_engine)
             all_commands.extend(npc_commands)
 
         # ── Step 4: Command validation ──
@@ -176,6 +170,7 @@ class TurnController:
         # Annual loyalty changes (applied in Winter)
         if season == Season.WINTER:
             from histrategy_engine.character.loyalty import calculate_loyalty_change
+
             for char in world_state.characters.values():
                 if char.alive and char.faction_id:
                     faction = world_state.factions.get(char.faction_id)
@@ -183,14 +178,16 @@ class TurnController:
                         delta = calculate_loyalty_change(faction.legitimacy, char.politics)
                         if delta != 0:
                             char.loyalty = max(0, min(100, char.loyalty + delta))
-                            character_events.append({
-                                "type": "loyalty_change",
-                                "character_id": char.id,
-                                "character_name": char.name,
-                                "delta": delta,
-                                "new_loyalty": char.loyalty,
-                                "reason": f"势力合法性影响(当前合法性: {faction.legitimacy})"
-                            })
+                            character_events.append(
+                                {
+                                    "type": "loyalty_change",
+                                    "character_id": char.id,
+                                    "character_name": char.name,
+                                    "delta": delta,
+                                    "new_loyalty": char.loyalty,
+                                    "reason": f"势力合法性影响(当前合法性: {faction.legitimacy})",
+                                }
+                            )
 
         for char_id in list(world_state.characters.keys()):
             char = world_state.characters[char_id]
@@ -198,21 +195,23 @@ class TurnController:
                 continue
 
             # Natural death check
-            if self.char_engine.check_natural_death(
-                char_id, year, world_state.player_deviation
-            ):
+            if self.char_engine.check_natural_death(char_id, year, world_state.player_deviation):
                 impacts = self.char_engine.kill_character(char_id)
-                character_events.append({
-                    "type": "natural_death",
-                    "character_id": char_id,
-                    "character_name": char.name,
-                    "year": year,
-                })
+                character_events.append(
+                    {
+                        "type": "natural_death",
+                        "character_id": char_id,
+                        "character_name": char.name,
+                        "year": year,
+                    }
+                )
                 for impact in impacts:
-                    character_events.append({
-                        "type": "loyalty_impact",
-                        **impact,
-                    })
+                    character_events.append(
+                        {
+                            "type": "loyalty_impact",
+                            **impact,
+                        }
+                    )
 
             # Loyalty check for discontented
             if char.faction_id:
@@ -245,9 +244,12 @@ class TurnController:
                 events.append("heavy_tax")
 
             for combat in battles:
-                if combat.attacker_id == fid and combat.result in (BattleResult.VICTORY, BattleResult.DECISIVE_VICTORY):
-                    events.append("win_battle")
-                elif combat.defender_id == fid and combat.result in (BattleResult.DEFEAT, BattleResult.DECISIVE_DEFEAT):
+                if (
+                    combat.attacker_id == fid
+                    and combat.result in (BattleResult.VICTORY, BattleResult.DECISIVE_VICTORY)
+                    or combat.defender_id == fid
+                    and combat.result in (BattleResult.DEFEAT, BattleResult.DECISIVE_DEFEAT)
+                ):
                     events.append("win_battle")
 
             leg_state = LegitimacyState(current_score=faction.legitimacy)
@@ -258,9 +260,7 @@ class TurnController:
 
         # ── Step 10: Return TurnResult ──
         # Build faction snapshots
-        faction_snapshots = {
-            fid: f for fid, f in world_state.factions.items()
-        }
+        faction_snapshots = {fid: f for fid, f in world_state.factions.items()}
 
         # Advance season
         self._advance_season(world_state)
@@ -280,9 +280,7 @@ class TurnController:
 
     # ── Helpers ──
 
-    def _validate_commands(
-        self, commands: list[Command], world_state: WorldState
-    ) -> list[Command]:
+    def _validate_commands(self, commands: list[Command], world_state: WorldState) -> list[Command]:
         valid: list[Command] = []
         for cmd in commands:
             if self._is_valid_command(cmd, world_state):
@@ -426,7 +424,7 @@ class TurnController:
             resolved_pairs: set[tuple[str, str]] = set()
 
             for i, army_a in enumerate(armies):
-                for army_b in armies[i + 1:]:
+                for army_b in armies[i + 1 :]:
                     if army_a.faction_id == army_b.faction_id:
                         continue
                     pair = tuple(sorted([army_a.faction_id, army_b.faction_id]))
@@ -439,8 +437,11 @@ class TurnController:
                     defender = army_b
 
                     combat = self.military_engine.resolve_battle(
-                        attacker, defender, location,
-                        self.map_engine, self.char_engine,
+                        attacker,
+                        defender,
+                        location,
+                        self.map_engine,
+                        self.char_engine,
                     )
                     battles.append(combat)
 
@@ -468,7 +469,8 @@ class TurnController:
     ) -> Army | None:
         """Find an army belonging to a faction, optionally preferring border armies."""
         faction_armies = [
-            a for a in world_state.armies.values()
+            a
+            for a in world_state.armies.values()
             if a.faction_id == faction_id and a.total_troops > 0
         ]
 

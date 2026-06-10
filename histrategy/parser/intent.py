@@ -15,8 +15,9 @@ import re
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from histrategy.llm.adapter import LLMAdapter
     from histrategy_engine.world import Command
+
+    from histrategy.llm.adapter import LLMAdapter
 
 
 INTENT_PARSE_SYSTEM = """你是《三國志略》的军令官（Command Parser）。玩家用自由文本描述战略意图，你需要将其解析为结构化命令。
@@ -67,30 +68,64 @@ INTENT_PARSE_SYSTEM = """你是《三國志略》的军令官（Command Parser�
 # ─── Territory name → ID mapping ───────────────────────────────
 
 TERRITORY_NAME_MAP: dict[str, str] = {
-    "许昌": "xuchang", "xuchang": "xuchang",
-    "洛阳": "luoyang", "luoyang": "luoyang",
-    "邺城": "ye", "邺": "ye", "ye": "ye",
-    "宛城": "wancheng", "wancheng": "wancheng",
-    "常山": "changshan", "changshan": "changshan",
-    "新野": "xinye", "xinye": "xinye",
-    "平原": "pingyuan", "pingyuan": "pingyuan",
-    "建业": "jianye", "建業": "jianye", "jianye": "jianye",
-    "吴郡": "wu", "吳郡": "wu",
-    "会稽": "kuaiji", "會稽": "kuaiji", "kuaiji": "kuaiji",
-    "柴桑": "chaisang", "chaisang": "chaisang",
-    "襄阳": "xiangyang", "襄陽": "xiangyang", "xiangyang": "xiangyang",
-    "江陵": "jiangling", "jiangling": "jiangling",
-    "长沙": "changsha", "長沙": "changsha", "changsha": "changsha",
-    "江口": "jiangkou", "jiangkou": "jiangkou",
+    "许昌": "xuchang",
+    "xuchang": "xuchang",
+    "洛阳": "luoyang",
+    "luoyang": "luoyang",
+    "邺城": "ye",
+    "邺": "ye",
+    "ye": "ye",
+    "宛城": "wancheng",
+    "wancheng": "wancheng",
+    "常山": "changshan",
+    "changshan": "changshan",
+    "新野": "xinye",
+    "xinye": "xinye",
+    "平原": "pingyuan",
+    "pingyuan": "pingyuan",
+    "建业": "jianye",
+    "建業": "jianye",
+    "jianye": "jianye",
+    "吴郡": "wu",
+    "吳郡": "wu",
+    "会稽": "kuaiji",
+    "會稽": "kuaiji",
+    "kuaiji": "kuaiji",
+    "柴桑": "chaisang",
+    "chaisang": "chaisang",
+    "襄阳": "xiangyang",
+    "襄陽": "xiangyang",
+    "xiangyang": "xiangyang",
+    "江陵": "jiangling",
+    "jiangling": "jiangling",
+    "长沙": "changsha",
+    "長沙": "changsha",
+    "changsha": "changsha",
+    "江口": "jiangkou",
+    "jiangkou": "jiangkou",
 }
 
 FACTION_NAME_MAP: dict[str, str] = {
-    "曹操": "cao", "曹军": "cao", "曹": "cao", "cao": "cao",
-    "刘备": "shu", "刘军": "shu", "刘": "shu", "蜀": "shu", "shu": "shu",
-    "孙权": "wu", "孙军": "wu", "孙": "wu", "吴": "wu", "wu": "wu",
-    "刘表": "liubiao", "liubiao": "liubiao",
-    "袁绍": "yuanshao", "yuanshao": "yuanshao",
-    "董卓": "dongzhuo", "dongzhuo": "dongzhuo",
+    "曹操": "cao",
+    "曹军": "cao",
+    "曹": "cao",
+    "cao": "cao",
+    "刘备": "shu",
+    "刘军": "shu",
+    "刘": "shu",
+    "蜀": "shu",
+    "shu": "shu",
+    "孙权": "wu",
+    "孙军": "wu",
+    "孙": "wu",
+    "吴": "wu",
+    "wu": "wu",
+    "刘表": "liubiao",
+    "liubiao": "liubiao",
+    "袁绍": "yuanshao",
+    "yuanshao": "yuanshao",
+    "董卓": "dongzhuo",
+    "dongzhuo": "dongzhuo",
 }
 
 
@@ -112,7 +147,6 @@ class IntentParser:
             List of Command objects (from histrategy_engine.world.Command).
             Unsupported or unparseable text yields an empty list.
         """
-        from histrategy_engine.world import Command
 
         text = raw_text.strip()
         if not text:
@@ -131,13 +165,8 @@ class IntentParser:
 
     def _llm_parse(self, text: str, faction_id: str) -> list:
         """Use LLM to parse text into commands."""
-        from histrategy_engine.world import Command
 
-        user_msg = (
-            f"## 玩家势力\nfaction_id: {faction_id}\n\n"
-            f"## 玩家指令\n{text}\n\n"
-            f"请解析以上文本为结构化命令。"
-        )
+        user_msg = f"## 玩家势力\nfaction_id: {faction_id}\n\n## 玩家指令\n{text}\n\n请解析以上文本为结构化命令。"
 
         messages = [
             {"role": "system", "content": INTENT_PARSE_SYSTEM},
@@ -189,88 +218,106 @@ class IntentParser:
             amount = self._extract_number(text) or 500
             unit_type = self._extract_unit_type(text)
             if tid:
-                commands.append(Command(
-                    type="recruit",
-                    params={"territory": tid, "unit_type": unit_type, "amount": amount},
-                    faction_id=faction_id,
-                ))
+                commands.append(
+                    Command(
+                        type="recruit",
+                        params={"territory": tid, "unit_type": unit_type, "amount": amount},
+                        faction_id=faction_id,
+                    )
+                )
 
         # Develop
         if any(kw in text_lower for kw in ("发展", "开发", "建设", "屯田", "修城", "农")):
             tid = self._extract_territory(text) or ""
             if tid:
-                commands.append(Command(
-                    type="develop",
-                    params={"territory": tid},
-                    faction_id=faction_id,
-                ))
+                commands.append(
+                    Command(
+                        type="develop",
+                        params={"territory": tid},
+                        faction_id=faction_id,
+                    )
+                )
 
         # Attack
         if any(kw in text_lower for kw in ("攻击", "进攻", "攻打", "讨伐", "出兵", "讨")):
             target = self._extract_territory(text) or self._extract_target_faction(text) or ""
             if target:
-                commands.append(Command(
-                    type="attack",
-                    params={"target_territory": target},
-                    faction_id=faction_id,
-                ))
+                commands.append(
+                    Command(
+                        type="attack",
+                        params={"target_territory": target},
+                        faction_id=faction_id,
+                    )
+                )
 
         # Move
         if any(kw in text_lower for kw in ("移动", "行军", "调兵", "移师")):
             dest = self._extract_territory(text) or ""
             if dest:
-                commands.append(Command(
-                    type="move",
-                    params={"destination": dest},
-                    faction_id=faction_id,
-                ))
+                commands.append(
+                    Command(
+                        type="move",
+                        params={"destination": dest},
+                        faction_id=faction_id,
+                    )
+                )
 
         # Tax
         if any(kw in text_lower for kw in ("税率", "赋税", "征税", "加税", "减税")):
             rate = self._extract_tax_rate(text)
-            commands.append(Command(
-                type="tax",
-                params={"rate": rate},
-                faction_id=faction_id,
-            ))
+            commands.append(
+                Command(
+                    type="tax",
+                    params={"rate": rate},
+                    faction_id=faction_id,
+                )
+            )
 
         # Train
         if any(kw in text_lower for kw in ("训练", "操练", "练兵")):
             tid = self._extract_territory(text) or ""
             if tid:
-                commands.append(Command(
-                    type="train",
-                    params={"territory": tid},
-                    faction_id=faction_id,
-                ))
+                commands.append(
+                    Command(
+                        type="train",
+                        params={"territory": tid},
+                        faction_id=faction_id,
+                    )
+                )
 
         # Rest
         if any(kw in text_lower for kw in ("休整", "休息", "修整")):
-            commands.append(Command(
-                type="rest",
-                params={},
-                faction_id=faction_id,
-            ))
+            commands.append(
+                Command(
+                    type="rest",
+                    params={},
+                    faction_id=faction_id,
+                )
+            )
 
         # Negotiate
         if any(kw in text_lower for kw in ("联盟", "结盟", "外交", "谈判", "同盟", "遣使", "修好")):
             target = self._extract_target_faction(text) or ""
             if target:
-                commands.append(Command(
-                    type="negotiate",
-                    params={"target_faction": target},
-                    faction_id=faction_id,
-                ))
+                commands.append(
+                    Command(
+                        type="negotiate",
+                        params={"target_faction": target},
+                        faction_id=faction_id,
+                    )
+                )
 
         # Spy
         if any(kw in text_lower for kw in ("细作", "间谍", "侦查", "情报")):
             target = self._extract_target_faction(text) or ""
             if target:
-                commands.append(Command(
-                    type="spy",
-                    params={"target_faction": target},
-                    faction_id=faction_id,
-                ))
+                commands.append(
+                    Command(
+                        type="spy",
+                        params={"target_faction": target},
+                        faction_id=faction_id,
+                    )
+                )
 
         return commands
 
@@ -293,8 +340,19 @@ class IntentParser:
 
         cmd_type = cmd_data.get("type", "").strip().lower()
         if cmd_type not in (
-            "recruit", "move", "attack", "develop", "tax", "train",
-            "spy", "trade", "rest", "appoint", "dismiss", "negotiate", "research",
+            "recruit",
+            "move",
+            "attack",
+            "develop",
+            "tax",
+            "train",
+            "spy",
+            "trade",
+            "rest",
+            "appoint",
+            "dismiss",
+            "negotiate",
+            "research",
         ):
             return None
 
@@ -310,7 +368,7 @@ class IntentParser:
 
     def _extract_territory(self, text: str) -> str | None:
         """Extract territory ID from text using name map.
-        
+
         Sorted by name length descending to prefer longest match
         (e.g. 'xinye' over 'ye', 'changsha' over 'sha').
         """
@@ -330,8 +388,7 @@ class IntentParser:
     def _extract_number(self, text: str) -> int:
         """Extract a numeric amount from text."""
         # Chinese numerals
-        cn_nums = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
-                    "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
+        cn_nums = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
         match = re.search(r"(\d+)[千百]?", text)
         if match:
             return int(match.group(1))

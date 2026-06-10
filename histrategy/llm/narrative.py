@@ -10,16 +10,16 @@ Offline fallback returns deterministic text when no LLM key is available.
 
 from __future__ import annotations
 
-import json
 import os
-import sys
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from histrategy_engine.world import TurnResult, WorldState
+
     from .adapter import LLMAdapter
 
 # ─── Knowledge path resolution ──────────────────────────────────
+
 
 def _resolve_knowledge_path() -> str:
     candidates = [
@@ -30,9 +30,7 @@ def _resolve_knowledge_path() -> str:
         if os.path.isdir(os.path.join(p, "timeline")):
             return os.path.abspath(p)
     # Fallback for installed package
-    return os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "..", "histrategy-knowledge")
-    )
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "histrategy-knowledge"))
 
 
 # ─── Narrative generation prompt (read-only, no state mutation) ──
@@ -46,6 +44,7 @@ NARRATIVE_SYSTEM = """你是《三國志略》的史官。你负责将一回合�
 3. **数据自然嵌入** — 将关键数值变化以括号夹注形式自然融入叙事，如"（募兵三千，耗金千五百）"
 4. **长度 200-400 字** — 精炼如史，不拖沓
 5. **忠实于物理引擎输出** — 不虚构未发生的事件，不编造不存在的人物
+6. **尊重当前世界物理状态** — 严格遵循输入中给出的势力城池分布及亡故人物列表。不可描写已被列为亡故/不活跃的人物（例如董卓、刘表已死，切勿描写其活动）；不可描写错误的领土归属关系（例如刘备已失新野，切勿描写刘备在新野驻守或活动）。
 
 ## TurnResult 结构说明
 
@@ -125,6 +124,7 @@ class NarrativeEngine:
         if os.path.isdir(self._knowledge_path):
             try:
                 from histrategy_engine.history.rag import HistoricalRAG
+
                 self._rag = HistoricalRAG(self._knowledge_path)
             except Exception:
                 pass
@@ -139,13 +139,20 @@ class NarrativeEngine:
 
     # ── Turn Narrative ────────────────────────────────────────
 
-    def generate_turn_narrative(self, turn_result: TurnResult, deviation: float = 0.0, averted_events: list[str] | None = None) -> str:
+    def generate_turn_narrative(
+        self,
+        turn_result: TurnResult,
+        deviation: float = 0.0,
+        averted_events: list[str] | None = None,
+        world_state: WorldState | None = None,
+    ) -> str:
         """Generate a historical chronicle narrative from a turn's physics results.
 
         Args:
             turn_result: The complete output from TurnController.execute_turn()
             deviation: The player's historical deviation score.
             averted_events: List of event IDs that were averted.
+            world_state: Complete game world state (optional) for detailed context.
 
         Returns:
             A 文白相间 historical narrative string (200-400 chars).
@@ -154,8 +161,13 @@ class NarrativeEngine:
         if not self.llm_available or not self.llm:
             return self._offline_narrative(turn_result)
 
-        # Build the prompt context from the TurnResult
-        context = self._build_narrative_context(turn_result, deviation=deviation, averted_events=averted_events)
+        # Build the prompt context from the TurnResult and WorldState
+        context = self._build_narrative_context(
+            turn_result,
+            deviation=deviation,
+            averted_events=averted_events,
+            world_state=world_state,
+        )
 
         messages = [
             {"role": "system", "content": NARRATIVE_SYSTEM},
@@ -172,7 +184,13 @@ class NarrativeEngine:
         except Exception:
             return self._offline_narrative(turn_result)
 
-    def _build_narrative_context(self, tr: TurnResult, deviation: float = 0.0, averted_events: list[str] | None = None) -> str:
+    def _build_narrative_context(
+        self,
+        tr: TurnResult,
+        deviation: float = 0.0,
+        averted_events: list[str] | None = None,
+        world_state: WorldState | None = None,
+    ) -> str:
         """Build a structured text context from a TurnResult for LLM input."""
         lines: list[str] = []
         lines.append(f"## 当前时间\n{tr.year}年{tr.season.cn} | 第{tr.turn_number}回合\n")
@@ -206,10 +224,7 @@ class NarrativeEngine:
         if tr.battles:
             lines.append("## 兵争武事")
             for b in tr.battles:
-                lines.append(
-                    f"- {b.location}: {b.attacker_id} vs {b.defender_id} "
-                    f"→ {b.result.value}"
-                )
+                lines.append(f"- {b.location}: {b.attacker_id} vs {b.defender_id} → {b.result.value}")
                 if b.territory_captured:
                     lines.append(f"  → 领地易手: {b.location} 归 {b.attacker_id}")
                 atk_loss = sum(b.attacker_casualties.values())
@@ -233,8 +248,50 @@ class NarrativeEngine:
                     lines.append(f"- {name}: {t}")
             lines.append("")
 
-        # Faction snapshots (summary only)
-        if tr.faction_snapshots:
+        # Faction snapshots & territories grounding
+        if world_state:
+            lines.append("## 天下势力及控制城池")
+            for fid, fs in world_state.factions.items():
+                if not fs.is_active:
+                    continue
+                ruler_name = "未知"
+                if fs.ruler_id in world_state.characters:
+                    ruler_name = world_state.characters[fs.ruler_id].name
+                else:
+                    ruler_name = fs.ruler_id
+
+                t_names = []
+                for tid in fs.territories:
+                    t = world_state.territories.get(tid)
+                    if t:
+                        t_names.append(t.name)
+
+                tech_strs = []
+                if hasattr(fs, "tech_levels") and fs.tech_levels:
+                    for tech_name, val in fs.tech_levels.items():
+                        tech_strs.append(f"{tech_name}Lvl.{val}")
+                tech_info = f"，科技: {', '.join(tech_strs)}" if tech_strs else ""
+
+                lines.append(
+                    f"- {fs.name}（君主: {ruler_name}）: 兵力{fs.strength_actual:,}，"
+                    f"资金{fs.treasury:,}，粮草{fs.food:,}。控制城池: {', '.join(t_names) if t_names else '无'}{tech_info}"
+                )
+            lines.append("")
+
+            # List deceased figures to avoid revival hallucinations
+            dead_names = [c.name for c in world_state.characters.values() if not c.alive]
+            if "dongzhuo" not in world_state.characters or not world_state.characters["dongzhuo"].alive:
+                if "董卓" not in dead_names:
+                    dead_names.append("董卓")
+            if "liubiao" not in world_state.characters or not world_state.characters["liubiao"].alive:
+                if "刘表" not in dead_names:
+                    dead_names.append("刘表")
+
+            if dead_names:
+                lines.append("## 已亡故/不活跃人物（不可在此回合复活或出现活跃事迹）")
+                lines.append(f"- {', '.join(dead_names)}")
+                lines.append("")
+        elif tr.faction_snapshots:
             lines.append("## 天下态势")
             for fid, fs in tr.faction_snapshots.items():
                 if not fs.is_active:
@@ -266,13 +323,13 @@ class NarrativeEngine:
         not_normal = {tid: ev for tid, ev in tr.climate_events.items() if ev.value != "normal"}
         if not_normal:
             events_cn = {
-                "drought": "大旱", "flood": "洪水", "pestilence": "瘟疫",
-                "bumper_harvest": "丰年", "cold_wave": "寒潮",
+                "drought": "大旱",
+                "flood": "洪水",
+                "pestilence": "瘟疫",
+                "bumper_harvest": "丰年",
+                "cold_wave": "寒潮",
             }
-            climate_desc = "；".join(
-                f"{tid}遭{events_cn.get(ev.value, ev.value)}"
-                for tid, ev in not_normal.items()
-            )
+            climate_desc = "；".join(f"{tid}遭{events_cn.get(ev.value, ev.value)}" for tid, ev in not_normal.items())
             parts.append(f"\n### 天时气候\n{climate_desc}。")
         else:
             parts.append("\n### 天时气候\n是岁风调雨顺，五谷丰登。")
@@ -281,8 +338,10 @@ class NarrativeEngine:
         if tr.battles:
             parts.append("\n### 兵争武事")
             battle_results_cn = {
-                "decisive_victory": "大破之", "victory": "击败之",
-                "draw": "两军相持不下", "defeat": "败绩",
+                "decisive_victory": "大破之",
+                "victory": "击败之",
+                "draw": "两军相持不下",
+                "defeat": "败绩",
                 "decisive_defeat": "大败而归",
             }
             for b in tr.battles:
@@ -321,9 +380,7 @@ class NarrativeEngine:
 
     # ── Plan Suggestions ──────────────────────────────────────
 
-    def generate_plan_suggestions(
-        self, world_state: WorldState, faction_id: str
-    ) -> list[str]:
+    def generate_plan_suggestions(self, world_state: WorldState, faction_id: str) -> list[str]:
         """Generate strategic suggestions based on physics engine state.
 
         Args:
@@ -357,9 +414,7 @@ class NarrativeEngine:
         except Exception:
             return self._offline_suggestions(world_state, faction_id)
 
-    def _build_suggestion_context(
-        self, world_state: WorldState, faction_id: str
-    ) -> str:
+    def _build_suggestion_context(self, world_state: WorldState, faction_id: str) -> str:
         """Build context for the plan suggestions prompt."""
         faction = world_state.factions.get(faction_id)
         if not faction:
@@ -401,7 +456,8 @@ class NarrativeEngine:
                 if t.neighbors:
                     neighbor_names = [
                         f"{world_state.territories[n].name}({world_state.territories[n].owner_id or '空'})"
-                        if n in world_state.territories else n
+                        if n in world_state.territories
+                        else n
                         for n in t.neighbors[:5]
                     ]
                     lines.append(f"  邻接: {', '.join(neighbor_names)}")
@@ -429,9 +485,7 @@ class NarrativeEngine:
                 suggestions.append(line.split(". ", 1)[1])
         return suggestions[:4] if suggestions else [text[:200]]
 
-    def _offline_suggestions(
-        self, world_state: WorldState, faction_id: str
-    ) -> list[str]:
+    def _offline_suggestions(self, world_state: WorldState, faction_id: str) -> list[str]:
         """Deterministic strategy suggestions based on physics engine state."""
         faction = world_state.factions.get(faction_id)
         if not faction:
@@ -447,13 +501,11 @@ class NarrativeEngine:
 
         if food_low and territories:
             suggestions.append(
-                f"【劝课农桑】发展{territories[0]}的农业，提升粮食产量。"
-                f"当前粮草仅{faction.food}，亟需补充。"
+                f"【劝课农桑】发展{territories[0]}的农业，提升粮食产量。当前粮草仅{faction.food}，亟需补充。"
             )
         elif troops_low and treasury_ok and territories:
             suggestions.append(
-                f"【征募乡勇】在{territories[0]}招募步兵，增强军力。"
-                f"当前仅{faction.strength_actual}兵卒，不足以御敌。"
+                f"【征募乡勇】在{territories[0]}招募步兵，增强军力。当前仅{faction.strength_actual}兵卒，不足以御敌。"
             )
 
         # Expansion check
@@ -470,9 +522,7 @@ class NarrativeEngine:
                     )
                     break
                 elif nt and not nt.owner_id:
-                    suggestions.append(
-                        f"【据土略地】派军占据{nid}（{nt.name}），该地现为空城。"
-                    )
+                    suggestions.append(f"【据土略地】派军占据{nid}（{nt.name}），该地现为空城。")
                     break
             if len(suggestions) >= 2:
                 break
@@ -492,16 +542,11 @@ class NarrativeEngine:
             if nf:
                 rel = nf.relations.get(faction_id, 0)
                 if rel >= 0:
-                    suggestions.append(
-                        f"【遣使修好】派使者加强与{nf.name}的盟约关系。"
-                        f"当前关系{rel:+d}，联合可抗强敌。"
-                    )
+                    suggestions.append(f"【遣使修好】派使者加强与{nf.name}的盟约关系。当前关系{rel:+d}，联合可抗强敌。")
 
         # Ensure 3-4 suggestions
         if len(suggestions) < 3 and territories:
-            suggestions.append(
-                f"【固本培元】发展{territories[0]}至更高开发度，提升税收和粮食产量。"
-            )
+            suggestions.append(f"【固本培元】发展{territories[0]}至更高开发度，提升税收和粮食产量。")
         if len(suggestions) < 3:
             suggestions.append("【远交近攻】审视外交局势，联合远方势力对抗近邻。")
         if len(suggestions) < 3:

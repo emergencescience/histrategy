@@ -189,12 +189,14 @@ class HistoryEngine:
                 if "participants" in evt_data:
                     effects["participants"] = evt_data["participants"]
 
-                proposals.append(EventProposal(
-                    event_id=evt_id,
-                    title=evt_data["title"],
-                    effects=effects,
-                    narrative_hint=evt_data.get("description", ""),
-                ))
+                proposals.append(
+                    EventProposal(
+                        event_id=evt_id,
+                        title=evt_data["title"],
+                        effects=effects,
+                        narrative_hint=evt_data.get("description", ""),
+                    )
+                )
             else:
                 # Event does not trigger — mark as averted
                 self.mark_averted(evt_id, f"Probability check failed: {effective_prob:.3f}")
@@ -377,14 +379,18 @@ class HistoryEngine:
         outcomes = evt_data.get("outcomes", [])
         # Alternative outcomes are outcomes[1:] (since outcomes[0] is historical)
         for outcome in outcomes[1:]:
-            alternatives.append({
-                "event_id": blocked_event_id,
-                "title": evt_data["title"],
-                "alternative_id": outcome["id"],
-                "description": outcome["description"],
-                "effects": outcome.get("effects", {}),
-                "divergence_level": outcome.get("effects", {}).get("game_divergence", "moderate"),
-            })
+            alternatives.append(
+                {
+                    "event_id": blocked_event_id,
+                    "title": evt_data["title"],
+                    "alternative_id": outcome["id"],
+                    "description": outcome["description"],
+                    "effects": outcome.get("effects", {}),
+                    "divergence_level": outcome.get("effects", {}).get(
+                        "game_divergence", "moderate"
+                    ),
+                }
+            )
 
         # Also provide downstream alternatives from blocked events
         butterfly = evt_data.get("butterfly_effects", {})
@@ -393,14 +399,16 @@ class HistoryEngine:
             if ds_id in self._blocked_downstream:
                 ds_data = self._event_index.get(ds_id)
                 if ds_data:
-                    alternatives.append({
-                        "event_id": ds_id,
-                        "title": ds_data["title"],
-                        "alternative_id": "averted",
-                        "description": f"由于{evt_data['title']}未发生，{ds_data['title']}也不会发生",
-                        "effects": {},
-                        "divergence_level": "high",
-                    })
+                    alternatives.append(
+                        {
+                            "event_id": ds_id,
+                            "title": ds_data["title"],
+                            "alternative_id": "averted",
+                            "description": f"由于{evt_data['title']}未发生，{ds_data['title']}也不会发生",
+                            "effects": {},
+                            "divergence_level": "high",
+                        }
+                    )
 
         return alternatives
 
@@ -421,19 +429,27 @@ class HistoryEngine:
             else:
                 # Check multi-year events
                 title = evt_data.get("title", "")
-                if "211" in title and "214" in title and 211 <= year <= 214:
-                    relevant_events.append(evt_data)
-                elif "217" in title and "219" in title and 217 <= year <= 219:
-                    relevant_events.append(evt_data)
-                elif "221" in title and "222" in title and 221 <= year <= 222:
+                if (
+                    "211" in title
+                    and "214" in title
+                    and 211 <= year <= 214
+                    or "217" in title
+                    and "219" in title
+                    and 217 <= year <= 219
+                    or "221" in title
+                    and "222" in title
+                    and 221 <= year <= 222
+                ):
                     relevant_events.append(evt_data)
 
         # Sort by year then month
         relevant_events.sort(key=lambda e: (e["year"], e.get("month", 6)))
 
         for evt in relevant_events:
-            status = "✓ 已触发" if evt["id"] in self._triggered_events else (
-                "✗ 未发生" if evt["id"] in self._averted_events else "○ 待定"
+            status = (
+                "✓ 已触发"
+                if evt["id"] in self._triggered_events
+                else ("✗ 未发生" if evt["id"] in self._averted_events else "○ 待定")
             )
             title = evt["title"]
             desc = evt.get("description", "")

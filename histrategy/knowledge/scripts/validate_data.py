@@ -62,8 +62,13 @@ def _validate_type(value: Any, expected: Any, path: str) -> list[str]:
 
     if isinstance(expected, str):
         type_map = {
-            "string": str, "integer": int, "number": (int, float),
-            "boolean": bool, "object": dict, "array": list, "null": type(None),
+            "string": str,
+            "integer": int,
+            "number": (int, float),
+            "boolean": bool,
+            "object": dict,
+            "array": list,
+            "null": type(None),
         }
         py_type = type_map.get(expected)
         if py_type is None:
@@ -80,8 +85,14 @@ def _validate_type(value: Any, expected: Any, path: str) -> list[str]:
             if t == "null" and value is None:
                 valid = True
                 break
-            type_map = {"string": str, "integer": int, "number": (int, float),
-                        "boolean": bool, "object": dict, "array": list}
+            type_map = {
+                "string": str,
+                "integer": int,
+                "number": (int, float),
+                "boolean": bool,
+                "object": dict,
+                "array": list,
+            }
             py_type = type_map.get(t)
             if py_type and isinstance(value, py_type):
                 if t == "integer" and isinstance(value, bool):
@@ -126,20 +137,14 @@ def validate_item(item: Any, schema: dict, path: str = "$") -> list[str]:
 
             # Validate enum
             if "enum" in prop_schema and value not in prop_schema["enum"]:
-                errors.append(
-                    f"{field_path}: '{value}' not in allowed values: {prop_schema['enum']}"
-                )
+                errors.append(f"{field_path}: '{value}' not in allowed values: {prop_schema['enum']}")
 
             # Validate integer constraints
             if isinstance(value, (int, float)) and not isinstance(value, bool):
                 if "minimum" in prop_schema and value < prop_schema["minimum"]:
-                    errors.append(
-                        f"{field_path}: {value} < minimum {prop_schema['minimum']}"
-                    )
+                    errors.append(f"{field_path}: {value} < minimum {prop_schema['minimum']}")
                 if "maximum" in prop_schema and value > prop_schema["maximum"]:
-                    errors.append(
-                        f"{field_path}: {value} > maximum {prop_schema['maximum']}"
-                    )
+                    errors.append(f"{field_path}: {value} > maximum {prop_schema['maximum']}")
 
             # Validate array items
             if isinstance(value, list) and "items" in prop_schema:
@@ -167,26 +172,21 @@ def validate_cross_references(data_files: dict[str, list]) -> list[str]:
     for c in characters.values():
         if c["faction"] not in factions:
             errors.append(
-                f"characters.json → {c['name']} (id={c['id']}): "
-                f"faction '{c['faction']}' not found in factions.json"
+                f"characters.json → {c['name']} (id={c['id']}): faction '{c['faction']}' not found in factions.json"
             )
 
     # Factions reference valid rulers
     for f in factions.values():
         if f["ruler_id"] and f["ruler_id"] not in characters:
             errors.append(
-                f"factions.json → {f['name']} (id={f['id']}): "
-                f"ruler_id '{f['ruler_id']}' not found in characters.json"
+                f"factions.json → {f['name']} (id={f['id']}): ruler_id '{f['ruler_id']}' not found in characters.json"
             )
 
     # Faction starting_territories reference valid regions
     for f in factions.values():
         for t in f.get("starting_territories", []):
             if t not in regions:
-                errors.append(
-                    f"factions.json → {f['name']} (id={f['id']}): "
-                    f"territory '{t}' not found in regions.json"
-                )
+                errors.append(f"factions.json → {f['name']} (id={f['id']}): territory '{t}' not found in regions.json")
 
     # Region neighbors reference valid regions (by pinyin ID or Chinese name)
     for r in regions.values():
@@ -249,21 +249,12 @@ def validate_directory(data_dir: Path, schema_defs: dict) -> tuple[int, int]:
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Validate 三國志略 knowledge base data files"
-    )
+    parser = argparse.ArgumentParser(description="Validate 三國志略 knowledge base data files")
     parser.add_argument(
-        "--scenario", type=str, default=None,
-        help="Validate a specific scenario subdirectory (e.g. '190')"
+        "--scenario", type=str, default=None, help="Validate a specific scenario subdirectory (e.g. '190')"
     )
-    parser.add_argument(
-        "--all", action="store_true",
-        help="Validate top-level data AND all scenario subdirectories"
-    )
-    parser.add_argument(
-        "--no-cross-ref", action="store_true",
-        help="Skip cross-reference validation"
-    )
+    parser.add_argument("--all", action="store_true", help="Validate top-level data AND all scenario subdirectories")
+    parser.add_argument("--no-cross-ref", action="store_true", help="Skip cross-reference validation")
     args = parser.parse_args()
 
     schema_data = load_schema()

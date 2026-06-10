@@ -5,11 +5,11 @@ Coverage target: >= 80%
 """
 
 import pytest
+
 from histrategy_engine import (
     Army,
     Character,
     CharacterEngine,
-    ClimateSystem,
     Command,
     DecisionEngine,
     DomesticEngine,
@@ -28,7 +28,6 @@ from histrategy_engine import (
     WorldState,
 )
 
-
 # ═══════════════════════════════════════════════════════════════
 # Fixtures
 # ═══════════════════════════════════════════════════════════════
@@ -38,34 +37,65 @@ from histrategy_engine import (
 def simple_territories() -> dict[str, Territory]:
     return {
         "t1": Territory(
-            id="t1", name="平原城", owner_id="cao",
-            fertility=6, terrain_type=TerrainType.PLAINS, climate_zone="central",
-            population=50000, development=40, fortification=30,
-            horse_resource=True, iron_resource=True,
+            id="t1",
+            name="平原城",
+            owner_id="cao",
+            fertility=6,
+            terrain_type=TerrainType.PLAINS,
+            climate_zone="central",
+            population=50000,
+            development=40,
+            fortification=30,
+            horse_resource=True,
+            iron_resource=True,
             neighbors=["t2", "t3"],
         ),
         "t2": Territory(
-            id="t2", name="河畔镇", owner_id="wu",
-            fertility=7, terrain_type=TerrainType.RIVER, climate_zone="central",
-            has_river=True, population=30000, development=30, fortification=15,
+            id="t2",
+            name="河畔镇",
+            owner_id="wu",
+            fertility=7,
+            terrain_type=TerrainType.RIVER,
+            climate_zone="central",
+            has_river=True,
+            population=30000,
+            development=30,
+            fortification=15,
             neighbors=["t1", "t4"],
         ),
         "t3": Territory(
-            id="t3", name="山林", owner_id="cao",
-            fertility=5, terrain_type=TerrainType.FOREST, climate_zone="central",
-            population=20000, development=20, fortification=10,
+            id="t3",
+            name="山林",
+            owner_id="cao",
+            fertility=5,
+            terrain_type=TerrainType.FOREST,
+            climate_zone="central",
+            population=20000,
+            development=20,
+            fortification=10,
             neighbors=["t1"],
         ),
         "t4": Territory(
-            id="t4", name="荒野", owner_id="",
-            fertility=4, terrain_type=TerrainType.PLAINS, climate_zone="central",
-            population=10000, development=10,
+            id="t4",
+            name="荒野",
+            owner_id="",
+            fertility=4,
+            terrain_type=TerrainType.PLAINS,
+            climate_zone="central",
+            population=10000,
+            development=10,
             neighbors=["t2"],
         ),
         "t5": Territory(
-            id="t5", name="孤岛", owner_id="cao",
-            fertility=3, terrain_type=TerrainType.COAST, climate_zone="central",
-            has_coast=True, population=5000, development=5,
+            id="t5",
+            name="孤岛",
+            owner_id="cao",
+            fertility=3,
+            terrain_type=TerrainType.COAST,
+            climate_zone="central",
+            has_coast=True,
+            population=5000,
+            development=5,
             neighbors=[],
         ),
     }
@@ -82,22 +112,51 @@ def map_engine(simple_territories) -> MapEngine:
 def char_engine() -> CharacterEngine:
     chars = {
         "caocao": Character(
-            id="caocao", name="曹操", alias="孟德",
-            leadership=96, might=72, intelligence=93, politics=90, charisma=88,
-            faction_id="cao", location="t1", loyalty=100,
-            is_commanding=True, birth=155, death=220,
+            id="caocao",
+            name="曹操",
+            alias="孟德",
+            leadership=96,
+            might=72,
+            intelligence=93,
+            politics=90,
+            charisma=88,
+            faction_id="cao",
+            location="t1",
+            loyalty=100,
+            is_commanding=True,
+            birth=155,
+            death=220,
         ),
         "xiahoudun": Character(
-            id="xiahoudun", name="夏侯惇", alias="元让",
-            leadership=88, might=90, intelligence=62, politics=55, charisma=60,
-            faction_id="cao", location="t1", loyalty=95,
-            birth=157, death=220,
+            id="xiahoudun",
+            name="夏侯惇",
+            alias="元让",
+            leadership=88,
+            might=90,
+            intelligence=62,
+            politics=55,
+            charisma=60,
+            faction_id="cao",
+            location="t1",
+            loyalty=95,
+            birth=157,
+            death=220,
         ),
         "zhouyu": Character(
-            id="zhouyu", name="周瑜", alias="公瑾",
-            leadership=95, might=65, intelligence=94, politics=80, charisma=85,
-            faction_id="wu", location="t2", loyalty=90,
-            is_commanding=True, birth=175, death=210,
+            id="zhouyu",
+            name="周瑜",
+            alias="公瑾",
+            leadership=95,
+            might=65,
+            intelligence=94,
+            politics=80,
+            charisma=85,
+            faction_id="wu",
+            location="t2",
+            loyalty=90,
+            is_commanding=True,
+            birth=175,
+            death=210,
         ),
     }
     engine = CharacterEngine()
@@ -159,54 +218,105 @@ def sample_army_wu() -> Army:
 def world_state(simple_territories) -> WorldState:
     factions = {
         "cao": FactionState(
-            id="cao", name="曹操军", ruler_id="caocao",
-            capital="t1", territories=["t1", "t3", "t5"],
-            strength_actual=8000, treasury=10000, food=5000,
-            tax_rate=0.3, morale_actual=60,
+            id="cao",
+            name="曹操军",
+            ruler_id="caocao",
+            capital="t1",
+            territories=["t1", "t3", "t5"],
+            strength_actual=8000,
+            treasury=10000,
+            food=5000,
+            tax_rate=0.3,
+            morale_actual=60,
         ),
         "wu": FactionState(
-            id="wu", name="孙权军", ruler_id="sunquan",
-            capital="t2", territories=["t2"],
-            strength_actual=4000, treasury=6000, food=3000,
-            tax_rate=0.3, morale_actual=55,
+            id="wu",
+            name="孙权军",
+            ruler_id="sunquan",
+            capital="t2",
+            territories=["t2"],
+            strength_actual=4000,
+            treasury=6000,
+            food=3000,
+            tax_rate=0.3,
+            morale_actual=55,
         ),
     }
     armies = {
         "army_cao_1": Army(
-            id="army_cao_1", faction_id="cao", location="t1",
+            id="army_cao_1",
+            faction_id="cao",
+            location="t1",
             commander_id="caocao",
             units={UnitType.INFANTRY: 2000, UnitType.CAVALRY: 500},
-            morale=85, training=1.0, supply=30,
+            morale=85,
+            training=1.0,
+            supply=30,
         ),
         "army_wu_1": Army(
-            id="army_wu_1", faction_id="wu", location="t2",
+            id="army_wu_1",
+            faction_id="wu",
+            location="t2",
             commander_id="zhouyu",
             units={UnitType.INFANTRY: 1500, UnitType.ARCHER: 500},
-            morale=80, training=1.0, supply=25,
+            morale=80,
+            training=1.0,
+            supply=25,
         ),
     }
     chars = {
         "caocao": Character(
-            id="caocao", name="曹操", alias="孟德",
-            leadership=96, might=72, intelligence=93, politics=90, charisma=88,
-            faction_id="cao", location="t1", loyalty=100,
-            is_commanding=True, birth=155, death=220,
+            id="caocao",
+            name="曹操",
+            alias="孟德",
+            leadership=96,
+            might=72,
+            intelligence=93,
+            politics=90,
+            charisma=88,
+            faction_id="cao",
+            location="t1",
+            loyalty=100,
+            is_commanding=True,
+            birth=155,
+            death=220,
         ),
         "xiahoudun": Character(
-            id="xiahoudun", name="夏侯惇", alias="元让",
-            leadership=88, might=90, intelligence=62, politics=55, charisma=60,
-            faction_id="cao", location="t1", loyalty=95,
-            birth=157, death=220,
+            id="xiahoudun",
+            name="夏侯惇",
+            alias="元让",
+            leadership=88,
+            might=90,
+            intelligence=62,
+            politics=55,
+            charisma=60,
+            faction_id="cao",
+            location="t1",
+            loyalty=95,
+            birth=157,
+            death=220,
         ),
         "zhouyu": Character(
-            id="zhouyu", name="周瑜", alias="公瑾",
-            leadership=95, might=65, intelligence=94, politics=80, charisma=85,
-            faction_id="wu", location="t2", loyalty=90,
-            is_commanding=True, birth=175, death=210,
+            id="zhouyu",
+            name="周瑜",
+            alias="公瑾",
+            leadership=95,
+            might=65,
+            intelligence=94,
+            politics=80,
+            charisma=85,
+            faction_id="wu",
+            location="t2",
+            loyalty=90,
+            is_commanding=True,
+            birth=175,
+            death=210,
         ),
     }
     return WorldState(
-        year=208, season=Season.SPRING, turn_number=1,
+        year=208,
+        season=Season.SPRING,
+        turn_number=1,
         player_faction_id="cao",
         territories=simple_territories,
         characters=chars,
@@ -225,6 +335,7 @@ class TestUnitStats:
         stats = MilitaryEngine().__dict__
         # Just verify UNIT_STATS exists and is accessible
         from histrategy_engine.military import UNIT_STATS
+
         assert UNIT_STATS[UnitType.INFANTRY]["cost"] == 3
         assert UNIT_STATS[UnitType.INFANTRY]["atk"] == 10
         assert UNIT_STATS[UnitType.INFANTRY]["def"] == 10
@@ -232,17 +343,20 @@ class TestUnitStats:
 
     def test_cavalry_stats(self):
         from histrategy_engine.military import UNIT_STATS
+
         assert UNIT_STATS[UnitType.CAVALRY]["cost"] == 10
         assert UNIT_STATS[UnitType.CAVALRY]["atk"] == 14
         assert UNIT_STATS[UnitType.CAVALRY]["speed"] == 2
 
     def test_archer_stats(self):
         from histrategy_engine.military import UNIT_STATS
+
         assert UNIT_STATS[UnitType.ARCHER]["cost"] == 6
         assert UNIT_STATS[UnitType.ARCHER]["def"] == 13
 
     def test_navy_stats(self):
         from histrategy_engine.military import UNIT_STATS
+
         assert UNIT_STATS[UnitType.NAVY]["speed"] == 1.5
 
 
@@ -344,9 +458,12 @@ class TestRecruit:
 class TestMovement:
     def test_move_adjacent(self, military_engine, map_engine):
         army = Army(
-            id="test_army", faction_id="cao", location="t1",
+            id="test_army",
+            faction_id="cao",
+            location="t1",
             units={UnitType.INFANTRY: 1000},
-            morale=80, training=1.0,
+            morale=80,
+            training=1.0,
         )
         result = military_engine.move_army(army, "t2", map_engine)
         assert result.success
@@ -354,7 +471,9 @@ class TestMovement:
 
     def test_move_same_location(self, military_engine, map_engine):
         army = Army(
-            id="test_army", faction_id="cao", location="t1",
+            id="test_army",
+            faction_id="cao",
+            location="t1",
             units={UnitType.INFANTRY: 1000},
         )
         result = military_engine.move_army(army, "t1", map_engine)
@@ -364,7 +483,9 @@ class TestMovement:
 
     def test_move_unreachable(self, military_engine, map_engine):
         army = Army(
-            id="test_army", faction_id="cao", location="t1",
+            id="test_army",
+            faction_id="cao",
+            location="t1",
             units={UnitType.INFANTRY: 1000},
         )
         # t5 has no neighbors, so no path from t1 to t5
@@ -374,7 +495,9 @@ class TestMovement:
 
     def test_move_updates_army_location(self, military_engine, map_engine):
         army = Army(
-            id="test_army", faction_id="cao", location="t1",
+            id="test_army",
+            faction_id="cao",
+            location="t1",
             units={UnitType.INFANTRY: 1000},
         )
         military_engine.move_army(army, "t2", map_engine)
@@ -383,25 +506,33 @@ class TestMovement:
     def test_move_cavalry_faster(self, military_engine, map_engine):
         # Calvary (speed 2) can move further than infantry (speed 1)
         army = Army(
-            id="fast_army", faction_id="cao", location="t1",
+            id="fast_army",
+            faction_id="cao",
+            location="t1",
             units={UnitType.CAVALRY: 500},
-            morale=80, training=1.0,
+            morale=80,
+            training=1.0,
         )
         speed = military_engine._army_speed(army)
         assert speed == 2.0
 
     def test_move_mixed_army_speed(self, military_engine, map_engine):
         army = Army(
-            id="mixed_army", faction_id="cao", location="t1",
+            id="mixed_army",
+            faction_id="cao",
+            location="t1",
             units={UnitType.INFANTRY: 1000, UnitType.CAVALRY: 500},
-            morale=80, training=1.0,
+            morale=80,
+            training=1.0,
         )
         speed = military_engine._army_speed(army)
         assert speed == 1.0  # slowest unit = infantry
 
     def test_move_result_type(self, military_engine, map_engine):
         army = Army(
-            id="test_army", faction_id="cao", location="t1",
+            id="test_army",
+            faction_id="cao",
+            location="t1",
             units={UnitType.INFANTRY: 1000},
         )
         result = military_engine.move_army(army, "t2", map_engine)
@@ -411,18 +542,24 @@ class TestMovement:
 class TestBattle:
     def test_basic_battle_resolution(self, military_engine, map_engine, char_engine):
         attacker = Army(
-            id="atk", faction_id="cao", location="t1", commander_id="caocao",
+            id="atk",
+            faction_id="cao",
+            location="t1",
+            commander_id="caocao",
             units={UnitType.INFANTRY: 2000},
-            morale=85, training=1.0,
+            morale=85,
+            training=1.0,
         )
         defender = Army(
-            id="def", faction_id="wu", location="t1", commander_id="zhouyu",
+            id="def",
+            faction_id="wu",
+            location="t1",
+            commander_id="zhouyu",
             units={UnitType.INFANTRY: 1000},
-            morale=80, training=1.0,
+            morale=80,
+            training=1.0,
         )
-        result = military_engine.resolve_battle(
-            attacker, defender, "t1", map_engine, char_engine
-        )
+        result = military_engine.resolve_battle(attacker, defender, "t1", map_engine, char_engine)
         assert result.attacker_id == "cao"
         assert result.defender_id == "wu"
         assert result.location == "t1"
@@ -430,64 +567,86 @@ class TestBattle:
 
     def test_overwhelming_force_decisive_victory(self, military_engine, map_engine, char_engine):
         attacker = Army(
-            id="atk", faction_id="cao", location="t1", commander_id="caocao",
+            id="atk",
+            faction_id="cao",
+            location="t1",
+            commander_id="caocao",
             units={UnitType.INFANTRY: 5000, UnitType.CAVALRY: 2000},
-            morale=100, training=1.0,
+            morale=100,
+            training=1.0,
         )
         defender = Army(
-            id="def", faction_id="wu", location="t1",
+            id="def",
+            faction_id="wu",
+            location="t1",
             units={UnitType.INFANTRY: 200},
-            morale=40, training=0.5,
+            morale=40,
+            training=0.5,
         )
-        result = military_engine.resolve_battle(
-            attacker, defender, "t1", map_engine, char_engine
-        )
+        result = military_engine.resolve_battle(attacker, defender, "t1", map_engine, char_engine)
         assert result.result.value == "decisive_victory"
 
     def test_equal_forces_draw(self, military_engine, map_engine, char_engine):
         attacker = Army(
-            id="atk", faction_id="cao", location="t3",
+            id="atk",
+            faction_id="cao",
+            location="t3",
             units={UnitType.INFANTRY: 1000},
-            morale=80, training=1.0,
+            morale=80,
+            training=1.0,
         )
         defender = Army(
-            id="def", faction_id="wu", location="t3",
+            id="def",
+            faction_id="wu",
+            location="t3",
             units={UnitType.INFANTRY: 1000},
-            morale=80, training=1.0,
+            morale=80,
+            training=1.0,
         )
-        result = military_engine.resolve_battle(
-            attacker, defender, "t3", map_engine, char_engine
-        )
+        result = military_engine.resolve_battle(attacker, defender, "t3", map_engine, char_engine)
         # Without commander bonuses and with fortification, similar forces
         # Exact outcome depends on fortification/terrain implementation
         assert result.result.value in ("draw", "defeat", "victory", "decisive_defeat")
 
     def test_territory_captured_on_victory(self, military_engine, map_engine, char_engine):
         attacker = Army(
-            id="atk", faction_id="cao", location="t1", commander_id="caocao",
+            id="atk",
+            faction_id="cao",
+            location="t1",
+            commander_id="caocao",
             units={UnitType.INFANTRY: 5000},
-            morale=100, training=1.0,
+            morale=100,
+            training=1.0,
         )
         defender = Army(
-            id="def", faction_id="wu", location="t1",
+            id="def",
+            faction_id="wu",
+            location="t1",
             units={UnitType.INFANTRY: 100},
-            morale=30, training=0.5,
+            morale=30,
+            training=0.5,
         )
-        result = military_engine.resolve_battle(
-            attacker, defender, "t1", map_engine, char_engine
-        )
+        result = military_engine.resolve_battle(attacker, defender, "t1", map_engine, char_engine)
         assert result.territory_captured
 
     def test_casualties_applied(self, military_engine, map_engine, char_engine):
         attacker = Army(
-            id="atk", faction_id="cao", location="t1", commander_id="caocao",
+            id="atk",
+            faction_id="cao",
+            location="t1",
+            commander_id="caocao",
             units={UnitType.INFANTRY: 2000},
-            morale=85, training=1.0,
+            morale=85,
+            training=1.0,
         )
         defender = Army(
-            id="def", faction_id="wu", location="t1", commander_id="zhouyu",
+            id="def",
+            faction_id="wu",
+            location="t1",
+            commander_id="zhouyu",
             units={UnitType.INFANTRY: 1000},
-            morale=80, training=1.0,
+            morale=80,
+            training=1.0,
         )
         initial_atk_troops = attacker.total_troops
         initial_def_troops = defender.total_troops
@@ -501,25 +660,38 @@ class TestBattle:
     def test_commander_bonus_affects_outcome(self, military_engine, map_engine, char_engine):
         # Without commander
         attacker_no_cmd = Army(
-            id="atk1", faction_id="cao", location="t1",
+            id="atk1",
+            faction_id="cao",
+            location="t1",
             units={UnitType.INFANTRY: 1000},
-            morale=80, training=1.0,
+            morale=80,
+            training=1.0,
         )
         defender_no_cmd = Army(
-            id="def1", faction_id="wu", location="t1",
+            id="def1",
+            faction_id="wu",
+            location="t1",
             units={UnitType.INFANTRY: 1000},
-            morale=80, training=1.0,
+            morale=80,
+            training=1.0,
         )
         # Same test but with commander
         attacker_cmd = Army(
-            id="atk2", faction_id="cao", location="t1", commander_id="caocao",
+            id="atk2",
+            faction_id="cao",
+            location="t1",
+            commander_id="caocao",
             units={UnitType.INFANTRY: 1000},
-            morale=80, training=1.0,
+            morale=80,
+            training=1.0,
         )
         defender_cmd = Army(
-            id="def2", faction_id="wu", location="t1",
+            id="def2",
+            faction_id="wu",
+            location="t1",
             units={UnitType.INFANTRY: 1000},
-            morale=80, training=1.0,
+            morale=80,
+            training=1.0,
         )
 
         # The commander should give an advantage
@@ -533,31 +705,41 @@ class TestBattle:
     def test_fortification_helps_defender(self, military_engine, map_engine, char_engine):
         # t1 has fortification=30 → bonus = 1 + 30/200 = 1.15
         attacker = Army(
-            id="atk", faction_id="cao", location="t1",
+            id="atk",
+            faction_id="cao",
+            location="t1",
             units={UnitType.INFANTRY: 1000},
-            morale=80, training=1.0,
+            morale=80,
+            training=1.0,
         )
         defender = Army(
-            id="def", faction_id="wu", location="t1",
+            id="def",
+            faction_id="wu",
+            location="t1",
             units={UnitType.INFANTRY: 1000},
-            morale=80, training=1.0,
+            morale=80,
+            training=1.0,
         )
-        result = military_engine.resolve_battle(
-            attacker, defender, "t1", map_engine, char_engine
-        )
+        result = military_engine.resolve_battle(attacker, defender, "t1", map_engine, char_engine)
         # Defender has fortification advantage
         assert result.defender_id == "wu"
 
     def test_no_char_engine_does_not_crash(self, military_engine, map_engine):
         attacker = Army(
-            id="atk", faction_id="cao", location="t1",
+            id="atk",
+            faction_id="cao",
+            location="t1",
             units={UnitType.INFANTRY: 1000},
-            morale=80, training=1.0,
+            morale=80,
+            training=1.0,
         )
         defender = Army(
-            id="def", faction_id="wu", location="t1",
+            id="def",
+            faction_id="wu",
+            location="t1",
             units={UnitType.INFANTRY: 500},
-            morale=60, training=0.8,
+            morale=60,
+            training=0.8,
         )
         result = military_engine.resolve_battle(
             attacker, defender, "t1", map_engine, char_engine=None
@@ -568,7 +750,9 @@ class TestBattle:
 class TestSupply:
     def test_friendly_territory_auto_refill(self, military_engine, map_engine):
         army = Army(
-            id="test_army", faction_id="cao", location="t1",
+            id="test_army",
+            faction_id="cao",
+            location="t1",
             units={UnitType.INFANTRY: 1000},
             supply=10,
         )
@@ -580,7 +764,9 @@ class TestSupply:
     def test_enemy_territory_in_range(self, military_engine, map_engine):
         # wu army in t1 (cao territory) — t2 is 1 tile away (wu owned)
         army = Army(
-            id="test_army", faction_id="wu", location="t1",
+            id="test_army",
+            faction_id="wu",
+            location="t1",
             units={UnitType.INFANTRY: 1000},
             supply=10,
         )
@@ -593,7 +779,9 @@ class TestSupply:
         # or t3 (t4→t2→t1→t3 = 3 tiles)
         # t4 → t2 (wu) → t1 (cao) = 2 tiles
         army = Army(
-            id="test_army", faction_id="cao", location="t4",
+            id="test_army",
+            faction_id="cao",
+            location="t4",
             units={UnitType.INFANTRY: 1000},
             supply=5,
         )
@@ -607,7 +795,9 @@ class TestSupply:
         # This is within supply range actually
         # Let's test a truly isolated case
         army = Army(
-            id="test_army", faction_id="wu", location="t3",
+            id="test_army",
+            faction_id="wu",
+            location="t3",
             units={UnitType.INFANTRY: 1000},
             supply=3,
         )
@@ -619,7 +809,9 @@ class TestSupply:
 
     def test_winter_penalty(self, military_engine, map_engine):
         army = Army(
-            id="test_army", faction_id="cao", location="t1",
+            id="test_army",
+            faction_id="cao",
+            location="t1",
             units={UnitType.INFANTRY: 1000},
         )
         status = military_engine.calculate_supply(army, map_engine, season=Season.WINTER)
@@ -627,7 +819,9 @@ class TestSupply:
 
     def test_supply_status_type(self, military_engine, map_engine):
         army = Army(
-            id="test_army", faction_id="cao", location="t1",
+            id="test_army",
+            faction_id="cao",
+            location="t1",
             units={UnitType.INFANTRY: 1000},
         )
         status = military_engine.calculate_supply(army, map_engine)
@@ -637,7 +831,9 @@ class TestSupply:
     def test_winter_attrition_multiplier(self, military_engine, map_engine):
         # t5 is isolated (no neighbors), wu has no friendly territory reachable
         army = Army(
-            id="test_army", faction_id="wu", location="t5",
+            id="test_army",
+            faction_id="wu",
+            location="t5",
             units={UnitType.INFANTRY: 1000},
             supply=3,
         )
@@ -734,18 +930,29 @@ class TestCommandGeneration:
             assert cmd.faction_id == "cao"
             assert cmd.type in ("recruit", "develop", "attack", "move", "tax")
 
-    def test_different_personalities_different_output(self, decision_engine, world_state, map_engine):
+    def test_different_personalities_different_output(
+        self, decision_engine, world_state, map_engine
+    ):
         # Add liubei faction adjacent to cao for comparison
         world_state.factions["liubei"] = FactionState(
-            id="liubei", name="刘备军", ruler_id="liubei",
-            capital="t4", territories=["t4"],
-            strength_actual=3000, treasury=5000, food=2000,
+            id="liubei",
+            name="刘备军",
+            ruler_id="liubei",
+            capital="t4",
+            territories=["t4"],
+            strength_actual=3000,
+            treasury=5000,
+            food=2000,
         )
         world_state.territories["t4"].owner_id = "liubei"
         world_state.armies["army_liu_1"] = Army(
-            id="army_liu_1", faction_id="liubei", location="t4",
+            id="army_liu_1",
+            faction_id="liubei",
+            location="t4",
             units={UnitType.INFANTRY: 800},
-            morale=70, training=1.0, supply=20,
+            morale=70,
+            training=1.0,
+            supply=20,
         )
 
         cao_cmds = decision_engine.generate_commands("cao", world_state, map_engine)
@@ -818,76 +1025,126 @@ class TestTurnExecution:
 
 class TestCommandValidation:
     def test_valid_recruit_command(self, turn_controller, world_state):
-        cmd = Command(type="recruit", params={
-            "territory": "t1", "unit_type": "infantry", "amount": 500,
-        }, faction_id="cao")
+        cmd = Command(
+            type="recruit",
+            params={
+                "territory": "t1",
+                "unit_type": "infantry",
+                "amount": 500,
+            },
+            faction_id="cao",
+        )
         valid = turn_controller._validate_commands([cmd], world_state)
         assert len(valid) == 1
 
     def test_invalid_recruit_not_owned(self, turn_controller, world_state):
-        cmd = Command(type="recruit", params={
-            "territory": "t2", "unit_type": "infantry", "amount": 500,
-        }, faction_id="cao")  # t2 is owned by wu
+        cmd = Command(
+            type="recruit",
+            params={
+                "territory": "t2",
+                "unit_type": "infantry",
+                "amount": 500,
+            },
+            faction_id="cao",
+        )  # t2 is owned by wu
         valid = turn_controller._validate_commands([cmd], world_state)
         assert len(valid) == 0
 
     def test_invalid_recruit_nonexistent_territory(self, turn_controller, world_state):
-        cmd = Command(type="recruit", params={
-            "territory": "nonexistent", "unit_type": "infantry", "amount": 500,
-        }, faction_id="cao")
+        cmd = Command(
+            type="recruit",
+            params={
+                "territory": "nonexistent",
+                "unit_type": "infantry",
+                "amount": 500,
+            },
+            faction_id="cao",
+        )
         valid = turn_controller._validate_commands([cmd], world_state)
         assert len(valid) == 0
 
     def test_valid_move_command(self, turn_controller, world_state):
-        cmd = Command(type="move", params={
-            "destination": "t2",
-        }, faction_id="cao")
+        cmd = Command(
+            type="move",
+            params={
+                "destination": "t2",
+            },
+            faction_id="cao",
+        )
         valid = turn_controller._validate_commands([cmd], world_state)
         assert len(valid) == 1
 
     def test_invalid_move_bad_target(self, turn_controller, world_state):
-        cmd = Command(type="move", params={
-            "destination": "nonexistent",
-        }, faction_id="cao")
+        cmd = Command(
+            type="move",
+            params={
+                "destination": "nonexistent",
+            },
+            faction_id="cao",
+        )
         valid = turn_controller._validate_commands([cmd], world_state)
         assert len(valid) == 0
 
     def test_valid_attack_command(self, turn_controller, world_state):
-        cmd = Command(type="attack", params={
-            "target_territory": "t2",
-        }, faction_id="cao")
+        cmd = Command(
+            type="attack",
+            params={
+                "target_territory": "t2",
+            },
+            faction_id="cao",
+        )
         valid = turn_controller._validate_commands([cmd], world_state)
         assert len(valid) == 1
 
     def test_invalid_faction(self, turn_controller, world_state):
-        cmd = Command(type="recruit", params={
-            "territory": "t1", "unit_type": "infantry", "amount": 500,
-        }, faction_id="nonexistent")
+        cmd = Command(
+            type="recruit",
+            params={
+                "territory": "t1",
+                "unit_type": "infantry",
+                "amount": 500,
+            },
+            faction_id="nonexistent",
+        )
         valid = turn_controller._validate_commands([cmd], world_state)
         assert len(valid) == 0
 
     def test_invalid_no_faction_id(self, turn_controller, world_state):
-        cmd = Command(type="recruit", params={
-            "territory": "t1", "unit_type": "infantry", "amount": 500,
-        }, faction_id="")
+        cmd = Command(
+            type="recruit",
+            params={
+                "territory": "t1",
+                "unit_type": "infantry",
+                "amount": 500,
+            },
+            faction_id="",
+        )
         valid = turn_controller._validate_commands([cmd], world_state)
         assert len(valid) == 0
 
 
 class TestTurnMoveExecution:
     def test_move_command_executes(self, turn_controller, world_state):
-        cmd = Command(type="move", params={
-            "destination": "t2",
-        }, faction_id="cao")
+        cmd = Command(
+            type="move",
+            params={
+                "destination": "t2",
+            },
+            faction_id="cao",
+        )
         result = turn_controller.execute_turn(
             world_state, player_commands=[cmd], year=208, turn_number=1
         )
         assert isinstance(result, TurnResult)
 
     def test_attack_command_executes(self, turn_controller, world_state):
-        cmd = Command(type="attack", params={
-            "target_territory": "t2",
-        }, faction_id="cao")
+        cmd = Command(
+            type="attack",
+            params={
+                "target_territory": "t2",
+            },
+            faction_id="cao",
+        )
         result = turn_controller.execute_turn(
             world_state, player_commands=[cmd], year=208, turn_number=1
         )
@@ -919,35 +1176,43 @@ class TestTurnBattleResolution:
 class TestTurnDomesticExecution:
     def test_recruit_command_adds_troops(self, turn_controller, world_state):
         initial_treasury = world_state.factions["cao"].treasury
-        cmd = Command(type="recruit", params={
-            "territory": "t1", "unit_type": "infantry", "amount": 500,
-        }, faction_id="cao")
-        turn_controller.execute_turn(
-            world_state, player_commands=[cmd], year=208, turn_number=1
+        cmd = Command(
+            type="recruit",
+            params={
+                "territory": "t1",
+                "unit_type": "infantry",
+                "amount": 500,
+            },
+            faction_id="cao",
         )
+        turn_controller.execute_turn(world_state, player_commands=[cmd], year=208, turn_number=1)
         # Treasury should decrease
         assert world_state.factions["cao"].treasury < initial_treasury
 
     def test_develop_command_increases_development(self, turn_controller, world_state):
         initial_dev = world_state.territories["t1"].development
         initial_treasury = world_state.factions["cao"].treasury
-        cmd = Command(type="develop", params={
-            "territory": "t1",
-        }, faction_id="cao")
-        turn_controller.execute_turn(
-            world_state, player_commands=[cmd], year=208, turn_number=1
+        cmd = Command(
+            type="develop",
+            params={
+                "territory": "t1",
+            },
+            faction_id="cao",
         )
+        turn_controller.execute_turn(world_state, player_commands=[cmd], year=208, turn_number=1)
         # Development should increase if treasury was sufficient
         if initial_treasury >= 500:
             assert world_state.territories["t1"].development >= initial_dev
 
     def test_tax_command_changes_rate(self, turn_controller, world_state):
-        cmd = Command(type="tax", params={
-            "rate": 0.4,
-        }, faction_id="cao")
-        turn_controller.execute_turn(
-            world_state, player_commands=[cmd], year=208, turn_number=1
+        cmd = Command(
+            type="tax",
+            params={
+                "rate": 0.4,
+            },
+            faction_id="cao",
         )
+        turn_controller.execute_turn(world_state, player_commands=[cmd], year=208, turn_number=1)
         assert world_state.factions["cao"].tax_rate == 0.4
 
 
@@ -986,12 +1251,22 @@ class TestCharacterEvents:
 class TestFullTurnIntegration:
     def test_complete_turn_with_all_commands(self, turn_controller, world_state):
         commands = [
-            Command(type="recruit", params={
-                "territory": "t1", "unit_type": "infantry", "amount": 300,
-            }, faction_id="cao"),
-            Command(type="develop", params={
-                "territory": "t1",
-            }, faction_id="cao"),
+            Command(
+                type="recruit",
+                params={
+                    "territory": "t1",
+                    "unit_type": "infantry",
+                    "amount": 300,
+                },
+                faction_id="cao",
+            ),
+            Command(
+                type="develop",
+                params={
+                    "territory": "t1",
+                },
+                faction_id="cao",
+            ),
         ]
         result = turn_controller.execute_turn(
             world_state, player_commands=commands, year=208, turn_number=1

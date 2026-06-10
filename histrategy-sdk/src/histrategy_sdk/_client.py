@@ -42,7 +42,7 @@ class ServerClient:
         """Close the underlying HTTP client."""
         self._client.close()
 
-    def __enter__(self) -> "ServerClient":
+    def __enter__(self) -> ServerClient:
         return self
 
     def __exit__(self, *args: Any) -> None:

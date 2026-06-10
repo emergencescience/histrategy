@@ -11,6 +11,7 @@ Tests the full LLM-driven game loop as Liu Biao:
 Run with: pytest tests/test_e2e_liubiao_llm.py -v
 Requires: DEEPSEEK_API_KEY or OPENAI_API_KEY in environment
 """
+
 import json
 import os
 import sys
@@ -58,8 +59,9 @@ class TestLiubiaoLLMMode:
         narrative = intro.get("narrative", "")
         assert len(narrative) > 100, f"Intro narrative too short: {len(narrative)} chars"
         # Should mention Liu Biao or 荆州 or 刘表
-        assert any(term in narrative for term in ["刘表", "荆州", "liubiao"]), \
+        assert any(term in narrative for term in ["刘表", "荆州", "liubiao"]), (
             f"Intro should mention Liu Biao or Jingzhou region: {narrative[:200]}"
+        )
 
         npc_actions = intro.get("npc_actions", [])
         assert len(npc_actions) > 0, "Should have NPC faction descriptions"
@@ -81,18 +83,14 @@ class TestLiubiaoLLMMode:
         assert plan, "Plan data should not be empty"
 
         court_dialogue = plan.get("court_dialogue", "")
-        assert len(court_dialogue) > 50, \
-            f"Court dialogue too short: {len(court_dialogue)} chars"
+        assert len(court_dialogue) > 50, f"Court dialogue too short: {len(court_dialogue)} chars"
 
         suggestions = plan.get("suggestions", [])
-        assert len(suggestions) >= 2, \
-            f"Should have at least 2 suggestions, got {len(suggestions)}"
-        assert all(isinstance(s, str) for s in suggestions), \
-            "All suggestions should be strings"
+        assert len(suggestions) >= 2, f"Should have at least 2 suggestions, got {len(suggestions)}"
+        assert all(isinstance(s, str) for s in suggestions), "All suggestions should be strings"
 
         # Check for duplicate suggestions (bug fix from H09e)
-        assert len(suggestions) == len(set(suggestions)), \
-            f"Duplicate suggestions found: {suggestions}"
+        assert len(suggestions) == len(set(suggestions)), f"Duplicate suggestions found: {suggestions}"
 
         season_summary = plan.get("season_summary", "")
         assert season_summary, "Should have season summary"
@@ -117,8 +115,7 @@ class TestLiubiaoLLMMode:
 
         # Check core output fields
         aftermath = result.get("aftermath", "")
-        assert len(aftermath) > 50, \
-            f"Aftermath narrative too short: {len(aftermath)} chars"
+        assert len(aftermath) > 50, f"Aftermath narrative too short: {len(aftermath)} chars"
 
         state_changes = result.get("state_changes", {})
         assert isinstance(state_changes, dict), "State changes should be a dict"
@@ -163,8 +160,7 @@ class TestLiubiaoLLMMode:
             # Plan mode
             plan = engine.get_plan_data()
             assert plan.get("court_dialogue"), f"Turn {turn}: missing court dialogue"
-            assert len(plan.get("suggestions", [])) >= 2, \
-                f"Turn {turn}: insufficient suggestions"
+            assert len(plan.get("suggestions", [])) >= 2, f"Turn {turn}: insufficient suggestions"
 
             # Command mode
             result = engine.process_turn(decision)
@@ -181,9 +177,11 @@ class TestLiubiaoLLMMode:
 
         # Check that state evolved
         player = engine.world_state.get_player_faction()
-        print(f"\n  FINAL STATE: {player.name} | 兵力:{player.strength} | "
-              f"经济:{player.economy} | 民心:{player.morale} | "
-              f"资金:{player.treasury} | 粮草:{player.food}")
+        print(
+            f"\n  FINAL STATE: {player.name} | 兵力:{player.strength} | "
+            f"经济:{player.economy} | 民心:{player.morale} | "
+            f"资金:{player.treasury} | 粮草:{player.food}"
+        )
 
     def test_no_self_allying(self):
         """Regression: Liu Biao should NOT ally with himself (H09e bug fix)."""
@@ -203,7 +201,6 @@ class TestLiubiaoLLMMode:
         for reaction in npc_reactions:
             if isinstance(reaction, str):
                 # Should not mention allying with self
-                assert "刘表" not in reaction or "结盟" not in reaction, \
-                    f"Self-allying detected: {reaction}"
+                assert "刘表" not in reaction or "结盟" not in reaction, f"Self-allying detected: {reaction}"
 
         print(f"\n  SELF-ALLY CHECK PASSED: {len(npc_reactions)} NPC reactions")

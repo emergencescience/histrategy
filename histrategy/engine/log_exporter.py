@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from pathlib import Path
+
 from ..state.world_state import get_data_dir, load_world
 
 
@@ -109,15 +110,17 @@ def export_log(output_path: str, format_type: str = "markdown") -> bool:
             "autumn": "秋季",
             "winter": "冬季",
         }.get(entry.get("season", ""), entry.get("season", ""))
-        md_lines.extend([
-            f"## 第 {entry.get('turn')} 回合：{entry.get('year')}年{season_cn}",
-            "",
-            f"> 📜 **主公政令**：「{entry.get('player_decision')}」",
-            "",
-            "### 📜 局势推演",
-            entry.get("narrative", "").strip(),
-            "",
-        ])
+        md_lines.extend(
+            [
+                f"## 第 {entry.get('turn')} 回合：{entry.get('year')}年{season_cn}",
+                "",
+                f"> 📜 **主公政令**：「{entry.get('player_decision')}」",
+                "",
+                "### 📜 局势推演",
+                entry.get("narrative", "").strip(),
+                "",
+            ]
+        )
 
         # State changes
         changes = entry.get("state_changes", {})
@@ -139,11 +142,13 @@ def export_log(output_path: str, format_type: str = "markdown") -> bool:
         # Bureaucracy
         bur = entry.get("bureaucracy", [])
         if bur:
-            md_lines.extend([
-                "### 🏛️ 曹署执行情况",
-                "| 官署 | 责任官吏 | 执行细则 |",
-                "| :--- | :--- | :--- |",
-            ])
+            md_lines.extend(
+                [
+                    "### 🏛️ 曹署执行情况",
+                    "| 官署 | 责任官吏 | 执行细则 |",
+                    "| :--- | :--- | :--- |",
+                ]
+            )
             for b in bur:
                 dept = b.get("department", "")
                 off = b.get("official", "")

@@ -3,8 +3,8 @@
 from .interface import (
     HistrategyPlugin,
     KnowledgePlugin,
-    NPCAgentPlugin,
     NarrativePlugin,
+    NPCAgentPlugin,
     PluginType,
     UIPlugin,
     WorldEnginePlugin,

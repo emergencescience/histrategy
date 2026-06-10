@@ -71,19 +71,21 @@ class HistoricalRAG:
                 for evt in self._year_index[y]:
                     if averted_events and evt["id"] in averted_events:
                         continue
-                    candidates.append({
-                        "id": evt["id"],
-                        "title": evt["title"],
-                        "year": evt["year"],
-                        "month": evt.get("month", 6),
-                        "category": evt.get("category", "general"),
-                        "description": evt.get("description", ""),
-                        "gravity": evt.get("gravity", 0.7),
-                        "participants": evt.get("participants", []),
-                        "outcomes": evt.get("outcomes", []),
-                        "preconditions": evt.get("preconditions", {}),
-                        "butterfly_effects": evt.get("butterfly_effects", {}),
-                    })
+                    candidates.append(
+                        {
+                            "id": evt["id"],
+                            "title": evt["title"],
+                            "year": evt["year"],
+                            "month": evt.get("month", 6),
+                            "category": evt.get("category", "general"),
+                            "description": evt.get("description", ""),
+                            "gravity": evt.get("gravity", 0.7),
+                            "participants": evt.get("participants", []),
+                            "outcomes": evt.get("outcomes", []),
+                            "preconditions": evt.get("preconditions", {}),
+                            "butterfly_effects": evt.get("butterfly_effects", {}),
+                        }
+                    )
 
         # Sort by year, then month
         candidates.sort(key=lambda e: (e["year"], e["month"]))

@@ -8,7 +8,6 @@ Called by the Hermes Agent skill dispatch system when:
 """
 
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -16,10 +15,10 @@ from pathlib import Path
 _AGENT_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_AGENT_DIR / "src"))
 
-from histrategy_agent.session import GameSessionManager
-from histrategy_agent.turn_processor import TurnProcessor
 from histrategy_agent.format_engine import FormatEngine
 from histrategy_agent.im_adapters.feishu import FeishuAdapter
+from histrategy_agent.session import GameSessionManager
+from histrategy_agent.turn_processor import TurnProcessor
 
 
 def _get_adapter(platform: str = "feishu"):
@@ -106,10 +105,7 @@ def handle_turn(platform: str, chat_id: str, user_id: str, text: str) -> dict:
     session = manager.get_session(platform, chat_id)
     if not session:
         return {
-            "text": (
-                "⚠️ 游戏未开始。输入「新游戏」开始。\n\n"
-                "可选势力：刘备、曹操、孙权、刘表、刘璋"
-            ),
+            "text": ("⚠️ 游戏未开始。输入「新游戏」开始。\n\n可选势力：刘备、曹操、孙权、刘表、刘璋"),
         }
 
     result = processor.process(session, text)

@@ -31,9 +31,7 @@ class TestInteractiveCards:
         self.adapter = FeishuAdapter()
 
     def test_render_interactive_card_basic(self):
-        result = self.adapter.render_interactive_card(
-            "Test Title", "Test body content"
-        )
+        result = self.adapter.render_interactive_card("Test Title", "Test body content")
         assert result["content_type"] == "interactive"
         card = result["content"]
         assert card["header"]["title"]["content"] == "Test Title"
@@ -47,9 +45,7 @@ class TestInteractiveCards:
             {"label": "Attack", "value": "attack_luoyang", "type": "primary"},
             {"label": "Defend", "value": "defend", "type": "default"},
         ]
-        result = self.adapter.render_interactive_card(
-            "Battle", "Enemy approaches!", actions
-        )
+        result = self.adapter.render_interactive_card("Battle", "Enemy approaches!", actions)
         card = result["content"]
         # Should have markdown + hr + action
         assert len(card["elements"]) >= 3
@@ -86,7 +82,9 @@ class TestGameCardRenderers:
 
     def test_render_turn_card(self):
         result = self.adapter.render_turn_card(
-            year=207, season="冬", turn=3,
+            year=207,
+            season="冬",
+            turn=3,
             faction_name="刘备",
             narrative="我军发起进攻，攻占宛城。",
             stats={"领地": "新野, 宛城", "兵力": "4,800", "金库": "2,800"},
@@ -104,7 +102,9 @@ class TestGameCardRenderers:
     def test_render_turn_card_many_events(self):
         events = [f"事件{i}" for i in range(15)]
         result = self.adapter.render_turn_card(
-            year=207, season="春", turn=1,
+            year=207,
+            season="春",
+            turn=1,
             faction_name="曹操",
             narrative="test",
             stats={"兵力": "100,000"},
@@ -164,8 +164,11 @@ class TestGameCardRenderers:
             faction_intro="汉室宗亲刘备，以仁义立世。",
             territories=["新野"],
             heroes=["关羽", "张飞", "赵云"],
-            year=207, season="冬",
-            treasury=3000, food=2000, prestige=35,
+            year=207,
+            season="冬",
+            treasury=3000,
+            food=2000,
+            prestige=35,
         )
         card = result["content"]
         assert "刘备" in card["header"]["title"]["content"]
@@ -177,14 +180,19 @@ class TestGameCardRenderers:
     def test_render_state_summary_card(self):
         result = self.adapter.render_state_summary_card(
             faction_name="曹操",
-            year=208, season="春", turn=5,
+            year=208,
+            season="春",
+            turn=5,
             territories=[
                 {"name": "许昌", "population": 100000, "development": 75, "garrison": 1000},
             ],
             total_troops=150000,
-            treasury=50000, food=30000, prestige=90,
+            treasury=50000,
+            food=30000,
+            prestige=90,
             tax_rate=0.4,
-            allies=[], enemies=["shu", "wu"],
+            allies=[],
+            enemies=["shu", "wu"],
             armies=[
                 {"id": "army_cao_1", "location": "许昌", "troops": 50000, "morale": 80},
             ],

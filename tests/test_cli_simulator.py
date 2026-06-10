@@ -1,5 +1,6 @@
 import os
 import sys
+
 from histrategy.cli.app import main
 
 

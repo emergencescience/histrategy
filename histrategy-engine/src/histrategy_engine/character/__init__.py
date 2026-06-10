@@ -37,8 +37,7 @@ class CharacterEngine:
         return list(self._characters.values())
 
     def get_by_faction(self, faction_id: str) -> list[Character]:
-        return [c for c in self._characters.values()
-                if c.faction_id == faction_id and c.alive]
+        return [c for c in self._characters.values() if c.faction_id == faction_id and c.alive]
 
     def get_alive(self) -> list[Character]:
         return [c for c in self._characters.values() if c.alive]
@@ -92,8 +91,7 @@ class CharacterEngine:
 
     def get_discontented(self, faction_id: str, threshold: int = 30) -> list[Character]:
         """Characters with dangerously low loyalty."""
-        return [c for c in self.get_by_faction(faction_id)
-                if c.loyalty < threshold]
+        return [c for c in self.get_by_faction(faction_id) if c.loyalty < threshold]
 
     def check_defections(self, faction_id: str) -> list[dict]:
         """
@@ -109,13 +107,15 @@ class CharacterEngine:
                 if random.random() < (20 - char.loyalty) / 100.0:
                     # Find a neighboring faction to defect to
                     # (simplified: just mark as defected, actual target resolved by caller)
-                    events.append({
-                        "character_id": char.id,
-                        "character_name": char.name,
-                        "from_faction": faction_id,
-                        "loyalty": char.loyalty,
-                        "type": "defection",
-                    })
+                    events.append(
+                        {
+                            "character_id": char.id,
+                            "character_name": char.name,
+                            "from_faction": faction_id,
+                            "loyalty": char.loyalty,
+                            "type": "defection",
+                        }
+                    )
         return events
 
     def _get_ruler_id(self, faction_id: str) -> str:
@@ -159,19 +159,20 @@ class CharacterEngine:
                 reason = f"同乡{char.name}去世"
 
             if delta != 0:
-                impacts.append({
-                    "character_id": other.id,
-                    "character_name": other.name,
-                    "delta": delta,
-                    "reason": reason,
-                })
+                impacts.append(
+                    {
+                        "character_id": other.id,
+                        "character_name": other.name,
+                        "delta": delta,
+                        "reason": reason,
+                    }
+                )
 
         return impacts
 
     # ── Life & Death ──
 
-    def check_natural_death(self, char_id: str, current_year: int,
-                             deviation: float = 0.0) -> bool:
+    def check_natural_death(self, char_id: str, current_year: int, deviation: float = 0.0) -> bool:
         """
         Check if a character dies of natural causes this year.
 

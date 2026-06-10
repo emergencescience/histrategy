@@ -11,18 +11,19 @@ When LLM is unavailable, falls back to keyword parsing and template narratives.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from histrategy_engine import Command, Season, WorldState
 
+from .llm_adapter import get_llm
 from .session import GameSession
 from .state_bridge import StateBridge
-from .llm_adapter import get_llm
 
 
 @dataclass
 class TurnResult:
     """Output of processing one turn."""
+
     narrative: str
     world_snapshot: dict
     suggestions: list[str]
@@ -110,8 +111,7 @@ class TurnProcessor:
             intent.setdefault("params", {})["target"] = intent["target"]
 
         # 2. Execute command
-        command = Command(
-            type=intent["action"], params=intent.get("params", {}), faction_id=faction_id)
+        command = Command(type=intent["action"], params=intent.get("params", {}), faction_id=faction_id)
         result = bridge.execute_command(command)
 
         # 3. Advance NPC factions
@@ -124,17 +124,18 @@ class TurnProcessor:
             for tid in player_faction.territories:
                 t = session.world_state.territories.get(tid)
                 if t:
-                    player_tax_revenue += bridge.domestic_engine.calculate_tax_revenue(
-                        t, player_faction.tax_rate
-                    )
+                    player_tax_revenue += bridge.domestic_engine.calculate_tax_revenue(t, player_faction.tax_rate)
             if player_tax_revenue > 0:
                 player_faction.treasury += player_tax_revenue
-                npc_actions.insert(0, {
-                    "faction_id": faction_id,
-                    "faction_name": player_faction.name,
-                    "actions": [f"征税获得{player_tax_revenue}金"],
-                    "personality": "player",
-                })
+                npc_actions.insert(
+                    0,
+                    {
+                        "faction_id": faction_id,
+                        "faction_name": player_faction.name,
+                        "actions": [f"征税获得{player_tax_revenue}金"],
+                        "personality": "player",
+                    },
+                )
 
         # 4. Build events
         events = []
@@ -163,9 +164,13 @@ class TurnProcessor:
                 session.world_state.year += 1
 
         return TurnResult(
-            narrative=narrative, world_snapshot=world_snapshot,
-            suggestions=suggestions, events=events,
-            map_ascii="", raw_world_state=session.world_state)
+            narrative=narrative,
+            world_snapshot=world_snapshot,
+            suggestions=suggestions,
+            events=events,
+            map_ascii="",
+            raw_world_state=session.world_state,
+        )
 
     # ─── Intent parsing ────────────────────────────────
 
@@ -192,10 +197,14 @@ class TurnProcessor:
     def _llm_intent(self, text: str, faction_id: str) -> dict | None:
         """Use LLM to understand player intent."""
         user_msg = f"玩家势力: {faction_id}\n玩家输入: {text}\n\n请解析为JSON指令。"
-        result = self._llm.chat_structured([
-            {"role": "system", "content": INTENT_SYSTEM},
-            {"role": "user", "content": user_msg},
-        ], temperature=0.1, max_tokens=512)
+        result = self._llm.chat_structured(
+            [
+                {"role": "system", "content": INTENT_SYSTEM},
+                {"role": "user", "content": user_msg},
+            ],
+            temperature=0.1,
+            max_tokens=512,
+        )
         if not result or "action" not in result:
             return None
         # Prevent self-targeting
@@ -220,14 +229,19 @@ class TurnProcessor:
 
         if any(kw in text for kw in ["招募", "征兵", "recruit", "征", "招"]):
             unit_type = "infantry"
-            for kw, ut in [("骑兵", "cavalry"), ("骑", "cavalry"), ("弓兵", "archer"),
-                           ("弓", "archer"), ("水军", "navy"), ("步兵", "infantry")]:
+            for kw, ut in [
+                ("骑兵", "cavalry"),
+                ("骑", "cavalry"),
+                ("弓兵", "archer"),
+                ("弓", "archer"),
+                ("水军", "navy"),
+                ("步兵", "infantry"),
+            ]:
                 if kw in text:
                     unit_type = ut
                     break
             amount = self._extract_number(text) or 1000
-            return {"action": "recruit", "target": unit_type,
-                    "params": {"unit_type": unit_type, "amount": amount}}
+            return {"action": "recruit", "target": unit_type, "params": {"unit_type": unit_type, "amount": amount}}
 
         if any(kw in text for kw in ["移动", "前往", "进军", "move"]):
             target = self._extract_territory(text)
@@ -239,16 +253,15 @@ class TurnProcessor:
 
         if any(kw in text for kw in ["断交", "毁约", "解盟"]):
             target = self._extract_faction(text, faction_id)
-            return {"action": "diplomacy", "target": target,
-                    "params": {"target": target, "action": "break_ally"}}
+            return {"action": "diplomacy", "target": target, "params": {"target": target, "action": "break_ally"}}
 
         if any(kw in text for kw in ["结盟", "外交", "联盟", "ally", "同盟"]):
             target = self._extract_faction(text, faction_id)
-            return {"action": "diplomacy", "target": target,
-                    "params": {"target": target, "action": "ally"}}
+            return {"action": "diplomacy", "target": target, "params": {"target": target, "action": "ally"}}
 
         if any(kw in text for kw in ["税收", "征税", "税率", "税"]):
             import re
+
             rate_match = re.search(r"(\d+)%", text)
             rate = int(rate_match.group(1)) / 100.0 if rate_match else 0.3
             return {"action": "tax", "target": "", "params": {"rate": rate}}
@@ -257,29 +270,31 @@ class TurnProcessor:
 
     # ─── Narrative generation ──────────────────────────
 
-    def _generate_narrative(self, intent: dict, result: dict,
-                            npc_actions: list[dict], faction_id: str) -> str:
+    def _generate_narrative(self, intent: dict, result: dict, npc_actions: list[dict], faction_id: str) -> str:
         if self._has_llm:
             llm_result = self._llm_narrative(intent, result, npc_actions, faction_id)
             if llm_result:
                 return llm_result
         return self._offline_narrative(intent, result)
 
-    def _llm_narrative(self, intent: dict, result: dict,
-                       npc_actions: list[dict], faction_id: str) -> str | None:
+    def _llm_narrative(self, intent: dict, result: dict, npc_actions: list[dict], faction_id: str) -> str | None:
         npc_summary = "; ".join(
-            f"{na['faction_name']}: {', '.join(na['actions'])}"
-            for na in npc_actions[:5] if na.get("actions"))
+            f"{na['faction_name']}: {', '.join(na['actions'])}" for na in npc_actions[:5] if na.get("actions")
+        )
         user_msg = (
             f"玩家势力: {faction_id}\n"
             f"行动类型: {intent.get('action')}\n"
             f"结果: {'成功' if result.get('success') else '失败'} — {result.get('message', '')}\n"
             f"NPC动向: {npc_summary or '无'}"
         )
-        r = self._llm.chat_structured([
-            {"role": "system", "content": NARRATIVE_SYSTEM},
-            {"role": "user", "content": user_msg},
-        ], temperature=0.8, max_tokens=512)
+        r = self._llm.chat_structured(
+            [
+                {"role": "system", "content": NARRATIVE_SYSTEM},
+                {"role": "user", "content": user_msg},
+            ],
+            temperature=0.8,
+            max_tokens=512,
+        )
         return r.get("narrative", "") if r else None
 
     def _offline_narrative(self, action: dict, result: dict) -> str:
@@ -300,16 +315,14 @@ class TurnProcessor:
 
     # ─── Suggestions ───────────────────────────────────
 
-    def _build_suggestions(self, world_state: WorldState, faction_id: str,
-                           world_snapshot: dict) -> list[str]:
+    def _build_suggestions(self, world_state: WorldState, faction_id: str, world_snapshot: dict) -> list[str]:
         if self._has_llm:
             llm_result = self._llm_suggestions(world_state, faction_id, world_snapshot)
             if llm_result:
                 return llm_result
         return self._heuristic_suggestions(world_state, faction_id)
 
-    def _llm_suggestions(self, world_state: WorldState, faction_id: str,
-                         snapshot: dict) -> list[str] | None:
+    def _llm_suggestions(self, world_state: WorldState, faction_id: str, snapshot: dict) -> list[str] | None:
         user_msg = (
             f"势力: {snapshot.get('faction_name', faction_id)}\n"
             f"领地数: {snapshot.get('territory_count', 0)}\n"
@@ -319,10 +332,14 @@ class TurnProcessor:
             f"盟友: {snapshot.get('allies', [])}\n"
             f"敌对边境: {[e['territory_name'] for e in snapshot.get('enemy_borders', [])]}"
         )
-        r = self._llm.chat_structured([
-            {"role": "system", "content": SUGGESTIONS_SYSTEM},
-            {"role": "user", "content": user_msg},
-        ], temperature=0.7, max_tokens=512)
+        r = self._llm.chat_structured(
+            [
+                {"role": "system", "content": SUGGESTIONS_SYSTEM},
+                {"role": "user", "content": user_msg},
+            ],
+            temperature=0.7,
+            max_tokens=512,
+        )
         if r and "suggestions" in r:
             suggestions = r["suggestions"]
             # Ensure 3-5 unique suggestions
@@ -346,8 +363,7 @@ class TurnProcessor:
         if not faction:
             return ["查看天下大势", "休整一回合"]
 
-        total_troops = sum(
-            a.total_troops for a in world_state.armies.values() if a.faction_id == faction_id)
+        total_troops = sum(a.total_troops for a in world_state.armies.values() if a.faction_id == faction_id)
         if total_troops < 5000:
             suggestions.append("招募步兵充实兵力")
 
@@ -391,11 +407,20 @@ class TurnProcessor:
 
     def _extract_territory(self, text: str) -> str:
         territory_keywords = {
-            "新野": "xinye", "宛城": "wancheng", "许昌": "xuchang",
-            "洛阳": "luoyang", "邺城": "ye", "蓟县": "ji",
-            "襄阳": "xiangyang", "江陵": "jiangling", "成都": "chengdu",
-            "汉中": "hanshui", "建业": "jianye", "柴桑": "chaisang",
-            "吴郡": "wu", "下邳": "xiapi",
+            "新野": "xinye",
+            "宛城": "wancheng",
+            "许昌": "xuchang",
+            "洛阳": "luoyang",
+            "邺城": "ye",
+            "蓟县": "ji",
+            "襄阳": "xiangyang",
+            "江陵": "jiangling",
+            "成都": "chengdu",
+            "汉中": "hanshui",
+            "建业": "jianye",
+            "柴桑": "chaisang",
+            "吴郡": "wu",
+            "下邳": "xiapi",
         }
         # Sort by length descending to avoid "ye" matching inside "jianye"
         for cn_name in sorted(territory_keywords, key=len, reverse=True):
@@ -405,6 +430,7 @@ class TurnProcessor:
 
     def _extract_number(self, text: str) -> int | None:
         import re
+
         match = re.search(r"(\d+)", text)
         if match:
             n = int(match.group(1))
@@ -413,11 +439,18 @@ class TurnProcessor:
 
     def _extract_faction(self, text: str, self_id: str) -> str:
         faction_keywords = {
-            "刘备": "shu", "蜀": "shu",
-            "曹操": "cao", "曹": "cao", "魏": "cao",
-            "孙权": "wu", "吴": "wu", "东吴": "wu",
-            "刘表": "liubiao", "荆州": "liubiao",
-            "刘璋": "liuzhang", "益州": "liuzhang",
+            "刘备": "shu",
+            "蜀": "shu",
+            "曹操": "cao",
+            "曹": "cao",
+            "魏": "cao",
+            "孙权": "wu",
+            "吴": "wu",
+            "东吴": "wu",
+            "刘表": "liubiao",
+            "荆州": "liubiao",
+            "刘璋": "liuzhang",
+            "益州": "liuzhang",
         }
         matches = []
         for kw, fid in faction_keywords.items():

@@ -12,17 +12,15 @@ _CORE_PATH = Path(__file__).parent.parent.parent.parent / "src"
 if str(_CORE_PATH) not in sys.path:
     sys.path.insert(0, str(_CORE_PATH))
 
-from histrategy_agent.session import GameSessionManager
 from histrategy_agent.format_engine import FormatEngine
-from histrategy_agent.multiplayer import MultiplayerSession, GamePhase
+from histrategy_agent.multiplayer import MultiplayerSession
+from histrategy_agent.session import GameSessionManager
 
 from .session_manager import (
-    load_or_create_session,
+    FACTION_CHOICES,
     create_new_session,
     list_factions,
-    get_faction_info,
-    DEFAULT_FACTION,
-    FACTION_CHOICES,
+    load_or_create_session,
 )
 
 # Multiplayer sessions: keyed by chat_id
@@ -49,9 +47,8 @@ def is_command(text: str) -> bool:
 
 # ─── Command dispatch ──────────────────────────────────────
 
-def handle_command(
-    text: str, platform: str, chat_id: str, user_id: str, user_name: str
-) -> dict:
+
+def handle_command(text: str, platform: str, chat_id: str, user_id: str, user_name: str) -> dict:
     """Parse and execute a slash command."""
     text_lower = text.lower().strip()
 
@@ -59,7 +56,7 @@ def handle_command(
     subcommand = text_lower
     for prefix in COMMAND_PREFIXES:
         if text_lower.startswith(prefix):
-            subcommand = text_lower[len(prefix):].strip()
+            subcommand = text_lower[len(prefix) :].strip()
             break
 
     # /histrategy new [faction]

@@ -23,6 +23,7 @@ class SabotageType(Enum):
 @dataclass
 class SabotageResult:
     """Result of a sabotage attempt."""
+
     success: bool
     target_character_id: str
     target_name: str
@@ -58,7 +59,7 @@ class SabotageEngine:
         self,
         initiator_faction_id: str,
         target_character_id: str,
-        world_state: "WorldState",
+        world_state: WorldState,
         rng: random.Random | None = None,
     ) -> SabotageResult:
         """Attempt to assassinate a target character.
@@ -73,15 +74,14 @@ class SabotageEngine:
           - Target's commanding army morale is halved
         """
         return self._attempt(
-            initiator_faction_id, target_character_id, world_state,
-            SabotageType.ASSASSINATE, rng
+            initiator_faction_id, target_character_id, world_state, SabotageType.ASSASSINATE, rng
         )
 
     def attempt_bribe(
         self,
         initiator_faction_id: str,
         target_character_id: str,
-        world_state: "WorldState",
+        world_state: WorldState,
         rng: random.Random | None = None,
     ) -> SabotageResult:
         """Attempt to bribe a target character to defect.
@@ -96,15 +96,14 @@ class SabotageEngine:
           - Target's former army morale reduced to 70%
         """
         return self._attempt(
-            initiator_faction_id, target_character_id, world_state,
-            SabotageType.BRIBE, rng
+            initiator_faction_id, target_character_id, world_state, SabotageType.BRIBE, rng
         )
 
     def _attempt(
         self,
         initiator_faction_id: str,
         target_character_id: str,
-        world_state: "WorldState",
+        world_state: WorldState,
         sabotage_type: SabotageType,
         rng: random.Random | None = None,
     ) -> SabotageResult:
@@ -205,7 +204,7 @@ class SabotageEngine:
 
     def _calculate_probability(
         self,
-        character: "Character",
+        character: Character,
         sabotage_type: SabotageType,
         faction_caution: float = 0.5,
     ) -> float:
@@ -232,4 +231,6 @@ class SabotageEngine:
 
     def get_cost(self, sabotage_type: SabotageType) -> int:
         """Return the treasury cost for this sabotage type."""
-        return self.ASSASSINATE_COST if sabotage_type == SabotageType.ASSASSINATE else self.BRIBE_COST
+        return (
+            self.ASSASSINATE_COST if sabotage_type == SabotageType.ASSASSINATE else self.BRIBE_COST
+        )

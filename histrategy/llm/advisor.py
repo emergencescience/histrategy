@@ -54,6 +54,7 @@ ADVISOR_SYSTEM_PROMPT = """你是《三國志略》的军师谋士。你可以�
 @dataclass
 class AdvisorRecommendation:
     """A single strategic recommendation."""
+
     action: str  # attack, defend, recruit, develop, ally, sabotage
     target: str
     priority: float  # 0.0 - 1.0
@@ -67,7 +68,7 @@ class StrategicAdvisor:
     command weights. Both use the same LLM and projected LocalWorldState.
     """
 
-    def __init__(self, llm: "LLMAdapter"):
+    def __init__(self, llm: LLMAdapter):
         self._llm = llm
 
     @property
@@ -76,8 +77,8 @@ class StrategicAdvisor:
 
     def advise_player(
         self,
-        local_state: "dict",
-        personality: "dict | None" = None,
+        local_state: dict,
+        personality: dict | None = None,
         query: str = "",
     ) -> str:
         """Provide natural language advice to a human player.
@@ -105,8 +106,8 @@ class StrategicAdvisor:
 
     def evaluate_strategy(
         self,
-        local_state: "dict",
-        personality: "dict | None" = None,
+        local_state: dict,
+        personality: dict | None = None,
         query: str | None = None,
     ) -> dict:
         """Unified entry point for both human and NPC strategic analysis.
@@ -157,13 +158,15 @@ class StrategicAdvisor:
         parts = []
 
         my = local_state.get("my", {})
-        parts.append(f"## 我方情报\n"
-                     f"- 兵力: {my.get('strength', '?')}\n"
-                     f"- 资金: {my.get('treasury', '?')}\n"
-                     f"- 粮草: {my.get('food', '?')}\n"
-                     f"- 经济: {my.get('economy', '?')}\n"
-                     f"- 民心: {my.get('morale', '?')}\n"
-                     f"- 领地: {', '.join(my.get('territories', []))}")
+        parts.append(
+            f"## 我方情报\n"
+            f"- 兵力: {my.get('strength', '?')}\n"
+            f"- 资金: {my.get('treasury', '?')}\n"
+            f"- 粮草: {my.get('food', '?')}\n"
+            f"- 经济: {my.get('economy', '?')}\n"
+            f"- 民心: {my.get('morale', '?')}\n"
+            f"- 领地: {', '.join(my.get('territories', []))}"
+        )
 
         perceived = local_state.get("perceived", {})
         if perceived:
@@ -191,9 +194,11 @@ class StrategicAdvisor:
                 parts.append(f"- {g.get('territory_name', tid)}：{g.get('estimated_troops', '?')}")
 
         if personality:
-            parts.append(f"\n## 君主性格\n"
-                         f"- 侵略性: {personality.get('aggression', '?')}\n"
-                         f"- 谨慎度: {personality.get('caution', '?')}")
+            parts.append(
+                f"\n## 君主性格\n"
+                f"- 侵略性: {personality.get('aggression', '?')}\n"
+                f"- 谨慎度: {personality.get('caution', '?')}"
+            )
 
         if query:
             parts.append(f"\n## 主公问策\n{query}")
@@ -206,7 +211,8 @@ class StrategicAdvisor:
             data = json.loads(raw)
         except json.JSONDecodeError:
             import re
-            match = re.search(r'\{.*\}', raw, re.DOTALL)
+
+            match = re.search(r"\{.*\}", raw, re.DOTALL)
             if match:
                 try:
                     data = json.loads(match.group(0))
@@ -228,17 +234,18 @@ class StrategicAdvisor:
         food = my.get("food", 0)
 
         perceived = local_state.get("perceived", {})
-        border_enemies = [
-            pf for pf in perceived.values()
-            if pf.get("is_border") and not pf.get("is_allied")
-        ]
+        border_enemies = [pf for pf in perceived.values() if pf.get("is_border") and not pf.get("is_allied")]
 
         if not border_enemies:
             return "暂无边境威胁，可安心发展内政、积蓄实力。"
 
         strongest = max(
             border_enemies,
-            key=lambda p: int(p.get("strength", "0").replace(",", "").split("~")[-1].strip() if "~" in p.get("strength", "0") else p.get("strength", "0").replace(",", "")),
+            key=lambda p: int(
+                p.get("strength", "0").replace(",", "").split("~")[-1].strip()
+                if "~" in p.get("strength", "0")
+                else p.get("strength", "0").replace(",", "")
+            ),
             default=None,
         )
 
@@ -251,27 +258,20 @@ class StrategicAdvisor:
             advice += "我军尚可一战，然需审慎评估敌我实力比。"
         return advice
 
-    def _offline_strategy(
-        self, local_state: dict, personality: dict | None = None
-    ) -> dict:
+    def _offline_strategy(self, local_state: dict, personality: dict | None = None) -> dict:
         """Fallback strategy when LLM unavailable."""
         my = local_state.get("my", {})
         perceived = local_state.get("perceived", {})
-        border_enemies = [
-            pf for pf in perceived.values()
-            if pf.get("is_border") and not pf.get("is_allied")
-        ]
+        border_enemies = [pf for pf in perceived.values() if pf.get("is_border") and not pf.get("is_allied")]
 
         recommendations = []
         if my.get("food", 0) < 2000:
             recommendations.append(
-                {"action": "develop", "target": my.get("territories", [""])[0],
-                 "priority": 0.9, "reason": "粮草不足"}
+                {"action": "develop", "target": my.get("territories", [""])[0], "priority": 0.9, "reason": "粮草不足"}
             )
         if my.get("strength", 0) < 5000:
             recommendations.append(
-                {"action": "recruit", "target": my.get("territories", [""])[0],
-                 "priority": 0.8, "reason": "兵力薄弱"}
+                {"action": "recruit", "target": my.get("territories", [""])[0], "priority": 0.8, "reason": "兵力薄弱"}
             )
 
         if border_enemies:
@@ -279,16 +279,19 @@ class StrategicAdvisor:
                 try:
                     est_str = enemy.get("strength", "0")
                     enemy_strength = int(
-                        est_str.replace(",", "").split("~")[-1].strip()
-                        if "~" in est_str else est_str.replace(",", "")
+                        est_str.replace(",", "").split("~")[-1].strip() if "~" in est_str else est_str.replace(",", "")
                     )
                 except (ValueError, AttributeError):
                     enemy_strength = 50000
 
                 if enemy_strength < my.get("strength", 0) * 0.6:
                     recommendations.append(
-                        {"action": "attack", "target": enemy["name"],
-                         "priority": 0.7, "reason": f"{enemy['name']} 势弱可图"}
+                        {
+                            "action": "attack",
+                            "target": enemy["name"],
+                            "priority": 0.7,
+                            "reason": f"{enemy['name']} 势弱可图",
+                        }
                     )
 
         return {

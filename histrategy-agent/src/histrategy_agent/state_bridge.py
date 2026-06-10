@@ -8,7 +8,6 @@ to execute game commands and retrieve world state.
 from __future__ import annotations
 
 import uuid
-from typing import Any
 
 from histrategy_engine import (
     Army,
@@ -16,10 +15,8 @@ from histrategy_engine import (
     Command,
     DecisionEngine,
     DomesticEngine,
-    FactionState,
     MapEngine,
     MilitaryEngine,
-    Territory,
     UnitType,
     WorldState,
 )
@@ -34,18 +31,50 @@ class StateBridge:
         self.character_engine = CharacterEngine()
         self.domestic_engine = DomesticEngine()
         self.military_engine = MilitaryEngine()
-        self.decision_engine = DecisionEngine(personality_profiles={
-            "cao": {"aggression": 0.8, "cunning": 0.9, "caution": 0.3,
-                    "diplomacy": 0.5, "development": 0.6, "mercy": 0.2},
-            "shu": {"aggression": 0.3, "cunning": 0.3, "caution": 0.7,
-                    "diplomacy": 0.8, "development": 0.8, "mercy": 0.95},
-            "wu": {"aggression": 0.6, "cunning": 0.6, "caution": 0.5,
-                   "diplomacy": 0.6, "development": 0.6, "mercy": 0.5},
-            "liuzhang": {"aggression": 0.2, "cunning": 0.3, "caution": 0.8,
-                         "diplomacy": 0.3, "development": 0.4, "mercy": 0.7},
-            "liubiao": {"aggression": 0.2, "cunning": 0.4, "caution": 0.7,
-                        "diplomacy": 0.6, "development": 0.7, "mercy": 0.8},
-        })
+        self.decision_engine = DecisionEngine(
+            personality_profiles={
+                "cao": {
+                    "aggression": 0.8,
+                    "cunning": 0.9,
+                    "caution": 0.3,
+                    "diplomacy": 0.5,
+                    "development": 0.6,
+                    "mercy": 0.2,
+                },
+                "shu": {
+                    "aggression": 0.3,
+                    "cunning": 0.3,
+                    "caution": 0.7,
+                    "diplomacy": 0.8,
+                    "development": 0.8,
+                    "mercy": 0.95,
+                },
+                "wu": {
+                    "aggression": 0.6,
+                    "cunning": 0.6,
+                    "caution": 0.5,
+                    "diplomacy": 0.6,
+                    "development": 0.6,
+                    "mercy": 0.5,
+                },
+                "liuzhang": {
+                    "aggression": 0.2,
+                    "cunning": 0.3,
+                    "caution": 0.8,
+                    "diplomacy": 0.3,
+                    "development": 0.4,
+                    "mercy": 0.7,
+                },
+                "liubiao": {
+                    "aggression": 0.2,
+                    "cunning": 0.4,
+                    "caution": 0.7,
+                    "diplomacy": 0.6,
+                    "development": 0.7,
+                    "mercy": 0.8,
+                },
+            }
+        )
 
     def execute_command(self, command: Command) -> dict:
         """Execute a game command through the appropriate engine.
@@ -315,23 +344,20 @@ class StateBridge:
                 neighbor = self.world_state.territories.get(neighbor_id)
                 if neighbor and neighbor.owner_id and neighbor.owner_id != faction_id:
                     nf = self.world_state.factions.get(neighbor.owner_id)
-                    is_enemy = (
-                        neighbor.owner_id in faction.enemies
-                        or faction.relations.get(neighbor.owner_id, 0) < 0
-                    )
+                    is_enemy = neighbor.owner_id in faction.enemies or faction.relations.get(neighbor.owner_id, 0) < 0
                     if is_enemy:
-                        enemy_borders.append({
-                            "territory_id": neighbor_id,
-                            "territory_name": neighbor.name,
-                            "owner_id": neighbor.owner_id,
-                            "owner_name": nf.name if nf else neighbor.owner_id,
-                        })
+                        enemy_borders.append(
+                            {
+                                "territory_id": neighbor_id,
+                                "territory_name": neighbor.name,
+                                "owner_id": neighbor.owner_id,
+                                "owner_name": nf.name if nf else neighbor.owner_id,
+                            }
+                        )
 
         # Total troops
         total_troops = sum(
-            army.total_troops
-            for army in self.world_state.armies.values()
-            if army.faction_id == faction_id
+            army.total_troops for army in self.world_state.armies.values() if army.faction_id == faction_id
         )
 
         return {
@@ -387,9 +413,7 @@ class StateBridge:
                 for tid in faction.territories:
                     territory = self.world_state.territories.get(tid)
                     if territory:
-                        revenue = self.domestic_engine.calculate_tax_revenue(
-                            territory, faction.tax_rate
-                        )
+                        revenue = self.domestic_engine.calculate_tax_revenue(territory, faction.tax_rate)
                         total_revenue += revenue
                 if total_revenue > 0:
                     faction.treasury += total_revenue
@@ -399,9 +423,7 @@ class StateBridge:
 
             # 2. Generate strategic commands via DecisionEngine
             try:
-                commands = self.decision_engine.generate_commands(
-                    fid, self.world_state, self.map_engine
-                )
+                commands = self.decision_engine.generate_commands(fid, self.world_state, self.map_engine)
             except Exception:
                 commands = []
 
@@ -418,18 +440,19 @@ class StateBridge:
                     actions.append(f"命令异常: {exc}")
 
             profile_name = self._PERSONALITY_MAP.get(fid, "default")
-            npc_actions.append({
-                "faction_id": fid,
-                "faction_name": faction.name,
-                "actions": actions,
-                "personality": profile_name,
-            })
+            npc_actions.append(
+                {
+                    "faction_id": fid,
+                    "faction_name": faction.name,
+                    "actions": actions,
+                    "personality": profile_name,
+                }
+            )
 
         # Sync faction strength_actual with actual army totals
         for fid, faction in self.world_state.factions.items():
             faction.strength_actual = sum(
-                a.total_troops for a in self.world_state.armies.values()
-                if a.faction_id == fid
+                a.total_troops for a in self.world_state.armies.values() if a.faction_id == fid
             )
 
         return npc_actions
@@ -452,9 +475,7 @@ class StateBridge:
 
     def get_territory_map(self) -> dict[str, list[str]]:
         """Return adjacency map for map rendering."""
-        return {
-            tid: list(t.neighbors) for tid, t in self.world_state.territories.items()
-        }
+        return {tid: list(t.neighbors) for tid, t in self.world_state.territories.items()}
 
     # ─── helpers ─────────────────────────────────────────
 
@@ -485,18 +506,18 @@ class StateBridge:
 
     def _find_best_army_for_target(self, faction_id: str, target: str) -> Army | None:
         """Find best army for attacking/moving to target.
-        
+
         Prefers: at target > adjacent to target > any army.
         """
         best = None
         best_score = -1
-        
+
         for army in self.world_state.armies.values():
             if army.faction_id != faction_id:
                 continue
             if army.total_troops <= 0:
                 continue
-            
+
             # Score: 2 for at target, 1 for adjacent, 0 for other
             if army.location == target:
                 score = 2
@@ -504,14 +525,14 @@ class StateBridge:
                 score = 1
             else:
                 score = 0
-            
+
             # Tiebreak: bigger army wins
             score += army.total_troops / 100000
-            
+
             if score > best_score:
                 best_score = score
                 best = army
-        
+
         return best or self._find_army(faction_id)
 
     def _find_defender(self, territory_id: str) -> Army | None:

@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import copy
+
 from ..engine.offline_sim import simulate_turn_offline
+from ..engine.world import GameWorld
 from ..engine.world_sim_interface import SimResult, WorldSimEngine
 from ..state.world_state import WorldState, save_world
-from ..engine.world import GameWorld
 
 
 def _map_state_id_to_legacy(fid: str) -> str:
@@ -16,6 +17,7 @@ def _map_state_id_to_legacy(fid: str) -> str:
         "wu": "wu",
         "yuan_shao": "yuan_shao",
         "liu_biao": "liu_biao",
+        "liubiao": "liu_biao",
     }
     return mapping.get(fid, fid)
 
@@ -26,7 +28,8 @@ def _map_legacy_id_to_state(fid: str) -> str:
         "liubei": "shu",
         "sunjian": "wu",
         "yuanshao": "yuan_shao",
-        "liubiao": "liu_biao",
+        "liu_biao": "liubiao",
+        "liubiao": "liubiao",
     }
     return mapping.get(fid, fid)
 
@@ -78,7 +81,13 @@ class OfflineSimEngine(WorldSimEngine):
             legacy_faction = legacy_world.factions.get(legacy_fid)
             if not legacy_faction:
                 # check mapped names
-                for k, v in {"caocao": "cao", "liubei": "shu", "sunjian": "wu", "yuanshao": "yuan_shao", "liubiao": "liu_biao"}.items():
+                for k, v in {
+                    "caocao": "cao",
+                    "liubei": "shu",
+                    "sunjian": "wu",
+                    "yuanshao": "yuan_shao",
+                    "liubiao": "liu_biao",
+                }.items():
                     if v == legacy_fid:
                         legacy_faction = legacy_world.factions.get(k)
                         break

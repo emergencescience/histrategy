@@ -3,10 +3,9 @@
 import tempfile
 from unittest.mock import Mock
 
-from histrategy_agent.session import GameSessionManager
 from histrategy_agent.format_engine import FormatEngine
-from histrategy_agent.turn_processor import TurnResult, TurnProcessor
-from histrategy_agent.multiplayer import MultiplayerSession, GamePhase, PlayerSlot
+from histrategy_agent.session import GameSessionManager
+from histrategy_agent.turn_processor import TurnResult
 
 
 class TestFormatEngineTurnResult:
@@ -19,10 +18,15 @@ class TestFormatEngineTurnResult:
         result = TurnResult(
             narrative="我军发起进攻，攻占宛城。",
             world_snapshot={
-                "year": 207, "season": "冬", "turn": 3,
+                "year": 207,
+                "season": "冬",
+                "turn": 3,
                 "territories": [{"name": "新野"}, {"name": "宛城"}],
-                "total_troops": 4800, "food": 1800, "prestige": 40,
-                "treasury": 2800, "faction_name": "刘备",
+                "total_troops": 4800,
+                "food": 1800,
+                "prestige": 40,
+                "treasury": 2800,
+                "faction_name": "刘备",
                 "faction_id": "shu",
             },
             suggestions=["招募步兵", "休整一回合", "与吴联盟"],
@@ -42,10 +46,16 @@ class TestFormatEngineTurnResult:
         result = TurnResult(
             narrative="大军开拔。",
             world_snapshot={
-                "year": 208, "season": "春", "turn": 5,
-                "territories": [], "total_troops": 1000,
-                "food": 500, "prestige": 25, "treasury": 1000,
-                "faction_name": "刘备", "faction_id": "shu",
+                "year": 208,
+                "season": "春",
+                "turn": 5,
+                "territories": [],
+                "total_troops": 1000,
+                "food": 500,
+                "prestige": 25,
+                "treasury": 1000,
+                "faction_name": "刘备",
+                "faction_id": "shu",
             },
             suggestions=[],
             events=[],
@@ -59,10 +69,18 @@ class TestFormatEngineTurnResult:
         events = [f"事件{i}" for i in range(20)]
         result = TurnResult(
             narrative="test",
-            world_snapshot={"year": 207, "season": "冬", "turn": 1,
-                            "territories": [], "total_troops": 0,
-                            "food": 0, "prestige": 0, "treasury": 0,
-                            "faction_name": "Test", "faction_id": "test"},
+            world_snapshot={
+                "year": 207,
+                "season": "冬",
+                "turn": 1,
+                "territories": [],
+                "total_troops": 0,
+                "food": 0,
+                "prestige": 0,
+                "treasury": 0,
+                "faction_name": "Test",
+                "faction_id": "test",
+            },
             suggestions=["action 1"],
             events=events,
             map_ascii="",
@@ -76,10 +94,18 @@ class TestFormatEngineTurnResult:
     def test_render_turn_result_empty_suggestions(self):
         result = TurnResult(
             narrative="test",
-            world_snapshot={"year": 207, "season": "冬", "turn": 1,
-                            "territories": [], "total_troops": 0,
-                            "food": 0, "prestige": 0, "treasury": 0,
-                            "faction_name": "Test", "faction_id": "test"},
+            world_snapshot={
+                "year": 207,
+                "season": "冬",
+                "turn": 1,
+                "territories": [],
+                "total_troops": 0,
+                "food": 0,
+                "prestige": 0,
+                "treasury": 0,
+                "faction_name": "Test",
+                "faction_id": "test",
+            },
             suggestions=[],
             events=[],
             map_ascii="",
@@ -214,10 +240,16 @@ class TestFormatEngineEdgeCases:
         result = TurnResult(
             narrative="全军覆没。",
             world_snapshot={
-                "year": 207, "season": "冬", "turn": 1,
+                "year": 207,
+                "season": "冬",
+                "turn": 1,
                 "territories": [],
-                "total_troops": 0, "food": 0, "prestige": 0, "treasury": 0,
-                "faction_name": "刘备", "faction_id": "shu",
+                "total_troops": 0,
+                "food": 0,
+                "prestige": 0,
+                "treasury": 0,
+                "faction_name": "刘备",
+                "faction_id": "shu",
             },
             suggestions=["休整"],
             events=["败亡"],
@@ -232,10 +264,16 @@ class TestFormatEngineEdgeCases:
         result = TurnResult(
             narrative="弹尽粮绝。",
             world_snapshot={
-                "year": 207, "season": "冬", "turn": 5,
+                "year": 207,
+                "season": "冬",
+                "turn": 5,
                 "territories": [{"name": "新野"}],
-                "total_troops": 0, "food": 0, "prestige": 0, "treasury": 0,
-                "faction_name": "刘备", "faction_id": "shu",
+                "total_troops": 0,
+                "food": 0,
+                "prestige": 0,
+                "treasury": 0,
+                "faction_name": "刘备",
+                "faction_id": "shu",
             },
             suggestions=[],
             events=[],

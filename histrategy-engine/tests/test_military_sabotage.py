@@ -4,14 +4,11 @@ import random
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from histrategy_engine.military.sabotage import (
     SabotageEngine,
     SabotageType,
-    SabotageResult,
 )
 from histrategy_engine.world import (
     Army,
@@ -115,14 +112,22 @@ def make_test_world() -> WorldState:
 
     ws.territories = {
         "xuchang": Territory(
-            id="xuchang", name="许昌",
-            owner_id="cao", climate_zone="central",
-            population=200000, fertility=80, development=50,
+            id="xuchang",
+            name="许昌",
+            owner_id="cao",
+            climate_zone="central",
+            population=200000,
+            fertility=80,
+            development=50,
         ),
         "xinye": Territory(
-            id="xinye", name="新野",
-            owner_id="shu", climate_zone="central",
-            population=30000, fertility=60, development=30,
+            id="xinye",
+            name="新野",
+            owner_id="shu",
+            climate_zone="central",
+            population=30000,
+            fertility=60,
+            development=30,
         ),
     }
 
@@ -141,7 +146,8 @@ class TestSabotageEngine:
         ws = make_test_world()
         # shu faction has default caution=0.5
         prob = self.engine._calculate_probability(
-            ws.characters["fazheng"], SabotageType.ASSASSINATE,
+            ws.characters["fazheng"],
+            SabotageType.ASSASSINATE,
             faction_caution=ws.factions["shu"].caution,
         )
         # loyalty=50: loyalty_mod=+0.30, caution=0.5: -0.15, politics=85: -0.085
@@ -152,7 +158,8 @@ class TestSabotageEngine:
         """Very loyal target should be nearly impossible to assassinate."""
         ws = make_test_world()
         prob = self.engine._calculate_probability(
-            ws.characters["zhugeliang"], SabotageType.ASSASSINATE,
+            ws.characters["zhugeliang"],
+            SabotageType.ASSASSINATE,
             faction_caution=ws.factions["shu"].caution,
         )
         # loyalty=95: -0.15, caution=0.5: -0.15, politics=98: -0.098
@@ -200,7 +207,8 @@ class TestSabotageEngine:
     def test_bribe_high_loyalty_low_probability(self):
         ws = make_test_world()
         prob = self.engine._calculate_probability(
-            ws.characters["guanyu"], SabotageType.BRIBE,
+            ws.characters["guanyu"],
+            SabotageType.BRIBE,
             faction_caution=ws.factions["shu"].caution,
         )
         assert prob == 0.01
@@ -208,7 +216,8 @@ class TestSabotageEngine:
     def test_bribe_moderate_loyalty(self):
         ws = make_test_world()
         prob = self.engine._calculate_probability(
-            ws.characters["fazheng"], SabotageType.BRIBE,
+            ws.characters["fazheng"],
+            SabotageType.BRIBE,
             faction_caution=ws.factions["shu"].caution,
         )
         assert 0.5 < prob < 0.7
@@ -232,10 +241,8 @@ class TestSabotageEngine:
         ws = make_test_world()
         for sab_type in (SabotageType.ASSASSINATE, SabotageType.BRIBE):
             for loy in range(0, 101, 25):
-                char = Character(id="test", name="Test", faction_id="shu",
-                                 loyalty=loy, politics=50)
-                prob = self.engine._calculate_probability(
-                    char, sab_type, faction_caution=0.5)
+                char = Character(id="test", name="Test", faction_id="shu", loyalty=loy, politics=50)
+                prob = self.engine._calculate_probability(char, sab_type, faction_caution=0.5)
                 assert 0.01 <= prob <= 0.80, f"{sab_type} loy={loy}: {prob}"
 
     def test_cost(self):

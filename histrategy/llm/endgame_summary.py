@@ -1,5 +1,5 @@
-import json
 from typing import Any
+
 
 def generate_chronicle(player_events: list[Any], llm_adapter: Any = None) -> str:
     """
@@ -32,10 +32,7 @@ def generate_chronicle(player_events: list[Any], llm_adapter: Any = None) -> str
             f"请根据上述经历生成一篇符合《三国志》评语风格的传记总结。"
         )
         try:
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ]
+            messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
             response = llm_adapter.chat(messages, temperature=0.5)
             if response and response.strip():
                 return response.strip()

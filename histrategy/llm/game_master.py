@@ -14,14 +14,14 @@ from __future__ import annotations
 import copy
 
 from ..state.world_state import (
+    HISTORICAL_TIMELINE_207,
     EventEntry,
-    WorldState,
     HistoricalMode,
+    WorldState,
     add_event_to_history,
     get_historical_context,
     get_recent_history,
     save_world,
-    HISTORICAL_TIMELINE_207,
 )
 from .adapter import LLMAdapter
 
@@ -99,6 +99,10 @@ GAMEMASTER_COMMAND_SYSTEM = """你是《三國志略》的AI游戏主持人（Ga
 ### NPC势力的反应
 - NPC势力会根据玩家的行动做出反应，且NPC势力也在自驱运转。
 - 曹操多疑、袁绍好谋无断、董卓残暴——必须符合人物性格。
+
+### 遵守物理边界与角色存活状态
+- 严格遵循输入的势力城池控制关系。若某方势力已经失去了某座城池，绝不能在推演中描写其仍驻守或活动于该城池（例如：若刘备已失新野，切勿描写刘备在新野防守）。
+- 严格遵守已死亡或不活跃人物名单。绝不能在推演中让已被列为亡故的人物（如董卓、刘表）再次出现、活跃或复活。
 
 ## 你需要生成的
 
@@ -187,11 +191,19 @@ FREEFORM_COMMAND_FRAMING = """
 
 # ─── Context builders ───────────────────────────────────────
 
+
 def _build_plan_context(state: WorldState) -> str:
     """Build the world state context for Plan Mode LLM prompt."""
     player = state.get_player_faction()
     if not player:
         return ""
+
+    # Resolve territory names for player
+    pt_names = []
+    for tid in player.territories:
+        t = state.territories.get(tid)
+        if t:
+            pt_names.append(t.name)
 
     lines = [
         "## 当前时间",
@@ -204,7 +216,7 @@ def _build_plan_context(state: WorldState) -> str:
         f"- 资金：{player.treasury:,}",
         f"- 粮草：{player.food:,}",
         f"- 首都：{player.capital}",
-        f"- 领地：{', '.join(player.territories) if player.territories else '暂无'}",
+        f"- 领地：{', '.join(pt_names) if pt_names else '暂无'}",
         "",
         "## 天下势力",
     ]
@@ -212,7 +224,28 @@ def _build_plan_context(state: WorldState) -> str:
     for fid, fs in state.factions.items():
         if not fs.is_active or fid == state.player_faction_id:
             continue
-        lines.append(f"- {fs.name}（{fs.ruler_id}）：兵力{fs.strength:,}，经济{fs.economy}，民心{fs.morale}")
+        t_names = []
+        for tid in fs.territories:
+            t = state.territories.get(tid)
+            if t:
+                t_names.append(t.name)
+        lines.append(
+            f"- {fs.name}（君主: {fs.ruler_id}）：兵力{fs.strength:,}，经济{fs.economy}，民心{fs.morale}。控制城池：{', '.join(t_names) if t_names else '无'}"
+        )
+
+    # Resolve deceased characters
+    dead_names = [c.name for c in state.characters.values() if not c.alive]
+    if "dongzhuo" not in state.characters or not state.characters["dongzhuo"].alive:
+        if "董卓" not in dead_names:
+            dead_names.append("董卓")
+    if "liubiao" not in state.characters or not state.characters["liubiao"].alive:
+        if "刘表" not in dead_names:
+            dead_names.append("刘表")
+
+    if dead_names:
+        lines.append("")
+        lines.append("## 已亡故/不活跃人物（不可在此回合复活或出现活跃事迹）")
+        lines.append(f"- {', '.join(dead_names)}")
 
     # Historical context
     historical = get_historical_context(state.year)
@@ -255,21 +288,49 @@ def _build_command_context(state: WorldState, player_decision: str) -> str:
     ]
 
     if player:
-        lines.extend([
-            f"兵力：{player.strength:,}",
-            f"经济：{player.economy}/100",
-            f"民心：{player.morale}/100",
-            f"资金：{player.treasury:,}",
-            f"粮草：{player.food:,}",
-            f"领地：{', '.join(player.territories) if player.territories else '暂无'}",
-        ])
+        pt_names = []
+        for tid in player.territories:
+            t = state.territories.get(tid)
+            if t:
+                pt_names.append(t.name)
+        lines.extend(
+            [
+                f"兵力：{player.strength:,}",
+                f"经济：{player.economy}/100",
+                f"民心：{player.morale}/100",
+                f"资金：{player.treasury:,}",
+                f"粮草：{player.food:,}",
+                f"领地：{', '.join(pt_names) if pt_names else '暂无'}",
+            ]
+        )
 
     lines.append("")
     lines.append("## 其他势力")
     for fid, fs in state.factions.items():
         if not fs.is_active or fid == state.player_faction_id:
             continue
-        lines.append(f"- {fs.name}：兵力{fs.strength:,}，经济{fs.economy}，民心{fs.morale}")
+        t_names = []
+        for tid in fs.territories:
+            t = state.territories.get(tid)
+            if t:
+                t_names.append(t.name)
+        lines.append(
+            f"- {fs.name}（君主: {fs.ruler_id}）：兵力{fs.strength:,}，经济{fs.economy}，民心{fs.morale}。控制城池：{', '.join(t_names) if t_names else '无'}"
+        )
+
+    # Resolve deceased characters
+    dead_names = [c.name for c in state.characters.values() if not c.alive]
+    if "dongzhuo" not in state.characters or not state.characters["dongzhuo"].alive:
+        if "董卓" not in dead_names:
+            dead_names.append("董卓")
+    if "liubiao" not in state.characters or not state.characters["liubiao"].alive:
+        if "刘表" not in dead_names:
+            dead_names.append("刘表")
+
+    if dead_names:
+        lines.append("")
+        lines.append("## 已亡故/不活跃人物（不可在此回合复活或出现活跃事迹）")
+        lines.append(f"- {', '.join(dead_names)}")
 
     lines.append("")
     lines.append("## 主公决策")
@@ -281,6 +342,7 @@ def _build_command_context(state: WorldState, player_decision: str) -> str:
 
 
 # ─── GameMaster ─────────────────────────────────────────────
+
 
 class GameMaster:
     """
@@ -338,14 +400,23 @@ class GameMaster:
             return {
                 "narrative": result.get("narrative", ""),
                 "npc_actions": result.get("npc_reactions", []),
-                "new_choices": result.get("choices", [
-                    "【发布檄文】联络天下英雄",
-                    "【屯田养兵】积蓄钱粮实力",
-                    "【合纵连横】派使者联络袁绍",
-                    "【招贤纳士】招募在野文武",
-                ]),
-                "state_changes": {"strength": 0, "economy": 0, "morale": 0,
-                                  "treasury": 0, "food": 0, "npc_changes": {}},
+                "new_choices": result.get(
+                    "choices",
+                    [
+                        "【发布檄文】联络天下英雄",
+                        "【屯田养兵】积蓄钱粮实力",
+                        "【合纵连横】派使者联络袁绍",
+                        "【招贤纳士】招募在野文武",
+                    ],
+                ),
+                "state_changes": {
+                    "strength": 0,
+                    "economy": 0,
+                    "morale": 0,
+                    "treasury": 0,
+                    "food": 0,
+                    "npc_changes": {},
+                },
                 "events_occurred": [],
             }
         except Exception:
@@ -368,8 +439,7 @@ class GameMaster:
                 "刘备屯兵新野，三顾茅庐请出诸葛亮，正谋划隆中对策",
                 "孙权坐镇建业，周瑜训练水师，巩固江东六郡",
             ],
-            "state_changes": {"strength": 0, "economy": 0, "morale": 0,
-                              "treasury": 0, "food": 0, "npc_changes": {}},
+            "state_changes": {"strength": 0, "economy": 0, "morale": 0, "treasury": 0, "food": 0, "npc_changes": {}},
             "events_occurred": [],
             "new_choices": [
                 "【招贤纳士】广募天下英才",
@@ -407,7 +477,6 @@ class GameMaster:
             {"role": "system", "content": system_content},
             {"role": "user", "content": _build_plan_context(state)},
         ]
-
 
         try:
             result = self.llm.chat_structured(
@@ -488,7 +557,6 @@ class GameMaster:
             # Apply state changes from LLM
             updated_state = self._apply_command_updates(state, result)
 
-
             # Record the event
             event = EventEntry(
                 year=state.year,
@@ -505,7 +573,10 @@ class GameMaster:
 
             # Divergence acknowledgment
             aftermath = result.get("aftermath", "")
-            if state.historical_mode == HistoricalMode.HISTORICAL and updated_state.historical_mode != HistoricalMode.HISTORICAL:
+            if (
+                state.historical_mode == HistoricalMode.HISTORICAL
+                and updated_state.historical_mode != HistoricalMode.HISTORICAL
+            ):
                 divergence_msg = "【史官提笔长叹：历史的轨迹已被彻底改变，此后的纪事，将被记入《建安异录》之中。】\n\n"
                 aftermath = divergence_msg + aftermath
 
@@ -519,8 +590,9 @@ class GameMaster:
                 "world_state": updated_state,
             }
 
-        except Exception as e:
+        except Exception:
             import traceback
+
             traceback.print_exc()
             state.advance_turn()
             return {
@@ -533,9 +605,7 @@ class GameMaster:
                 "world_state": state,
             }
 
-    def _apply_command_updates(
-        self, state: WorldState, llm_result: dict
-    ) -> WorldState:
+    def _apply_command_updates(self, state: WorldState, llm_result: dict) -> WorldState:
         """Apply LLM-generated state changes to the world state."""
         new_state = copy.deepcopy(state)
 
@@ -570,4 +640,3 @@ class GameMaster:
 
         new_state.advance_turn()
         return new_state
-

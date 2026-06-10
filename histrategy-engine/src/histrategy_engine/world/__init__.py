@@ -10,7 +10,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
-
 # ─── Enums ────────────────────────────────────────────────────
 
 
@@ -91,6 +90,7 @@ class HistoricalMode(Enum):
 @dataclass
 class StrategicPoint:
     """A chokepoint within a territory — pass, ford, or city."""
+
     id: str
     name: str
     point_type: str  # "pass", "ford", "city"
@@ -102,6 +102,7 @@ class StrategicPoint:
 @dataclass
 class Territory:
     """A province / state in the game world."""
+
     id: str
     name: str
     owner_id: str = ""
@@ -146,16 +147,17 @@ class Territory:
 @dataclass
 class Character:
     """A historical figure — officer, advisor, ruler."""
+
     id: str
     name: str
     alias: str = ""  # 字
 
     # ── Five-dimensional stats (1-100) ──
-    leadership: int = 50   # 统率
-    might: int = 50        # 武力
+    leadership: int = 50  # 统率
+    might: int = 50  # 武力
     intelligence: int = 50  # 智力
-    politics: int = 50      # 政治
-    charisma: int = 50      # 魅力
+    politics: int = 50  # 政治
+    charisma: int = 50  # 魅力
 
     # ── Skills ──
     skills: list[str] = field(default_factory=list)
@@ -260,6 +262,7 @@ class FactionState:
 @dataclass
 class Army:
     """A military force at a specific location."""
+
     id: str
     faction_id: str
     location: str  # territory_id
@@ -278,6 +281,7 @@ class Army:
 @dataclass
 class CombatResult:
     """Output of a battle resolution."""
+
     battle_id: str
     location: str
     attacker_id: str
@@ -301,6 +305,7 @@ class CombatResult:
 @dataclass
 class HistoricalEvent:
     """A scripted historical event with trigger conditions."""
+
     id: str
     title: str
     year_range: tuple[int, int]
@@ -319,6 +324,7 @@ class HistoricalEvent:
 @dataclass
 class EventProposal:
     """Proposal from History Engine to other engines."""
+
     event_id: str
     title: str
     effects: dict = field(default_factory=dict)  # engine-specific effects
@@ -331,6 +337,7 @@ class EventProposal:
 @dataclass
 class Command:
     """A validated game command from a faction."""
+
     type: str  # "recruit", "move", "attack", "develop", "tax", etc.
     params: dict = field(default_factory=dict)
     faction_id: str = ""
@@ -342,6 +349,7 @@ class Command:
 @dataclass
 class TurnResult:
     """Complete output of a turn — consumed by Narrative Engine."""
+
     year: int = 190
     season: Season = Season.SPRING
     turn_number: int = 1
@@ -362,6 +370,7 @@ class TurnResult:
 @dataclass
 class WorldState:
     """Complete game world snapshot."""
+
     year: int = 207
     season: Season = Season.WINTER
     turn_number: int = 1
