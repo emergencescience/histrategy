@@ -275,8 +275,17 @@ def create_app(llm_provider: str | None = None) -> Any:
                 pass
         
         # Check v2 engine availability
-        from histrategy.engine.game import _V2_AVAILABLE as v2_available
-        
+        v2_available = False
+        v2_error = None
+        try:
+            import sys as _sys
+            from histrategy.engine.game import _V2_AVAILABLE as _v2a
+            v2_available = _v2a
+        except ImportError as e:
+            v2_error = str(e)
+        except Exception as e:
+            v2_error = f"{type(e).__name__}: {e}"
+
         return {
             "status": "ok",
             "games_active": len(_games),
@@ -287,6 +296,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             "engine": {
                 "version": "v2" if v2_available else "v1",
                 "v2_available": v2_available,
+                "v2_error": v2_error,
             },
         }
 
