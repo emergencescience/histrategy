@@ -7,14 +7,13 @@ name = "histrategy-sdk"
 version = "0.1.0"
 description = "Python SDK for 三國志略 (Histrategy) — AI-powered Three Kingdoms strategy game engine"
 requires-python = ">=3.11"
-license = {text = "MIT"}
+license = "MIT"
 readme = "README.md"
 authors = [{name = "Emergence Science"}]
 keywords = ["three-kingdoms", "strategy-game", "ai-game", "llm", "deepseek"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Games/Entertainment :: Turn Based Strategy",
