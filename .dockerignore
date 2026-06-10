@@ -1,0 +1,54 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Game saves
+.histrategy/
+.histrategy-playtest/
+
+# Environment
+.env
+.env.local
+
+# Logs and temp
+logs/
+scratch/
+*.log
+
+# Tests (not needed in production)
+.pytest_cache/
+tests/
+histrategy-engine/tests/
+**/test_*.py
+
+# Git
+.git/
+.gitignore
+
+# Misc
+rooms/
+references/
+publications/
+sprints/
+scripts/
+docs/
+CLAUDE.md
+CONTRIBUTING.md
+README.md
+LICENSE
+.pre-commit-config.yaml
+.ruff_cache/
