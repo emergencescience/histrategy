@@ -326,14 +326,31 @@ def create_app(llm_provider: str | None = None) -> Any:
         # Actually probe LLM availability
         llm_available = False
         llm_provider_name = _llm_provider or "none"
+        llm_debug: dict[str, Any] = {}
         if _llm_provider:
+            import os as _os
+
             from histrategy.llm.adapter import LLMAdapter
 
             try:
                 adapter = LLMAdapter(provider=_llm_provider)
                 llm_available = adapter.is_available
-            except Exception:
-                pass
+                llm_debug = {
+                    "has_api_key": bool(adapter.api_key),
+                    "key_length": len(adapter.api_key) if adapter.api_key else 0,
+                    "key_prefix": adapter.api_key[:5] + "..." if adapter.api_key else "",
+                    "has_client": adapter.client is not None,
+                    "provider_name": adapter.provider_name,
+                    "api_base": adapter.api_base,
+                    "model": adapter.model,
+                }
+            except Exception as e:
+                llm_debug = {"error": f"{type(e).__name__}: {e}"}
+
+            # Also show raw env state (safely)
+            raw_key = _os.environ.get("DEEPSEEK_API_KEY", "")
+            llm_debug["env_key_exists"] = bool(raw_key)
+            llm_debug["env_key_length"] = len(raw_key) if raw_key else 0
 
         # Check v2 engine availability
         v2_available = False
@@ -355,6 +372,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             "llm": {
                 "available": llm_available,
                 "provider": llm_provider_name,
+                "debug": llm_debug,
             },
             "engine": {
                 "version": "v2" if v2_available else "v1",
