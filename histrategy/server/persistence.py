@@ -15,11 +15,15 @@ _TIMEOUT = 10.0  # seconds
 def _headers(jwt_token: str) -> dict:
     return {"Authorization": f"Bearer {jwt_token}", "Content-Type": "application/json"}
 
-def create_session(jwt_token: str, scenario: str, faction: str) -> dict:
+def create_session(jwt_token: str, scenario: str, faction: str,
+                   preferences: dict | None = None) -> dict:
     """POST /games/histrategy/sessions → {session_id, ...}"""
+    body = {"scenario": scenario, "faction": faction}
+    if preferences:
+        body["preferences"] = preferences
     r = httpx.post(
         f"{ORCHESTRATOR_URL}/games/histrategy/sessions",
-        json={"scenario": scenario, "faction": faction},
+        json=body,
         headers=_headers(jwt_token),
         timeout=_TIMEOUT,
     )

@@ -26,6 +26,7 @@ class CreateGameRequest(BaseModel):
     new: bool = True
     session_id: str | None = None      # Orchestrator session ID
     llm_api_key: str | None = None     # User's own DeepSeek API Key (not persisted)
+    language_style: str | None = None  # "classical" | "vernacular" — narrative style preference
 
 
 class CommandRequest(BaseModel):
@@ -298,6 +299,11 @@ def create_app(llm_provider: str | None = None) -> Any:
             if authorization and authorization.startswith("Bearer "):
                 jwt_token = authorization[len("Bearer "):]
             _game_meta[game_id] = {"session_id": req.session_id, "jwt_token": jwt_token}
+
+        # Store language style preference for use by engine
+        if req.language_style:
+            meta = _game_meta.setdefault(game_id, {})
+            meta["language_style"] = req.language_style
 
         # Get intro scene
         from histrategy.engine.game import _suppress_stderr
