@@ -192,6 +192,7 @@ def create_initial_world(player_faction_id: str) -> WorldState:
 
 V2_FACTION_MAP: dict[str, str] = {
     "cao": "cao",
+    "wei": "cao",
     "shu": "shu",
     "wu": "wu",
     "liubei": "shu",
