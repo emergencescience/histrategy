@@ -425,7 +425,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         return {
             "game_id": game_id,
             "scenario": engine.scenario,
-            "faction": engine.world_state_v2.player_faction_id,
+            "faction": engine.world_state_v2.player_faction_id if engine._use_v2 else engine.world_state.player_faction_id,
             "intro": intro,
             "faction_status": status,
             "restored": True,
@@ -446,65 +446,6 @@ def create_app(llm_provider: str | None = None) -> Any:
             "game_id": game_id,
             "faction_status": status,
         }
-
-
-def _build_resume_narrative(engine) -> dict:
-    """Generate a context-aware resume summary for restored games.
-
-    Returns an intro dict matching the GameCreatedResponse.intro shape
-    with narrative text summarizing the current game state.
-    """
-    status = _build_faction_status(engine)
-    if not status:
-        return {"narrative": "游戏已恢复", "new_choices": [], "npc_actions": []}
-
-    name = status.get("name", "未知势力")
-    year = status.get("year", 207)
-    season = status.get("season", "春")
-    turn = status.get("turn", 1)
-    strength = status.get("strength", 0)
-    food = status.get("food", 0)
-    treasury = status.get("treasury", 0)
-    morale = status.get("morale", 0)
-    territory_names = status.get("territory_names", [])
-    territories_str = "、".join(territory_names) if territory_names else "无领地"
-
-    # Build narrative
-    narrative = (
-        f"## 📜 存档恢复 · 公元{year}年{season} · 第{turn}回合\n\n"
-        f"**{name}** 势力，当前坐拥 **{territories_str}**。\n\n"
-        f"| 兵力 | 粮草 | 库金 | 民心 |\n"
-        f"|------|------|------|------|\n"
-        f"| {strength} | {food} | {treasury} | {morale} |\n\n"
-        f"谋臣武将已在帐中候命。请颁布君令，继续你的霸业。"
-    )
-
-    # Generate suggestions based on current state
-    suggestions = []
-    if hasattr(engine, "_use_v2") and engine._use_v2 and engine.world_state_v2:
-        ws = engine.world_state_v2
-        player = ws.factions.get(ws.player_faction_id)
-        if player:
-            if player.food < 5000:
-                suggestions.append("粮草不足，建议发展农业或征粮")
-            if player.treasury < 3000:
-                suggestions.append("库金紧张，可考虑征税或贸易")
-            if player.strength_actual < 10000:
-                suggestions.append("兵力薄弱，宜招募乡勇壮大军队")
-
-    # Check for NPC actions since last save
-    npc_actions = []
-    if hasattr(engine, "_use_v2") and engine._use_v2 and engine.world_state_v2:
-        ws = engine.world_state_v2
-        for fid, f in ws.factions.items():
-            if fid != ws.player_faction_id and f.is_active:
-                npc_actions.append(f"{f.name}势力仍在活跃")
-
-    return {
-        "narrative": narrative,
-        "new_choices": suggestions,
-        "npc_actions": npc_actions,
-    }
 
     @app.post("/api/games/{game_id}/plan")
     def get_plan(game_id: str):
@@ -893,3 +834,62 @@ def run_server(host: str = "127.0.0.1", port: int = 8080, api_key: str | None = 
         print("   💡 设置: export DEEPSEEK_API_KEY='sk-...' 或 histrategy --serve --api-key sk-...")
 
     uvicorn.run(app, host=host, port=port, log_level="info")
+
+
+def _build_resume_narrative(engine) -> dict:
+    """Generate a context-aware resume summary for restored games.
+
+    Returns an intro dict matching the GameCreatedResponse.intro shape
+    with narrative text summarizing the current game state.
+    """
+    status = _build_faction_status(engine)
+    if not status:
+        return {"narrative": "游戏已恢复", "new_choices": [], "npc_actions": []}
+
+    name = status.get("name", "未知势力")
+    year = status.get("year", 207)
+    season = status.get("season", "春")
+    turn = status.get("turn", 1)
+    strength = status.get("strength", 0)
+    food = status.get("food", 0)
+    treasury = status.get("treasury", 0)
+    morale = status.get("morale", 0)
+    territory_names = status.get("territory_names", [])
+    territories_str = "、".join(territory_names) if territory_names else "无领地"
+
+    # Build narrative
+    narrative = (
+        f"## 📜 存档恢复 · 公元{year}年{season} · 第{turn}回合\n\n"
+        f"**{name}** 势力，当前坐拥 **{territories_str}**。\n\n"
+        f"| 兵力 | 粮草 | 库金 | 民心 |\n"
+        f"|------|------|------|------|\n"
+        f"| {strength} | {food} | {treasury} | {morale} |\n\n"
+        f"谋臣武将已在帐中候命。请颁布君令，继续你的霸业。"
+    )
+
+    # Generate suggestions based on current state
+    suggestions = []
+    if hasattr(engine, "_use_v2") and engine._use_v2 and engine.world_state_v2:
+        ws = engine.world_state_v2
+        player = ws.factions.get(ws.player_faction_id)
+        if player:
+            if player.food < 5000:
+                suggestions.append("粮草不足，建议发展农业或征粮")
+            if player.treasury < 3000:
+                suggestions.append("库金紧张，可考虑征税或贸易")
+            if player.strength_actual < 10000:
+                suggestions.append("兵力薄弱，宜招募乡勇壮大军队")
+
+    # Check for NPC actions since last save
+    npc_actions = []
+    if hasattr(engine, "_use_v2") and engine._use_v2 and engine.world_state_v2:
+        ws = engine.world_state_v2
+        for fid, f in ws.factions.items():
+            if fid != ws.player_faction_id and f.is_active:
+                npc_actions.append(f"{f.name}势力仍在活跃")
+
+    return {
+        "narrative": narrative,
+        "new_choices": suggestions,
+        "npc_actions": npc_actions,
+    }
