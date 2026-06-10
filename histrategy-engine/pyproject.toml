@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Games/Entertainment :: Simulation",
 ]
 
-dependencies = []  # Zero external dependencies
+dependencies = ["pyyaml>=6.0"]  # Required for rules YAML parsing
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.8"]

@@ -15,7 +15,8 @@ COPY histrategy-knowledge/ histrategy-knowledge/
 RUN pip install "fastapi>=0.100.0" "uvicorn>=0.30.0" "PyJWT>=2.8.0" "httpx>=0.27.0" "rich>=13.0.0" "pydantic>=2.0.0" "pyyaml>=6.0"
 
 # Install histrategy-engine as proper package (not editable)
-RUN pip install ./histrategy-engine/
+# Force clean rebuild — ensure YAML rules are included
+RUN pip install --no-cache-dir ./histrategy-engine/
 
 # Install main package as editable (needs histrategy-engine available)
 RUN pip install -e .
