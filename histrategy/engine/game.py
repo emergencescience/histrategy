@@ -692,9 +692,52 @@ class GameEngine:
         # Extract state changes from resource_changes
         resource_changes = turn_result.resource_changes.get(ws.player_faction_id, {})
 
+        # Track LLM token usage
+        _usage = {
+            "command_tokens": 0,   # Intent parsing
+            "plan_tokens": 0,      # Suggestions generation
+            "npc_tokens": 0,       # NPC AI (not yet tracked separately)
+            "sim_tokens": 0,       # Deterministic simulation (free)
+        }
+        if self.narrative_engine and self.narrative_engine.is_available:
+            llm = getattr(self.narrative_engine, "llm", None)
+            if llm and hasattr(llm, "last_call_stats"):
+                stats = llm.last_call_stats
+                if stats:
+                    # last_call_stats has cumulative counters from narrative + suggestions
+                    _usage["command_tokens"] = stats.get("total_tokens", 0)
+
+        # Generate a concise aftermath from resource changes + key events
+        aftermath_parts = []
+        if resource_changes.get("food_delta", 0) != 0:
+            sign = "+" if resource_changes["food_delta"] > 0 else ""
+            aftermath_parts.append(f"粮草{sign}{resource_changes['food_delta']}")
+        if resource_changes.get("tax_revenue", 0) != 0:
+            sign = "+" if resource_changes["tax_revenue"] > 0 else ""
+            aftermath_parts.append(f"资金{sign}{resource_changes['tax_revenue']}")
+        if resource_changes.get("strength_delta", 0) != 0:
+            sign = "+" if resource_changes["strength_delta"] > 0 else ""
+            aftermath_parts.append(f"兵力{sign}{resource_changes['strength_delta']}")
+        if resource_changes.get("morale_delta", 0) != 0:
+            sign = "+" if resource_changes["morale_delta"] > 0 else ""
+            aftermath_parts.append(f"民心{sign}{resource_changes['morale_delta']}")
+        
+        # Extract the last 2-3 sentences of narrative as summary
+        if narrative_text:
+            import re as _re
+            sentences = _re.split(r"[。！？]", narrative_text)
+            sentences = [s.strip() for s in sentences if s.strip()]
+            summary_sentences = sentences[-2:] if len(sentences) > 2 else sentences[-1:]
+            aftermath_text = "。".join(summary_sentences) + "。"
+        else:
+            aftermath_text = "局势已定，天下大势尽在掌握。\n"
+        
+        if aftermath_parts:
+            aftermath_text = "本回合：" + "，".join(aftermath_parts) + "。" + "\n\n" + aftermath_text
+        
         result = {
             "narrative": narrative_text,
-            "aftermath": narrative_text,
+            "aftermath": aftermath_text,
             "bureaucracy": [{
                 "department": "军机处",
                 "official": "参军",
@@ -704,6 +747,7 @@ class GameEngine:
                 "food": resource_changes.get("food_delta", 0),
                 "treasury": resource_changes.get("tax_revenue", 0),
             },
+            "_usage": _usage,
             "seeds": [
                 {"title": evt["title"], "description": evt.get("description", "")[:80]}
                 for evt in self.history_engine.all_events
