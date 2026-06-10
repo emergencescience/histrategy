@@ -294,7 +294,10 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         # Store session metadata if provided
         if req.session_id:
-            _game_meta[game_id] = {"session_id": req.session_id}
+            jwt_token = None
+            if authorization and authorization.startswith("Bearer "):
+                jwt_token = authorization[len("Bearer "):]
+            _game_meta[game_id] = {"session_id": req.session_id, "jwt_token": jwt_token}
 
         # Get intro scene
         from histrategy.engine.game import _suppress_stderr
@@ -358,8 +361,9 @@ def create_app(llm_provider: str | None = None) -> Any:
         }
 
     @app.post("/api/games/{game_id}/command")
-    def execute_command(game_id: str, req: CommandRequest):
-        """Submit a decision and process the turn."""
+    def execute_command(game_id: str, req: CommandRequest,
+                        authorization: str | None = Header(default=None)):
+        """Submit a decision and process the turn. Persists turn history to orchestrator."""
         engine = _get_engine(game_id)
         if not engine:
             from fastapi.responses import JSONResponse
@@ -375,7 +379,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         # Extract new suggestions from result
         new_suggestions = result.get("new_choices", [])
 
-        return {
+        response_data = {
             "game_id": game_id,
             "narrative": result.get("narrative", ""),
             "aftermath": result.get("aftermath", ""),
@@ -389,6 +393,45 @@ def create_app(llm_provider: str | None = None) -> Any:
             "season": status.get("season", "春"),
             "turn": status.get("turn", 1),
         }
+
+        # ── Persist turn to orchestrator (best-effort, non-blocking) ──
+        try:
+            meta = _game_meta.get(game_id, {})
+            session_id = meta.get("session_id", game_id)
+            jwt_token = meta.get("jwt_token")
+            if not jwt_token and authorization and authorization.startswith("Bearer "):
+                jwt_token = authorization[len("Bearer "):]
+
+            if jwt_token and session_id:
+                from histrategy.server.persistence import append_turn as persist_turn
+                import os as _os
+                orchestrator_url = _os.environ.get("ORCHESTRATOR_URL", "")
+                if orchestrator_url:
+                    # Extract token usage from result if available
+                    usage = result.get("_usage", {})
+                    persist_turn(
+                        jwt_token=jwt_token,
+                        session_id=session_id,
+                        turn_number=status.get("turn", 1),
+                        year=status.get("year", 207),
+                        season=status.get("season", "春"),
+                        player_decision=req.decision,
+                        court_dialogue=result.get("court_dialogue"),
+                        suggestions=result.get("suggestions"),
+                        narrative=result.get("narrative", ""),
+                        aftermath=result.get("aftermath", ""),
+                        bureaucracy=result.get("bureaucracy"),
+                        npc_reactions=result.get("npc_reactions", result.get("npc_actions")),
+                        state_changes=result.get("state_changes"),
+                        plan_tokens=usage.get("plan_tokens"),
+                        command_tokens=usage.get("command_tokens"),
+                        npc_tokens=usage.get("npc_tokens"),
+                        sim_tokens=usage.get("sim_tokens"),
+                    )
+        except Exception:
+            pass  # Non-blocking — don't fail the game on persistence error
+
+        return response_data
 
     @app.get("/api/games")
     def list_games():
