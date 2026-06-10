@@ -135,6 +135,45 @@ def _get_engine(game_id: str) -> Any | None:
     return _games.get(game_id)
 
 
+def _format_character_events(events: list) -> list[str]:
+    """Convert v2 character event dicts to human-readable Chinese strings.
+
+    The v2 engine returns rich event dicts (e.g. loyalty_change, natural_death,
+    defection). The frontend expects a list of strings — React cannot render
+    raw objects as children (React error #31).
+    """
+    formatted: list[str] = []
+    for evt in events:
+        if not isinstance(evt, dict):
+            formatted.append(str(evt))
+            continue
+        etype = evt.get("type", "unknown")
+        name = evt.get("character_name", evt.get("character_id", "?"))
+        if etype == "loyalty_change":
+            delta = evt.get("delta", 0)
+            sign = "+" if delta > 0 else ""
+            new_val = evt.get("new_loyalty", "?")
+            reason = evt.get("reason", "")
+            formatted.append(f"{name} 忠诚度 {sign}{delta} (→{new_val}): {reason}")
+        elif etype == "natural_death":
+            year = evt.get("year", "?")
+            formatted.append(f"{name} 自然死亡（{year}年）")
+        elif etype == "loyalty_impact":
+            cname = evt.get("character_name", evt.get("character_id", "?"))
+            delta = evt.get("delta", 0)
+            reason = evt.get("reason", "")
+            formatted.append(f"{cname} 忠诚度受影响 {delta:+d}: {reason}")
+        elif etype == "defection":
+            from_faction = evt.get("from_faction", "?")
+            to_faction = evt.get("to_faction", "?")
+            reason = evt.get("reason", "")
+            formatted.append(f"{name} 从{from_faction}叛逃至{to_faction}: {reason}")
+        else:
+            # Fallback: JSON serialize unknown event types
+            formatted.append(str(evt))
+    return formatted
+
+
 def _build_faction_status(engine) -> dict:
     """Extract player faction status from engine."""
     # City-to-Chinese-name mapping (engine stores city IDs, not province IDs)
@@ -531,7 +570,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             "narrative": result.get("narrative", ""),
             "aftermath": result.get("aftermath", ""),
             "state_changes": result.get("state_changes", {}),
-            "events_occurred": result.get("events_occurred", []),
+            "events_occurred": _format_character_events(result.get("events_occurred", [])),
             "npc_actions": result.get("npc_actions", result.get("npc_reactions", [])),
             "new_suggestions": new_suggestions,
             "game_over": result.get("game_over"),
