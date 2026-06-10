@@ -930,11 +930,11 @@ class GameEngine:
 
         info = intros.get(faction_key, intros["cao"])
         intro = (
-            f"建安十二年（公元207年），天下三分之势初成。\\n\\n"
-            f"曹操已平河北，虎视荆襄；孙权坐断江东，兵精粮足。\\n\\n"
-            f"你，{info['name']}，字{info['alias']}，{info['desc']}。\\n\\n"
-            f"帐下：{info['advisors']}。\\n"
-            f"武将：{info['generals']}听候调遣。\\n"
+            f"建安十二年（公元207年），天下三分之势初成。\n\n"
+            f"曹操已平河北，虎视荆襄；孙权坐断江东，兵精粮足。\n\n"
+            f"你，{info['name']}，字{info['alias']}，{info['desc']}。\n\n"
+            f"帐下：{info['advisors']}。\n"
+            f"武将：{info['generals']}听候调遣。\n"
         )
 
         choices = {
