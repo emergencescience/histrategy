@@ -625,6 +625,13 @@ class GameEngine:
         narrative_text = ""
         new_choices = []
 
+        # Snapshot cumulative LLM token counters before parallel calls
+        _tok_snap = {"total": 0}
+        if self.narrative_engine and self.narrative_engine.is_available:
+            llm = getattr(self.narrative_engine, "llm", None)
+            if llm and hasattr(llm, "total_all_tokens"):
+                _tok_snap["total"] = llm.total_all_tokens
+
         averted_list = list(ws.averted_events)
         if self.history_engine:
             averted_list = list(set(averted_list) | self.history_engine._blocked_downstream)
@@ -692,20 +699,17 @@ class GameEngine:
         # Extract state changes from resource_changes
         resource_changes = turn_result.resource_changes.get(ws.player_faction_id, {})
 
-        # Track LLM token usage
+        # Track LLM token usage via cumulative counters (works across parallel calls)
         _usage = {
-            "command_tokens": 0,   # Intent parsing
+            "command_tokens": 0,   # Narrative + Suggestions (all LLM calls this turn)
             "plan_tokens": 0,      # Suggestions generation
             "npc_tokens": 0,       # NPC AI (not yet tracked separately)
             "sim_tokens": 0,       # Deterministic simulation (free)
         }
         if self.narrative_engine and self.narrative_engine.is_available:
             llm = getattr(self.narrative_engine, "llm", None)
-            if llm and hasattr(llm, "last_call_stats"):
-                stats = llm.last_call_stats
-                if stats:
-                    # last_call_stats has cumulative counters from narrative + suggestions
-                    _usage["command_tokens"] = stats.get("total_tokens", 0)
+            if llm and hasattr(llm, "total_all_tokens"):
+                _usage["command_tokens"] = max(llm.total_all_tokens - _tok_snap.get("total", 0), 0)
 
         # Generate a concise aftermath from resource changes + key events
         aftermath_parts = []

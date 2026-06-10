@@ -123,6 +123,11 @@ class LLMAdapter:
         self.supports_json = self.provider_config["supports_json_mode"]
         self.provider_name = provider or self.provider_config["name"] or "none"
         self.last_call_stats = None
+        # Cumulative token counters (thread-safe for GIL-protected int increments)
+        self.total_prompt_tokens = 0
+        self.total_completion_tokens = 0
+        self.total_all_tokens = 0
+        self.total_calls = 0
 
         if self.api_key:
             self.client = httpx.Client(
@@ -287,6 +292,12 @@ class LLMAdapter:
                 "total_tokens": total_tokens,
                 "reasoning_tokens": reasoning_tokens,
             }
+
+            # Update cumulative counters (GIL-protected, safe for moderate concurrency)
+            self.total_prompt_tokens += prompt_tokens
+            self.total_completion_tokens += completion_tokens
+            self.total_all_tokens += total_tokens
+            self.total_calls += 1
 
             self._write_to_log_files(messages, response_data, latency, self.last_call_stats)
         except Exception as e:
