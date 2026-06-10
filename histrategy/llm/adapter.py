@@ -225,11 +225,14 @@ class LLMAdapter:
 
             content = data["choices"][0]["message"]["content"]
 
-            # Try to parse JSON
+            # Try direct parse first (JSON mode should return clean JSON)
             if use_json_mode:
-                return json.loads(content)
+                try:
+                    return json.loads(content)
+                except json.JSONDecodeError:
+                    pass  # Fall through to extraction below
 
-            # Fallback: extract JSON from text response
+            # Extract JSON from text response (handles markdown fences, etc.)
             return self._extract_json(content)
         except Exception as e:
             latency = time.perf_counter() - start_time
