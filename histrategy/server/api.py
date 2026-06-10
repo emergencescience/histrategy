@@ -449,6 +449,9 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         status = _build_faction_status(engine)
 
+        # Extract token usage for credit billing
+        _usage = plan.get("_usage", {})
+
         return {
             "game_id": game_id,
             "court_dialogue": plan.get("court_dialogue", ""),
@@ -458,6 +461,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             "season": status.get("season", "春"),
             "turn": status.get("turn", 1),
             "faction_status": status,
+            "_usage": _usage,
         }
 
     @app.post("/api/games/{game_id}/command")
@@ -492,6 +496,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             "year": status.get("year", 207),
             "season": status.get("season", "春"),
             "turn": status.get("turn", 1),
+            "_usage": result.get("_usage", {}),
         }
 
         # ── Persist turn AND world_state to orchestrator (best-effort) ──
@@ -554,6 +559,53 @@ def create_app(llm_provider: str | None = None) -> Any:
                 "is_active": status.get("is_active", True),
             })
         return {"games": games, "count": len(games)}
+
+    @app.get("/api/credit/status")
+    def credit_status():
+        """Return credit cost estimation for the game engine.
+
+        Called by the frontend to show per-turn cost estimates.
+        Actual credit deduction happens in the Orchestrator proxy.
+        """
+        PRICING = {
+            "provider": "deepseek",
+            "model": "deepseek-v4-pro",
+            "input_cost_per_1m_tokens": 0.55,
+            "output_cost_per_1m_tokens": 2.19,
+            "markup_percent": 50,
+            "credit_exchange_rate_usd": 1.0,
+            "micro_credits_per_credit": 1_000_000,
+        }
+        ESTIMATED_TOKENS = {
+            "plan_prompt": 3500,
+            "plan_completion": 3200,
+            "command_prompt": 4000,
+            "command_completion": 2500,
+            "npc_prompt": 1500,
+            "npc_completion": 800,
+        }
+        total_prompt = ESTIMATED_TOKENS["plan_prompt"] + ESTIMATED_TOKENS["command_prompt"] + ESTIMATED_TOKENS["npc_prompt"]
+        total_completion = ESTIMATED_TOKENS["plan_completion"] + ESTIMATED_TOKENS["command_completion"] + ESTIMATED_TOKENS["npc_completion"]
+        base_cost_usd = (
+            total_prompt * PRICING["input_cost_per_1m_tokens"] / 1_000_000
+            + total_completion * PRICING["output_cost_per_1m_tokens"] / 1_000_000
+        )
+        markup_usd = base_cost_usd * PRICING["markup_percent"] / 100
+        total_cost_usd = base_cost_usd + markup_usd
+        estimated_cost_micro = round(total_cost_usd * PRICING["micro_credits_per_credit"])
+        return {
+            "pricing": PRICING,
+            "estimated_tokens_per_turn": ESTIMATED_TOKENS,
+            "estimated_cost_per_turn": {
+                "base_usd": round(base_cost_usd, 6),
+                "markup_usd": round(markup_usd, 6),
+                "total_usd": round(total_cost_usd, 6),
+                "micro_credits": estimated_cost_micro,
+                "credits_display": f"{estimated_cost_micro / 1_000_000:.4f}",
+            },
+            "estimated_turns_per_credit": round(1_000_000 / estimated_cost_micro, 1),
+            "llm_available": _llm_provider is not None,
+        }
 
     @app.post("/api/games/{game_id}/summary")
     def get_game_summary(game_id: str):

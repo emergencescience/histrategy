@@ -730,6 +730,13 @@ class GameEngine:
         if not player:
             return self._fallback_plan_data()
 
+        # Snapshot token counter before LLM call
+        _tok_before = 0
+        if self.narrative_engine and self.narrative_engine.is_available:
+            llm = getattr(self.narrative_engine, "llm", None)
+            if llm and hasattr(llm, "total_all_tokens"):
+                _tok_before = llm.total_all_tokens
+
         # Generate suggestions from narrative engine
         if self.narrative_engine and self.narrative_engine.is_available:
             with _suppress_stderr():
@@ -738,6 +745,13 @@ class GameEngine:
                 )
         else:
             suggestions = self._offline_v2_suggestions()
+
+        # Track LLM token usage for plan mode
+        _plan_tokens = 0
+        if self.narrative_engine and self.narrative_engine.is_available:
+            llm = getattr(self.narrative_engine, "llm", None)
+            if llm and hasattr(llm, "total_all_tokens"):
+                _plan_tokens = max(llm.total_all_tokens - _tok_before, 0)
 
         # Build court dialogue from engine state
         court_parts: list[str] = []
@@ -778,6 +792,7 @@ class GameEngine:
             "court_dialogue": "\n".join(court_parts),
             "suggestions": suggestions,
             "season_summary": season_summary,
+            "_usage": {"plan_tokens": _plan_tokens},
         }
 
     def _plan_v1(self) -> dict:
