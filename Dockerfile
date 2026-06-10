@@ -15,6 +15,10 @@ RUN uv pip install --system "setuptools>=75" && \
     uv pip install --system -e . -e histrategy-engine && \
     uv pip install --system "fastapi>=0.100.0" "uvicorn>=0.30.0" "PyJWT>=2.8.0"
 
+# Ensure histrategy-engine source is on Python path
+# Editable installs may not resolve correctly in all environments
+ENV PYTHONPATH="/app/histrategy-engine/src:${PYTHONPATH}"
+
 # Expose port
 EXPOSE 8080
 
