@@ -266,12 +266,20 @@ def create_app(llm_provider: str | None = None) -> Any:
                 llm_available = adapter.is_available
             except Exception:
                 pass
+        
+        # Check v2 engine availability
+        from histrategy.engine.game import _V2_AVAILABLE as v2_available
+        
         return {
             "status": "ok",
             "games_active": len(_games),
             "llm": {
                 "available": llm_available,
                 "provider": llm_provider_name,
+            },
+            "engine": {
+                "version": "v2" if v2_available else "v1",
+                "v2_available": v2_available,
             },
         }
 

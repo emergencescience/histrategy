@@ -63,55 +63,41 @@ except ImportError:
 FACTION_CONFIGS = {
     "cao": {
         "name": "曹操", "ruler": "caocao",
-        "capital": "xuchang", "territories": ["xuchang"],
-        "strength": 30000, "economy": 55, "morale": 75,
-        "treasury": 10000, "food": 5000,
+        "capital": "xuchang", "territories": ["xuchang", "luoyang", "yecheng", "changan"],
+        "strength": 80000, "economy": 75, "morale": 75,
+        "treasury": 20000, "food": 15000,
     },
     "shu": {
         "name": "刘备", "ruler": "liubei",
-        "capital": "pingyuan", "territories": ["pingyuan"],
-        "strength": 5000, "economy": 35, "morale": 90,
-        "treasury": 3000, "food": 2000,
+        "capital": "xinye", "territories": ["xinye"],
+        "strength": 8000, "economy": 30, "morale": 85,
+        "treasury": 3000, "food": 3000,
     },
     "wu": {
-        "name": "孙坚", "ruler": "sunjian",
-        "capital": "changsha", "territories": ["changsha"],
-        "strength": 20000, "economy": 50, "morale": 80,
-        "treasury": 8000, "food": 4000,
-    },
-    "yuan_shao": {
-        "name": "袁绍", "ruler": "yuanshao",
-        "capital": "yecheng", "territories": ["yecheng", "jizhou"],
-        "strength": 80000, "economy": 75, "morale": 70,
-        "treasury": 15000, "food": 8000,
+        "name": "孙权", "ruler": "sunquan",
+        "capital": "jianye", "territories": ["jianye", "wujun", "kuaiji", "lujiang"],
+        "strength": 50000, "economy": 60, "morale": 80,
+        "treasury": 12000, "food": 10000,
     },
 }
 
 NPC_FACTION_CONFIGS = {
-    "dongzhuo": {"name": "董卓", "ruler": "dongzhuo",
-                 "capital": "luoyang", "territories": ["luoyang", "changan"],
-                 "strength": 150000, "economy": 80, "morale": 40,
-                 "treasury": 50000, "food": 30000},
-    "caocao": {"name": "曹操", "ruler": "caocao",
-               "capital": "xuchang", "territories": ["xuchang"],
-               "strength": 30000, "economy": 55, "morale": 75,
-               "treasury": 10000, "food": 5000},
-    "yuanshao": {"name": "袁绍", "ruler": "yuanshao",
-                  "capital": "yecheng", "territories": ["yecheng", "jizhou"],
-                  "strength": 80000, "economy": 75, "morale": 70,
-                  "treasury": 15000, "food": 8000},
-    "sunjian": {"name": "孙坚", "ruler": "sunjian",
-                "capital": "changsha", "territories": ["changsha"],
-                "strength": 20000, "economy": 50, "morale": 80,
-                "treasury": 8000, "food": 4000},
     "liubiao": {"name": "刘表", "ruler": "liubiao",
-                "capital": "xiangyang", "territories": ["xiangyang", "jiangling"],
-                "strength": 30000, "economy": 60, "morale": 65,
-                "treasury": 12000, "food": 7000},
-    "gongsunzan": {"name": "公孙瓒", "ruler": "gongsunzan",
-                   "capital": "beiping", "territories": ["beiping"],
-                   "strength": 40000, "economy": 45, "morale": 70,
-                   "treasury": 6000, "food": 4000},
+                "capital": "xiangyang", "territories": ["xiangyang", "jiangling", "jiangxia"],
+                "strength": 40000, "economy": 60, "morale": 55,
+                "treasury": 15000, "food": 10000},
+    "zhanglu": {"name": "张鲁", "ruler": "zhanglu",
+                "capital": "hanshui", "territories": ["hanshui"],
+                "strength": 15000, "economy": 40, "morale": 70,
+                "treasury": 5000, "food": 5000},
+    "liuzhang": {"name": "刘璋", "ruler": "liuzhang",
+                 "capital": "chengdu", "territories": ["chengdu", "jiangzhou"],
+                 "strength": 35000, "economy": 55, "morale": 50,
+                 "treasury": 10000, "food": 8000},
+    "machao": {"name": "马超", "ruler": "machao",
+               "capital": "tianshui", "territories": ["tianshui", "wuwei"],
+               "strength": 25000, "economy": 45, "morale": 75,
+               "treasury": 6000, "food": 5000},
 }
 
 
@@ -132,12 +118,12 @@ def create_initial_world(player_faction_id: str) -> WorldState:
         )
 
     for fid, fc in NPC_FACTION_CONFIGS.items():
+        # Skip the NPC that matches the player's faction
         skip = False
         if (
             player_faction_id == "cao" and fid == "caocao"
             or player_faction_id == "shu" and fid == "liubei"
-            or player_faction_id == "wu" and fid == "sunjian"
-            or player_faction_id == "yuan_shao" and fid == "yuanshao"
+            or player_faction_id == "wu" and fid == "sunquan"
         ):
             skip = True
 
