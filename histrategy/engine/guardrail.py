@@ -169,21 +169,29 @@ class GuardrailValidator:
                 if getattr(b, "location", "") == location:
                     base_atk = sum(b.attacker_casualties.values()) if hasattr(b, "attacker_casualties") else 0
                     base_def = sum(b.defender_casualties.values()) if hasattr(b, "defender_casualties") else 0
-                    # Soft deviation check (now a hard constraint for extremes)
-                    if base_atk > 0:
-                        ratio = atk_loss / base_atk
-                        if ratio > 2.0 or ratio < 0.1:
-                            raise GuardrailViolation(
-                                "casualties.attacker",
-                                f"Attacker casualties {atk_loss} deviate too far from baseline {base_atk} (ratio={ratio:.2f})",
-                            )
-                    if base_def > 0:
-                        ratio = def_loss / base_def
-                        if ratio > 2.0 or ratio < 0.1:
-                            raise GuardrailViolation(
-                                "casualties.defender",
-                                f"Defender casualties {def_loss} deviate too far from baseline {base_def} (ratio={ratio:.2f})",
-                            )
+
+                    # Non-combat outcomes (surrender, retreat) may have zero casualties
+                    llm_result = bo.get("llm_result", "")
+                    is_non_combat = llm_result in (
+                        "defender_surrendered", "defender_retreated",
+                        "attacker_repelled", "stalemate",
+                    )
+
+                    if not is_non_combat:
+                        if base_atk > 0:
+                            ratio = atk_loss / base_atk
+                            if ratio > 2.0 or ratio < 0.1:
+                                raise GuardrailViolation(
+                                    "casualties.attacker",
+                                    f"Attacker casualties {atk_loss} deviate too far from baseline {base_atk} (ratio={ratio:.2f})",
+                                )
+                        if base_def > 0:
+                            ratio = def_loss / base_def
+                            if ratio > 2.0 or ratio < 0.1:
+                                raise GuardrailViolation(
+                                    "casualties.defender",
+                                    f"Defender casualties {def_loss} deviate too far from baseline {base_def} (ratio={ratio:.2f})",
+                                )
                     break
 
     def _validate_morale_event(self, me: dict, ws: WorldState) -> None:

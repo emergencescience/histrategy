@@ -78,21 +78,30 @@ def _apply_battle_override(bo: dict, ws) -> None:
     casualties = bo.get("casualties", {})
 
     # Apply casualties to armies at this location
+    # Auto-detect attacker/defender: attacker is the faction NOT owning the territory
+    territory = ws.territories.get(location)
+    defender_id = bo.get("defender_id", territory.owner_id if territory else "")
+    attacker_id = bo.get("attacker_id", "")
+
     for army in ws.armies.values():
         if army.location != location:
             continue
         if army.total_troops <= 0:
             continue
-        if army.faction_id == bo.get("attacker_id", ""):
+
+        # Determine if this army is attacker or defender
+        is_defender = army.faction_id == defender_id
+        is_attacker = army.faction_id != defender_id
+
+        if is_attacker and (not attacker_id or army.faction_id == attacker_id):
             loss = casualties.get("attacker", 0)
             _reduce_army(army, loss)
-        elif army.faction_id == bo.get("defender_id", ""):
+        elif is_defender:
             loss = casualties.get("defender", 0)
             _reduce_army(army, loss)
 
     # Handle territory capture
     if bo.get("territory_captured"):
-        territory = ws.territories.get(location)
         if territory:
             old_owner = territory.owner_id
             # Find attacker ID from context
