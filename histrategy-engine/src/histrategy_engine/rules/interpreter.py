@@ -28,6 +28,11 @@ _SAFE_GLOBALS = {"__builtins__": {}}
 _SAFE_GLOBALS.update(_ALLOWED_FUNCTIONS)
 
 
+import logging
+
+_logger = logging.getLogger("histrategy_engine.rules")
+
+
 def _resolve_dotted_key(data: dict, key_path: str):
     """Resolve a dotted key path like 'food_consumption.constants.civilian_per_capita'."""
     parts = key_path.split(".")
@@ -116,6 +121,13 @@ class RuleInterpreter:
 
         try:
             result = eval(formula_str, {"__builtins__": {}}, local_vars)
+            _logger.debug(
+                "Evaluated rule: %s | Formula: %s | Vars: %s | Result: %f",
+                formula_key,
+                formula_str,
+                variables,
+                float(result),
+            )
         except Exception as e:
             raise ValueError(
                 f"Failed to evaluate formula '{formula_key}': {e}\n"

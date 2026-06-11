@@ -20,6 +20,7 @@ from ..world import (
 
 if TYPE_CHECKING:
     from ..ai import DecisionEngine
+    from ..ai.npc_planner import NPCPlanner
     from ..character import CharacterEngine
     from ..domestic import DomesticEngine
     from ..map import MapEngine
@@ -36,12 +37,14 @@ class TurnController:
         domestic_engine: DomesticEngine,
         military_engine: MilitaryEngine,
         decision_engine: DecisionEngine,
+        npc_planner: NPCPlanner | None = None,
     ):
         self.map_engine = map_engine
         self.char_engine = char_engine
         self.domestic_engine = domestic_engine
         self.military_engine = military_engine
         self.decision_engine = decision_engine
+        self.npc_planner = npc_planner
 
     def execute_turn(
         self,
@@ -135,13 +138,49 @@ class TurnController:
         # ── Step 3: Collect commands ──
         all_commands: list[Command] = list(player_commands or [])
 
-        for fid, faction in world_state.factions.items():
-            if not faction.is_active:
-                continue
-            if fid == world_state.player_faction_id:
-                continue
-            npc_commands = self.decision_engine.generate_commands(fid, world_state, self.map_engine)
-            all_commands.extend(npc_commands)
+        active_npcs = [
+            fid
+            for fid, faction in world_state.factions.items()
+            if faction.is_active and fid != world_state.player_faction_id
+        ]
+
+        if active_npcs:
+            import concurrent.futures
+            import logging
+
+            _logger = logging.getLogger(__name__)
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=len(active_npcs)) as executor:
+                # Submit tasks for all active NPCs in parallel
+                futures = {}
+                for fid in active_npcs:
+                    if self.npc_planner is not None:
+                        futures[
+                            executor.submit(
+                                self.npc_planner.generate_commands_local,
+                                fid,
+                                world_state,
+                                self.map_engine,
+                            )
+                        ] = fid
+                    else:
+                        futures[
+                            executor.submit(
+                                self.decision_engine.generate_commands,
+                                fid,
+                                world_state,
+                                self.map_engine,
+                            )
+                        ] = fid
+
+                # Gather results as they complete
+                for future in concurrent.futures.as_completed(futures):
+                    fid = futures[future]
+                    try:
+                        npc_commands = future.result()
+                        all_commands.extend(npc_commands)
+                    except Exception as e:
+                        _logger.warning("NPC %s planning failed: %s", fid, e)
 
         # ── Step 4: Command validation ──
         valid_commands = self._validate_commands(all_commands, world_state)
@@ -260,7 +299,7 @@ class TurnController:
 
         # ── Step 10: Return TurnResult ──
         # Build faction snapshots
-        faction_snapshots = {fid: f for fid, f in world_state.factions.items()}
+        faction_snapshots = dict(world_state.factions.items())
 
         # Advance season
         self._advance_season(world_state)
@@ -300,21 +339,15 @@ class TurnController:
             territory = world_state.territories.get(tid)
             if not territory:
                 return False
-            if territory.owner_id != cmd.faction_id:
-                return False
-            return True
+            return territory.owner_id == cmd.faction_id
 
         if cmd.type in ("move", "attack"):
             target = cmd.params.get("destination") or cmd.params.get("target_territory", "")
-            if not target or target not in world_state.territories:
-                return False
-            return True
+            return not (not target or target not in world_state.territories)
 
         if cmd.type == "tax":
             rate = cmd.params.get("rate")
-            if rate is None or not (0.1 <= rate <= 0.5):
-                return False
-            return True
+            return not (rate is None or not 0.1 <= rate <= 0.5)
 
         return False
 
@@ -432,9 +465,18 @@ class TurnController:
                         continue
                     resolved_pairs.add(pair)
 
-                    # Attacker is the one who moved into the territory (simplified: first)
-                    attacker = army_a
-                    defender = army_b
+                    # Determine who is attacker and defender based on territory ownership
+                    territory = world_state.territories.get(location)
+                    if territory and territory.owner_id == army_b.faction_id:
+                        attacker = army_a
+                        defender = army_b
+                    elif territory and territory.owner_id == army_a.faction_id:
+                        attacker = army_b
+                        defender = army_a
+                    else:
+                        # Fallback if neutral/unowned
+                        attacker = army_a
+                        defender = army_b
 
                     combat = self.military_engine.resolve_battle(
                         attacker,

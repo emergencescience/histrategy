@@ -249,12 +249,34 @@ class GameEngine:
         self.decision_engine = DecisionEngine()
 
         # Turn controller orchestrates the 5 core engines
+        # NPC Planner for FOW-aware NPC AI (optional LLM-based strategic advisor)
+        npc_planner = None
+        try:
+            from histrategy_engine.ai.npc_planner import NPCPlanner
+
+            advisor = None
+            if self.llm and self.llm.is_available:
+                try:
+                    from ..llm.advisor import StrategicAdvisor
+
+                    advisor = StrategicAdvisor(self.llm)
+                except Exception:
+                    pass
+
+            npc_planner = NPCPlanner(
+                decision_engine=self.decision_engine,
+                advisor=advisor,
+            )
+        except Exception:
+            pass
+
         self.turn_controller = TurnController(
             map_engine=self.map_engine,
             char_engine=self.char_engine,
             domestic_engine=self.domestic_engine,
             military_engine=self.military_engine,
             decision_engine=self.decision_engine,
+            npc_planner=npc_planner,
         )
 
         # History engine + RAG
@@ -307,6 +329,40 @@ class GameEngine:
         self.world_state = None
         self._legacy_world = None
         self.sim_engine = None
+
+        self._setup_rules_logging()
+
+    def _setup_rules_logging(self) -> None:
+        """Setup rule execution logging targeting logs/rules_execution.log in active session."""
+        import logging
+
+        from ..state.world_state import get_data_dir
+
+        try:
+            log_dir = get_data_dir() / "logs"
+            log_dir.mkdir(parents=True, exist_ok=True)
+            rules_log_file = log_dir / "rules_execution.log"
+
+            logger = logging.getLogger("histrategy_engine.rules")
+            logger.setLevel(logging.INFO)
+
+            # Avoid duplicate handlers for the same file
+            has_handler = any(
+                isinstance(h, logging.FileHandler) and h.baseFilename == str(rules_log_file.resolve())
+                for h in logger.handlers
+            )
+            if not has_handler:
+                # Remove existing file handlers (to redirect to current room log directory)
+                logger.handlers = [h for h in logger.handlers if not isinstance(h, logging.FileHandler)]
+
+                fh = logging.FileHandler(rules_log_file, encoding="utf-8")
+                fh.setLevel(logging.INFO)
+                formatter = logging.Formatter("%(asctime)s - %(message)s")
+                fh.setFormatter(formatter)
+                logger.addHandler(fh)
+        except Exception as e:
+            import sys
+            print(f"[Warning] Failed to setup rules logging: {e}", file=sys.stderr)
 
     def _try_load_v2_save(self) -> V2WorldState | None:
         """Attempt to load a v2 game save from disk."""
@@ -485,12 +541,34 @@ class GameEngine:
         engine.military_engine = MilitaryEngine()
         engine.decision_engine = DecisionEngine()
 
+        # NPC Planner for FOW-aware NPC AI (optional LLM-based strategic advisor)
+        npc_planner = None
+        try:
+            from histrategy_engine.ai.npc_planner import NPCPlanner
+
+            advisor = None
+            if llm and llm.is_available:
+                try:
+                    from ..llm.advisor import StrategicAdvisor
+
+                    advisor = StrategicAdvisor(llm)
+                except Exception:
+                    pass
+
+            npc_planner = NPCPlanner(
+                decision_engine=engine.decision_engine,
+                advisor=advisor,
+            )
+        except Exception:
+            pass
+
         engine.turn_controller = TurnController(
             map_engine=engine.map_engine,
             char_engine=engine.char_engine,
             domestic_engine=engine.domestic_engine,
             military_engine=engine.military_engine,
             decision_engine=engine.decision_engine,
+            npc_planner=npc_planner,
         )
 
         try:
@@ -523,6 +601,8 @@ class GameEngine:
         # Restore world state from saved data
         engine.world_state_v2 = engine._rebuild_from_save(data)
         engine.game_started = True
+
+        engine._setup_rules_logging()
 
         return engine
 
@@ -617,7 +697,7 @@ class GameEngine:
             # History engine state
             "history_triggered": list(self.history_engine._triggered_events) if self.history_engine else [],
             "history_averted": (
-                {k: v for k, v in self.history_engine._averted_events.items()}
+                dict(self.history_engine._averted_events.items())
                 if self.history_engine and hasattr(self.history_engine, "_averted_events")
                 else {}
             ),

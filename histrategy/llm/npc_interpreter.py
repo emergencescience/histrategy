@@ -18,43 +18,14 @@ import logging
 
 from ..state.npc_state import NPCState
 from ..state.world_state import WorldState
+from .prompt_loader import NPC_INTERPRETER_SYSTEM
 
 logger = logging.getLogger(__name__)
 
 
-NPC_INTERPRETER_SYSTEM = """你是《三國志略》中负责管理NPC内心世界的系统。
+# ─── System Prompts ─────────────────────────────────────────
 
-## 你的任务
-根据以下信息，更新场景中所有关键NPC的心理状态，并生成他们的可见行为。
-
-## 规则
-1. **情绪变化最多1级/回合**: 心情只能从当前状态改变一级（好转或恶化）
-2. **有因有果**: 每一个心情变化必须有明确原因（与玩家的决策相关）
-3. **性格一致**: NPC的行为必须符合其历史性格
-4. **预警机制**: 当NPC心情恶化到"不满"时，必须在visible_action中给玩家一个明确的警示
-5. **慢慢升级**: 背叛/出走需要至少3回合在恶劣状态才会发生
-
-## 情绪等级（从好到坏）
-- loyal: 格外忠心，主动帮助主公
-- content: 正常状态
-- frustrated: 开始不满，可能有轻微抱怨（需要给玩家警告）
-- angry: 明显不满，可能不服从命令
-- scheming: 在朝中结党，积极谋划对抗主公
-- plotting: 即将叛变或出走（1-2回合内会有行动）
-
-## 输出格式（严格JSON）
-{
-  "npc_updates": [
-    {
-      "character_id": "...",
-      "mood_shift": -1 | 0 | 1,  // -1=好转, 0=不变, 1=恶化
-      "grievance": "...",  // 一句话说明原因（中文）。不变时留空。
-      "visible_action": "...",  // 本回合的可见行为（20-60字，中文）。可为空字符串。
-      "loyalty_delta": -5 | 0 | 5  // 忠诚度变化
-    }
-  ]
-}
-"""
+# Prompts are now loaded from external files via .prompt_loader
 
 
 class NPCInterpreter:
@@ -94,11 +65,24 @@ class NPCInterpreter:
         ]
 
         try:
+            metadata = {
+                "turn": state.turn,
+                "year": state.year,
+                "season": (
+                    state.current_season.name
+                    if hasattr(state.current_season, "name")
+                    else str(state.current_season)
+                ),
+                "category": "npc_interpreter",
+                "reason": "interpret",
+                "faction_id": state.player_faction_id,
+            }
             result = self._adapter.chat_structured(
                 messages,
                 response_format={"type": "json_object"},
                 temperature=0.60,
                 max_tokens=1200,
+                metadata=metadata,
             )
             updates = {}
             for item in result.get("npc_updates", []):

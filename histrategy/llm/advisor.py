@@ -20,42 +20,14 @@ if TYPE_CHECKING:
     from .adapter import LLMAdapter
 
 
-ADVISOR_SYSTEM_PROMPT = """你是《三國志略》的军师谋士。你可以扮演诸葛亮、荀彧、周瑜、司马懿等历史上著名的军师。
-
-## 你的角色
-你为我方主公提供战略分析和军事建议。你只能基于当前的局部情报（战争迷雾下的有限信息）来做判断，不能使用上帝视角。
-
-## 规则
-1. **仅基于已知信息**：你看到的敌军兵力是估算范围，不可假设精确数字
-2. **角色扮演**：以你所扮演的军师口吻回答（文言白话混用，有谋士风范）
-3. **具体建议**：不要泛泛而谈，给出具体可执行的战术建议
-4. **承认局限**：如果信息不足以判断，诚实说「亮观之，事未可料」
-
-## 输出格式（根据调用方式选择）
-
-### 当玩家提问时（有 query）：
-输出自然语言回复，100-200字，文白相间。
-
-### 当系统请求战略分析时（无 query）：
-严格输出 JSON：
-{
-  "analysis": "局势分析（文本，100字内）",
-  "recommendations": [
-    {"action": "attack|defend|recruit|develop|ally|sabotage",
-     "target": "目标势力或领地",
-     "priority": 0.0-1.0,
-     "reason": "理由"}
-  ],
-  "risk_assessment": "风险评估（文本）"
-}
-"""
+from .prompt_loader import ADVISOR_SYSTEM_PROMPT
 
 
 @dataclass
 class AdvisorRecommendation:
     """A single strategic recommendation."""
 
-    action: str  # attack, defend, recruit, develop, ally, sabotage
+    action: str  # attack, defend, recruit, develop, ally, sabotage, move
     target: str
     priority: float  # 0.0 - 1.0
     reason: str
@@ -99,8 +71,20 @@ class StrategicAdvisor:
             {"role": "system", "content": ADVISOR_SYSTEM_PROMPT},
             {"role": "user", "content": context},
         ]
+        metadata = {
+            "turn": local_state.get("turn", 0),
+            "year": local_state.get("year", 207),
+            "season": (
+                local_state.get("season").value
+                if hasattr(local_state.get("season"), "value")
+                else str(local_state.get("season", "spring"))
+            ),
+            "category": "advisor",
+            "reason": "advise_player",
+            "faction_id": local_state.get("faction_id", ""),
+        }
         try:
-            return self._llm.chat(messages, temperature=0.7, max_tokens=512)
+            return self._llm.chat(messages, temperature=0.7, max_tokens=512, metadata=metadata)
         except Exception:
             return self._offline_advice(local_state, query)
 
@@ -142,8 +126,20 @@ class StrategicAdvisor:
             {"role": "system", "content": ADVISOR_SYSTEM_PROMPT},
             {"role": "user", "content": context},
         ]
+        metadata = {
+            "turn": local_state.get("turn", 0),
+            "year": local_state.get("year", 207),
+            "season": (
+                local_state.get("season").value
+                if hasattr(local_state.get("season"), "value")
+                else str(local_state.get("season", "spring"))
+            ),
+            "category": "advisor",
+            "reason": "evaluate_strategy",
+            "faction_id": local_state.get("faction_id", ""),
+        }
         try:
-            raw = self._llm.chat(messages, temperature=0.5, max_tokens=512)
+            raw = self._llm.chat(messages, temperature=0.5, max_tokens=512, metadata=metadata)
             return self._parse_strategy_json(raw)
         except Exception:
             return self._offline_strategy(local_state, personality)
@@ -158,8 +154,14 @@ class StrategicAdvisor:
         parts = []
 
         my = local_state.get("my", {})
+        faction_id = local_state.get("faction_id", "?")
+        faction_name = faction_id
+        if personality and personality.get("name"):
+            faction_name = f"{personality.get('name')} ({faction_id})"
+
         parts.append(
             f"## 我方情报\n"
+            f"- 我方势力: {faction_name}\n"
             f"- 兵力: {my.get('strength', '?')}\n"
             f"- 资金: {my.get('treasury', '?')}\n"
             f"- 粮草: {my.get('food', '?')}\n"
@@ -171,7 +173,7 @@ class StrategicAdvisor:
         perceived = local_state.get("perceived", {})
         if perceived:
             parts.append("\n## 天下态势（局部情报）")
-            for fid, pf in perceived.items():
+            for _fid, pf in perceived.items():
                 border = "接壤" if pf.get("is_border") else "远方"
                 ally = " [盟友]" if pf.get("is_allied") else ""
                 parts.append(
@@ -183,7 +185,7 @@ class StrategicAdvisor:
         armies = local_state.get("visible_armies", {})
         if armies:
             parts.append("\n## 可见军队")
-            for aid, a in list(armies.items())[:5]:
+            for _aid, a in list(armies.items())[:5]:
                 troops = a.get("troops") or a.get("estimated_troops", "?")
                 parts.append(f"- {a.get('faction_id', '?')} 在 {a.get('location', '?')}：{troops}")
 
@@ -192,6 +194,12 @@ class StrategicAdvisor:
             parts.append("\n## 边境驻军估算")
             for tid, g in garrison.items():
                 parts.append(f"- {g.get('territory_name', tid)}：{g.get('estimated_troops', '?')}")
+
+        chronicle = local_state.get("chronicle", [])
+        if chronicle:
+            parts.append("\n## 天下大事纪（最近发生）")
+            for item in chronicle:
+                parts.append(f"- {item}")
 
         if personality:
             parts.append(
@@ -239,7 +247,7 @@ class StrategicAdvisor:
         if not border_enemies:
             return "暂无边境威胁，可安心发展内政、积蓄实力。"
 
-        strongest = max(
+        max(
             border_enemies,
             key=lambda p: int(
                 p.get("strength", "0").replace(",", "").split("~")[-1].strip()

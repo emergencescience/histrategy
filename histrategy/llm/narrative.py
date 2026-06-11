@@ -18,6 +18,8 @@ if TYPE_CHECKING:
 
     from .adapter import LLMAdapter
 
+from .prompt_loader import NARRATIVE_SYSTEM, PLAN_SUGGESTIONS_SYSTEM
+
 # ─── Knowledge path resolution ──────────────────────────────────
 
 
@@ -35,74 +37,7 @@ def _resolve_knowledge_path() -> str:
 
 # ─── Narrative generation prompt (read-only, no state mutation) ──
 
-NARRATIVE_SYSTEM = """你是《三國志略》的史官。你负责将一回合的物理引擎运行结果撰写成史书纪事。
-
-## 核心规则
-
-1. **你绝不修改任何数据** — 你只读取并描述 TurnResult 中的事实
-2. **文白相间** — 采用《三国志》裴松之注或《资治通鉴》的史书风格，以文言叙事为主，穿插白话解释
-3. **数据自然嵌入** — 将关键数值变化以括号夹注形式自然融入叙事，如"（募兵三千，耗金千五百）"
-4. **长度 200-400 字** — 精炼如史，不拖沓
-5. **忠实于物理引擎输出** — 不虚构未发生的事件，不编造不存在的人物
-6. **尊重当前世界物理状态** — 严格遵循输入中给出的势力城池分布及亡故人物列表。不可描写已被列为亡故/不活跃的人物（例如董卓、刘表已死，切勿描写其活动）；不可描写错误的领土归属关系（例如刘备已失新野，切勿描写刘备在新野驻守或活动）。
-
-## TurnResult 结构说明
-
-- **year / season / turn_number**: 当前时间
-- **climate_events**: 各领土气候事件（drought/flood/bumper_harvest/cold_wave等）
-- **resource_changes**: 各势力资源变化（food_delta, tax_revenue, treasury_spent）
-- **battles**: 战斗结果（attack/defend, casualties, territory_captured）
-- **diplomatic_events**: 外交事件
-- **character_events**: 人物事件（natural_death, loyalty_impact, defection）
-- **history_events**: 历史事件触发
-- **faction_snapshots**: 各势力当前状态快照
-
-## 输出格式
-
-严格输出纯文本（不是 JSON），直接写出纪事。按以下结构：
-
-### [年份] [季节] · 大事纪
-（总览当前天下动态，1-2句）
-
-### 天时气候
-（从 climate_events 中提取关键气候变化，对异常气候多加着墨）
-
-### 兵争武事
-（若有 battles，逐一简要描述战果，含死伤数据）
-
-### 人物变易
-（若有 character_events，记录死讯、叛逃等）
-
-### 天下态势
-（从 faction_snapshots 中选取1-2个关键势力变化）
-
-### 史官评曰
-（1-2句简短评语）"""
-
-
-PLAN_SUGGESTIONS_SYSTEM = """你是《三國志略》的军师谋主。玩家需要基于当前物理引擎状态制定战略。
-
-## 核心规则
-
-1. **严格基于当前物理状态** — 不能建议不可能的操作（如没有领土时征兵）
-2. **具体、可执行** — 每条建议必须指向具体的领土、兵种、目标势力
-3. **包含风险和收益评估**
-4. **格式：【策略名】— 具体描述**
-5. **生成3-4条建议，300-500字总计**
-
-## 你需要考虑的因素
-
-- 兵力对比：相邻势力谁的兵更多
-- 资源状况：粮草是否充足，资金是否宽裕
-- 领土位置：与敌对势力相邻的边境领土
-- 季节影响：冬季行军消耗1.5倍粮草
-- 气候风险：当前领土的气候事件
-
-## 输出格式
-
-每行一条建议，格式：
-【策略名称】— 具体描述（含可量化数据）
-"""
+# Prompts are now loaded from external files via .prompt_loader
 
 
 class NarrativeEngine:
@@ -175,10 +110,19 @@ class NarrativeEngine:
         ]
 
         try:
+            metadata = {
+                "turn": getattr(turn_result, "turn_number", 0),
+                "year": getattr(turn_result, "year", 207),
+                "season": turn_result.season.value if hasattr(turn_result.season, "value") else str(turn_result.season),
+                "category": "narrative",
+                "reason": "generate_turn_narrative",
+                "faction_id": getattr(turn_result, "player_faction_id", ""),
+            }
             result = self.llm.chat(
                 messages,
                 temperature=0.75,
                 max_tokens=2048,
+                metadata=metadata,
             )
             return result.strip()
         except Exception:
@@ -251,7 +195,7 @@ class NarrativeEngine:
         # Faction snapshots & territories grounding
         if world_state:
             lines.append("## 天下势力及控制城池")
-            for fid, fs in world_state.factions.items():
+            for _, fs in world_state.factions.items():
                 if not fs.is_active:
                     continue
                 ruler_name = "未知"
@@ -272,20 +216,25 @@ class NarrativeEngine:
                         tech_strs.append(f"{tech_name}Lvl.{val}")
                 tech_info = f"，科技: {', '.join(tech_strs)}" if tech_strs else ""
 
+                t_str = ", ".join(t_names) if t_names else "无"
                 lines.append(
                     f"- {fs.name}（君主: {ruler_name}）: 兵力{fs.strength_actual:,}，"
-                    f"资金{fs.treasury:,}，粮草{fs.food:,}。控制城池: {', '.join(t_names) if t_names else '无'}{tech_info}"
+                    f"资金{fs.treasury:,}，粮草{fs.food:,}。控制城池: {t_str}{tech_info}"
                 )
             lines.append("")
 
             # List deceased figures to avoid revival hallucinations
             dead_names = [c.name for c in world_state.characters.values() if not c.alive]
-            if "dongzhuo" not in world_state.characters or not world_state.characters["dongzhuo"].alive:
-                if "董卓" not in dead_names:
-                    dead_names.append("董卓")
-            if "liubiao" not in world_state.characters or not world_state.characters["liubiao"].alive:
-                if "刘表" not in dead_names:
-                    dead_names.append("刘表")
+            if (
+                ("dongzhuo" not in world_state.characters or not world_state.characters["dongzhuo"].alive)
+                and "董卓" not in dead_names
+            ):
+                dead_names.append("董卓")
+            if (
+                ("liubiao" not in world_state.characters or not world_state.characters["liubiao"].alive)
+                and "刘表" not in dead_names
+            ):
+                dead_names.append("刘表")
 
             if dead_names:
                 lines.append("## 已亡故/不活跃人物（不可在此回合复活或出现活跃事迹）")
@@ -293,7 +242,7 @@ class NarrativeEngine:
                 lines.append("")
         elif tr.faction_snapshots:
             lines.append("## 天下态势")
-            for fid, fs in tr.faction_snapshots.items():
+            for _, fs in tr.faction_snapshots.items():
                 if not fs.is_active:
                     continue
                 lines.append(
@@ -405,10 +354,19 @@ class NarrativeEngine:
         ]
 
         try:
+            metadata = {
+                "turn": getattr(world_state, "turn", 0),
+                "year": getattr(world_state, "year", 207),
+                "season": world_state.current_season if hasattr(world_state, "current_season") else "spring",
+                "category": "narrative",
+                "reason": "generate_plan_suggestions",
+                "faction_id": faction_id,
+            }
             result = self.llm.chat(
                 messages,
                 temperature=0.7,
                 max_tokens=2048,
+                metadata=metadata,
             )
             return self._parse_suggestions(result.strip())
         except Exception:

@@ -21,66 +21,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .adapter import LLMAdapter
 
-# ─── System Prompt ────────────────────────────────────────────
-
-
-ALIGNMENT_SYSTEM_PROMPT = """你是《三國志略》的「天命推演官」（Fate Weaving Officer）。
-
-## 你的使命
-游戏物理引擎已经计算出本回合的基础数值结果（粮食消耗、战役伤亡、税收等）。
-你的任务是在这些确定性的数值上，加入合乎逻辑的非线性「战争摩擦力」。
-
-## 规则
-1. **只微调数值，不改变结论**：如果物理引擎判定曹操赢了，你不能改成刘备赢。你只能调整伤亡数字、粮草消耗、民心变化等数值。
-2. **调整范围**：任何数值的调整幅度不得超过原值的 ±20%。
-   - 例如：物理引擎算出曹军阵亡 10,000 人，你可以调整为 8,000 ~ 12,000。
-3. **必须有叙事理由**：每个调整都必须附带一个简短的历史合理解释。
-   - ✅ "因突降暴雨，撤退途中曹军额外溺亡 500 人，总伤亡增至 10,500"
-   - ❌ "曹操战神下凡秒杀 10 万人"
-4. **最多产生 1-3 个摩擦力事件**，不要过度。
-5. **可能的事件类型**：
-   - 天时：暴雨、大雾、酷暑、寒潮
-   - 地利：山路崩塌、河流泛滥、瘟疫
-   - 人和：粮草被劫、内奸告密、武将疾病、逃兵
-   - 谋略：误判敌情、伏兵突现、同盟背刺
-
-## 输出格式
-严格输出 JSON（不要任何 Markdown 包裹）：
-{
-  "friction_events": [
-    {
-      "type": "weather|terrain|human|deception",
-      "title": "突降暴雨",
-      "description": "撤退途中曹军遭暴雨，伤亡加重",
-      "affected_faction": "cao",
-      "affected_stat": "casualties",
-      "original_value": 10000,
-      "adjusted_value": 10500,
-      "adjustment_pct": 5.0
-    }
-  ]
-}
-
-如果没有值得添加的摩擦力事件，返回空的 friction_events 数组。
-"""
-
-VALIDATION_SYSTEM_PROMPT = """你是《三國志略》的「数值审核官」（Chief Auditor）。
-
-请审查以下天命推演官的输出。检查：
-1. 所有 numerical adjustment 是否在原始值的 ±25% 以内？
-2. 事件的叙事理由是否合理、符合三国历史常识？
-3. JSON 格式是否正确？
-
-如果全部通过，返回：
-{"approved": true}
-
-如果有问题，返回：
-{
-  "approved": false,
-  "issues": ["问题1", "问题2"],
-  "suggested_fix": "建议修正方式"
-}
-"""
+from .prompt_loader import ALIGNMENT_SYSTEM_PROMPT
 
 MAX_RETRIES = 3
 MAX_ADJUSTMENT_PCT = 0.25  # 25% max allowed adjustment
@@ -166,9 +107,22 @@ class AlignmentEngine:
 
         context = self._build_context(turn_result, climate_events, faction_names)
 
+        metadata = {
+            "turn": turn_result.get("turn_number", 0),
+            "year": turn_result.get("year", 207),
+            "season": (
+                turn_result.get("season").value
+                if hasattr(turn_result.get("season"), "value")
+                else str(turn_result.get("season", "spring"))
+            ),
+            "category": "alignment",
+            "reason": "align",
+            "faction_id": turn_result.get("player_faction_id", ""),
+        }
+
         for attempt in range(1, MAX_RETRIES + 1):
             try:
-                raw_response = self._call_llm(context, ALIGNMENT_SYSTEM_PROMPT)
+                raw_response = self._call_llm(context, ALIGNMENT_SYSTEM_PROMPT, metadata=metadata)
                 events = self._parse_events(raw_response)
 
                 if not events:
@@ -236,7 +190,7 @@ class AlignmentEngine:
                 food_d = changes.get("food_delta", 0)
                 tax_r = changes.get("tax_revenue", 0)
                 spent = changes.get("treasury_spent", 0)
-                parts.append(f"- {name}：粮草{'%+d' % food_d}，税收{'+%d' % tax_r}，支出{spent}" if spent else "")
+                parts.append(f"- {name}：粮草{food_d:+d}，税收{tax_r:+d}，支出{spent}" if spent else "")
 
         # Climate
         if climate_events:
@@ -262,13 +216,13 @@ class AlignmentEngine:
             + f"\n\n建议修正：{suggested_fix}\n\n请重新生成，确保数值在允许范围内。"
         )
 
-    def _call_llm(self, context: str, system_prompt: str) -> str:
+    def _call_llm(self, context: str, system_prompt: str, metadata: dict | None = None) -> str:
         """Send context to LLM and get raw response."""
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": context},
         ]
-        return self._llm.chat(messages, temperature=0.5, max_tokens=1024)
+        return self._llm.chat(messages, temperature=0.5, max_tokens=1024, metadata=metadata)
 
     def _parse_events(self, raw_response: str) -> list[FrictionEvent]:
         """Parse LLM response into FrictionEvent objects."""

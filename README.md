@@ -207,6 +207,8 @@ We welcome contributions! Check the design docs first:
 - [PRD](docs/PRD.md) — Product vision and requirements
 - [Tech Design](docs/tech-design.md) — Architecture and data model
 
+If you are using an AI agent (such as Claude Code, Trae, etc.) to contribute or modify game simulation rules, please refer to the [rule-contribution SKILL.md](histrategy-agent/skills/rule-contribution/SKILL.md) skill.
+
 - 🐛 Found a bug? [Open an issue](https://github.com/emergencescience/histrategy/issues)
 - 💡 Have an idea? Start a [discussion](https://github.com/emergencescience/histrategy/discussions)
 - 🔧 Want to contribute? PRs are welcome!

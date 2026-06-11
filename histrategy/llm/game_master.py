@@ -11,6 +11,7 @@ Two modes:
 
 from __future__ import annotations
 
+import contextlib
 import copy
 
 from ..state.world_state import (
@@ -24,168 +25,55 @@ from ..state.world_state import (
     save_world,
 )
 from .adapter import LLMAdapter
+from .prompt_loader import (
+    GAMEMASTER_COMMAND_SYSTEM,
+    GAMEMASTER_INTRO_SYSTEM,
+    GAMEMASTER_PLAN_SYSTEM,
+)
 
 # ─── System Prompts ─────────────────────────────────────────
 
-GAMEMASTER_INTRO_SYSTEM = """你是《三國志略》的AI游戏主持人（Game Master）。现在是「游戏序幕」阶段。
-
-## 你的角色
-你负责根据玩家所选择的君主势力，生成一段极具三国历史感、文白相间的精彩开篇叙事。你要向玩家（主公）汇报天下大势与他当前所处的局面，并给出第一回合的初始战略抉择。
-
-## 输出格式
-严格输出JSON，格式如下：
-{
-  "narrative": "...",
-  "npc_reactions": ["...", "...", "..."],
-  "choices": ["...", "...", "...", "..."]
-}
-"""
-
-GAMEMASTER_PLAN_SYSTEM = """你是《三國志略》的AI游戏主持人（Game Master）。现在是「内政会议」阶段。
-
-## 你的角色
-你是这个三国世界的主宰。你掌控着天下大势的运转，了解每一位谋臣武将的性格，洞悉各方势力的野心与恐惧。你要根据当前的世界状态，为玩家生成一场真实、生动的内政会议。
-
-## 当前状态
-你会收到一份完整的天下形势报告，包含：
-- 玩家势力的各项数据（兵力、经济、民心、资金、粮草、领地）
-- 其他NPC势力的状态
-- 最近的历史事件 and 玩家的决策轨迹
-- 当前所处的历史时期
-
-## 你需要生成的
-
-### court_dialogue（内政会议记叙与辩论）
-以文白相间的史书/演义戏剧体，写一段群臣在公堂上针对当前时局和数据的辩论对话。
-要求：
-- 发言的谋臣/武将要符合其历史性格与当前情绪（如：简雍诙谐、关羽高傲沉稳、郭嘉好出奇谋、张飞性急、荀彧稳重）。
-- 他们之间必须有观点的交锋、反驳、补充或辩论，形成一个有张力、有冲突的对话流（Dialogue Flow）。例如，主战派与主和派的争论，或者经济屯田与出兵讨董的权衡。
-- 发言中必须自然地提及当前势力的真实数据（如：“主公现有平原兵精马壮，足有精兵七千，然粮草仅存千石，若长途跋涉……”）。
-- 绝不能是几段各自独立的陈述，必须是连贯的对话和公堂场景描写。
-- 长度在300-600字为佳。
-
-### suggestions（战略建议）
-生成3-4个具体的战略方向选项。
-要求：
-- 绝不使用模板化的选项（如“发展内政”、“扩军备战”这种干瘪字眼）。
-- 必须紧扣上面群臣辩论的争议焦点，将谋士们的提议具象化（例如：“【军师联军策】遣孙乾游说袁绍，合兵共进”、“【内政屯田策】于平原兴修水利，奖励春耕，充实粮饷”）。
-- 每个选项应由谋士命名，富有历史厚重感。
-
-### season_summary（季度摘要）
-30-50字，概括当前的天下大势，作为会议引子。
-
-## 输出格式
-严格输出JSON，格式如下：
-{
-  "season_summary": "...",
-  "court_dialogue": "...",
-  "suggestions": ["...", "...", "..."]
-}"""
-
-
-GAMEMASTER_COMMAND_SYSTEM = """你是《三國志略》的AI游戏主持人（Game Master）。现在是「政令执行」阶段。
-
-## 你的角色
-你是这个三国世界的主宰。玩家已经做出了战略决策，你现在要模拟这个决策在游戏世界中的执行过程和后果。你要像一个真正的三国世界一样，根据玩家的具体指令，以连贯、大气的编年体史书风格，推演出合理的、有因果关系的后果。
-
-## 决策推演规则
-
-### 彻底消除模板感
-- 严禁原封不动地复制玩家的原话（如：“你决定采纳『扩军备战，操练士卒』的战略”）。相反，应用生动的演义叙事予以改写（如：“主公将令既下，关羽、张飞二人即领命归营，于平原校场大张旗鼓、征募乡勇……”）。
-- 数据变化应自然融入叙事中，如 “（兵力 +2,664，资金 -550）”。
-- 后果必须与决策内容直接相关，数值变化要有理有据。
-- 所有数值变化应在合理范围内（单次变化不超过当前值的20%为佳）。
-
-### NPC势力的反应
-- NPC势力会根据玩家的行动做出反应，且NPC势力也在自驱运转。
-- 曹操多疑、袁绍好谋无断、董卓残暴——必须符合人物性格。
-
-### 遵守物理边界与角色存活状态
-- 严格遵循输入的势力城池控制关系。若某方势力已经失去了某座城池，绝不能在推演中描写其仍驻守或活动于该城池（例如：若刘备已失新野，切勿描写刘备在新野防守）。
-- 严格遵守已死亡或不活跃人物名单。绝不能在推演中让已被列为亡故的人物（如董卓、刘表）再次出现、活跃或复活。
-
-## 你需要生成的
-
-### aftermath（局势推演史书纪实）
-一段300-500字的文字，采用文白相间的《三国志》史书或《三国演义》编年体风格，完整记叙这一季度在该政令下势力的遭遇与天下局势的变化。
-要求：
-- 语言庄重、有历史厚重感。
-- 将具体政务的执行细节和数据变化（如兵力增加、粮饷损耗等）以自然的形式（可使用括号或夹注，如：“是岁夏，刘备募平原百姓得精兵两千（兵力 +2,000，资金 -400）”）嵌入在叙事文字中。
-
-### bureaucracy（政令执行 ledger）
-3-5个部门的执行情况（用于后台日志与结构化记录），每个包含：
-- department: department name
-- official: official name
-- action: execution description (50-100 characters)
-
-### short_term（短期影响）
-changes字段包含以下数值变化（用于后台世界引擎属性结算，必须与叙事中的数字100%对应）：
-- strength: 兵力变化
-- economy: 经济变化(0-100)
-- morale: 民心变化(0-100)
-- treasury: 资金变化
-- food: 粮草变化
-
-### seeds（潜在影响）
-1-3个长期发展的种子（可为空，用于世界引擎触发器逻辑），每个包含：
-- title: 简短标题
-- description: 描述
-- trigger_after: 几回合后触发(1-4)
-- type: 类型（diplomatic/economic_bonus/military/morale_bonus/intelligence）
-
-### npc_reactions（天下动向）
-2-4个NPC势力的行动/反应，每句20-60字。要具体到势力名字。
-
-### updated_factions（更新后的势力状态）
-所有活跃势力的最新状态。格式：{"faction_id": {"strength": N, ...}}
-
-### player_deviation（偏离度更新）
-结合本次推演评估历史轨迹的变动。若玩家行为显著违背历史，应提升偏离度（如从 0 提升到 0.2 等）。
-
-## 输出格式
-严格输出JSON，格式如下：
-{
-  "bureaucracy": [{"department": "...", "official": "...", "action": "..."}],
-  "short_term": {"changes": {"strength": 0, "economy": 0, "morale": 0, "treasury": 0, "food": 0}},
-  "seeds": [{"title": "...", "description": "...", "trigger_after": N, "type": "..."}],
-  "npc_reactions": ["...", "..."],
-  "updated_factions": {"faction_id": {"strength": N, ...}},
-  "aftermath": "...",
-  "player_deviation": 0.0
-}"""
+# Prompts are now loaded from external files via .prompt_loader
 
 
 # ─── Mode-Specific Prompts ───────────────────────────────────
 
 HISTORICAL_PLAN_FRAMING = """
 ## 历史模式运作指南
-- 当前为「正史模式」（偏离度低）：天下局势与历史高度吻合，谋臣们的提议应当尽量符合正史走向或在历史框架内做出合理规划。
+- 当前为「正史模式」（偏离度低）：天下局势与历史高度吻合，
+  谋臣们的提议应当尽量符合正史走向或在历史框架内做出合理规划。
 - 引导玩家顺应历史的主线事件。
 """
 
 DIVERGENT_PLAN_FRAMING = """
 ## 历史模式运作指南
-- 当前为「演义/走向偏离模式」（偏离度中）：历史轨迹已被玩家改变。谋臣们需要意识到历史已经分叉，建言要基于当前的“偏离状态”进行合情合理的推演，而不是生搬硬套正史。
+- 当前为「演义/走向偏离模式」（偏离度中）：历史轨迹已被玩家改变。
+  谋臣们需要意识到历史已经分叉，建言要基于当前的“偏离状态”进行合情合理的推演，
+  而不是生搬硬套正史。
 """
 
 FREEFORM_PLAN_FRAMING = """
 ## 历史模式运作指南
-- 当前为「幻想沙盒模式」（偏离度高）：历史进程已完全脱轨。请抛开任何历史必然性的包袱，纯粹根据各势力实力和人物性格进行合理的利益冲突和争霸建言。
+- 当前为「幻想沙盒模式」（偏离度高）：历史进程已完全脱轨。
+  请抛开任何历史必然性的包袱，纯粹根据各势力实力和人物性格进行合理的利益冲突和争霸建言。
 """
 
 HISTORICAL_COMMAND_FRAMING = """
 ## 历史模式执行指南
-- 当前为「正史模式」：推演结果需要维持强烈的历史重力。玩家的微调可以影响结果，但大势（如董卓迁都、群雄割据）会产生强烈的牵引力。
+- 当前为「正史模式」：推演结果需要维持强烈的历史重力。
+  玩家的微调可以影响结果，但大势（如董卓迁都、群雄割据）会产生强烈的牵引力。
 """
 
 DIVERGENT_COMMAND_FRAMING = """
 ## 历史模式执行指南
-- 当前为「演义/走向偏离模式」：历史已被改变。请在推演中体现蝴蝶效应，展示事件如何以全新的因果逻辑发展。史官会将此记为《建安异录》。
+- 当前为「演义/走向偏离模式」：历史已被改变。
+  请在推演中体现蝴蝶效应，展示事件如何以全新的因果逻辑发展。史官会将此记为《建安异录》。
 """
 
 FREEFORM_COMMAND_FRAMING = """
 ## 历史模式执行指南
-- 当前为「幻想沙盒模式」：历史已完全脱轨，属于全自由度沙盒。请根据当前的军事实力、民心等数据进行纯粹的博弈推演，NPC的行为应当完全自驱。
+- 当前为「幻想沙盒模式」：历史已完全脱轨，属于全自由度沙盒。
+  请根据当前的军事实力、民心等数据进行纯粹的博弈推演，NPC的行为应当完全自驱。
 """
 
 
@@ -229,18 +117,18 @@ def _build_plan_context(state: WorldState) -> str:
             t = state.territories.get(tid)
             if t:
                 t_names.append(t.name)
+        t_str = ", ".join(t_names) if t_names else "无"
         lines.append(
-            f"- {fs.name}（君主: {fs.ruler_id}）：兵力{fs.strength:,}，经济{fs.economy}，民心{fs.morale}。控制城池：{', '.join(t_names) if t_names else '无'}"
+            f"- {fs.name}（君主: {fs.ruler_id}）：兵力{fs.strength:,}，"
+            f"经济{fs.economy}，民心{fs.morale}。控制城池：{t_str}"
         )
 
     # Resolve deceased characters
     dead_names = [c.name for c in state.characters.values() if not c.alive]
-    if "dongzhuo" not in state.characters or not state.characters["dongzhuo"].alive:
-        if "董卓" not in dead_names:
-            dead_names.append("董卓")
-    if "liubiao" not in state.characters or not state.characters["liubiao"].alive:
-        if "刘表" not in dead_names:
-            dead_names.append("刘表")
+    if ("dongzhuo" not in state.characters or not state.characters["dongzhuo"].alive) and "董卓" not in dead_names:
+        dead_names.append("董卓")
+    if ("liubiao" not in state.characters or not state.characters["liubiao"].alive) and "刘表" not in dead_names:
+        dead_names.append("刘表")
 
     if dead_names:
         lines.append("")
@@ -314,18 +202,18 @@ def _build_command_context(state: WorldState, player_decision: str) -> str:
             t = state.territories.get(tid)
             if t:
                 t_names.append(t.name)
+        t_str = ", ".join(t_names) if t_names else "无"
         lines.append(
-            f"- {fs.name}（君主: {fs.ruler_id}）：兵力{fs.strength:,}，经济{fs.economy}，民心{fs.morale}。控制城池：{', '.join(t_names) if t_names else '无'}"
+            f"- {fs.name}（君主: {fs.ruler_id}）：兵力{fs.strength:,}，"
+            f"经济{fs.economy}，民心{fs.morale}。控制城池：{t_str}"
         )
 
     # Resolve deceased characters
     dead_names = [c.name for c in state.characters.values() if not c.alive]
-    if "dongzhuo" not in state.characters or not state.characters["dongzhuo"].alive:
-        if "董卓" not in dead_names:
-            dead_names.append("董卓")
-    if "liubiao" not in state.characters or not state.characters["liubiao"].alive:
-        if "刘表" not in dead_names:
-            dead_names.append("刘表")
+    if ("dongzhuo" not in state.characters or not state.characters["dongzhuo"].alive) and "董卓" not in dead_names:
+        dead_names.append("董卓")
+    if ("liubiao" not in state.characters or not state.characters["liubiao"].alive) and "刘表" not in dead_names:
+        dead_names.append("刘表")
 
     if dead_names:
         lines.append("")
@@ -380,8 +268,11 @@ class GameMaster:
             f"- 首都：{player.capital}\n"
             f"- 领地：{', '.join(player.territories)}\n\n"
             f"历史背景：{HISTORICAL_TIMELINE_207[0]}\n\n"
-            f"请以说书人/军师的口吻，生成三国志略的开局叙事（以Markdown格式书写，建议分为‘天下大势’与‘主公处境’两部分，有历史感，300-600字）。\n"
-            f"生成3-5条其他NPC势力的开局动向（放在npc_reactions列表中），以及4个极具历史厚重感、切合局势的开局选择（放在choices列表中，如：【发布檄文】响应讨董，【深挖粮饷】稳固后方 等）。"
+            f"请以说书人/军师的口吻，生成三国志略的开局叙事（以Markdown格式书写，"
+            f"建议分为‘天下大势’与‘主公处境’两部分，有历史感，300-600字）。\n"
+            f"生成3-5条其他NPC势力的开局动向（放在npc_reactions列表中），"
+            f"以及4个极具历史厚重感、切合局势的开局选择（放在choices列表中，"
+            f"如：【发布檄文】响应讨董，【深挖粮饷】稳固后方 等）。"
         )
 
         messages = [
@@ -390,11 +281,24 @@ class GameMaster:
         ]
 
         try:
+            metadata = {
+                "turn": state.turn,
+                "year": state.year,
+                "season": (
+                    state.current_season.name
+                    if hasattr(state.current_season, "name")
+                    else str(state.current_season)
+                ),
+                "category": "gamemaster",
+                "reason": "intro",
+                "faction_id": state.player_faction_id,
+            }
             result = self.llm.chat_structured(
                 messages,
                 response_format={"type": "json_object"},
                 temperature=0.85,
                 max_tokens=4096,
+                metadata=metadata,
             )
 
             return {
@@ -479,11 +383,24 @@ class GameMaster:
         ]
 
         try:
+            metadata = {
+                "turn": state.turn,
+                "year": state.year,
+                "season": (
+                    state.current_season.name
+                    if hasattr(state.current_season, "name")
+                    else str(state.current_season)
+                ),
+                "category": "gamemaster",
+                "reason": "plan",
+                "faction_id": state.player_faction_id,
+            }
             result = self.llm.chat_structured(
                 messages,
                 response_format={"type": "json_object"},
                 temperature=0.85,
                 max_tokens=4096,
+                metadata=metadata,
             )
             return {
                 "court_dialogue": result.get("court_dialogue", ""),
@@ -547,11 +464,24 @@ class GameMaster:
         ]
 
         try:
+            metadata = {
+                "turn": state.turn,
+                "year": state.year,
+                "season": (
+                    state.current_season.name
+                    if hasattr(state.current_season, "name")
+                    else str(state.current_season)
+                ),
+                "category": "gamemaster",
+                "reason": "command",
+                "faction_id": state.player_faction_id,
+            }
             result = self.llm.chat_structured(
                 messages,
                 response_format={"type": "json_object"},
                 temperature=0.8,
                 max_tokens=8192,
+                metadata=metadata,
             )
 
             # Apply state changes from LLM
@@ -633,10 +563,8 @@ class GameMaster:
 
         # Apply updated player deviation
         if "player_deviation" in llm_result:
-            try:
+            with contextlib.suppress(ValueError, TypeError):
                 new_state.player_deviation = float(llm_result["player_deviation"])
-            except (ValueError, TypeError):
-                pass
 
         new_state.advance_turn()
         return new_state

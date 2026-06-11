@@ -27,8 +27,8 @@ Quick Start
     room_wu  = Room.create("three-kingdoms/wu", faction="wu")
 """
 
-from ._room import Room
 from ._engine import DirectEngine
+from ._room import Room
 from .exceptions import (
     APIError,
     ConnectionError,

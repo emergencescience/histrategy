@@ -123,6 +123,8 @@ class TerritoryState:
     economy: int = 50  # 0-100
     population: int = 10000
     garrison: int = 1000
+    fortification: int = 20  # 0-100
+    unrest: int = 0  # 0-100
     resources: dict = field(default_factory=lambda: {"grain": 1000, "gold": 500, "iron": 200})
 
 

@@ -32,7 +32,7 @@ class FakeLLM:
     def is_available(self, val):
         pass
 
-    def chat(self, messages, temperature=0.7, max_tokens=2048):
+    def chat(self, messages, temperature=0.7, max_tokens=2048, **kwargs):
         if self._idx < len(self.responses):
             resp = self.responses[self._idx]
             self._idx += 1

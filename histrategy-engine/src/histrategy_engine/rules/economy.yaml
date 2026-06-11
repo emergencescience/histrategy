@@ -43,6 +43,19 @@ development:
   constants:
     minimum_cost: 300
 
+unrest:
+  formula: "base_unrest_change + tax_unrest_factor * tax_rate + food_unrest_factor * (1.0 - food_ratio)"
+  constants:
+    base_unrest_change: -1
+    tax_unrest_factor: 15
+    food_unrest_factor: 10
+
+fortification:
+  formula: "base_decay + maintenance"
+  constants:
+    base_decay: -1
+    maintenance: 1
+
 modifiers:
   governor_politics: "1 + politics/200"
   tech_agriculture: "1 + agriculture_level * 0.1"
