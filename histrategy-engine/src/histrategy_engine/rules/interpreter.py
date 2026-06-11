@@ -121,7 +121,7 @@ class RuleInterpreter:
 
         try:
             result = eval(formula_str, {"__builtins__": {}}, local_vars)
-            _logger.info(
+            _logger.debug(
                 "Evaluated rule: %s | Formula: %s | Vars: %s | Result: %f",
                 formula_key,
                 formula_str,

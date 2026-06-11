@@ -74,7 +74,11 @@ class StrategicAdvisor:
         metadata = {
             "turn": local_state.get("turn", 0),
             "year": local_state.get("year", 207),
-            "season": local_state.get("season").value if hasattr(local_state.get("season"), "value") else str(local_state.get("season", "spring")),
+            "season": (
+                local_state.get("season").value
+                if hasattr(local_state.get("season"), "value")
+                else str(local_state.get("season", "spring"))
+            ),
             "category": "advisor",
             "reason": "advise_player",
             "faction_id": local_state.get("faction_id", ""),
@@ -125,7 +129,11 @@ class StrategicAdvisor:
         metadata = {
             "turn": local_state.get("turn", 0),
             "year": local_state.get("year", 207),
-            "season": local_state.get("season").value if hasattr(local_state.get("season"), "value") else str(local_state.get("season", "spring")),
+            "season": (
+                local_state.get("season").value
+                if hasattr(local_state.get("season"), "value")
+                else str(local_state.get("season", "spring"))
+            ),
             "category": "advisor",
             "reason": "evaluate_strategy",
             "faction_id": local_state.get("faction_id", ""),
@@ -146,8 +154,14 @@ class StrategicAdvisor:
         parts = []
 
         my = local_state.get("my", {})
+        faction_id = local_state.get("faction_id", "?")
+        faction_name = faction_id
+        if personality and personality.get("name"):
+            faction_name = f"{personality.get('name')} ({faction_id})"
+
         parts.append(
             f"## 我方情报\n"
+            f"- 我方势力: {faction_name}\n"
             f"- 兵力: {my.get('strength', '?')}\n"
             f"- 资金: {my.get('treasury', '?')}\n"
             f"- 粮草: {my.get('food', '?')}\n"
@@ -159,7 +173,7 @@ class StrategicAdvisor:
         perceived = local_state.get("perceived", {})
         if perceived:
             parts.append("\n## 天下态势（局部情报）")
-            for fid, pf in perceived.items():
+            for _fid, pf in perceived.items():
                 border = "接壤" if pf.get("is_border") else "远方"
                 ally = " [盟友]" if pf.get("is_allied") else ""
                 parts.append(
@@ -171,7 +185,7 @@ class StrategicAdvisor:
         armies = local_state.get("visible_armies", {})
         if armies:
             parts.append("\n## 可见军队")
-            for aid, a in list(armies.items())[:5]:
+            for _aid, a in list(armies.items())[:5]:
                 troops = a.get("troops") or a.get("estimated_troops", "?")
                 parts.append(f"- {a.get('faction_id', '?')} 在 {a.get('location', '?')}：{troops}")
 
@@ -233,7 +247,7 @@ class StrategicAdvisor:
         if not border_enemies:
             return "暂无边境威胁，可安心发展内政、积蓄实力。"
 
-        strongest = max(
+        max(
             border_enemies,
             key=lambda p: int(
                 p.get("strength", "0").replace(",", "").split("~")[-1].strip()
