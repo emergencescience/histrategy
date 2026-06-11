@@ -139,6 +139,26 @@ class NarrativeEngine:
         lines: list[str] = []
         lines.append(f"## 当前时间\n{tr.year}年{tr.season.cn} | 第{tr.turn_number}回合\n")
 
+        # Player's original decision — critical for narrative accuracy
+        if getattr(tr, "player_decision", ""):
+            lines.append("## 君主决策（原文）")
+            lines.append(tr.player_decision)
+            lines.append("")
+
+        # Parsed commands with notes
+        if getattr(tr, "player_commands", []):
+            lines.append("## 解析后的军令")
+            for cmd in tr.player_commands:
+                cmd_type = getattr(cmd, "type", "?")
+                cmd_params = getattr(cmd, "params", {})
+                cmd_notes = getattr(cmd, "notes", "")
+                params_str = ", ".join(f"{k}={v}" for k, v in cmd_params.items())
+                line = f"- {cmd_type}: {params_str}"
+                if cmd_notes:
+                    line += f"  [{cmd_notes}]"
+                lines.append(line)
+            lines.append("")
+
         # Climate events
         if tr.climate_events:
             lines.append("## 天时气候")

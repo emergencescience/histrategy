@@ -52,6 +52,7 @@ class TurnController:
         player_commands: list[Command] | None = None,
         year: int = 207,
         turn_number: int = 1,
+        player_decision: str = "",
     ) -> TurnResult:
         """
         Execute a full turn sequence.
@@ -186,7 +187,7 @@ class TurnController:
         valid_commands = self._validate_commands(all_commands, world_state)
 
         # Separate commands by type
-        move_commands = [c for c in valid_commands if c.type in ("move", "attack")]
+        move_commands = [c for c in valid_commands if c.type in ("move", "attack", "defend")]
         domestic_commands = [c for c in valid_commands if c.type in ("recruit", "develop", "tax")]
 
         # ── Step 5: Move resolution ──
@@ -315,6 +316,8 @@ class TurnController:
             character_events=character_events,
             history_events=[],
             faction_snapshots=faction_snapshots,
+            player_decision=player_decision,
+            player_commands=list(player_commands or []),
         )
 
     # ── Helpers ──
@@ -341,8 +344,8 @@ class TurnController:
                 return False
             return territory.owner_id == cmd.faction_id
 
-        if cmd.type in ("move", "attack"):
-            target = cmd.params.get("destination") or cmd.params.get("target_territory", "")
+        if cmd.type in ("move", "attack", "defend"):
+            target = cmd.params.get("destination") or cmd.params.get("target_territory") or cmd.params.get("territory", "")
             return not (not target or target not in world_state.territories)
 
         if cmd.type == "tax":
@@ -353,7 +356,20 @@ class TurnController:
 
     def _execute_move(self, cmd: Command, world_state: WorldState) -> dict | None:
         faction_id = cmd.faction_id
-        target = cmd.params.get("destination") or cmd.params.get("target_territory", "")
+        target = cmd.params.get("destination") or cmd.params.get("target_territory") or cmd.params.get("territory", "")
+
+        # For defend: check if already have army at target → no-op
+        if cmd.type == "defend":
+            existing = self._find_faction_army_at(faction_id, target, world_state)
+            if existing:
+                return {
+                    "command_type": "defend",
+                    "faction_id": faction_id,
+                    "army_id": existing.id,
+                    "location": target,
+                    "success": True,
+                    "reason": "已有驻军防守",
+                }
 
         # Find an army belonging to this faction
         army = self._find_faction_army(faction_id, world_state, prefer_border=True)
@@ -526,6 +542,15 @@ class TurnController:
                 return border_armies[0]
 
         return faction_armies[0]
+
+    def _find_faction_army_at(
+        self, faction_id: str, territory_id: str, world_state: WorldState
+    ) -> Army | None:
+        """Find an army belonging to a faction at a specific territory (no creation)."""
+        for army in world_state.armies.values():
+            if army.faction_id == faction_id and army.location == territory_id and army.total_troops > 0:
+                return army
+        return None
 
     def _find_or_create_army(
         self, faction_id: str, territory_id: str, world_state: WorldState

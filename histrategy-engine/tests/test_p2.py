@@ -1301,3 +1301,148 @@ class TestFullTurnIntegration:
             battle = result.battles[0]
             if battle.territory_captured:
                 assert world_state.territories["t2"].owner_id == "cao"
+
+
+# ═══════════════════════════════════════════════════════════════
+# Defend Command + TurnResult Context Integration Tests
+# ═══════════════════════════════════════════════════════════════
+
+
+class TestDefendCommand:
+    """Integration tests for the new 'defend' command type."""
+
+    def test_defend_validated(self, turn_controller, world_state):
+        """Defend command with valid territory should pass validation."""
+        cmd = Command(
+            type="defend",
+            params={"territory": "t1"},
+            faction_id="cao",
+            notes="防范敌军偷袭",
+        )
+        valid = turn_controller._validate_commands([cmd], world_state)
+        assert len(valid) == 1
+        assert valid[0].type == "defend"
+
+    def test_defend_invalid_territory(self, turn_controller, world_state):
+        """Defend with nonexistent territory should be invalid."""
+        cmd = Command(
+            type="defend",
+            params={"territory": "nonexistent"},
+            faction_id="cao",
+        )
+        valid = turn_controller._validate_commands([cmd], world_state)
+        assert len(valid) == 0
+
+    def test_defend_already_defended_no_op(self, turn_controller, world_state):
+        """If army already at target, defend is a no-op success."""
+        # cao already has army at t1
+        cmd = Command(
+            type="defend",
+            params={"territory": "t1"},
+            faction_id="cao",
+            notes="防守t1",
+        )
+        result = turn_controller._execute_move(cmd, world_state)
+        assert result is not None
+        assert result["command_type"] == "defend"
+        assert result["success"] is True
+        assert "已有驻军" in result["reason"]
+
+    def test_defend_moves_army_if_not_present(self, turn_controller, world_state):
+        """If no army at target, defend moves one there (like move)."""
+        # t3 is owned by cao but no army present
+        world_state.territories["t3"].owner_id = "cao"
+        cmd = Command(
+            type="defend",
+            params={"territory": "t3"},
+            faction_id="cao",
+            notes="防守t3",
+        )
+        result = turn_controller._execute_move(cmd, world_state)
+        # Should move army to t3
+        assert result is not None
+        assert result["command_type"] == "defend"
+
+    def test_defend_executes_in_full_turn(self, turn_controller, world_state):
+        """Full turn execution with defend command works."""
+        cmd = Command(
+            type="defend",
+            params={"territory": "t1"},
+            faction_id="cao",
+            notes="防守主城",
+        )
+        result = turn_controller.execute_turn(
+            world_state,
+            player_commands=[cmd],
+            year=208,
+            turn_number=1,
+            player_decision="在下邳部署防守",
+        )
+        assert isinstance(result, TurnResult)
+
+
+class TestTurnResultContext:
+    """Tests for player context passthrough in TurnResult."""
+
+    def test_player_decision_preserved(self, turn_controller, world_state):
+        """TurnResult should carry the original player decision."""
+        decision = "【南征刘备】集结宛城5万步兵，春季行军进攻新野"
+        cmd = Command(
+            type="attack",
+            params={"target_territory": "t2"},
+            faction_id="cao",
+            notes="南征刘备战役",
+        )
+        result = turn_controller.execute_turn(
+            world_state,
+            player_commands=[cmd],
+            year=208,
+            turn_number=1,
+            player_decision=decision,
+        )
+        assert result.player_decision == decision
+
+    def test_player_commands_preserved(self, turn_controller, world_state):
+        """TurnResult should carry the parsed commands with notes."""
+        cmds = [
+            Command(type="attack", params={"target_territory": "t2"}, faction_id="cao", notes="主力进攻"),
+            Command(type="defend", params={"territory": "t1"}, faction_id="cao", notes="后方防守"),
+        ]
+        result = turn_controller.execute_turn(
+            world_state,
+            player_commands=cmds,
+            year=208,
+            turn_number=1,
+            player_decision="进攻t2同时防守t1",
+        )
+        assert len(result.player_commands) == 2
+        types = {getattr(c, "type", "") for c in result.player_commands}
+        assert "attack" in types
+        assert "defend" in types
+
+    def test_empty_decision_defaults(self, turn_controller, world_state):
+        """Without player_decision, defaults to empty string."""
+        result = turn_controller.execute_turn(
+            world_state, player_commands=[], year=208, turn_number=1
+        )
+        assert result.player_decision == ""
+        assert result.player_commands == []
+
+    def test_command_notes_survive_roundtrip(self, turn_controller, world_state):
+        """Command notes field survives through TurnController → TurnResult."""
+        cmd = Command(
+            type="defend",
+            params={"territory": "t1"},
+            faction_id="cao",
+            notes="防范孙权从庐江进攻",
+        )
+        result = turn_controller.execute_turn(
+            world_state,
+            player_commands=[cmd],
+            year=208,
+            turn_number=1,
+            player_decision="在下邳防守",
+        )
+        assert len(result.player_commands) == 1
+        survived = result.player_commands[0]
+        assert getattr(survived, "notes", "") == "防范孙权从庐江进攻"
