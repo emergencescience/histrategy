@@ -298,9 +298,19 @@ class GameEngine:
 
             self.narrative_engine = NarrativeEngine(self.llm)
 
-            from ..parser.intent import IntentParser
-
-            self.intent_parser = IntentParser(self.llm)
+            # IntentParser: use fast model in v3 mode for speed
+            if self._use_v3:
+                intent_model = os.environ.get("HISTRATEGY_V3_INTENT_MODEL", "deepseek-v4-flash")
+                try:
+                    from ..llm.adapter import LLMAdapter as _LLM
+                    self._intent_llm = _LLM(model=intent_model)
+                except Exception:
+                    self._intent_llm = self.llm
+                from ..parser.intent import IntentParser
+                self.intent_parser = IntentParser(self._intent_llm)
+            else:
+                from ..parser.intent import IntentParser
+                self.intent_parser = IntentParser(self.llm)
 
             from ..parser.validator import CommandValidator
 
@@ -608,9 +618,21 @@ class GameEngine:
             from ..llm.narrative import NarrativeEngine
 
             engine.narrative_engine = NarrativeEngine(llm)
-            from ..parser.intent import IntentParser
 
-            engine.intent_parser = IntentParser(llm)
+            # IntentParser: use flash model in v3 mode
+            if engine._use_v3:
+                intent_model = os.environ.get("HISTRATEGY_V3_INTENT_MODEL", "deepseek-v4-flash")
+                try:
+                    from ..llm.adapter import LLMAdapter as _LLM2
+                    engine._intent_llm = _LLM2(model=intent_model)
+                except Exception:
+                    engine._intent_llm = llm
+                from ..parser.intent import IntentParser
+                engine.intent_parser = IntentParser(engine._intent_llm)
+            else:
+                from ..parser.intent import IntentParser
+                engine.intent_parser = IntentParser(llm)
+
             from ..parser.validator import CommandValidator
 
             engine.command_validator = CommandValidator(engine.map_engine)
