@@ -289,6 +289,9 @@ class GameEngine:
         self.narrative_engine = None
         self.intent_parser = None
         self.command_validator = None
+        self.world_simulator = None     # v3: LLM simulation layer
+        self.guardrail = None           # v3: constraint validator
+        self.turn_memory = None         # v3: persistent turn history
 
         if self.llm and self.llm.is_available:
             from ..llm.narrative import NarrativeEngine
@@ -329,6 +332,18 @@ class GameEngine:
         self.world_state = None
         self._legacy_world = None
         self.sim_engine = None
+
+        # v3 init: LLM simulation layer
+        self._use_v3 = os.environ.get("HISTRATEGY_V3", "").lower() in ("1", "true", "yes")
+        if self._use_v3 and self.llm and self.llm.is_available:
+            from ..llm.world_simulator import WorldSimulator
+            from ..engine.guardrail import GuardrailValidator
+            from ..engine.state_applier import StateApplier, TurnMemory
+
+            self.world_simulator = WorldSimulator(self.llm)
+            self.guardrail = GuardrailValidator()
+            self.state_applier = StateApplier()
+            self.turn_memory = TurnMemory()
 
         self._setup_rules_logging()
 
@@ -530,6 +545,7 @@ class GameEngine:
         from .loader import resolve_knowledge_path
 
         engine._use_v2 = True
+        engine._use_v3 = engine._use_v2 and os.environ.get("HISTRATEGY_V3", "").lower() in ("1", "true", "yes")
 
         knowledge_path = resolve_knowledge_path()
         engine._knowledge_path = knowledge_path
@@ -972,6 +988,8 @@ class GameEngine:
             return self._fallback_intro()
 
         if self._use_v2:
+            if self._use_v3 and self.world_simulator:
+                return self._process_turn_v3(player_decision)
             return self._process_turn_v2(player_decision)
         else:
             return self._process_turn_v1(player_decision)
@@ -1204,6 +1222,236 @@ class GameEngine:
         self._log_simulation_history()
 
         return result
+
+    def _process_turn_v3(self, player_decision: str) -> dict:
+        """v3 turn processing pipeline — LLM-driven simulation with guardrails.
+
+        1. Parse intent (same as v2)
+        2. Execute deterministic baseline (same as v2)
+        3. LLM WorldSimulator generates nonlinear delta
+        4. GuardrailValidator checks delta
+        5. StateApplier applies validated delta
+        6. NarrativeEngine generates story with full context
+        """
+        ws = self.world_state_v2
+        current_year = ws.year
+        current_season = ws.season
+
+        # Step 1: Parse player intent (same as v2)
+        player_commands = []
+        if self.intent_parser:
+            player_commands = self.intent_parser.parse(player_decision, ws.player_faction_id)
+        self._last_player_decision = player_decision
+        self._last_player_commands = list(player_commands)
+
+        # Step 2: Validate commands (same as v2)
+        if self.command_validator:
+            player_commands = self.command_validator.validate(player_commands, ws)
+
+        # Step 3: Execute deterministic baseline (same as v2 — TurnController)
+        baseline_result = self.turn_controller.execute_turn(
+            ws,
+            player_commands=player_commands,
+            year=ws.year,
+            turn_number=ws.turn_number,
+            player_decision=player_decision,
+        )
+
+        # Step 4: History events (same as v2)
+        proposals = []
+        if self.history_engine:
+            try:
+                for evt_id in ws.completed_events:
+                    self.history_engine._triggered_events.add(evt_id)
+                for evt_id in ws.averted_events:
+                    if evt_id not in self.history_engine._averted_events:
+                        self.history_engine._averted_events[evt_id] = "Restored"
+                    self.history_engine.block_downstream(evt_id)
+                proposals = self.history_engine.check_events(
+                    current_year, current_season, ws, deviation=ws.player_deviation
+                )
+                for prop in proposals:
+                    apply_event_effects(ws, prop.effects.get("effects", {}))
+                    baseline_result.history_events.append({
+                        "event_id": prop.event_id, "title": prop.title,
+                        "outcome": prop.effects.get("outcome", "default"),
+                        "description": prop.effects.get("outcome_description", ""),
+                        "effects": prop.effects.get("effects", {}),
+                    })
+            except Exception:
+                pass
+
+        # ── v3: LLM Simulation Layer ──
+
+        # Build memory context
+        room_id = getattr(self, "_room_id", "default")
+        turn_history = []
+        epoch_effects = []
+        if self.turn_memory:
+            turn_history = self.turn_memory.get_recent_turns(room_id, n=10)
+            epoch_effects = self.turn_memory.get_persistent_effects(room_id)
+
+        # Step 5: LLM nonlinear simulation
+        llm_delta = {}
+        if self.world_simulator and self.world_simulator.llm_available:
+            llm_delta = self.world_simulator.simulate(
+                ws, player_commands, player_decision,
+                baseline_result, turn_history, epoch_effects,
+            )
+
+        # Step 6: Guardrail validation
+        guardrail_result = {"accepted": True, "sanitized_delta": llm_delta, "warnings": []}
+        if self.guardrail and llm_delta:
+            guardrail_result = self.guardrail.validate(llm_delta, ws, baseline_result)
+
+        # Step 7: Apply validated delta
+        state_summary = {}
+        if guardrail_result["accepted"] and guardrail_result["sanitized_delta"]:
+            state_summary = self.state_applier.apply(
+                guardrail_result["sanitized_delta"], ws
+            )
+
+        # Update baseline_result with LLM overrides
+        baseline_result.player_decision = player_decision
+        baseline_result.player_commands = list(player_commands)
+
+        # Step 8: Record turn memory
+        season_cn = current_season.cn if hasattr(current_season, "cn") else str(current_season)
+
+        # Collect persistent effects from morale events
+        persistent_effects = []
+        if guardrail_result["sanitized_delta"]:
+            for me in guardrail_result["sanitized_delta"].get("morale_events", []):
+                note = me.get("persistent_note", "")
+                if note:
+                    persistent_effects.append({
+                        "note": note,
+                        "turn": ws.turn_number,
+                        "faction": me.get("faction", ""),
+                    })
+
+        # Build key events list
+        key_events = []
+        for bo in guardrail_result["sanitized_delta"].get("battle_overrides", []):
+            key_events.append(f"战斗@{bo.get('location', '?')}: {bo.get('llm_result', '?')}")
+        for pe in guardrail_result["sanitized_delta"].get("political_events", []):
+            key_events.append(f"政事@{pe.get('faction', '?')}: {pe.get('type', '?')}")
+
+        player = ws.factions.get(ws.player_faction_id)
+        state_snapshot = {
+            "morale": getattr(player, "morale_actual", 0) if player else 0,
+            "territories": len(player.territories) if player else 0,
+            "strength": getattr(player, "strength_actual", 0) if player else 0,
+            "treasury": player.treasury if player else 0,
+            "food": player.food if player else 0,
+        }
+
+        if self.turn_memory and player_decision:
+            self.turn_memory.record_turn(
+                room_id, ws.turn_number, current_year, season_cn,
+                player_decision,
+                outcome_summary="; ".join(key_events) if key_events else "平和无事",
+                key_events=key_events,
+                state_snapshot=state_snapshot,
+                persistent_effects=persistent_effects,
+            )
+
+        # ── Narrative Generation ──
+
+        narrative_text = ""
+        new_choices = []
+        averted_list = list(ws.averted_events)
+        if self.history_engine:
+            averted_list = list(set(averted_list) | self.history_engine._blocked_downstream)
+
+        if self.narrative_engine and self.narrative_engine.is_available:
+            import concurrent.futures
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                future_narrative = executor.submit(
+                    self.narrative_engine.generate_turn_narrative,
+                    baseline_result,
+                    deviation=ws.player_deviation,
+                    averted_events=averted_list,
+                    world_state=ws,
+                )
+                future_suggestions = executor.submit(
+                    self.narrative_engine.generate_plan_suggestions,
+                    ws, ws.player_faction_id
+                )
+
+                try:
+                    with _suppress_stderr():
+                        narrative_text = future_narrative.result(timeout=30)
+                except Exception:
+                    narrative_text = self._offline_v2_narrative(baseline_result)
+
+                try:
+                    with _suppress_stderr():
+                        new_choices = future_suggestions.result(timeout=30)
+                except Exception:
+                    new_choices = self._offline_v2_suggestions()
+        else:
+            narrative_text = self._offline_v2_narrative(baseline_result)
+            new_choices = self._offline_v2_suggestions()
+
+        # Inject narrative seeds from LLM delta
+        narrative_seeds = guardrail_result["sanitized_delta"].get("narrative_seeds", []) if guardrail_result["sanitized_delta"] else []
+        if narrative_seeds and narrative_text:
+            seed_text = "\n\n" + "\n".join(f"> {s}" for s in narrative_seeds[:3])
+            narrative_text += seed_text
+
+        # ── Build result dict (v2 compatible format) ──
+
+        game_over = None
+        if not player or not player.is_active or getattr(player, "strength_actual", 0) <= 0:
+            game_over = {
+                "type": "defeat",
+                "message": "# 势力覆灭\n\n你的势力已经不复存在。\n乱世之中，成王败寇。\n\n感谢游玩《三國志略》。",
+            }
+
+        active_factions = [
+            fid for fid, f in ws.factions.items()
+            if f.is_active and getattr(f, "strength_actual", 0) > 0
+        ]
+        if len(active_factions) == 1 and active_factions[0] == ws.player_faction_id:
+            game_over = {
+                "type": "victory",
+                "message": "# 天下一统\n\n经过多年的征战，你终于平定了天下。",
+            }
+
+        self._save_v2()
+
+        # Log turn
+        try:
+            from ..engine.log_exporter import append_to_session_log
+            append_to_session_log(
+                ws.turn_number, current_year, season_cn,
+                player_decision, {}
+            )
+        except Exception:
+            pass
+
+        self._log_simulation_history()
+
+        return {
+            "narrative": narrative_text,
+            "aftermath": "",
+            "state_changes": state_summary,
+            "new_choices": new_choices,
+            "events_occurred": [],
+            "npc_actions": [
+                na.get("description", "")
+                for na in guardrail_result["sanitized_delta"].get("npc_actions", [])
+            ] if guardrail_result["sanitized_delta"] else [],
+            "game_over": game_over,
+            "v3_metadata": {
+                "delta_accepted": guardrail_result["accepted"],
+                "warnings": len(guardrail_result.get("warnings", [])),
+                "narrative_seeds": len(narrative_seeds),
+                "llm_delta_keys": list(llm_delta.keys()) if llm_delta else [],
+            },
+        }
 
     def _process_turn_v1(self, player_decision: str) -> dict:
         """v1 turn processing (unchanged)."""
