@@ -340,7 +340,15 @@ class GameEngine:
             from ..engine.guardrail import GuardrailValidator
             from ..engine.state_applier import StateApplier, TurnMemory
 
-            self.world_simulator = WorldSimulator(self.llm)
+            # WorldSimulator uses a fast model (no reasoning overhead)
+            v3_fast_model = os.environ.get("HISTRATEGY_V3_FAST_MODEL", "deepseek-chat")
+            try:
+                from ..llm.adapter import LLMAdapter as _LLM
+                self._v3_llm = _LLM(model=v3_fast_model)
+            except Exception:
+                self._v3_llm = self.llm  # fallback to default
+
+            self.world_simulator = WorldSimulator(self._v3_llm)
             self.guardrail = GuardrailValidator()
             self.state_applier = StateApplier()
             self.turn_memory = TurnMemory()
@@ -613,6 +621,28 @@ class GameEngine:
             from ..parser.validator import CommandValidator
 
             engine.command_validator = CommandValidator(engine.map_engine)
+
+        # v3 init for saved games
+        if engine._use_v3 and llm and llm.is_available:
+            try:
+                from ..llm.world_simulator import WorldSimulator
+                from ..engine.guardrail import GuardrailValidator
+                from ..engine.state_applier import StateApplier, TurnMemory
+
+                v3_fast_model = os.environ.get("HISTRATEGY_V3_FAST_MODEL", "deepseek-chat")
+                from ..llm.adapter import LLMAdapter as _LLM
+                engine._v3_llm = _LLM(model=v3_fast_model)
+
+                engine.world_simulator = WorldSimulator(engine._v3_llm)
+                engine.guardrail = GuardrailValidator()
+                engine.state_applier = StateApplier()
+                engine.turn_memory = TurnMemory()
+            except Exception:
+                engine._use_v3 = False
+                engine.world_simulator = None
+                engine.guardrail = None
+                engine.state_applier = None
+                engine.turn_memory = None
 
         # Restore world state from saved data
         engine.world_state_v2 = engine._rebuild_from_save(data)
@@ -1019,7 +1049,6 @@ class GameEngine:
             player_commands=player_commands,
             year=ws.year,
             turn_number=ws.turn_number,
-            player_decision=player_decision,
         )
 
         # Step 4: Check historical events
@@ -1254,7 +1283,6 @@ class GameEngine:
             player_commands=player_commands,
             year=ws.year,
             turn_number=ws.turn_number,
-            player_decision=player_decision,
         )
 
         # Step 4: History events (same as v2)
@@ -1283,21 +1311,39 @@ class GameEngine:
 
         # ── v3: LLM Simulation Layer ──
 
+        # Capture pre-turn morale for all factions (v2 may have changed it)
+        pre_morale: dict[str, int] = {}
+        for fid, f in ws.factions.items():
+            if getattr(f, "is_active", True):
+                pre_morale[fid] = getattr(f, "morale_actual", 50)
+
         # Build memory context
         room_id = getattr(self, "_room_id", "default")
-        turn_history = []
-        epoch_effects = []
+        turn_history: list[dict] = []
+        epoch_effects: list[dict] = []
         if self.turn_memory:
             turn_history = self.turn_memory.get_recent_turns(room_id, n=10)
             epoch_effects = self.turn_memory.get_persistent_effects(room_id)
 
         # Step 5: LLM nonlinear simulation
         llm_delta = {}
+        _v3_tokens = {"prompt": 0, "completion": 0, "total": 0}
         if self.world_simulator and self.world_simulator.llm_available:
+            # Track v3 LLM tokens for usage reporting
+            v3_llm = getattr(self.world_simulator, "llm", None)
+            if v3_llm and hasattr(v3_llm, "total_all_tokens"):
+                _v3_pre = v3_llm.total_all_tokens
+            else:
+                _v3_pre = 0
+
             llm_delta = self.world_simulator.simulate(
                 ws, player_commands, player_decision,
                 baseline_result, turn_history, epoch_effects,
+                pre_morale=pre_morale,
             )
+
+            if v3_llm and hasattr(v3_llm, "total_all_tokens"):
+                _v3_tokens["total"] = v3_llm.total_all_tokens - _v3_pre
 
         # Step 6: Guardrail validation
         guardrail_result = {"accepted": True, "sanitized_delta": llm_delta, "warnings": []}
@@ -1305,23 +1351,25 @@ class GameEngine:
             guardrail_result = self.guardrail.validate(llm_delta, ws, baseline_result)
 
         # Step 7: Apply validated delta
-        state_summary = {}
+        state_summary: dict = {}
         if guardrail_result["accepted"] and guardrail_result["sanitized_delta"]:
             state_summary = self.state_applier.apply(
                 guardrail_result["sanitized_delta"], ws
             )
 
-        # Update baseline_result with LLM overrides
+        # Update baseline_result with LLM overrides for narrative generation
         baseline_result.player_decision = player_decision
         baseline_result.player_commands = list(player_commands)
+        sanitized = guardrail_result["sanitized_delta"]
+        baseline_result._v3_delta = sanitized  # accessible by NarrativeEngine
 
         # Step 8: Record turn memory
         season_cn = current_season.cn if hasattr(current_season, "cn") else str(current_season)
 
         # Collect persistent effects from morale events
         persistent_effects = []
-        if guardrail_result["sanitized_delta"]:
-            for me in guardrail_result["sanitized_delta"].get("morale_events", []):
+        if sanitized:
+            for me in sanitized.get("morale_events", []):
                 note = me.get("persistent_note", "")
                 if note:
                     persistent_effects.append({
@@ -1332,10 +1380,14 @@ class GameEngine:
 
         # Build key events list
         key_events = []
-        for bo in guardrail_result["sanitized_delta"].get("battle_overrides", []):
+        for bo in sanitized.get("battle_overrides", []):
             key_events.append(f"战斗@{bo.get('location', '?')}: {bo.get('llm_result', '?')}")
-        for pe in guardrail_result["sanitized_delta"].get("political_events", []):
+        for pe in sanitized.get("political_events", []):
             key_events.append(f"政事@{pe.get('faction', '?')}: {pe.get('type', '?')}")
+        for me in sanitized.get("morale_events", []):
+            ch = me.get("change", 0)
+            if abs(ch) >= 3:
+                key_events.append(f"民心@{me.get('faction', '?')}: {ch:+d} ({me.get('reason', '?')[:30]})")
 
         player = ws.factions.get(ws.player_faction_id)
         state_snapshot = {
@@ -1359,14 +1411,21 @@ class GameEngine:
         # ── Narrative Generation ──
 
         narrative_text = ""
-        new_choices = []
+        new_choices: list[str] = []
         averted_list = list(ws.averted_events)
         if self.history_engine:
             averted_list = list(set(averted_list) | self.history_engine._blocked_downstream)
 
-        if self.narrative_engine and self.narrative_engine.is_available:
-            import concurrent.futures
+        # Build v3-aware narrative
+        narrative_seeds = sanitized.get("narrative_seeds", []) if sanitized else []
+        npc_actions_list = sanitized.get("npc_actions", []) if sanitized else []
 
+        if self.narrative_engine and self.narrative_engine.is_available:
+            # Inject v3 delta into baseline_result so narrative engine includes it
+            if sanitized:
+                _inject_v3_into_baseline(baseline_result, sanitized)
+
+            import concurrent.futures
             with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
                 future_narrative = executor.submit(
                     self.narrative_engine.generate_turn_narrative,
@@ -1384,7 +1443,7 @@ class GameEngine:
                     with _suppress_stderr():
                         narrative_text = future_narrative.result(timeout=30)
                 except Exception:
-                    narrative_text = self._offline_v2_narrative(baseline_result)
+                    narrative_text = ""
 
                 try:
                     with _suppress_stderr():
@@ -1392,16 +1451,89 @@ class GameEngine:
                 except Exception:
                     new_choices = self._offline_v2_suggestions()
         else:
-            narrative_text = self._offline_v2_narrative(baseline_result)
             new_choices = self._offline_v2_suggestions()
 
-        # Inject narrative seeds from LLM delta
-        narrative_seeds = guardrail_result["sanitized_delta"].get("narrative_seeds", []) if guardrail_result["sanitized_delta"] else []
-        if narrative_seeds and narrative_text:
-            seed_text = "\n\n" + "\n".join(f"> {s}" for s in narrative_seeds[:3])
-            narrative_text += seed_text
+        # Build v3-style narrative from seeds if available, otherwise fall back to v2
+        if narrative_seeds:
+            # Build narrative header
+            header_lines = [
+                f"### {current_year}年{season_cn} · 大事纪",
+                f"建安{current_year - 196}年{season_cn}，天下纷争未休。",
+                "",
+            ]
+            # Resource summary
+            if player:
+                food_delta = player.food - state_snapshot.get("food", player.food)
+                treasury_delta = player.treasury - state_snapshot.get("treasury", player.treasury)
+                header_lines.append(f"**{player.name}** | 兵力{player.strength_actual:,} | "
+                                    f"资金{player.treasury:,} | 粮草{player.food:,} | 民心{getattr(player, 'morale_actual', '?')}")
+                header_lines.append("")
 
-        # ── Build result dict (v2 compatible format) ──
+            # v3 narrative seeds as the main body
+            body_lines = []
+            for seed in narrative_seeds[:8]:
+                body_lines.append(f"> {seed}")
+            body_lines.append("")
+
+            # NPC activity summary
+            if npc_actions_list:
+                npc_lines = ["**天下动向**"]
+                for na in npc_actions_list[:4]:
+                    faction_id = na.get("faction", "?")
+                    faction_obj = ws.factions.get(faction_id)
+                    faction_name = faction_obj.name if faction_obj else faction_id
+                    action_cn = {
+                        "attack": "进攻", "defend": "防守", "recruit": "募兵",
+                        "develop": "发展", "ally": "结盟", "strategic_retreat": "撤退",
+                        "wait": "休整",
+                    }.get(na.get("action", ""), na.get("action", ""))
+                    reason = na.get("reasoning", "")
+                    npc_lines.append(f"- {faction_name}**{action_cn}**：{reason}")
+                body_lines.append("")
+                body_lines.extend(npc_lines)
+
+            # Political events
+            pol_events = sanitized.get("political_events", []) if sanitized else []
+            if pol_events:
+                body_lines.append("")
+                body_lines.append("**朝堂政事**")
+                for pe in pol_events[:3]:
+                    desc = pe.get("description", "")
+                    if desc:
+                        body_lines.append(f"- {desc}")
+
+            narrative_text = "\n".join(header_lines) + "\n".join(body_lines)
+            if narrative_text and not narrative_text.endswith("\n"):
+                narrative_text += "\n"
+        elif not narrative_text:
+            narrative_text = self._offline_v2_narrative(baseline_result)
+
+        # Build aftermath/summary
+        aftermath_parts = []
+        if player:
+            player_morale = getattr(player, "morale_actual", 0)
+            aftermath_parts.append(f"民心{player_morale}")
+            aftermath_parts.append(f"兵力{player.strength_actual:,}")
+        if key_events:
+            aftermath_parts.append(" | ".join(key_events[:3]))
+        aftermath_text = "。".join(aftermath_parts) + "。" if aftermath_parts else "局势已定。"
+
+        # Token usage tracking (v3-specific)
+        _main_usage = {}
+        if self.narrative_engine and self.narrative_engine.is_available:
+            llm_narr = getattr(self.narrative_engine, "llm", None)
+            if llm_narr and hasattr(llm_narr, "total_all_tokens"):
+                _main_usage["narrative_tokens"] = 0  # tracked in main llm
+
+        _usage = {
+            "intent_tokens": 0,  # IntentParser (in main llm)
+            "command_tokens": 0,  # CommandValidator (free)
+            "npc_tokens": 0,  # NPC AI (not separately tracked)
+            "sim_tokens": _v3_tokens.get("total", 0),  # v3 WorldSimulator
+            "narrative_tokens": 0,
+        }
+
+        # ── Build result dict (v2-compatible + v3 extras) ──
 
         game_over = None
         if not player or not player.is_active or getattr(player, "strength_actual", 0) <= 0:
@@ -1436,22 +1568,36 @@ class GameEngine:
 
         return {
             "narrative": narrative_text,
-            "aftermath": "",
+            "aftermath": aftermath_text,
+            "summary": aftermath_text,
+            "bureaucracy": [
+                {"department": "军机处", "official": "参军",
+                 "action": f"执行{len(player_commands)}项军令"}
+            ],
             "state_changes": state_summary,
             "new_choices": new_choices,
             "events_occurred": [],
             "npc_actions": [
-                na.get("description", "")
-                for na in guardrail_result["sanitized_delta"].get("npc_actions", [])
-            ] if guardrail_result["sanitized_delta"] else [],
+                na.get("reasoning", "")
+                for na in npc_actions_list
+            ],
+            "seeds": [
+                {"title": "v3 推演", "description": s[:80]}
+                for s in narrative_seeds[:4]
+            ],
+            "npc_reactions": [],
             "game_over": game_over,
+            "world_state": ws,
+            "_usage": _usage,
             "v3_metadata": {
                 "delta_accepted": guardrail_result["accepted"],
                 "warnings": len(guardrail_result.get("warnings", [])),
                 "narrative_seeds": len(narrative_seeds),
                 "llm_delta_keys": list(llm_delta.keys()) if llm_delta else [],
+                "sim_tokens": _v3_tokens.get("total", 0),
             },
         }
+
 
     def _process_turn_v1(self, player_decision: str) -> dict:
         """v1 turn processing (unchanged)."""
@@ -1741,6 +1887,40 @@ def _suppress_stderr():
             _sys.stderr = self._stderr
 
     return _Suppress()
+
+
+def _inject_v3_into_baseline(baseline_result, v3_delta: dict) -> None:
+    """Inject v3 delta events into baseline for narrative generation."""
+    if not hasattr(baseline_result, "character_events"):
+        baseline_result.character_events = []
+    if not hasattr(baseline_result, "diplomatic_events"):
+        baseline_result.diplomatic_events = []
+
+    # Add political events as character/diplomatic events
+    for pe in v3_delta.get("political_events", []):
+        baseline_result.character_events.append({
+            "event": pe.get("type", "court_dispute"),
+            "description": pe.get("description", ""),
+            "faction": pe.get("faction", ""),
+        })
+
+    # Add npc actions as diplomatic events
+    for na in v3_delta.get("npc_actions", []):
+        baseline_result.diplomatic_events.append({
+            "faction": na.get("faction", ""),
+            "action": na.get("action", ""),
+            "target": na.get("target", ""),
+            "reason": na.get("reasoning", ""),
+        })
+
+    # Add morale events
+    for me in v3_delta.get("morale_events", []):
+        baseline_result.character_events.append({
+            "event": "morale_change",
+            "faction": me.get("faction", ""),
+            "change": me.get("change", 0),
+            "reason": me.get("reason", ""),
+        })
 
 
 def apply_event_effects(world_state: V2WorldState, effects: dict) -> None:

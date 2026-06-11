@@ -38,6 +38,7 @@ class WorldSimulator:
         baseline_result,
         turn_memory: list[dict] | None = None,
         epoch_memory: list[dict] | None = None,
+        pre_morale: dict[str, int] | None = None,
     ) -> dict:
         """Generate nonlinear simulation delta from full context.
 
@@ -48,6 +49,7 @@ class WorldSimulator:
             baseline_result: TurnResult from deterministic engine
             turn_memory: Recent turn history (last N turns)
             epoch_memory: Long-term persistent effects
+            pre_morale: Pre-turn morale values per faction (for context)
 
         Returns:
             Structured delta dict matching the output schema, or empty dict
@@ -63,6 +65,7 @@ class WorldSimulator:
             baseline_result,
             turn_memory or [],
             epoch_memory or [],
+            pre_morale or {},
         )
 
         messages = [
@@ -100,6 +103,7 @@ class WorldSimulator:
         baseline,
         turn_memory: list[dict],
         epoch_memory: list[dict],
+        pre_morale: dict[str, int],
     ) -> str:
         """Build the full simulation context for the LLM."""
         lines: list[str] = []
@@ -180,6 +184,19 @@ class WorldSimulator:
                     parts.append(f"税收+{changes['tax_revenue']}")
                 if parts:
                     lines.append(f"- {fid}: {', '.join(parts)}")
+            lines.append("")
+
+        # v2 deterministic morale changes (so LLM knows what v2 already did)
+        if pre_morale:
+            lines.append("### v2 引擎民心变化")
+            for fid, f in ws.factions.items():
+                if not getattr(f, "is_active", True):
+                    continue
+                old = pre_morale.get(fid)
+                new = getattr(f, "morale_actual", 50)
+                if old is not None and abs(new - old) > 0:
+                    direction = "+" if new >= old else ""
+                    lines.append(f"- {fid} ({f.name}): {old} → {new} ({direction}{new - old:+d})")
             lines.append("")
 
         # Character list (relevant characters only)
