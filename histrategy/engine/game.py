@@ -293,6 +293,9 @@ class GameEngine:
         self.guardrail = None           # v3: constraint validator
         self.turn_memory = None         # v3: persistent turn history
 
+        # Detect v3 early — needed before IntentParser init
+        self._use_v3 = os.environ.get("HISTRATEGY_V3", "").lower() in ("1", "true", "yes")
+
         if self.llm and self.llm.is_available:
             from ..llm.narrative import NarrativeEngine
 
@@ -344,7 +347,6 @@ class GameEngine:
         self.sim_engine = None
 
         # v3 init: LLM simulation layer
-        self._use_v3 = os.environ.get("HISTRATEGY_V3", "").lower() in ("1", "true", "yes")
         if self._use_v3 and self.llm and self.llm.is_available:
             from ..llm.world_simulator import WorldSimulator
             from ..engine.guardrail import GuardrailValidator
