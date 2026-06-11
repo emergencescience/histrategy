@@ -339,9 +339,10 @@ class EventProposal:
 class Command:
     """A validated game command from a faction."""
 
-    type: str  # "recruit", "move", "attack", "develop", "tax", etc.
+    type: str  # "recruit", "move", "attack", "develop", "tax", "defend", etc.
     params: dict = field(default_factory=dict)
     faction_id: str = ""
+    notes: str = ""  # LLM-provided context: reasoning, campaign name, risk notes, etc.
 
 
 # ─── Turn Result ───────────────────────────────────────────────
@@ -363,6 +364,11 @@ class TurnResult:
     history_events: list[dict] = field(default_factory=list)
 
     faction_snapshots: dict[str, FactionState] = field(default_factory=dict)
+
+    # Context passthrough: original player decision + parsed commands
+    # for narrative engine to generate richer, more accurate stories
+    player_decision: str = ""
+    player_commands: list = field(default_factory=list)
 
 
 # ─── World State ───────────────────────────────────────────────

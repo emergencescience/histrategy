@@ -987,6 +987,10 @@ class GameEngine:
         if self.intent_parser:
             player_commands = self.intent_parser.parse(player_decision, ws.player_faction_id)
 
+        # Store for simulation history logging
+        self._last_player_decision = player_decision
+        self._last_player_commands = list(player_commands)
+
         # Step 2: Validate commands
         if self.command_validator:
             player_commands = self.command_validator.validate(player_commands, ws)
@@ -997,6 +1001,7 @@ class GameEngine:
             player_commands=player_commands,
             year=ws.year,
             turn_number=ws.turn_number,
+            player_decision=player_decision,
         )
 
         # Step 4: Check historical events
@@ -1316,6 +1321,11 @@ class GameEngine:
                 "season": season,
                 "player_faction": player_faction,
                 "factions": faction_data,
+                "player_decision": getattr(self, "_last_player_decision", ""),
+                "player_commands": [
+                    {"type": getattr(c, "type", ""), "params": getattr(c, "params", {}), "notes": getattr(c, "notes", "")}
+                    for c in getattr(self, "_last_player_commands", [])
+                ],
             }
 
             with open(history_file, "a", encoding="utf-8") as f:

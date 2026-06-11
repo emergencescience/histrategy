@@ -25,6 +25,7 @@ from histrategy.llm.prompt_loader import INTENT_PARSE_SYSTEM
 # ─── Territory name → ID mapping ───────────────────────────────
 
 TERRITORY_NAME_MAP: dict[str, str] = {
+    # 曹操领地
     "许昌": "xuchang",
     "xuchang": "xuchang",
     "洛阳": "luoyang",
@@ -36,10 +37,21 @@ TERRITORY_NAME_MAP: dict[str, str] = {
     "wancheng": "wancheng",
     "常山": "changshan",
     "changshan": "changshan",
+    "蓟县": "ji",
+    "蓟": "ji",
+    "ji": "ji",
+    "濮阳": "puyang",
+    "puyang": "puyang",
+    "北海": "beihai",
+    "beihai": "beihai",
+    "下邳": "xiapi",
+    "xiapi": "xiapi",
+    # 刘备领地
     "新野": "xinye",
     "xinye": "xinye",
     "平原": "pingyuan",
     "pingyuan": "pingyuan",
+    # 孙权领地
     "建业": "jianye",
     "建業": "jianye",
     "jianye": "jianye",
@@ -50,6 +62,14 @@ TERRITORY_NAME_MAP: dict[str, str] = {
     "kuaiji": "kuaiji",
     "柴桑": "chaisang",
     "chaisang": "chaisang",
+    "庐江": "lujiang",
+    "廬江": "lujiang",
+    "lujiang": "lujiang",
+    "豫章": "yuzhang",
+    "yuzhang": "yuzhang",
+    "丹阳": "danyang",
+    "danyang": "danyang",
+    # 刘表领地
     "襄阳": "xiangyang",
     "襄陽": "xiangyang",
     "xiangyang": "xiangyang",
@@ -60,6 +80,9 @@ TERRITORY_NAME_MAP: dict[str, str] = {
     "changsha": "changsha",
     "江口": "jiangkou",
     "jiangkou": "jiangkou",
+    # 刘璋领地
+    "成都": "chengdu",
+    "chengdu": "chengdu",
 }
 
 FACTION_NAME_MAP: dict[str, str] = {
@@ -242,6 +265,19 @@ class IntentParser:
                     )
                 )
 
+        # Defend
+        if any(kw in text_lower for kw in ("防守", "布防", "防御", "戒备", "镇守", "驻防", "保卫", "设防")):
+            tid = self._extract_territory(text) or ""
+            if tid:
+                commands.append(
+                    Command(
+                        type="defend",
+                        params={"territory": tid},
+                        faction_id=faction_id,
+                        notes=f"防御指令: 在{tid}部署防守兵力",
+                    )
+                )
+
         # Rest
         if any(kw in text_lower for kw in ("休整", "休息", "修整")):
             commands.append(
@@ -281,14 +317,44 @@ class IntentParser:
     # ── Helpers ──────────────────────────────────────────────────
 
     def _resolve_names(self, text: str, faction_id: str) -> str:
-        """Replace known names with their IDs for LLM parsing."""
+        """Replace known names with their IDs for LLM parsing.
+
+        Only replaces bare names (e.g. '刘备' → '刘备(shu)'), NOT already-resolved
+        names (e.g. '刘备(shu)' stays as-is). This prevents double-resolution.
+
+        When a name(id) pattern is detected, BOTH the name and the bare id are
+        marked as resolved — so '刘备(shu)' prevents re-resolution of both
+        '刘备' and standalone 'shu'.
+        """
         result = text
+
+        # Phase 1: detect which names are already resolved.
+        # When we find '刘备(shu)', mark both '刘备' AND 'shu' as resolved.
+        already_resolved: set[str] = set()
         for name, tid in TERRITORY_NAME_MAP.items():
-            if len(name) > 1:  # Skip single-char to avoid false matches
-                result = result.replace(name, f"{name}({tid})")
+            if len(name) > 1 and f"{name}({tid})" in result:
+                already_resolved.add(name)
+                already_resolved.add(tid)  # also mark the bare id as resolved
         for name, fid in FACTION_NAME_MAP.items():
-            if len(name) > 1:
-                result = result.replace(name, f"{name}({fid})")
+            if len(name) > 1 and f"{name}({fid})" in result:
+                already_resolved.add(name)
+                already_resolved.add(fid)  # also mark the bare id as resolved
+
+        # Phase 2: replace only unresolved names.
+        # After each replacement, mark the inserted ID as resolved to prevent
+        # newly-inserted IDs from being re-resolved in subsequent iterations.
+        for name, tid in TERRITORY_NAME_MAP.items():
+            if len(name) <= 1 or name in already_resolved:
+                continue
+            result = result.replace(name, f"{name}({tid})")
+            already_resolved.add(tid)  # prevent re-resolution of inserted ID
+
+        for name, fid in FACTION_NAME_MAP.items():
+            if len(name) <= 1 or name in already_resolved:
+                continue
+            result = result.replace(name, f"{name}({fid})")
+            already_resolved.add(fid)  # prevent re-resolution of inserted ID
+
         return result
 
     def _build_command(self, cmd_data: dict, faction_id: str):
@@ -310,6 +376,7 @@ class IntentParser:
             "dismiss",
             "negotiate",
             "research",
+            "defend",
         ):
             return None
 
@@ -317,10 +384,15 @@ class IntentParser:
         if not isinstance(params, dict):
             params = {}
 
+        notes = cmd_data.get("notes", "")
+        if not isinstance(notes, str):
+            notes = str(notes)
+
         return Command(
             type=cmd_type,
             params=params,
             faction_id=faction_id,
+            notes=notes,
         )
 
     def _extract_territory(self, text: str) -> str | None:
@@ -346,15 +418,26 @@ class IntentParser:
         """Extract a numeric amount from text."""
         # Chinese numerals
         cn_nums = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
-        match = re.search(r"(\d+)[千百]?", text)
+        # Match Arabic digits optionally followed by magnitude: "5万" → 50000, "1千" → 1000, "300" → 300
+        match = re.search(r"(\d+)\s*([万千百])?", text)
         if match:
-            return int(match.group(1))
-        # "三千" → 3000, "五百" → 500
-        match_cn = re.search(r"([一二三四五六七八九十])([千百十])", text)
+            num = int(match.group(1))
+            mag = match.group(2)
+            if mag == "万":
+                num *= 10000
+            elif mag == "千":
+                num *= 1000
+            elif mag == "百":
+                num *= 100
+            return num
+        # "三千" → 3000, "五百" → 500, "五万" → 50000
+        match_cn = re.search(r"([一二三四五六七八九十])([万千百十])", text)
         if match_cn:
             digit = cn_nums.get(match_cn.group(1), 1)
             unit = match_cn.group(2)
-            if unit == "千":
+            if unit == "万":
+                return digit * 10000
+            elif unit == "千":
                 return digit * 1000
             elif unit == "百":
                 return digit * 100
