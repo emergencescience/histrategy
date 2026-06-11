@@ -1,6 +1,6 @@
 # Histrategy Roadmap
 > 三國志略 — Open-Source Physics-Driven Historical Strategy Game
-> Last updated: 2026-06-08
+> Last updated: 2026-06-11
 
 ---
 
@@ -49,7 +49,10 @@ v2.0 (2026-06)  "Seven-Engine Architecture"
   └── Rules-as-Data: YAML configuration replaces hardcoded Python logic
   └── histrategy-engine (pure Python, zero LLM) + histrategy-knowledge (pure data)
   └── SimPly v2 pluggable framework: add a governance system = write 2 YAML files
-  └── Current status: architecture validated (351 tests), awaiting content fill
+  └── Current status: playable at emergence.science, 459 tests, 9 real users
+  └── NPC fog-of-war + LLM advisor integrated (PR #36)
+  └── Intent parser with defend command + context preservation (PR #37)
+  └── Player manual deployed (PR #38)
 ```
 
 ### 1.2 Core Design Principles
@@ -114,10 +117,7 @@ v2.0 (2026-06)  "Seven-Engine Architecture"
 
 | Priority | Task | Status |
 |----------|------|--------|
-| P0 | REST API (FastAPI) — headless engine wrapper | 🔴 Not started |
-| P0 | Web client MVP at emergence.science/playground/histrategy | 🔴 Not started |
-| P1 | Feishu Agent Skill (飞书群聊即游戏房) | 🔴 Not started |
-| P1 | OpenClaw Skill Package (ClawHub 发布) | 🔴 Not started |
+| P0 | REST API (FastAPI) — headless engine wrapper | ✅ Done |\n| P0 | Web client at emergence.science/games/histrategy | ✅ Done |\n| P1 | Feishu Agent Skill (飞书群聊即游戏房) | ✅ Done |\n| P1 | Player manual (emergence.science/games/histrategy/manual) | ✅ Done |\n| P1 | OpenClaw Skill Package (ClawHub 发布) | 🔴 Not started |
 | P2 | Discord bot integration | 🔴 Not started |
 | P2 | Recording pipeline (headless → frames → ffmpeg → demo.mp4) | 🔴 Not started |
 
@@ -251,16 +251,7 @@ Server stores game saves; shareable via URL (`?game=abc123`).
 | `ROADMAP.md` | This document — strategic roadmap | ✅ Current |
 | `design-iterations.md` | Design evolution log + academic material | ✅ Current |
 | `architecture-philosophy.md` | Core design philosophy | ✅ Current |
-| `design-v2-technical-spec.md` | Seven-engine architecture specification | ✅ Current |
-| `design-v2-physics-engine.md` | Physics engine core + anti-injection | ✅ Current |
-| `design-v2-implementation-plan.md` | Implementation plan + TDD + rollback | ✅ Current |
-| `simply-v2-pluggable-framework.md` | YAML rules-as-data framework | ✅ Current |
-| `governance-engine-design.md` | Governance system design | ✅ Current |
-| `design-p5-web-recording.md` | Web client + video recording pipeline | ✅ Current |
-| `PRD-openclaw.md` | OpenClaw/Hermes integration PRD | ✅ Current |
-| `tech-design-openclaw.md` | OpenClaw technical design | ✅ Current |
-| `tech-design-agent-clients.md` | Multi-platform agent client design | ✅ Current |
-| `OPERATIONS.md` | DevOps & contributor operations | ✅ Current |
+| `design-v2-technical-spec.md` | Seven-engine architecture specification | 📦 Archived |\n| `design-v2-physics-engine.md` | Physics engine core + anti-injection | 📦 Archived |\n| `design-v2-implementation-plan.md` | Implementation plan + TDD + rollback | 📦 Archived |\n| `simply-v2-pluggable-framework.md` | YAML rules-as-data framework | 📦 Archived (design vision) |\n| `governance-engine-design.md` | Governance system design | 📦 Archived (not yet implemented) |\n| `design-p5-web-recording.md` | Web client + video recording pipeline | 📦 Archived |\n| `PRD-openclaw.md` | OpenClaw/Hermes integration PRD | 📦 Archived |\n| `tech-design-openclaw.md` | OpenClaw technical design | 📦 Archived |\n| `tech-design-agent-clients.md` | Multi-platform agent client design | 📦 Archived |\n| `tasks-v2-execution.md` | v2 task execution plan | 📦 Archived (partially done) |\n| `tasks-web-deployment.md` | Web deployment plan | 📦 Archived |\n| `npc-ai-implementation-plan.md` | NPC AI integration plan | 📦 Archived (implemented PR #36) |\n| `asymmetric-loop-design.md` | Original 5-step loop design | 📦 Archived |\n| `OPERATIONS.md` | DevOps & contributor operations | ⚠️ Needs update |
 | `archive/PRD.md` | v0.2 PRD | 📦 Archived |
 | `archive/tech-design.md` | v0.3 tech design | 📦 Archived |
 | `archive/simply-v1-framework.md` | SimPly v1 framework | 📦 Archived |
