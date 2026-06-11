@@ -12,8 +12,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from histrategy_engine.ai import DecisionEngine
-from histrategy_engine.ai.fog_of_war import LocalWorldStateProjector
 from histrategy_engine.ai.npc_planner import NPCPlanner, StrategicIntent
+
+# Import sub-engines for TurnController
+from histrategy_engine.character import CharacterEngine
+from histrategy_engine.military import MilitaryEngine
 from histrategy_engine.turn import TurnController
 from histrategy_engine.world import (
     Army,
@@ -22,14 +25,7 @@ from histrategy_engine.world import (
     Season,
     Territory,
     WorldState,
-    Command,
 )
-
-# Import sub-engines for TurnController
-from histrategy_engine.character import CharacterEngine
-from histrategy_engine.military import MilitaryEngine
-from histrategy_engine.map import MapEngine
-
 
 # ─── Test world builders ─────────────────────────────────────────
 

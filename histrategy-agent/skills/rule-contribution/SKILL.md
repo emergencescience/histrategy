@@ -18,7 +18,7 @@ Use this skill to guide AI agents and external contributors on how to define, co
 ## YAML Configuration Structure
 
 All core game simulation rules are modularized as YAML specifications located under:
-[histrategy-engine/src/histrategy_engine/rules/](file:///Users/julian/gitbubble/histrategy/histrategy-engine/src/histrategy_engine/rules/)
+[histrategy-engine/src/histrategy_engine/rules/](histrategy-engine/src/histrategy_engine/rules/)
 
 ### 1. General Game Rules (e.g., `economy.yaml`)
 These rules define deterministic updates (e.g., food production, tax rates, military upkeep).

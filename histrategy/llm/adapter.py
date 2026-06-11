@@ -8,6 +8,8 @@ import re
 
 import httpx
 
+from .prompt_loader import KNOWN_PROMPTS
+
 # Provider configurations in priority order
 PROVIDER_CONFIGS = [
     {
@@ -374,6 +376,8 @@ class LLMAdapter:
                     log_entry.append(f"Category:          {metadata['category']}\n")
                 if "reason" in metadata:
                     log_entry.append(f"Reason:            {metadata['reason']}\n")
+                if "faction_id" in metadata:
+                    log_entry.append(f"Faction:           {metadata['faction_id']}\n")
                 if "year" in metadata:
                     log_entry.append(f"Year:              {metadata['year']}\n")
                 if "season" in metadata:
@@ -395,6 +399,18 @@ class LLMAdapter:
             for msg in messages:
                 role = msg.get("role", "unknown").upper()
                 msg_content = msg.get("content", "")
+
+                # Check for known prompts to suppress verbose logs
+                if role == "SYSTEM":
+                    stripped_content = msg_content.strip()
+                    matched_prompt = None
+                    for name, content_template in KNOWN_PROMPTS.items():
+                        if stripped_content == content_template.strip():
+                            matched_prompt = name
+                            break
+                    if matched_prompt:
+                        msg_content = f"(Standard Template: {matched_prompt})"
+
                 log_entry.append(f"[{role}]:\n{msg_content}\n")
                 log_entry.append(divider_minor)
 
@@ -499,6 +515,8 @@ class LLMAdapter:
                     log_entry.append(f"Category:          {metadata['category']}\n")
                 if "reason" in metadata:
                     log_entry.append(f"Reason:            {metadata['reason']}\n")
+                if "faction_id" in metadata:
+                    log_entry.append(f"Faction:           {metadata['faction_id']}\n")
                 if "year" in metadata:
                     log_entry.append(f"Year:              {metadata['year']}\n")
                 if "season" in metadata:
@@ -519,6 +537,18 @@ class LLMAdapter:
             for msg in messages:
                 role = msg.get("role", "unknown").upper()
                 msg_content = msg.get("content", "")
+
+                # Check for known prompts to suppress verbose logs
+                if role == "SYSTEM":
+                    stripped_content = msg_content.strip()
+                    matched_prompt = None
+                    for name, content_template in KNOWN_PROMPTS.items():
+                        if stripped_content == content_template.strip():
+                            matched_prompt = name
+                            break
+                    if matched_prompt:
+                        msg_content = f"(Standard Template: {matched_prompt})"
+
                 log_entry.append(f"[{role}]:\n{msg_content}\n")
                 log_entry.append(divider_minor)
 

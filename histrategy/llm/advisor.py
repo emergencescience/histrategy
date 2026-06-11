@@ -20,42 +20,14 @@ if TYPE_CHECKING:
     from .adapter import LLMAdapter
 
 
-ADVISOR_SYSTEM_PROMPT = """你是《三國志略》的军师谋士。你可以扮演诸葛亮、荀彧、周瑜、司马懿等历史上著名的军师。
-
-## 你的角色
-你为我方主公提供战略分析和军事建议。你只能基于当前的局部情报（战争迷雾下的有限信息）来做判断，不能使用上帝视角。
-
-## 规则
-1. **仅基于已知信息**：你看到的敌军兵力是估算范围，不可假设精确数字
-2. **角色扮演**：以你所扮演的军师口吻回答（文言白话混用，有谋士风范）
-3. **具体建议**：不要泛泛而谈，给出具体可执行的战术建议
-4. **承认局限**：如果信息不足以判断，诚实说「亮观之，事未可料」
-
-## 输出格式（根据调用方式选择）
-
-### 当玩家提问时（有 query）：
-输出自然语言回复，100-200字，文白相间。
-
-### 当系统请求战略分析时（无 query）：
-严格输出 JSON：
-{
-  "analysis": "局势分析（文本，100字内）",
-  "recommendations": [
-    {"action": "attack|defend|recruit|develop|ally|sabotage",
-     "target": "目标势力或领地",
-     "priority": 0.0-1.0,
-     "reason": "理由"}
-  ],
-  "risk_assessment": "风险评估（文本）"
-}
-"""
+from .prompt_loader import ADVISOR_SYSTEM_PROMPT
 
 
 @dataclass
 class AdvisorRecommendation:
     """A single strategic recommendation."""
 
-    action: str  # attack, defend, recruit, develop, ally, sabotage
+    action: str  # attack, defend, recruit, develop, ally, sabotage, move
     target: str
     priority: float  # 0.0 - 1.0
     reason: str
@@ -105,6 +77,7 @@ class StrategicAdvisor:
             "season": local_state.get("season").value if hasattr(local_state.get("season"), "value") else str(local_state.get("season", "spring")),
             "category": "advisor",
             "reason": "advise_player",
+            "faction_id": local_state.get("faction_id", ""),
         }
         try:
             return self._llm.chat(messages, temperature=0.7, max_tokens=512, metadata=metadata)
@@ -155,6 +128,7 @@ class StrategicAdvisor:
             "season": local_state.get("season").value if hasattr(local_state.get("season"), "value") else str(local_state.get("season", "spring")),
             "category": "advisor",
             "reason": "evaluate_strategy",
+            "faction_id": local_state.get("faction_id", ""),
         }
         try:
             raw = self._llm.chat(messages, temperature=0.5, max_tokens=512, metadata=metadata)

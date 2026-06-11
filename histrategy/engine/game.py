@@ -335,6 +335,7 @@ class GameEngine:
     def _setup_rules_logging(self) -> None:
         """Setup rule execution logging targeting logs/rules_execution.log in active session."""
         import logging
+
         from ..state.world_state import get_data_dir
 
         try:
@@ -696,7 +697,7 @@ class GameEngine:
             # History engine state
             "history_triggered": list(self.history_engine._triggered_events) if self.history_engine else [],
             "history_averted": (
-                {k: v for k, v in self.history_engine._averted_events.items()}
+                dict(self.history_engine._averted_events.items())
                 if self.history_engine and hasattr(self.history_engine, "_averted_events")
                 else {}
             ),

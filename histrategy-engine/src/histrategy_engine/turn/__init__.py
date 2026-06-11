@@ -299,7 +299,7 @@ class TurnController:
 
         # ── Step 10: Return TurnResult ──
         # Build faction snapshots
-        faction_snapshots = {fid: f for fid, f in world_state.factions.items()}
+        faction_snapshots = dict(world_state.factions.items())
 
         # Advance season
         self._advance_season(world_state)
@@ -339,21 +339,15 @@ class TurnController:
             territory = world_state.territories.get(tid)
             if not territory:
                 return False
-            if territory.owner_id != cmd.faction_id:
-                return False
-            return True
+            return territory.owner_id == cmd.faction_id
 
         if cmd.type in ("move", "attack"):
             target = cmd.params.get("destination") or cmd.params.get("target_territory", "")
-            if not target or target not in world_state.territories:
-                return False
-            return True
+            return not (not target or target not in world_state.territories)
 
         if cmd.type == "tax":
             rate = cmd.params.get("rate")
-            if rate is None or not (0.1 <= rate <= 0.5):
-                return False
-            return True
+            return not (rate is None or not 0.1 <= rate <= 0.5)
 
         return False
 
@@ -471,9 +465,18 @@ class TurnController:
                         continue
                     resolved_pairs.add(pair)
 
-                    # Attacker is the one who moved into the territory (simplified: first)
-                    attacker = army_a
-                    defender = army_b
+                    # Determine who is attacker and defender based on territory ownership
+                    territory = world_state.territories.get(location)
+                    if territory and territory.owner_id == army_b.faction_id:
+                        attacker = army_a
+                        defender = army_b
+                    elif territory and territory.owner_id == army_a.faction_id:
+                        attacker = army_b
+                        defender = army_a
+                    else:
+                        # Fallback if neutral/unowned
+                        attacker = army_a
+                        defender = army_b
 
                     combat = self.military_engine.resolve_battle(
                         attacker,
