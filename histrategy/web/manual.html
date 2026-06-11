@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>玩家手册 — 三國志略</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#1a1a2e;--bg-panel:#16213e;--bg-input:#0f3460;
+  --text:#e0d8c8;--text-dim:#8a8a7a;--text-bright:#f5e6c8;
+  --gold:#d4a017;--red:#c0392b;--blue:#2980b9;--green:#27ae60;
+  --border:#2a2a4a;
+}
+body{background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB',
+    'Noto Sans SC','Microsoft YaHei',sans-serif;
+  line-height:1.8;padding:0;margin:0}
+.container{max-width:800px;margin:0 auto;padding:60px 24px 120px}
+
+h1{font-size:2.2em;color:var(--gold);margin-bottom:8px;font-weight:700}
+h1 .sub{display:block;font-size:.45em;color:var(--text-dim);font-weight:400;margin-top:4px}
+h2{font-size:1.4em;color:var(--gold);margin:48px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+h3{font-size:1.1em;color:var(--text-bright);margin:24px 0 8px}
+
+p{margin:12px 0}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+
+.hero{background:var(--bg-panel);border-radius:12px;padding:40px;margin:24px 0;border:1px solid var(--border)}
+.hero p{font-size:1.1em;color:var(--text-bright)}
+
+.tip{background:rgba(39,174,96,.1);border-left:3px solid var(--green);padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0}
+.tip::before{content:"💡 ";font-size:1.1em}
+.warn{background:rgba(192,57,43,.1);border-left:3px solid var(--red);padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0}
+.warn::before{content:"⚠️ ";font-size:1.1em}
+
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:.95em}
+th,td{padding:10px 14px;text-align:left;border:1px solid var(--border)}
+th{background:var(--bg-panel);color:var(--gold);font-weight:600}
+tr:nth-child(even){background:rgba(22,33,62,.5)}
+
+code{background:var(--bg-input);padding:2px 6px;border-radius:4px;font-size:.9em;color:var(--gold)}
+pre{background:var(--bg-panel);padding:16px 20px;border-radius:8px;overflow-x:auto;border:1px solid var(--border);margin:12px 0;font-size:.88em;line-height:1.6}
+pre .kw{color:var(--blue)}
+pre .str{color:var(--green)}
+pre .num{color:var(--gold)}
+
+blockquote{background:var(--bg-panel);border-left:3px solid var(--gold);padding:12px 16px;margin:16px 0;border-radius:0 8px 8px 0;font-style:italic;color:var(--text-dim)}
+
+.nav{display:flex;gap:16px;flex-wrap:wrap;margin:24px 0}
+.nav a{background:var(--bg-panel);padding:8px 16px;border-radius:6px;border:1px solid var(--border);color:var(--text);font-size:.9em;transition:.2s}
+.nav a:hover{background:var(--bg-input);text-decoration:none;border-color:var(--gold)}
+
+.footer{margin-top:80px;padding-top:24px;border-top:1px solid var(--border);color:var(--text-dim);font-size:.85em}
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>三國志略 <span class="sub">玩家手册 · v2</span></h1>
+
+<div class="nav">
+  <a href="#quickstart">快速开始</a>
+  <a href="#commands">命令参考</a>
+  <a href="#example">实战案例</a>
+  <a href="#faq">常见问题</a>
+</div>
+
+<div class="hero">
+  <p><strong>你是一条短信就能改写三国的君主。</strong></p>
+  <p>输入自然语言描述你的战略意图——「集结宛城5万步兵，春季行军进攻刘备仅有5000兵的新野」——系统用 <strong>确定性仿真引擎</strong> 计算粮草消耗、行军速度、战斗结果，再用 <strong>文言叙事</strong> 告诉你这一季发生了什么。</p>
+  <p>没有菜单、没有按钮、没有血条。你说的每句话，就是这个世界的物理定律。</p>
+</div>
+
+<h2 id="quickstart">快速开始：你的前 3 回合</h2>
+
+<h3>第 1 回合 · 看清局势</h3>
+<p>进入游戏后，你会看到：</p>
+<ul>
+  <li><strong>开场叙事</strong> — 一段文言场景描述，告诉你当前年份（207年冬）、你的势力现状</li>
+  <li><strong>谋士献策</strong> — 4 条可选策略方向，供你参考</li>
+  <li><strong>天下大势</strong> — 其他势力的动向</li>
+</ul>
+<p><strong>现在不要急着下令。</strong> 先看清几件事：</p>
+<ul>
+  <li>你的领地有哪些？邻接哪些敌对势力？</li>
+  <li>你的兵力、粮草、资金、民心各多少？</li>
+  <li>当前的季节是什么？（春季行军粮耗正常，冬季 1.5 倍）</li>
+</ul>
+
+<h3>第 2 回合 · 下第一道令</h3>
+<p>选一个方向，用自然语言写出来。例如：</p>
+
+<table>
+<tr><th>你想做什么</th><th>你可以这样写</th></tr>
+<tr><td>发展内政</td><td>「在许昌开垦农田，提升开发度。同时将税率从40%降至30%以安抚民心。」</td></tr>
+<tr><td>招募军队</td><td>「在邺城招募1万步兵和5000骑兵，为来年春季北伐做准备。」</td></tr>
+<tr><td>进攻敌人</td><td>「从宛城出兵进攻新野的刘备。他只有5000兵，我宛城驻军6万，速战速决。」</td></tr>
+<tr><td>外交结盟</td><td>「派遣使者前往建业，提议与孙权结盟，共同对抗曹操。」</td></tr>
+<tr><td>防守要地</td><td>「在下邳部署3万兵力防守，防范孙权从庐江方向偷袭。」</td></tr>
+</table>
+
+<div class="tip">
+  <strong>越具体越好。</strong> 写上兵力数量、出发地点、目标、季节考虑、风险预案。系统会解析你的完整意图，而不是只提取关键词。
+</div>
+
+<h3>第 3 回合 · 看结果，调整策略</h3>
+<p>系统会返回一段历史叙事，告诉你：</p>
+<ul>
+  <li>你的命令执行结果（粮食产量、征兵数量、战斗胜负）</li>
+  <li>NPC 势力的行动（曹操可能南下、孙权可能北伐）</li>
+  <li>当前资源状态（兵力/粮草/资金/民心）</li>
+</ul>
+<p><strong>根据结果调整下一回合的策略。</strong> 游戏的核心循环就是：观察 → 决策 → 看结果 → 再决策。</p>
+
+<h2 id="commands">命令参考卡</h2>
+
+<table>
+<tr><th>类别</th><th>命令</th><th>说明</th><th>写法示例</th></tr>
+<tr>
+  <td rowspan="3">内政</td>
+  <td>发展</td>
+  <td>提升领地开发度，增加粮产和税收</td>
+  <td>「在许昌开垦农田，提升开发度」</td>
+</tr>
+<tr>
+  <td>招募</td>
+  <td>从人口中征召新兵（花费资金、减少人口）</td>
+  <td>「在邺城招募5000骑兵」</td>
+</tr>
+<tr>
+  <td>调税</td>
+  <td>调整税率（0.1~0.5），影响收入和民心</td>
+  <td>「将许昌税率降至20%以安抚民众」</td>
+</tr>
+<tr>
+  <td rowspan="3">军事</td>
+  <td>进攻</td>
+  <td>攻击敌方领土（需要邻接）</td>
+  <td>「从宛城出兵进攻刘备的新野」</td>
+</tr>
+<tr>
+  <td>防守</td>
+  <td>在指定领土部署防御兵力</td>
+  <td>「在下邳部署重兵，防范孙权偷袭」</td>
+</tr>
+<tr>
+  <td>调兵</td>
+  <td>移动军队到指定领土</td>
+  <td>「将洛阳的3万精兵调往宛城前线」</td>
+</tr>
+<tr>
+  <td rowspan="2">外交</td>
+  <td>结盟</td>
+  <td>与其他势力建立同盟</td>
+  <td>「遣使建业，与孙权结盟共抗曹操」</td>
+</tr>
+<tr>
+  <td>离间</td>
+  <td>破坏敌方势力内部关系</td>
+  <td>「派细作潜入襄阳离间刘表与部将」</td>
+</tr>
+</table>
+
+<div class="warn">
+  <strong>「集结」≠「招募」。</strong> 「集结宛城现有兵力」意思是调遣已经存在的军队，系统会识别为<strong>军事行动</strong>而不是招募新兵。只有当你明确说要「招募」「征兵」时，才会花费资金从人口中征召新兵。
+</div>
+
+<h2 id="example">实战案例：一位玩家的 10 回合</h2>
+<p>以下是真实玩家的游戏记录（已脱敏）。他选择<strong>孙权（东吴）</strong>势力，起始于 207 年冬。</p>
+
+<h3>回合 1-3：稳固根基</h3>
+<blockquote>「休养生息，发展建业的内政与农耕」</blockquote>
+<p>发展建业，提升开发度。</p>
+<blockquote>「修贮固江——投入5000资金向民间购粮，将税率降至25%以安民心。加固柴桑水寨，令周瑜操练水军。」</blockquote>
+<p>囤粮、降税、练兵，为即将到来的战争做准备。</p>
+
+<h3>回合 4-6：缔结同盟</h3>
+<blockquote>「联刘抗曹外交强化——派遣使者至刘备处，主动提出军事同盟。建议调拨2000石粮草支援刘备军。」</blockquote>
+<p>利用赤壁之战的历史引力（成功率极高），与刘备结盟。东西呼应，分散曹操压力。</p>
+<blockquote>「建业治政·民心提振——冬季前将税率降至20%，开仓放粮5000石赈济孤寡。」</blockquote>
+<p>一边结盟一边固本。</p>
+
+<h3>回合 7-10：南拓荆南</h3>
+<blockquote>「听听大将军周瑜的意见」</blockquote>
+<p>询问谋士意见，获取策略建议。</p>
+<blockquote>「南图长沙——命太史慈率精兵一万，从豫章出发进攻长沙。趁秋高气爽速攻可下。」</blockquote>
+<p>在曹操主力被刘备牵制时，向南扩张。</p>
+<blockquote>「柴桑练兵备战——抽调5000人冬季特训水战，派细作潜入江口侦察。」</blockquote>
+<p>练精兵、探情报，为下一阶段做准备。</p>
+
+<div class="tip">
+  <strong>这个玩家的策略非常典型：</strong> 先稳固内政 → 再缔结外交同盟 → 趁大国被牵制时向外扩张。你不需要每一步都完美，只需要每一步都有<strong>方向感</strong>。
+</div>
+
+<h2 id="faq">常见问题</h2>
+
+<h3>民心一直降，怎么办？</h3>
+<p>民心下降通常因为：税率过高、领土丢失、战败。不要只是降税——试试：</p>
+<ul>
+  <li><strong>开仓赈济：</strong> 「从许昌粮仓拨出2万石粮草赈济贫民」</li>
+  <li><strong>军事胜利：</strong> 一场大胜会提振民心</li>
+  <li><strong>发展民生：</strong> 「在邺城兴建水利，提升开发度」</li>
+  <li><strong>降低税率到 10-15%：</strong> 低于 5% 意义不大，引擎有衰减</li>
+</ul>
+
+<h3>为什么我的进攻失败了？</h3>
+<p>可能的原因：</p>
+<ul>
+  <li><strong>军队不在邻接领土。</strong> 要进攻新野，你的军队必须在宛城（宛城邻接新野），不能在许昌直接进攻。</li>
+  <li><strong>兵力不足。</strong> 防守方有地形和城防加成。</li>
+  <li><strong>季节不对。</strong> 冬季行军粮耗 1.5 倍，军队可能因缺粮而减员。</li>
+  <li><strong>NPC 势力干预。</strong> 你可能被第三方偷袭了后方。</li>
+</ul>
+
+<h3>我应该选哪个势力？</h3>
+<table>
+<tr><th>势力</th><th>难度</th><th>特点</th></tr>
+<tr><td>曹操（魏）</td><td>⭐ 简单</td><td>领地最大，兵力最强。适合新手。挑战在于多线作战。</td></tr>
+<tr><td>孙权（吴）</td><td>⭐⭐ 中等</td><td>水军优势，江东富庶。适合喜欢稳扎稳打的玩家。</td></tr>
+<tr><td>刘备（蜀）</td><td>⭐⭐⭐ 困难</td><td>仅据新野一城，5000兵。适合喜欢以小博大的玩家。</td></tr>
+</table>
+
+<h3>回合之间有冷却时间吗？</h3>
+<p>没有。你可以连续输入命令，每输入一次推进一个季节（春→夏→秋→冬）。系统在后台计算所有 NPC 势力的行动。</p>
+
+<h3>这游戏有结局吗？</h3>
+<p>游戏从 207 年冬持续到 223 年春（共约 60 回合）。结局可能是：统一天下（胜利）、势力覆灭（失败）、或者活到历史终点。全过程没有预设剧本——AI 刘备可能降曹，孙权可能北伐成功，一切取决于你的决策和确定性引擎的计算。</p>
+
+<div class="footer">
+  <p>三國志略 v2 · Emergence Science</p>
+  <p>想要参与游戏设计？规则引擎完全开源：<a href="https://github.com/emergencescience/histrategy" target="_blank">github.com/emergencescience/histrategy</a></p>
+</div>
+
+</div>
+</body>
+</html>
