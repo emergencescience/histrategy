@@ -321,6 +321,16 @@ def create_app(llm_provider: str | None = None) -> Any:
         web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
         return FileResponse(_os.path.join(web_dir, "index.html"))
 
+    @app.get("/manual")
+    def manual():
+        """Serve the player manual."""
+        import os as _os
+
+        from fastapi.responses import FileResponse
+
+        web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
+        return FileResponse(_os.path.join(web_dir, "manual.html"))
+
     @app.get("/api/health")
     def health():
         # Actually probe LLM availability
