@@ -1,0 +1,27 @@
+# 三國志略 — Historical events rule configuration
+# All formulas are expressed as Python-evaluable expressions.
+# Variables are injected at runtime by RuleInterpreter.
+
+caocao_captures_xinye:
+  preconditions: "cao_strength > 2.0 * liubei_strength and xinye_owner == 'shu' and xinye_garrison < 5000"
+  probability_formula: "0.85 * (1.0 - player_deviation * 0.5)"
+  base_gravity: 0.8
+  desc: "曹军大军压境新野，刘备守军不支，城池陷落"
+
+sunliu_alliance_formed:
+  preconditions: "wu_relations_shu >= 10 and not sunliu_alliance"
+  probability_formula: "0.75 * (1.0 - player_deviation * 0.5) * (wu_relations_shu / 50.0)"
+  base_gravity: 0.7
+  desc: "诸葛亮舌战群儒，说服孙权与刘备结成孙刘同盟共同抗曹"
+
+red_cliffs_battle:
+  preconditions: "sunliu_alliance and caocao_south"
+  probability_formula: "0.90 * (1.0 - player_deviation * 0.5)"
+  base_gravity: 0.9
+  desc: "孙刘联军火烧赤壁，曹操大败，狼狈北撤"
+
+liubei_takes_jingzhou:
+  preconditions: "red_cliffs_won and not liubei_has_jingzhou"
+  probability_formula: "0.80 * (1.0 - player_deviation * 0.5)"
+  base_gravity: 0.8
+  desc: "趁曹操北归、东吴不备，刘备迅速席卷荆州南部四郡"

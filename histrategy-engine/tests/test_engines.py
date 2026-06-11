@@ -552,3 +552,29 @@ class TestSeasonEnum:
     def test_chinese_names(self):
         assert Season.SPRING.cn == "春"
         assert Season.AUTUMN.cn == "秋"
+
+
+class TestUnrestAndFortification:
+    def test_unrest_and_fortification_change(self):
+        engine = DomesticEngine()
+        t = Territory(
+            id="test",
+            name="测试",
+            fertility=6,
+            development=40,
+            population=30000,
+            climate_zone="central",
+            fortification=50,
+            unrest=10,
+            owner_id="cao"
+        )
+        territories = {"test": t}
+        results = engine.process_season(
+            territories,
+            Season.AUTUMN,
+            year=207,
+            turn=1,
+            tax_rates={"cao": 0.5},
+        )
+        assert t.unrest > 10
+        assert t.fortification == 50

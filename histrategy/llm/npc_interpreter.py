@@ -94,11 +94,19 @@ class NPCInterpreter:
         ]
 
         try:
+            metadata = {
+                "turn": state.turn,
+                "year": state.year,
+                "season": state.current_season,
+                "category": "npc_interpreter",
+                "reason": "interpret",
+            }
             result = self._adapter.chat_structured(
                 messages,
                 response_format={"type": "json_object"},
                 temperature=0.60,
                 max_tokens=1200,
+                metadata=metadata,
             )
             updates = {}
             for item in result.get("npc_updates", []):

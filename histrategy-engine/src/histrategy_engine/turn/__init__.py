@@ -138,21 +138,49 @@ class TurnController:
         # ── Step 3: Collect commands ──
         all_commands: list[Command] = list(player_commands or [])
 
-        for fid, faction in world_state.factions.items():
-            if not faction.is_active:
-                continue
-            if fid == world_state.player_faction_id:
-                continue
-            # Use NPCPlanner (FOW-aware) when available, fallback to raw DecisionEngine
-            if self.npc_planner is not None:
-                npc_commands = self.npc_planner.generate_commands_local(
-                    fid, world_state, self.map_engine
-                )
-            else:
-                npc_commands = self.decision_engine.generate_commands(
-                    fid, world_state, self.map_engine
-                )
-            all_commands.extend(npc_commands)
+        active_npcs = [
+            fid
+            for fid, faction in world_state.factions.items()
+            if faction.is_active and fid != world_state.player_faction_id
+        ]
+
+        if active_npcs:
+            import concurrent.futures
+            import logging
+
+            _logger = logging.getLogger(__name__)
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=len(active_npcs)) as executor:
+                # Submit tasks for all active NPCs in parallel
+                futures = {}
+                for fid in active_npcs:
+                    if self.npc_planner is not None:
+                        futures[
+                            executor.submit(
+                                self.npc_planner.generate_commands_local,
+                                fid,
+                                world_state,
+                                self.map_engine,
+                            )
+                        ] = fid
+                    else:
+                        futures[
+                            executor.submit(
+                                self.decision_engine.generate_commands,
+                                fid,
+                                world_state,
+                                self.map_engine,
+                            )
+                        ] = fid
+
+                # Gather results as they complete
+                for future in concurrent.futures.as_completed(futures):
+                    fid = futures[future]
+                    try:
+                        npc_commands = future.result()
+                        all_commands.extend(npc_commands)
+                    except Exception as e:
+                        _logger.warning("NPC %s planning failed: %s", fid, e)
 
         # ── Step 4: Command validation ──
         valid_commands = self._validate_commands(all_commands, world_state)

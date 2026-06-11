@@ -129,6 +129,7 @@ class Territory:
     development: int = 30  # 0-100
     garrison: int = 1000
     fortification: int = 20  # 0-100
+    unrest: int = 0  # 0-100
 
     # ── Strategic points within this territory ──
     strategic_points: list[StrategicPoint] = field(default_factory=list)

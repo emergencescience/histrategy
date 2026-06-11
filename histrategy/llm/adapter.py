@@ -145,7 +145,13 @@ class LLMAdapter:
         """Check if API is configured and ready."""
         return bool(self.api_key) and self.client is not None
 
-    def chat(self, messages: list[dict], temperature: float = 0.7, max_tokens: int = 2048) -> str:
+    def chat(
+        self,
+        messages: list[dict],
+        temperature: float = 0.7,
+        max_tokens: int = 2048,
+        metadata: dict | None = None,
+    ) -> str:
         """Send a chat completion request."""
         if not self.is_available:
             raise RuntimeError(
@@ -170,12 +176,12 @@ class LLMAdapter:
             response.raise_for_status()
             data = response.json()
 
-            self._record_stats_and_log(messages, data, latency)
+            self._record_stats_and_log(messages, data, latency, metadata=metadata)
 
             return data["choices"][0]["message"]["content"]
         except Exception as e:
             latency = time.perf_counter() - start_time
-            self._record_error_and_log(messages, e, latency, response)
+            self._record_error_and_log(messages, e, latency, response, metadata=metadata)
             raise
 
     def chat_structured(
@@ -184,6 +190,7 @@ class LLMAdapter:
         response_format: dict | None = None,
         temperature: float = 0.7,
         max_tokens: int = 4096,
+        metadata: dict | None = None,
     ) -> dict:
         """Send a chat completion request with structured output.
 
@@ -224,7 +231,7 @@ class LLMAdapter:
             response.raise_for_status()
             data = response.json()
 
-            self._record_stats_and_log(messages, data, latency)
+            self._record_stats_and_log(messages, data, latency, metadata=metadata)
 
             content = data["choices"][0]["message"]["content"]
 
@@ -239,7 +246,7 @@ class LLMAdapter:
             return self._extract_json(content)
         except Exception as e:
             latency = time.perf_counter() - start_time
-            self._record_error_and_log(messages, e, latency, response)
+            self._record_error_and_log(messages, e, latency, response, metadata=metadata)
             raise
 
     def _extract_json(self, text: str) -> dict:
@@ -268,7 +275,9 @@ class LLMAdapter:
 
         raise ValueError(f"Could not extract JSON from response:\n{text[:500]}")
 
-    def _record_stats_and_log(self, messages: list[dict], response_data: dict, latency: float) -> None:
+    def _record_stats_and_log(
+        self, messages: list[dict], response_data: dict, latency: float, metadata: dict | None = None
+    ) -> None:
         """Parse token usage, update self.last_call_stats, and write logs."""
         try:
             usage = response_data.get("usage") or {}
@@ -297,13 +306,20 @@ class LLMAdapter:
             self.total_all_tokens += total_tokens
             self.total_calls += 1
 
-            self._write_to_log_files(messages, response_data, latency, self.last_call_stats)
+            self._write_to_log_files(messages, response_data, latency, self.last_call_stats, metadata=metadata)
         except Exception as e:
             import sys
 
             print(f"[Warning] Failed to record/log LLM usage: {e}", file=sys.stderr)
 
-    def _write_to_log_files(self, messages: list[dict], response_data: dict, latency: float, stats: dict) -> None:
+    def _write_to_log_files(
+        self,
+        messages: list[dict],
+        response_data: dict,
+        latency: float,
+        stats: dict,
+        metadata: dict | None = None,
+    ) -> None:
         import json
         from datetime import datetime
         from pathlib import Path
@@ -336,6 +352,8 @@ class LLMAdapter:
                 "messages": messages,
                 "response": content,
             }
+            if metadata:
+                jsonl_entry["metadata"] = metadata
             with open(jsonl_path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(jsonl_entry, ensure_ascii=False) + "\n")
 
@@ -350,10 +368,25 @@ class LLMAdapter:
                 f"Provider:          {stats['provider']}\n",
                 f"Model:             {stats['model']}\n",
                 f"Latency:           {stats['latency']:.2f}s\n",
-                f"Prompt Tokens:     {stats['prompt_tokens']}\n",
-                f"Completion Tokens: {stats['completion_tokens']}\n",
-                f"Total Tokens:      {stats['total_tokens']}\n",
             ]
+            if metadata:
+                if "category" in metadata:
+                    log_entry.append(f"Category:          {metadata['category']}\n")
+                if "reason" in metadata:
+                    log_entry.append(f"Reason:            {metadata['reason']}\n")
+                if "year" in metadata:
+                    log_entry.append(f"Year:              {metadata['year']}\n")
+                if "season" in metadata:
+                    log_entry.append(f"Season:            {metadata['season']}\n")
+                if "turn" in metadata:
+                    log_entry.append(f"Turn:              {metadata['turn']}\n")
+            log_entry.extend(
+                [
+                    f"Prompt Tokens:     {stats['prompt_tokens']}\n",
+                    f"Completion Tokens: {stats['completion_tokens']}\n",
+                    f"Total Tokens:      {stats['total_tokens']}\n",
+                ]
+            )
             if stats["reasoning_tokens"] > 0:
                 log_entry.append(f"Reasoning Tokens:  {stats['reasoning_tokens']}\n")
             log_entry.append(divider_minor)
@@ -379,7 +412,12 @@ class LLMAdapter:
             print(f"[Warning] Failed to write LLM log: {e}", file=sys.stderr)
 
     def _record_error_and_log(
-        self, messages: list[dict], exception: Exception, latency: float, response: httpx.Response | None = None
+        self,
+        messages: list[dict],
+        exception: Exception,
+        latency: float,
+        response: httpx.Response | None = None,
+        metadata: dict | None = None,
     ) -> None:
         """Log LLM call errors to self.last_call_stats and write to logs."""
         try:
@@ -394,14 +432,19 @@ class LLMAdapter:
                 "error": str(exception),
             }
 
-            self._write_error_to_log_files(messages, exception, latency, response)
+            self._write_error_to_log_files(messages, exception, latency, response, metadata=metadata)
         except Exception as log_err:
             import sys
 
             print(f"[Warning] Failed to log LLM error: {log_err}", file=sys.stderr)
 
     def _write_error_to_log_files(
-        self, messages: list[dict], exception: Exception, latency: float, response: httpx.Response | None = None
+        self,
+        messages: list[dict],
+        exception: Exception,
+        latency: float,
+        response: httpx.Response | None = None,
+        metadata: dict | None = None,
     ) -> None:
         import json
         from datetime import datetime
@@ -434,6 +477,8 @@ class LLMAdapter:
                 "response_body": response_body,
                 "messages": messages,
             }
+            if metadata:
+                jsonl_entry["metadata"] = metadata
             with open(jsonl_path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(jsonl_entry, ensure_ascii=False) + "\n")
 
@@ -448,9 +493,24 @@ class LLMAdapter:
                 f"Provider:          {self.provider_name}\n",
                 f"Model:             {self.model}\n",
                 f"Latency:           {latency:.2f}s\n",
-                "Status:            ERROR\n",
-                f"Exception:         {str(exception)}\n",
             ]
+            if metadata:
+                if "category" in metadata:
+                    log_entry.append(f"Category:          {metadata['category']}\n")
+                if "reason" in metadata:
+                    log_entry.append(f"Reason:            {metadata['reason']}\n")
+                if "year" in metadata:
+                    log_entry.append(f"Year:              {metadata['year']}\n")
+                if "season" in metadata:
+                    log_entry.append(f"Season:            {metadata['season']}\n")
+                if "turn" in metadata:
+                    log_entry.append(f"Turn:              {metadata['turn']}\n")
+            log_entry.extend(
+                [
+                    "Status:            ERROR\n",
+                    f"Exception:         {str(exception)}\n",
+                ]
+            )
             if status_code is not None:
                 log_entry.append(f"HTTP Status Code:  {status_code}\n")
             log_entry.append(divider_minor)

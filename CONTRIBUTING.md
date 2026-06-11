@@ -66,6 +66,15 @@ python histrategy/knowledge/scripts/validate_data.py
 
 Fix any errors before submitting.
 
+## How to Contribute/Modify Rules (YAML)
+
+Game mechanics (like food production, taxation, and non-linear historical events) are externalized as YAML specifications in `histrategy-engine/src/histrategy_engine/rules/`.
+
+If you are using an AI agent (such as Claude Code, Trae, etc.) to modify these rules, please instruct the agent to refer to the custom Agent Skill:
+- [rule-contribution SKILL.md](file:///Users/julian/gitbubble/histrategy/histrategy-agent/skills/rule-contribution/SKILL.md)
+
+This skill documents the rule schema, preconditions, math expression syntax, and variable injection.
+
 ## Self-Testing
 
 ```bash

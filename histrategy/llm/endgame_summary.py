@@ -33,7 +33,11 @@ def generate_chronicle(player_events: list[Any], llm_adapter: Any = None) -> str
         )
         try:
             messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
-            response = llm_adapter.chat(messages, temperature=0.5)
+            metadata = {
+                "category": "endgame",
+                "reason": "generate_chronicle",
+            }
+            response = llm_adapter.chat(messages, temperature=0.5, metadata=metadata)
             if response and response.strip():
                 return response.strip()
         except Exception:

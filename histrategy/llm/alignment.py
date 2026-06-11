@@ -166,9 +166,17 @@ class AlignmentEngine:
 
         context = self._build_context(turn_result, climate_events, faction_names)
 
+        metadata = {
+            "turn": turn_result.get("turn_number", 0),
+            "year": turn_result.get("year", 207),
+            "season": turn_result.get("season").value if hasattr(turn_result.get("season"), "value") else str(turn_result.get("season", "spring")),
+            "category": "alignment",
+            "reason": "align",
+        }
+
         for attempt in range(1, MAX_RETRIES + 1):
             try:
-                raw_response = self._call_llm(context, ALIGNMENT_SYSTEM_PROMPT)
+                raw_response = self._call_llm(context, ALIGNMENT_SYSTEM_PROMPT, metadata=metadata)
                 events = self._parse_events(raw_response)
 
                 if not events:
@@ -262,13 +270,13 @@ class AlignmentEngine:
             + f"\n\n建议修正：{suggested_fix}\n\n请重新生成，确保数值在允许范围内。"
         )
 
-    def _call_llm(self, context: str, system_prompt: str) -> str:
+    def _call_llm(self, context: str, system_prompt: str, metadata: dict | None = None) -> str:
         """Send context to LLM and get raw response."""
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": context},
         ]
-        return self._llm.chat(messages, temperature=0.5, max_tokens=1024)
+        return self._llm.chat(messages, temperature=0.5, max_tokens=1024, metadata=metadata)
 
     def _parse_events(self, raw_response: str) -> list[FrictionEvent]:
         """Parse LLM response into FrictionEvent objects."""

@@ -390,11 +390,19 @@ class GameMaster:
         ]
 
         try:
+            metadata = {
+                "turn": state.turn,
+                "year": state.year,
+                "season": state.current_season.name if hasattr(state.current_season, "name") else str(state.current_season),
+                "category": "gamemaster",
+                "reason": "intro",
+            }
             result = self.llm.chat_structured(
                 messages,
                 response_format={"type": "json_object"},
                 temperature=0.85,
                 max_tokens=4096,
+                metadata=metadata,
             )
 
             return {
@@ -479,11 +487,19 @@ class GameMaster:
         ]
 
         try:
+            metadata = {
+                "turn": state.turn,
+                "year": state.year,
+                "season": state.current_season.name if hasattr(state.current_season, "name") else str(state.current_season),
+                "category": "gamemaster",
+                "reason": "plan",
+            }
             result = self.llm.chat_structured(
                 messages,
                 response_format={"type": "json_object"},
                 temperature=0.85,
                 max_tokens=4096,
+                metadata=metadata,
             )
             return {
                 "court_dialogue": result.get("court_dialogue", ""),
@@ -547,11 +563,19 @@ class GameMaster:
         ]
 
         try:
+            metadata = {
+                "turn": state.turn,
+                "year": state.year,
+                "season": state.current_season.name if hasattr(state.current_season, "name") else str(state.current_season),
+                "category": "gamemaster",
+                "reason": "command",
+            }
             result = self.llm.chat_structured(
                 messages,
                 response_format={"type": "json_object"},
                 temperature=0.8,
                 max_tokens=8192,
+                metadata=metadata,
             )
 
             # Apply state changes from LLM

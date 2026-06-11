@@ -19,7 +19,7 @@ class FakeLLM:
         self.response = response
         self.is_available = True
 
-    def chat(self, messages, temperature=0.7, max_tokens=512):
+    def chat(self, messages, temperature=0.7, max_tokens=512, **kwargs):
         return self.response
 
 

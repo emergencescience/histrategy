@@ -175,10 +175,18 @@ class NarrativeEngine:
         ]
 
         try:
+            metadata = {
+                "turn": getattr(turn_result, "turn_number", 0),
+                "year": getattr(turn_result, "year", 207),
+                "season": turn_result.season.value if hasattr(turn_result.season, "value") else str(turn_result.season),
+                "category": "narrative",
+                "reason": "generate_turn_narrative",
+            }
             result = self.llm.chat(
                 messages,
                 temperature=0.75,
                 max_tokens=2048,
+                metadata=metadata,
             )
             return result.strip()
         except Exception:
@@ -405,10 +413,18 @@ class NarrativeEngine:
         ]
 
         try:
+            metadata = {
+                "turn": getattr(world_state, "turn", 0),
+                "year": getattr(world_state, "year", 207),
+                "season": world_state.current_season if hasattr(world_state, "current_season") else "spring",
+                "category": "narrative",
+                "reason": "generate_plan_suggestions",
+            }
             result = self.llm.chat(
                 messages,
                 temperature=0.7,
                 max_tokens=2048,
+                metadata=metadata,
             )
             return self._parse_suggestions(result.strip())
         except Exception:

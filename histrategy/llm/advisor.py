@@ -99,8 +99,15 @@ class StrategicAdvisor:
             {"role": "system", "content": ADVISOR_SYSTEM_PROMPT},
             {"role": "user", "content": context},
         ]
+        metadata = {
+            "turn": local_state.get("turn", 0),
+            "year": local_state.get("year", 207),
+            "season": local_state.get("season").value if hasattr(local_state.get("season"), "value") else str(local_state.get("season", "spring")),
+            "category": "advisor",
+            "reason": "advise_player",
+        }
         try:
-            return self._llm.chat(messages, temperature=0.7, max_tokens=512)
+            return self._llm.chat(messages, temperature=0.7, max_tokens=512, metadata=metadata)
         except Exception:
             return self._offline_advice(local_state, query)
 
@@ -142,8 +149,15 @@ class StrategicAdvisor:
             {"role": "system", "content": ADVISOR_SYSTEM_PROMPT},
             {"role": "user", "content": context},
         ]
+        metadata = {
+            "turn": local_state.get("turn", 0),
+            "year": local_state.get("year", 207),
+            "season": local_state.get("season").value if hasattr(local_state.get("season"), "value") else str(local_state.get("season", "spring")),
+            "category": "advisor",
+            "reason": "evaluate_strategy",
+        }
         try:
-            raw = self._llm.chat(messages, temperature=0.5, max_tokens=512)
+            raw = self._llm.chat(messages, temperature=0.5, max_tokens=512, metadata=metadata)
             return self._parse_strategy_json(raw)
         except Exception:
             return self._offline_strategy(local_state, personality)
@@ -192,6 +206,12 @@ class StrategicAdvisor:
             parts.append("\n## 边境驻军估算")
             for tid, g in garrison.items():
                 parts.append(f"- {g.get('territory_name', tid)}：{g.get('estimated_troops', '?')}")
+
+        chronicle = local_state.get("chronicle", [])
+        if chronicle:
+            parts.append("\n## 天下大事纪（最近发生）")
+            for item in chronicle:
+                parts.append(f"- {item}")
 
         if personality:
             parts.append(

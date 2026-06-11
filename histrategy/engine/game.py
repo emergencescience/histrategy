@@ -330,6 +330,39 @@ class GameEngine:
         self._legacy_world = None
         self.sim_engine = None
 
+        self._setup_rules_logging()
+
+    def _setup_rules_logging(self) -> None:
+        """Setup rule execution logging targeting logs/rules_execution.log in active session."""
+        import logging
+        from ..state.world_state import get_data_dir
+
+        try:
+            log_dir = get_data_dir() / "logs"
+            log_dir.mkdir(parents=True, exist_ok=True)
+            rules_log_file = log_dir / "rules_execution.log"
+
+            logger = logging.getLogger("histrategy_engine.rules")
+            logger.setLevel(logging.INFO)
+
+            # Avoid duplicate handlers for the same file
+            has_handler = any(
+                isinstance(h, logging.FileHandler) and h.baseFilename == str(rules_log_file.resolve())
+                for h in logger.handlers
+            )
+            if not has_handler:
+                # Remove existing file handlers (to redirect to current room log directory)
+                logger.handlers = [h for h in logger.handlers if not isinstance(h, logging.FileHandler)]
+
+                fh = logging.FileHandler(rules_log_file, encoding="utf-8")
+                fh.setLevel(logging.INFO)
+                formatter = logging.Formatter("%(asctime)s - %(message)s")
+                fh.setFormatter(formatter)
+                logger.addHandler(fh)
+        except Exception as e:
+            import sys
+            print(f"[Warning] Failed to setup rules logging: {e}", file=sys.stderr)
+
     def _try_load_v2_save(self) -> V2WorldState | None:
         """Attempt to load a v2 game save from disk."""
         import json
@@ -567,6 +600,8 @@ class GameEngine:
         # Restore world state from saved data
         engine.world_state_v2 = engine._rebuild_from_save(data)
         engine.game_started = True
+
+        engine._setup_rules_logging()
 
         return engine
 
