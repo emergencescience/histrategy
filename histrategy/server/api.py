@@ -676,35 +676,39 @@ def create_app(llm_provider: str | None = None) -> Any:
         except Exception:
             pass  # Non-blocking — don't fail the game on persistence error
 
-        # ── Persist debug logs to orchestrator ──
-        # Build logs from both engine-generated _debug_log and API-level _usage
-        llm_calls = []
-        sim_events = []
-        debug_log = result.get("_debug_log")
-        if debug_log:
-            llm_calls.extend(debug_log.get("llm_calls", []))
-            sim_events.extend(debug_log.get("sim_events", []))
-        # Also create a log entry from the _usage data (always available)
+        # ── Debug log: token usage to stdout (Railway captures) + Postgres ──
         _usage = result.get("_usage", {})
         _sim_tokens = _usage.get("sim_tokens") or _usage.get("command_tokens", 0)
         if _sim_tokens > 0:
-            llm_calls.append({
-                "call_type": "macro_simulate",
-                "provider": "deepseek",
+            log_entry = {
+                "session_id": session_id,
+                "turn_number": status.get("turn", 1),
+                "year": status.get("year", 207),
+                "season": status.get("season", "春"),
+                "tokens": _sim_tokens,
                 "model": _os.environ.get("LLM_MODEL", "deepseek-v4-flash"),
-                "total_tokens": _sim_tokens,
-                "latency_ms": 0,
-            })
-        if llm_calls or sim_events:
+            }
+            # Log to stdout (visible in railway logs)
+            import json as _json
+            print(f"[HISTRATEGY_LOG] {_json.dumps(log_entry, ensure_ascii=False)}", flush=True)
+            # Also POST to orchestrator Postgres
             try:
-                _sid = session_id
-                _jwt = _meta.get("jwt_token", "")
+                _jwt = _game_meta.get(game_id, {}).get("jwt_token", "")
                 import httpx as _httpx
                 _orch_url = _os.environ.get("ORCHESTRATOR_URL", "https://api.emergence.science").rstrip("/")
                 _httpx.post(
                     f"{_orch_url}/games/histrategy/api/log/batch",
-                    json={"session_id": _sid, "turn_number": status.get("turn", 1),
-                          "llm_calls": llm_calls, "sim_events": sim_events},
+                    json={
+                        "session_id": session_id,
+                        "turn_number": status.get("turn", 1),
+                        "llm_calls": [{
+                            "call_type": "macro_simulate",
+                            "provider": "deepseek",
+                            "model": _os.environ.get("LLM_MODEL", "deepseek-v4-flash"),
+                            "total_tokens": _sim_tokens,
+                        }],
+                        "sim_events": [],
+                    },
                     headers={"Authorization": f"Bearer {_jwt}"} if _jwt else {},
                     timeout=5.0,
                 )
