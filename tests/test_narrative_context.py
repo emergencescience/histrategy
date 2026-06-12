@@ -8,14 +8,13 @@ Covers:
 """
 
 import pytest
-
-from histrategy.llm.narrative import NarrativeEngine
 from histrategy_engine import (
     Command,
     Season,
     TurnResult,
 )
 
+from histrategy.llm.narrative import NarrativeEngine
 
 # ═══════════════════════════════════════════════════════════════
 # Fixtures

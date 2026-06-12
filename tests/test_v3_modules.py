@@ -2,39 +2,29 @@
 Unit tests for v3 modules: GuardrailValidator, StateApplier, TurnMemory.
 """
 
-import json
-import os
 import tempfile
 
 import pytest
-
-from histrategy.engine.guardrail import (
-    GuardrailValidator,
-    GuardrailViolation,
-    GuardrailWarning,
-)
-from histrategy.engine.state_applier import (
-    StateApplier,
-    TurnMemory,
-)
 from histrategy_engine import (
     Army,
     Character,
-    DomesticEngine,
     FactionState,
-    MapEngine,
-    MilitaryEngine,
     Season,
     TerrainType,
     Territory,
     TurnResult,
     UnitType,
     WorldState,
-    DecisionEngine,
-    CharacterEngine,
 )
-from histrategy_engine.world import CombatResult, BattleResult
+from histrategy_engine.world import BattleResult, CombatResult
 
+from histrategy.engine.guardrail import (
+    GuardrailValidator,
+)
+from histrategy.engine.state_applier import (
+    StateApplier,
+    TurnMemory,
+)
 
 # ═══════════════════════════════════════════════════════════════
 # Fixtures
@@ -152,7 +142,7 @@ class TestGuardrailBattleOverrides:
             }]
         }
         # Create a minimal baseline with matching battle
-        from histrategy_engine.world import CombatResult, BattleResult
+        from histrategy_engine.world import BattleResult, CombatResult
         baseline = TurnResult(battles=[
             CombatResult(
                 battle_id="b1", location="xinye",
@@ -443,3 +433,28 @@ class TestTurnMemory:
         recent = memory.get_recent_turns("test_room", n=3)
         assert len(recent) == 3
         assert recent[-1]["turn"] == 10
+
+    def test_clean_future_turns(self, memory):
+        memory.record_turn(
+            "test_room", 1, 208, "春", "decision 1", "summary 1", [], {},
+            [{"note": "effect 1", "turn": 1}],
+        )
+        memory.record_turn(
+            "test_room", 2, 208, "夏", "decision 2", "summary 2", [], {},
+            [{"note": "effect 2", "turn": 2}],
+        )
+        memory.record_turn(
+            "test_room", 3, 208, "秋", "decision 3", "summary 3", [], {},
+            [{"note": "effect 3", "turn": 3}],
+        )
+
+        # Truncate to turn 2 (so only turn 1 remains)
+        memory.clean_future_turns("test_room", 2)
+
+        recent = memory.get_recent_turns("test_room", n=5)
+        assert len(recent) == 1
+        assert recent[0]["turn"] == 1
+
+        effects = memory.get_persistent_effects("test_room")
+        assert len(effects) == 1
+        assert effects[0]["note"] == "effect 1"

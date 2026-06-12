@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -197,6 +196,38 @@ class TurnMemory:
             self._update_persistent_effects(room_id, persistent_effects)
 
         return entry
+
+    def clean_future_turns(self, room_id: str, current_turn: int) -> None:
+        """Truncate/remove any memory entries from turn >= current_turn."""
+        log_path = self.memory_dir / room_id / "turn_memory.jsonl"
+        if not log_path.exists():
+            return
+
+        valid_entries = []
+        with open(log_path, encoding="utf-8") as f:
+            for line in f:
+                try:
+                    entry = json.loads(line)
+                    if entry.get("turn", 0) < current_turn:
+                        valid_entries.append(line)
+                except json.JSONDecodeError:
+                    continue
+
+        # Overwrite file with only valid entries
+        with open(log_path, "w", encoding="utf-8") as f:
+            f.writelines(valid_entries)
+
+        # Also update persistent effects
+        effects_path = self.memory_dir / room_id / "persistent_effects.json"
+        if effects_path.exists():
+            try:
+                with open(effects_path, encoding="utf-8") as f:
+                    effects = json.load(f)
+                valid_effects = [e for e in effects if e.get("turn", 0) < current_turn]
+                with open(effects_path, "w", encoding="utf-8") as f:
+                    json.dump(valid_effects, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
 
     def get_recent_turns(self, room_id: str, n: int = 5) -> list[dict]:
         """Get the most recent N turns from memory."""

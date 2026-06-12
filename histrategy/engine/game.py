@@ -348,9 +348,9 @@ class GameEngine:
 
         # v3 init: LLM simulation layer
         if self._use_v3 and self.llm and self.llm.is_available:
-            from ..llm.world_simulator import WorldSimulator
             from ..engine.guardrail import GuardrailValidator
             from ..engine.state_applier import StateApplier, TurnMemory
+            from ..llm.world_simulator import WorldSimulator
 
             # WorldSimulator uses a fast model (no reasoning overhead)
             v3_fast_model = os.environ.get("HISTRATEGY_V3_FAST_MODEL", "deepseek-chat")
@@ -649,9 +649,9 @@ class GameEngine:
         # v3 init for saved games
         if engine._use_v3 and llm and llm.is_available:
             try:
-                from ..llm.world_simulator import WorldSimulator
                 from ..engine.guardrail import GuardrailValidator
                 from ..engine.state_applier import StateApplier, TurnMemory
+                from ..llm.world_simulator import WorldSimulator
 
                 v3_fast_model = os.environ.get("HISTRATEGY_V3_FAST_MODEL", "deepseek-chat")
                 from ..llm.adapter import LLMAdapter as _LLM
@@ -1346,6 +1346,7 @@ class GameEngine:
         turn_history: list[dict] = []
         epoch_effects: list[dict] = []
         if self.turn_memory:
+            self.turn_memory.clean_future_turns(room_id, ws.turn_number)
             turn_history = self.turn_memory.get_recent_turns(room_id, n=10)
             epoch_effects = self.turn_memory.get_persistent_effects(room_id)
 

@@ -222,10 +222,30 @@ class IntentParser:
         if any(kw in text_lower for kw in ("攻击", "进攻", "攻打", "讨伐", "出兵", "讨")):
             target = self._extract_territory(text) or self._extract_target_faction(text) or ""
             if target:
+                params = {"target_territory": target}
+
+                # Extract source territory if another territory is mentioned
+                mentioned = []
+                for name, tid in TERRITORY_NAME_MAP.items():
+                    if len(name) > 1 and name in text:
+                        if tid not in mentioned:
+                            mentioned.append(tid)
+                if len(mentioned) > 1:
+                    for tid in mentioned:
+                        if tid != target:
+                            params["source_territory"] = tid
+                            break
+
+                if any(c.isdigit() or c in "一二三四五六七八九十" for c in text):
+                    params["amount"] = self._extract_number(text)
+
+                if any(kw in text for kw in ("骑兵", "马", "骑", "弓", "弩", "水", "步")):
+                    params["unit_type"] = self._extract_unit_type(text)
+
                 commands.append(
                     Command(
                         type="attack",
-                        params={"target_territory": target},
+                        params=params,
                         faction_id=faction_id,
                     )
                 )
@@ -234,10 +254,30 @@ class IntentParser:
         if any(kw in text_lower for kw in ("移动", "行军", "调兵", "移师")):
             dest = self._extract_territory(text) or ""
             if dest:
+                params = {"destination": dest}
+
+                # Extract source territory if another territory is mentioned
+                mentioned = []
+                for name, tid in TERRITORY_NAME_MAP.items():
+                    if len(name) > 1 and name in text:
+                        if tid not in mentioned:
+                            mentioned.append(tid)
+                if len(mentioned) > 1:
+                    for tid in mentioned:
+                        if tid != dest:
+                            params["source_territory"] = tid
+                            break
+
+                if any(c.isdigit() or c in "一二三四五六七八九十" for c in text):
+                    params["amount"] = self._extract_number(text)
+
+                if any(kw in text for kw in ("骑兵", "马", "骑", "弓", "弩", "水", "步")):
+                    params["unit_type"] = self._extract_unit_type(text)
+
                 commands.append(
                     Command(
                         type="move",
-                        params={"destination": dest},
+                        params=params,
                         faction_id=faction_id,
                     )
                 )
@@ -269,10 +309,18 @@ class IntentParser:
         if any(kw in text_lower for kw in ("防守", "布防", "防御", "戒备", "镇守", "驻防", "保卫", "设防")):
             tid = self._extract_territory(text) or ""
             if tid:
+                params = {"territory": tid}
+
+                if any(c.isdigit() or c in "一二三四五六七八九十" for c in text):
+                    params["amount"] = self._extract_number(text)
+
+                if any(kw in text for kw in ("骑兵", "马", "骑", "弓", "弩", "水", "步")):
+                    params["unit_type"] = self._extract_unit_type(text)
+
                 commands.append(
                     Command(
                         type="defend",
-                        params={"territory": tid},
+                        params=params,
                         faction_id=faction_id,
                         notes=f"防御指令: 在{tid}部署防守兵力",
                     )

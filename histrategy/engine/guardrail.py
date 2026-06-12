@@ -12,7 +12,7 @@ import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from histrategy_engine.world import Command, TurnResult, WorldState
+    from histrategy_engine.world import WorldState
 
 logger = logging.getLogger(__name__)
 

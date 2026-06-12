@@ -19,8 +19,9 @@ from typing import TYPE_CHECKING
 from histrategy.llm.prompt_loader import WORLD_SIMULATOR_SYSTEM
 
 if TYPE_CHECKING:
+    from histrategy_engine.world import WorldState
+
     from histrategy.llm.adapter import LLMAdapter
-    from histrategy_engine.world import Command, TurnResult, WorldState
 
 
 class WorldSimulator:

@@ -9,14 +9,12 @@ Covers:
 """
 
 import pytest
+from histrategy_engine.world import Command
 
 from histrategy.parser.intent import (
-    FACTION_NAME_MAP,
     TERRITORY_NAME_MAP,
     IntentParser,
 )
-from histrategy_engine.world import Command
-
 
 # ═══════════════════════════════════════════════════════════════
 # Fixtures
