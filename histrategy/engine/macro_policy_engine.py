@@ -202,8 +202,15 @@ class MacroPolicyEngine:
         lines.append("")
 
         # Highlight NPC factions for independent decision-making
+        # Skip passive factions (刘璋龟缩益州, 刘表保守观望) — they don't need AI decisions
+        PASSIVE_NPC_FACTIONS = {"liuzhang", "liubiao"}
         player_fid = ws.player_faction_id
-        npc_factions = [fid for fid in ws.factions if fid != player_fid and getattr(ws.factions[fid], "is_active", True)]
+        npc_factions = [
+            fid for fid in ws.factions
+            if fid != player_fid
+            and fid not in PASSIVE_NPC_FACTIONS
+            and getattr(ws.factions[fid], "is_active", True)
+        ]
         if npc_factions:
             lines.append("## ⚡ NPC自主决策（必须为每个活跃NPC做出至少一项独立行动）")
             lines.append("请为以上每个NPC势力输出至 npc_faction_actions 字段。")

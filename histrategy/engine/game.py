@@ -146,6 +146,32 @@ NPC_FACTION_CONFIGS = {
 }
 
 
+# ─── Macro engine: first-turn hard-coded suggestions ───────────
+# Skip LLM call on turn 0 — all factions start from the same 207 scenario
+# Saves ~18s latency with flash model, ~40s with pro model
+
+FIRST_TURN_SUGGESTIONS = {
+    "cao": [
+        "【南征荆州】整编水师于邺城玄武池，命于禁毛玠督练，准备南征刘表",
+        "【安抚河北】降低冀州税率至20%，安抚新附之民，巩固河北后方",
+        "【屯田许昌】在许昌周边推行军屯，储备南征粮草",
+        "【劝降孙权】遣使赴江东，以朝廷名义封孙权为讨虏将军，试探其意",
+    ],
+    "shu": [
+        "【三顾茅庐】携关羽张飞再赴隆中，以诚心感动诸葛亮，求问天下大计",
+        "【练兵新野】在新野招募训练新兵，扩充军力以备不时之需",
+        "【结好刘表】遣简雍赴襄阳，以宗室之谊请求刘表支援粮草军械",
+        "【北境设防】命赵云巡视新野北境，设烽火台警戒宛城曹军动向",
+    ],
+    "wu": [
+        "【水军扩建】命周瑜在鄱阳湖大造战船，扩编水军至三万",
+        "【稳定山越】派程普鲁肃安抚山越诸部，巩固江东后方",
+        "【联刘抗曹】遣鲁肃赴新野，以吊刘表之名探刘备虚实，商议联盟",
+        "【发展江东】降低吴郡会稽税率，鼓励农商，充实府库",
+    ],
+}
+
+
 def create_initial_world(player_faction_id: str) -> WorldState:
     """Create a fresh world state for a new game (v1)."""
     from ..engine.log_exporter import clear_session_log
@@ -1045,7 +1071,14 @@ class GameEngine:
                 _tok_before = llm.total_all_tokens
 
         # Generate suggestions from narrative engine
-        if self.narrative_engine and self.narrative_engine.is_available:
+        if ws.turn_number <= 1:
+            # ── First turn: hard-coded suggestions (no LLM needed) ──
+            from histrategy.engine.game import FIRST_TURN_SUGGESTIONS
+            suggestions = FIRST_TURN_SUGGESTIONS.get(
+                ws.player_faction_id,
+                FIRST_TURN_SUGGESTIONS["cao"],
+            )
+        elif self.narrative_engine and self.narrative_engine.is_available:
             with _suppress_stderr():
                 suggestions = self.narrative_engine.generate_plan_suggestions(ws, ws.player_faction_id)
         else:
@@ -1932,7 +1965,13 @@ class GameEngine:
         narrative_text = "\n\n".join(narrative_parts) if narrative_parts else "天下大势，波澜不惊。\n"
 
         # Generate plan suggestions
-        if self.narrative_engine and self.narrative_engine.is_available:
+        if ws.turn_number <= 1:
+            # ── First turn: hard-coded suggestions (no LLM needed) ──
+            new_choices = FIRST_TURN_SUGGESTIONS.get(
+                ws.player_faction_id,
+                FIRST_TURN_SUGGESTIONS["cao"],
+            )
+        elif self.narrative_engine and self.narrative_engine.is_available:
             try:
                 new_choices = self.narrative_engine.generate_plan_suggestions(ws, ws.player_faction_id)
             except Exception:
@@ -2008,6 +2047,18 @@ class GameEngine:
             "knowledge_cards": ksummaries,
             "black_swan_events": [p["event_id"] for p in bs_proposals if p.get("triggered")],
         }
+
+        # Advance turn and season
+        ws.turn_number += 1
+        from histrategy_engine.world import Season as _Season
+        _seasons = list(_Season)
+        try:
+            _idx = _seasons.index(ws.season)
+            ws.season = _seasons[(_idx + 1) % len(_seasons)]
+            if ws.season == _seasons[0]:  # wrapped around → new year
+                ws.year += 1
+        except (ValueError, IndexError):
+            pass
 
         self._save_v2()
         return result
