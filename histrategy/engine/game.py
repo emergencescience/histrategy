@@ -289,12 +289,22 @@ class GameEngine:
         self.narrative_engine = None
         self.intent_parser = None
         self.command_validator = None
-        self.world_simulator = None     # v3: LLM simulation layer
-        self.guardrail = None           # v3: constraint validator
-        self.turn_memory = None         # v3: persistent turn history
+        # v3: LLM simulation layer
+        self.world_simulator = None
+        self.guardrail = None
+        self.turn_memory = None
+
+        # macro: quarterly policy simulation
+        self._macro_parser = None
+        self._macro_validator = None
+        self._quarterly_engine = None
+        self._macro_sim = None
+        self._black_swan = None
+        self._knowledge_base = None
 
         # Detect v3 early — needed before IntentParser init
         self._use_v3 = os.environ.get("HISTRATEGY_V3", "").lower() in ("1", "true", "yes")
+        self._use_macro = os.environ.get("HISTRATEGY_MACRO", "").lower() in ("1", "true", "yes")
 
         if self.llm and self.llm.is_available:
             from ..llm.narrative import NarrativeEngine
@@ -356,7 +366,11 @@ class GameEngine:
             v3_fast_model = os.environ.get("HISTRATEGY_V3_FAST_MODEL", "deepseek-chat")
             try:
                 from ..llm.adapter import LLMAdapter as _LLM
-                self._v3_llm = _LLM(model=v3_fast_model)
+                self._v3_llm = _LLM(
+                    model=v3_fast_model,
+                    api_key=self.llm.api_key if self.llm.api_key else None,
+                    api_base=self.llm.api_base if self.llm.api_base else None,
+                )
             except Exception:
                 self._v3_llm = self.llm  # fallback to default
 
@@ -364,6 +378,38 @@ class GameEngine:
             self.guardrail = GuardrailValidator()
             self.state_applier = StateApplier()
             self.turn_memory = TurnMemory()
+
+        # ── macro: quarterly policy engine ──
+        if self._use_macro and self.llm and self.llm.is_available:
+            from ..policy.policy_parser import PolicyParser
+            from ..policy.policy_validator import PolicyValidator
+            from ..engine.quarterly_engine import QuarterlyEngine
+            from ..engine.macro_policy_engine import MacroPolicyEngine
+            from ..engine.black_swan import BlackSwanInjector
+            from ..engine.knowledge_layer import KnowledgeBase
+
+            # PolicyParser uses the default LLM
+            self._macro_parser = PolicyParser(self.llm)
+            self._macro_validator = PolicyValidator()
+            self._quarterly_engine = QuarterlyEngine()
+            self._black_swan = BlackSwanInjector()
+
+            # MacroPolicyEngine uses chat model for creative simulation
+            macro_model = os.environ.get("HISTRATEGY_MACRO_MODEL", "deepseek-chat")
+            try:
+                from ..llm.adapter import LLMAdapter as _LLM
+                self._macro_llm = _LLM(
+                    model=macro_model,
+                    api_key=self.llm.api_key if self.llm and self.llm.api_key else None,
+                    api_base=self.llm.api_base if self.llm and self.llm.api_base else None,
+                )
+            except Exception:
+                self._macro_llm = self.llm
+            self._macro_sim = MacroPolicyEngine(self._macro_llm)
+            self._knowledge_base = KnowledgeBase()
+
+            # Replace IntentParser with PolicyParser in macro mode
+            self.intent_parser = None  # Not used in macro mode
 
         self._setup_rules_logging()
 
@@ -566,6 +612,7 @@ class GameEngine:
 
         engine._use_v2 = True
         engine._use_v3 = engine._use_v2 and os.environ.get("HISTRATEGY_V3", "").lower() in ("1", "true", "yes")
+        engine._use_macro = engine._use_v2 and os.environ.get("HISTRATEGY_MACRO", "").lower() in ("1", "true", "yes")
 
         knowledge_path = resolve_knowledge_path()
         engine._knowledge_path = knowledge_path
@@ -667,6 +714,38 @@ class GameEngine:
                 engine.guardrail = None
                 engine.state_applier = None
                 engine.turn_memory = None
+
+        # macro init for saved games
+        engine._macro_parser = None
+        engine._macro_validator = None
+        engine._quarterly_engine = None
+        engine._macro_sim = None
+        engine._black_swan = None
+        engine._knowledge_base = None
+        if engine._use_macro and llm and llm.is_available:
+            try:
+                from ..policy.policy_parser import PolicyParser
+                from ..policy.policy_validator import PolicyValidator
+                from ..engine.quarterly_engine import QuarterlyEngine
+                from ..engine.macro_policy_engine import MacroPolicyEngine
+                from ..engine.black_swan import BlackSwanInjector
+                from ..engine.knowledge_layer import KnowledgeBase
+
+                macro_model = os.environ.get("HISTRATEGY_MACRO_MODEL", "deepseek-chat")
+                try:
+                    macro_llm = __import__("histrategy.llm.adapter", fromlist=["LLMAdapter"]).LLMAdapter(model=macro_model)
+                except Exception:
+                    macro_llm = llm
+
+                engine._macro_parser = PolicyParser(llm)
+                engine._macro_validator = PolicyValidator()
+                engine._quarterly_engine = QuarterlyEngine()
+                engine._black_swan = BlackSwanInjector()
+                engine._macro_sim = MacroPolicyEngine(macro_llm)
+                engine._knowledge_base = KnowledgeBase()
+                engine.intent_parser = None  # Not used in macro mode
+            except Exception:
+                engine._macro_sim = None
 
         # Restore world state from saved data
         engine.world_state_v2 = engine._rebuild_from_save(data)
@@ -1042,6 +1121,8 @@ class GameEngine:
             return self._fallback_intro()
 
         if self._use_v2:
+            if self._use_macro and self._macro_sim:
+                return self._process_turn_macro(player_decision)
             if self._use_v3 and self.world_simulator:
                 return self._process_turn_v3(player_decision)
             return self._process_turn_v2(player_decision)
@@ -1628,6 +1709,182 @@ class GameEngine:
             },
         }
 
+
+    def _process_turn_macro(self, player_decision: str) -> dict:
+        """Macro historical engine — quarterly policy simulation.
+
+        Pipeline: PolicyParser → PolicyValidator → QuarterlyEngine
+        → BlackSwanInjector → MacroPolicyEngine → Narrative
+        """
+        ws = self.world_state_v2
+
+        # Step 1: Parse player policy
+        policy_commands = []
+        if self._macro_parser:
+            policy_commands = self._macro_parser.parse(player_decision, ws.player_faction_id)
+        self._last_player_decision = player_decision
+
+        # Step 2: Validate
+        if self._macro_validator:
+            policy_commands = self._macro_validator.validate(policy_commands, ws)
+
+        # Step 3: Deterministic quarterly baseline
+        quarter = 0
+        season_str = str(ws.season).lower()
+        for name, q in [("spring", 0), ("summer", 1), ("autumn", 2), ("winter", 3),
+                         ("春", 0), ("夏", 1), ("秋", 2), ("冬", 3)]:
+            if name in season_str:
+                quarter = q
+                break
+
+        baseline = self._quarterly_engine.execute_quarter(
+            ws, policy_commands, ws.year, quarter,
+        )
+        baseline.player_decision = player_decision
+
+        # Step 4: Black swan events
+        bs_proposals = []
+        if self._black_swan and self.history_engine:
+            try:
+                bs_proposals = self._black_swan.check_events(
+                    ws.year, str(ws.season), ws,
+                    deviation=ws.player_deviation,
+                    history_engine=self.history_engine,
+                )
+                for prop in bs_proposals:
+                    if prop.get("triggered"):
+                        self._black_swan.inject_event(
+                            prop["event_id"], prop.get("effects", {}), ws,
+                        )
+            except Exception:
+                pass
+
+        # Step 5: LLM MacroPolicyEngine
+        llm_delta = {}
+        _sim_tokens = 0
+        if self._macro_sim and self._macro_sim.llm_available:
+            mlm = getattr(self._macro_sim, "llm", None)
+            _pre = mlm.total_all_tokens if mlm and hasattr(mlm, "total_all_tokens") else 0
+
+            llm_delta = self._macro_sim.simulate(
+                ws, policy_commands, player_decision,
+                baseline, bs_proposals,
+            )
+
+            if mlm and hasattr(mlm, "total_all_tokens"):
+                _sim_tokens = mlm.total_all_tokens - _pre
+
+        # Step 6: Apply LLM delta
+        if llm_delta:
+            for me in llm_delta.get("morale_events", []):
+                fid = me.get("faction", "")
+                ch = me.get("change", 0)
+                if fid in ws.factions and ch:
+                    cur = getattr(ws.factions[fid], "morale_actual", 50)
+                    ws.factions[fid].morale_actual = max(0, min(100, cur + ch))
+            for br in llm_delta.get("battle_results", []):
+                if br.get("territory_captured"):
+                    loc = br.get("location", "")
+                    att = br.get("attacker", "")
+                    if loc in ws.territories and att in ws.factions:
+                        old = ws.territories[loc].owner_id
+                        ws.territories[loc].owner_id = att
+                        if old in ws.factions and loc in ws.factions[old].territories:
+                            ws.factions[old].territories.remove(loc)
+                        if loc not in ws.factions[att].territories:
+                            ws.factions[att].territories.append(loc)
+
+        # Step 7: Generate narrative
+        narrative_text = ""
+        new_choices = []
+        if self.narrative_engine and self.narrative_engine.is_available:
+            try:
+                narrative_text = self.narrative_engine.generate_turn_narrative(
+                    baseline, deviation=ws.player_deviation,
+                    world_state=ws,
+                )
+            except Exception:
+                pass
+            try:
+                new_choices = self.narrative_engine.generate_plan_suggestions(ws, ws.player_faction_id)
+            except Exception:
+                pass
+
+        # Step 8: Aftermath
+        parts = []
+        for fid in ws.factions:
+            if not getattr(ws.factions[fid], "is_active", True):
+                continue
+            ch = baseline.resource_changes.get(fid, {})
+            if fid == ws.player_faction_id:
+                fd = ch.get("food_delta", 0)
+                tr = ch.get("tax_revenue", 0)
+                if fd:
+                    parts.append(f"粮草{'+' if fd>0 else ''}{fd}")
+                if tr:
+                    parts.append(f"资金+{tr}")
+        aftermath = ("本季度：" + "，".join(parts) + "。") if parts else "天下大势，波澜不惊。"
+
+        # Narrative summary
+        if narrative_text:
+            import re as _re
+            sents = _re.split(r"[。！？]", narrative_text)
+            sents = [s.strip() for s in sents if s.strip()]
+            if sents:
+                aftermath += " " + sents[-1] + "。"
+
+        # Knowledge cards
+        kcards = []
+        if llm_delta:
+            kcards = self._knowledge_base.get_cards_for_events(
+                llm_delta.get("knowledge_cards", [])
+            )
+        ksummaries = []
+        for kc in kcards[:3]:
+            if isinstance(kc, dict):
+                topic = kc.get("topic", "")
+                logic = kc.get("engine_logic", "")
+            else:
+                topic = getattr(kc, "topic", "")
+                logic = getattr(kc, "engine_logic", "")
+            if topic:
+                ksummaries.append(f"📚 {topic}: {logic}")
+
+        # NPC data
+        npc_acts = llm_delta.get("npc_actions", []) if llm_delta else []
+        npc_reacts = llm_delta.get("diplomatic_reactions", []) if llm_delta else []
+
+        # Game over?
+        pf = ws.factions.get(ws.player_faction_id)
+        game_over = not getattr(pf, "is_active", True) if pf else False
+
+        result = {
+            "narrative": narrative_text,
+            "aftermath": aftermath,
+            "bureaucracy": [{
+                "department": "尚书台", "official": "尚书令",
+                "action": f"执行{len(policy_commands)}项策令",
+            }],
+            "state_changes": {
+                "food": baseline.resource_changes.get(ws.player_faction_id, {}).get("food_delta", 0),
+                "treasury": baseline.resource_changes.get(ws.player_faction_id, {}).get("tax_revenue", 0),
+                "morale": baseline.morale_delta.get(ws.player_faction_id, 0),
+            },
+            "_usage": {"command_tokens": _sim_tokens, "plan_tokens": 0,
+                        "npc_tokens": 0, "sim_tokens": _sim_tokens},
+            "seeds": llm_delta.get("narrative_seeds", []) if llm_delta else [],
+            "npc_reactions": npc_reacts,
+            "npc_actions": npc_acts,
+            "events_occurred": [p.get("event_id", "") for p in bs_proposals if p.get("triggered")],
+            "new_choices": new_choices,
+            "game_over": game_over,
+            "world_state": ws,
+            "knowledge_cards": ksummaries,
+            "black_swan_events": [p["event_id"] for p in bs_proposals if p.get("triggered")],
+        }
+
+        self._save_v2()
+        return result
 
     def _process_turn_v1(self, player_decision: str) -> dict:
         """v1 turn processing (unchanged)."""

@@ -1,9 +1,15 @@
 from pathlib import Path
 
 
-def load_prompt(filename: str) -> str:
-    """Load a system prompt from the prompts directory."""
+def load_prompt(filename: str, default: str | None = None) -> str | None:
+    """Load a system prompt from the prompts directory.
+
+    If the file doesn't exist and a default is provided, returns the default.
+    Otherwise, raises FileNotFoundError.
+    """
     path = Path(__file__).parent / "prompts" / filename
+    if not path.exists() and default is not None:
+        return default
     with open(path, encoding="utf-8") as f:
         return f.read().strip()
 

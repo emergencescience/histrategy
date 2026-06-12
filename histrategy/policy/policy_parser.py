@@ -177,9 +177,10 @@ class PolicyParser:
             {"role": "user", "content": f"## 玩家指令\n{text}\n\n请解析为结构化策令。"},
         ]
 
-        result = self.llm.chat_structured(
+        # Use plain chat (not chat_structured) because the prompt requests
+        # newline-delimited JSON objects (one per line), not a single JSON object.
+        response = self.llm.chat(
             messages,
-            response_format={"type": "json_object"},
             temperature=0.2,
             max_tokens=2048,
             metadata={
@@ -188,27 +189,44 @@ class PolicyParser:
             },
         )
 
-        return self._parse_llm_response(result)
+        return self._parse_llm_response(response)
 
-    def _parse_llm_response(self, result: dict) -> list[PolicyCommand]:
+    def _parse_llm_response(self, result) -> list[PolicyCommand]:
         """Parse LLM response into PolicyCommand list.
 
-        Handles both array-of-objects and newline-delimited JSON formats.
+        Handles plain text (newline-delimited JSON), dict, and list formats.
         """
-        commands = []
+        import json as _json
 
-        # Check if the response is already an array
-        if isinstance(result, list):
+        # Plain text response: parse each line as JSON
+        if isinstance(result, str):
+            items = []
+            for line in result.strip().split("\n"):
+                line = line.strip()
+                if line.startswith("{") and line.endswith("}"):
+                    try:
+                        items.append(_json.loads(line))
+                    except _json.JSONDecodeError:
+                        continue
+            if not items:
+                # Fallback: try the whole text as JSON
+                try:
+                    items = _json.loads(result)
+                    if isinstance(items, dict):
+                        items = [items]
+                except _json.JSONDecodeError:
+                    return []
+        elif isinstance(result, list):
             items = result
         elif isinstance(result, dict):
             if "commands" in result:
                 items = result["commands"]
             else:
-                # Single command
                 items = [result]
         else:
             return []
 
+        commands = []
         for item in items:
             if not isinstance(item, dict):
                 continue
@@ -237,21 +255,21 @@ class PolicyParser:
     def _keyword_parse(self, text: str) -> list[PolicyCommand]:
         """Simple keyword-based parsing when no LLM is available."""
         commands = []
-
-        # Tax rate
         import re
-        # Match "税率降至30%" or "税率：30%" or "税率下调至25%" or "降税至30%" etc.
-        tax_match = re.search(
-            r"税[率收]?\s*(?:[：:]|降至|降至|下调至|上调至|调整为|降|升|调)?\s*(\d+)\s*%",
+
+        # Tax rate — match patterns like "税率从40%降至30%", "税率降至30%", "降税至30%"
+        # Strategy: find last percentage number appearing after a tax keyword
+        tax_matches = re.findall(
+            r"税[率收]?\D*(?:从\d+%|降至|下调|上调|调整|降|调|变|改为|设为)\D*(\d+)\s*%",
             text,
         )
-        if tax_match:
-            rate = int(tax_match.group(1)) / 100
+        if tax_matches:
+            rate = int(tax_matches[-1]) / 100
             commands.append(PolicyCommand(
                 type="tax_rate",
                 params={"rate": rate},
                 notes=f"关键词匹配: 税率{int(rate*100)}%",
-                source_text=tax_match.group(0),
+                source_text=f"税率{int(rate*100)}%",
             ))
 
         # War declaration
@@ -272,6 +290,33 @@ class PolicyParser:
                     source_text=war_match.group(0),
                 ))
                 break
+
+        # Diplomacy — "与X结好", "派使者...与X...", "与X结盟"
+        diplomacy_match = re.search(
+            r"(?:与|同|向|和)(\S{1,6})(?:结好|结盟|同盟|和解|修好|联姻|通商|媾和)",
+            text,
+        )
+        if diplomacy_match:
+            target_name = diplomacy_match.group(1)
+            target_id = FACTION_TO_ID.get(target_name, target_name)
+            action = "alliance" if "盟" in diplomacy_match.group(0) or "好" in diplomacy_match.group(0) else "trade"
+            commands.append(PolicyCommand(
+                type="diplomacy",
+                params={"target": target_id, "action": action},
+                notes=f"关键词匹配: 与{target_name}建交",
+                source_text=diplomacy_match.group(0),
+            ))
+
+        # Conscription — "征募X", "征兵X", "募兵X"
+        conscript_match = re.search(r"(?:征募|征召|募兵|征兵|募集)\s*(\d{2,6})", text)
+        if conscript_match:
+            amount = int(conscript_match.group(1))
+            commands.append(PolicyCommand(
+                type="conscript",
+                params={"amount": amount},
+                notes=f"关键词匹配: 征兵{amount}人",
+                source_text=conscript_match.group(0),
+            ))
 
         # Law
         law_match = re.search(r"(推行|实行|颁布|废除)(.{2,6}(?:制|法|令))", text)
