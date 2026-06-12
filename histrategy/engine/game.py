@@ -2012,15 +2012,33 @@ class GameEngine:
             if topic:
                 ksummaries.append(f"📚 {topic}: {logic}")
 
-        # NPC data
-        npc_acts = llm_delta.get("npc_actions", []) if llm_delta else []
-        npc_reacts = llm_delta.get("diplomatic_reactions", []) if llm_delta else []
+        # NPC data — normalize to plain strings (portal frontend expects strings,
+        # React crashes with "a.match is not a function" on dict objects)
+        npc_acts_raw = llm_delta.get("npc_actions", []) if llm_delta else []
+        npc_acts = []
+        for a in npc_acts_raw:
+            if isinstance(a, dict):
+                faction = a.get("faction", "?")
+                action = a.get("action", a.get("reasoning", str(a)))
+                npc_acts.append(f"{faction}: {action}")
+            elif isinstance(a, str):
+                npc_acts.append(a)
+        npc_reacts_raw = llm_delta.get("diplomatic_reactions", []) if llm_delta else []
+        npc_reacts = []
+        for r in npc_reacts_raw:
+            if isinstance(r, dict):
+                faction = r.get("faction", "?")
+                action = r.get("action", "")
+                if action:
+                    npc_reacts.append(f"{faction}: {action}")
+            elif isinstance(r, str):
+                npc_reacts.append(r)
         # Also include npc_faction_actions as NPC actions for frontend
         npc_fa = llm_delta.get("npc_faction_actions", []) if llm_delta else []
         for nfa in npc_fa:
             narr = nfa.get("narrative", "")
             if narr:
-                npc_acts.append({"faction": nfa.get("faction", "?"), "action": narr})
+                npc_acts.append(f"{nfa.get('faction', '?')}: {narr}")
 
         # Game over?
         pf = ws.factions.get(ws.player_faction_id)

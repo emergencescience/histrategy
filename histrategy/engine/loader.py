@@ -602,7 +602,7 @@ def build_world_state(
                     t.fertility = td["fertility"]
 
     # Determine season
-    season = Season.WINTER
+    season = Season.SPRING
     if scenario:
         season_str = scenario.get("season", "winter")
         season_map = {
