@@ -310,6 +310,16 @@ def create_app(llm_provider: str | None = None) -> Any:
         allow_headers=["*"],
     )
 
+    # ── Database initialization ─────────────────────────
+    try:
+        from histrategy.db.connection import init_db
+
+        init_db()
+    except Exception as _db_err:
+        import logging as _logging
+
+        _logging.getLogger("histrategy").warning(f"DB init skipped: {_db_err}")
+
     # ─── Routes ──────────────────────────────────────────
 
     @app.get("/")

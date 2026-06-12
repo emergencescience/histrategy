@@ -1157,9 +1157,14 @@ class GameEngine:
         v2: IntentParser → CommandValidator → TurnController.execute_turn() →
             NarrativeEngine.generate_turn_narrative()
         v1: WorldSimEngine.simulate()
+        symmetric: GameRoom → DecisionBus → QuarterlyResolver (multi-faction)
         """
         if not self.game_started:
             return self._fallback_intro()
+
+        # ── Symmetric multi-faction path (HISTRATEGY_SYMMETRIC=1) ──
+        if os.environ.get("HISTRATEGY_SYMMETRIC") == "1":
+            return self.process_turn_symmetric(player_decision)
 
         if self._use_v2:
             if self._use_macro and self._macro_sim:
