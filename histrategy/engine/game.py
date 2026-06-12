@@ -1007,12 +1007,15 @@ class GameEngine:
         if capital_territory and capital_territory.name:
             capital_name = capital_territory.name
 
-        # Use deterministic template suggestions (LLM reserved for plan phase)
+        # Use faction-specific deterministic suggestions for intro
+        faction_suggestions = FIRST_TURN_SUGGESTIONS.get(
+            ws.player_faction_id,
+            FIRST_TURN_SUGGESTIONS["cao"],
+        )
         suggestions = [
-            f"【休养生息】发展{capital_name}的内政与农耕",
-            "【练兵备战】招募乡勇操练新军",
-            "【合纵连横】派遣使者联络群雄",
-            "【搜集情报】细作四出打探动向",
+            s.split("】", 1)[0] + "】" + s.split("】", 1)[1].split("，")[0] + "等"
+            if "】" in s else s[:30]
+            for s in faction_suggestions
         ]
 
         narrative = (
