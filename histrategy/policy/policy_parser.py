@@ -321,8 +321,9 @@ class PolicyParser:
                 break
 
         # Diplomacy — "与X结好", "派使者...与X...", "与X结盟"
+        # Allow longer match to handle annotated names like "刘表(liubiao)"
         diplomacy_match = re.search(
-            r"(?:与|同|向|和)(\S{1,6})(?:结好|结盟|同盟|和解|修好|联姻|通商|媾和)",
+            r"(?:与|同|向|和)(\S{1,20}?)(?:结好|结盟|同盟|和解|修好|联姻|通商|媾和)",
             text,
         )
         if diplomacy_match:
