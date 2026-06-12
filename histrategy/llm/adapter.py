@@ -114,6 +114,7 @@ class LLMAdapter:
         api_base: str | None = None,
         model: str | None = None,
         provider: str | None = None,
+        data_dir: str | None = None,
     ):
         self.provider_config = detect_provider()
 
@@ -129,6 +130,8 @@ class LLMAdapter:
         self.total_completion_tokens = 0
         self.total_all_tokens = 0
         self.total_calls = 0
+        # Override log directory (e.g. for room-scoped logging)
+        self._data_dir_override = data_dir
 
         if self.api_key:
             self.client = httpx.Client(
@@ -327,12 +330,15 @@ class LLMAdapter:
         from pathlib import Path
 
         try:
-            try:
-                from ..state.world_state import get_data_dir
+            if self._data_dir_override:
+                log_dir = Path(self._data_dir_override) / "logs"
+            else:
+                try:
+                    from ..state.world_state import get_data_dir
 
-                log_dir = get_data_dir() / "logs"
-            except ImportError:
-                log_dir = Path(__file__).parent.parent.parent / "logs"
+                    log_dir = get_data_dir() / "logs"
+                except ImportError:
+                    log_dir = Path(__file__).parent.parent.parent / "logs"
             log_dir.mkdir(parents=True, exist_ok=True)
 
             timestamp_str = datetime.now().isoformat()

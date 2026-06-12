@@ -398,10 +398,14 @@ class GameEngine:
             macro_model = os.environ.get("HISTRATEGY_MACRO_MODEL", "deepseek-chat")
             try:
                 from ..llm.adapter import LLMAdapter as _LLM
+                from ..state.world_state import get_data_dir as _get_data_dir
+
+                _room_dir = str(_get_data_dir())
                 self._macro_llm = _LLM(
                     model=macro_model,
                     api_key=self.llm.api_key if self.llm and self.llm.api_key else None,
                     api_base=self.llm.api_base if self.llm and self.llm.api_base else None,
+                    data_dir=_room_dir,
                 )
             except Exception:
                 self._macro_llm = self.llm
@@ -1782,10 +1786,15 @@ class GameEngine:
                 if fid in ws.factions and ch:
                     cur = getattr(ws.factions[fid], "morale_actual", 50)
                     ws.factions[fid].morale_actual = max(0, min(100, cur + ch))
+            # Normalize faction/territory IDs from LLM output
+            faction_id_map = _build_faction_id_map(ws)
+            territory_id_map = _build_territory_id_map(ws)
             for br in llm_delta.get("battle_results", []):
                 if br.get("territory_captured"):
-                    loc = br.get("location", "")
-                    att = br.get("attacker", "")
+                    loc_raw = br.get("location", "")
+                    att_raw = br.get("attacker", "")
+                    loc = territory_id_map.get(loc_raw, loc_raw)
+                    att = faction_id_map.get(att_raw, att_raw)
                     if loc in ws.territories and att in ws.factions:
                         old = ws.territories[loc].owner_id
                         ws.territories[loc].owner_id = att
@@ -1793,6 +1802,23 @@ class GameEngine:
                             ws.factions[old].territories.remove(loc)
                         if loc not in ws.factions[att].territories:
                             ws.factions[att].territories.append(loc)
+            for br in llm_delta.get("battle_results", []):
+                if not br.get("territory_captured") and br.get("defender_faction"):
+                    # Handle "defeated" factions — mark inactive
+                    def_raw = br.get("defender_faction", "") or br.get("defender", "")
+                    def_id = faction_id_map.get(def_raw, def_raw)
+                    if def_id in ws.factions and def_id != ws.player_faction_id:
+                        if br.get("result") in ("attack_win", "rout") or br.get("is_total_defeat"):
+                            ws.factions[def_id].is_active = False
+                            # Transfer remaining territories to victor
+                            att_raw = br.get("attacker", "")
+                            att = faction_id_map.get(att_raw, att_raw)
+                            if att in ws.factions:
+                                for t_loc in list(ws.factions[def_id].territories):
+                                    ws.territories[t_loc].owner_id = att
+                                    ws.factions[def_id].territories.remove(t_loc)
+                                    if t_loc not in ws.factions[att].territories:
+                                        ws.factions[att].territories.append(t_loc)
 
         # Step 7: Generate narrative
         narrative_text = ""
@@ -2248,6 +2274,34 @@ def _auto_mobilize_for_attack(commands: list, world_state) -> None:
             army.units[UnitType.INFANTRY] = army.units.get(UnitType.INFANTRY, 0) + infantry_needed
             army.units[UnitType.CAVALRY] = army.units.get(UnitType.CAVALRY, 0) + cavalry_needed
             faction.strength_actual -= needed
+
+
+def _build_faction_id_map(ws) -> dict[str, str]:
+    """Build a lookup map from various name formats → faction pinyin ID.
+
+    Handles LLM outputs that may use Chinese names (e.g. "曹操"),
+    annotated names (e.g. "曹操(cao)"), or bare pinyin IDs.
+    """
+    id_map: dict[str, str] = {}
+    for fid, f in ws.factions.items():
+        id_map[fid] = fid  # "cao" → "cao"
+        if hasattr(f, "name") and f.name:
+            id_map[f.name] = fid  # "曹操" → "cao"
+    return id_map
+
+
+def _build_territory_id_map(ws) -> dict[str, str]:
+    """Build a lookup map from various name formats → territory pinyin ID.
+
+    Handles LLM outputs that may use Chinese names (e.g. "襄阳"),
+    or bare pinyin IDs (e.g. "xiangyang").
+    """
+    id_map: dict[str, str] = {}
+    for tid, t in ws.territories.items():
+        id_map[tid] = tid  # "xiangyang" → "xiangyang"
+        if hasattr(t, "name") and t.name:
+            id_map[t.name] = tid  # "襄阳" → "xiangyang"
+    return id_map
 
 
 def apply_event_effects(world_state: V2WorldState, effects: dict) -> None:

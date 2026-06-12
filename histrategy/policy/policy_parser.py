@@ -250,6 +250,35 @@ class PolicyParser:
 
         return commands
 
+    # ── Name normalization ─────────────────────────────────
+
+    @staticmethod
+    def _normalize_id(name: str, mapping: dict[str, str]) -> str:
+        """Extract pinyin ID from possibly-annotated name like '刘表(liubiao)'.
+
+        Args:
+            name: Raw name from regex match (may contain annotation suffix)
+            mapping: Chinese-name → pinyin ID lookup dict
+
+        Returns:
+            Pinyin ID if found in mapping, otherwise the raw input.
+        """
+        # Try direct lookup first
+        if name in mapping:
+            return mapping[name]
+        # Strip annotation like "刘表(liubiao)" → try "刘表" lookup
+        if '(' in name and name.endswith(')'):
+            paren_idx = name.index('(')
+            # Extract the ID part: "刘表(liubiao)" → "liubiao"
+            inner_id = name[paren_idx + 1:-1]
+            if inner_id in mapping:
+                return mapping[inner_id]
+            # Try base name: "刘表(liubiao)" → "刘表"
+            base_name = name[:paren_idx]
+            if base_name in mapping:
+                return mapping[base_name]
+        return name
+
     # ── Keyword fallback ───────────────────────────────────
 
     def _keyword_parse(self, text: str) -> list[PolicyCommand]:
@@ -282,7 +311,7 @@ class PolicyParser:
             war_match = re.search(pattern, text)
             if war_match:
                 target_name = war_match.group(1)
-                target_id = FACTION_TO_ID.get(target_name, target_name)
+                target_id = self._normalize_id(target_name, FACTION_TO_ID)
                 commands.append(PolicyCommand(
                     type="declare_war",
                     params={"target": target_id},
@@ -298,7 +327,7 @@ class PolicyParser:
         )
         if diplomacy_match:
             target_name = diplomacy_match.group(1)
-            target_id = FACTION_TO_ID.get(target_name, target_name)
+            target_id = self._normalize_id(target_name, FACTION_TO_ID)
             action = "alliance" if "盟" in diplomacy_match.group(0) or "好" in diplomacy_match.group(0) else "trade"
             commands.append(PolicyCommand(
                 type="diplomacy",

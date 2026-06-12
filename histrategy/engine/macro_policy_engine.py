@@ -154,13 +154,10 @@ class MacroPolicyEngine:
             )
             return self._validate_output(result)
         except Exception:
-            try:
-                result = self.llm.chat(
-                    messages, temperature=0.3, max_tokens=4096,
-                )
-                return self._validate_output(self._extract_json(result))
-            except Exception:
-                return {}
+            # Single attempt only — chat_structured handles JSON extraction
+            # internally. If it fails (network error, bad JSON, empty response),
+            # return empty dict rather than wasting tokens on retries.
+            return {}
 
     # ── Context Builder ────────────────────────────────────
 

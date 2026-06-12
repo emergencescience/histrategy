@@ -22,8 +22,8 @@ class EconomyParams:
     base_food_per_soldier: float = 0.1          # food consumed per soldier per quarter
     base_food_per_civilian: float = 0.02        # food consumed per civilian per quarter
     base_tax_revenue_per_pop: float = 0.0005    # tax revenue per population unit
-    morale_tax_penalty: float = 0.5             # morale penalty per 1% above 20% tax
-    food_morale_impact: float = 0.2             # morale change per food surplus/shortage
+    morale_tax_penalty: float = 0.3              # morale penalty per 1% above 20% tax (was 0.5)
+    food_morale_impact: float = 0.1              # morale change per food surplus/shortage (was 0.2)
     development_growth: float = 0.01            # development increase per quarter (with investment)
     development_decay: float = 0.995            # natural decay multiplier
     conscript_cost: float = 2.0                 # treasury cost per conscript
@@ -165,12 +165,15 @@ class QuarterlyEngine:
                 morale_change -= int((tax_rate - 0.2) * 100 * p.morale_tax_penalty)
             # Food effect
             if food + food_delta <= 0:
-                morale_change -= 15
-            elif food_delta < -1000:
+                morale_change -= 15  # starvation — severe
+            elif food_delta < -500:
+                # Only penalize significant food deficits
                 morale_change -= int(abs(food_delta) / 1000 * p.food_morale_impact)
             elif food_delta > 2000:
                 morale_change += int(food_delta / 2000 * p.food_morale_impact)
-            # War effect (simplified: at war = slight morale drain)
+            # Natural morale regen toward 50 — prevents death spiral
+            if morale < 40 and morale_change <= 0:
+                morale_change += 2  # slow recovery toward neutral
             # Policy effects
             for law in laws_to_apply.get(fid, []):
                 if law in ("屯田制", "民屯制"):
