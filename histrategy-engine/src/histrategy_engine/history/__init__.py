@@ -94,7 +94,7 @@ class HistoryEngine:
     def check_events(
         self,
         year: int,
-        season: Season,
+        season: Season | str,
         world_state: WorldState,
         deviation: float = 0.0,
     ) -> list[EventProposal]:
@@ -105,7 +105,11 @@ class HistoryEngine:
         """
         proposals: list[EventProposal] = []
 
-        season_label = season.cn
+        # Accept both Season enum and string (e.g. "春", "summer")
+        if isinstance(season, str):
+            season_label = season
+        else:
+            season_label = season.cn
         if season_label == "春":
             season_month = 3
         elif season_label == "夏":
@@ -248,6 +252,11 @@ class HistoryEngine:
             elif key == "liubiao_alive":
                 char = world_state.characters.get("liubiao")
                 if value and not (char and char.alive):
+                    return False
+            elif key == "liubiao_faction":
+                # Check if liubiao faction exists and controls Jingzhou
+                lb = world_state.factions.get("liubiao")
+                if value and not (lb and lb.is_active and lb.territories):
                     return False
             elif key == "caocao_south":
                 # Approximate: cao owns a Jingzhou territory

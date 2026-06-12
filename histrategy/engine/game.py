@@ -1797,7 +1797,7 @@ class GameEngine:
         if self._black_swan and self.history_engine:
             try:
                 bs_proposals = self._black_swan.check_events(
-                    ws.year, str(ws.season), ws,
+                    ws.year, ws.season, ws,
                     deviation=ws.player_deviation,
                     history_engine=self.history_engine,
                 )
@@ -1806,8 +1806,9 @@ class GameEngine:
                         self._black_swan.inject_event(
                             prop["event_id"], prop.get("effects", {}), ws,
                         )
-            except Exception:
-                pass
+            except Exception as e:
+                import logging
+                logging.getLogger("histrategy").warning(f"Black swan check/inject failed: {e}")
 
         # Step 5: LLM MacroPolicyEngine
         llm_delta = {}

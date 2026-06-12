@@ -44,24 +44,24 @@
       "participants": ["liubiao", "liucong", "caocao", "liubei"],
       "gravity": 0.9,
       "preconditions": {
-        "liubiao_alive": false,
-        "jingzhou_owner": "liubiao"
+        "liubiao_alive": true,
+        "liubiao_faction": "liubiao"
       },
       "outcomes": [
         {
           "id": "cao_takes_jingzhou",
           "description": "曹操收编荆州水军，刘备南逃至江夏",
-          "effects": {"jingzhou_owner": "cao", "liubei_location": "jiangkou"}
+          "effects": {"jingzhou_owner": "cao", "liubei_location": "jiangkou", "liubiao_dead": true}
         },
         {
           "id": "liucong_resists",
           "description": "刘琮据守襄阳抵抗，曹操围城",
-          "effects": {"jingzhou_owner": "contested"}
+          "effects": {"jingzhou_owner": "contested", "liubiao_dead": true}
         },
         {
           "id": "liubei_inherits",
           "description": "刘表临终托孤刘备，荆州归刘",
-          "effects": {"jingzhou_owner": "liubei", "game_divergence": "high"}
+          "effects": {"jingzhou_owner": "liubei", "game_divergence": "high", "liubiao_dead": true}
         }
       ],
       "butterfly_effects": {

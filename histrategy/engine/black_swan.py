@@ -36,7 +36,7 @@ class BlackSwanInjector:
     def check_events(
         self,
         year: int,
-        season: str,
+        season,  # Season | str — passed through to HistoryEngine
         world_state: WorldState,
         deviation: float = 0.05,
         history_engine=None,
@@ -77,8 +77,9 @@ class BlackSwanInjector:
                         if triggered:
                             self._triggered.add(event_id)
                             self._block_downstream(event_id, history_engine)
-            except Exception:
-                pass
+            except Exception as e:
+                import logging
+                logging.getLogger("histrategy").warning(f"BlackSwanInjector.check_events failed: {e}")
 
         return proposals
 
