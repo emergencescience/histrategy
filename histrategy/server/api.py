@@ -601,6 +601,12 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         from histrategy.engine.game import _suppress_stderr
 
+        # Set debug context for Postgres logging
+        meta = _game_meta.get(game_id, {})
+        session_id = meta.get("session_id", game_id)
+        jwt_token = meta.get("jwt_token", "")
+        engine.set_debug_context(session_id, jwt_token)
+
         with _suppress_stderr():
             result = engine.process_turn(req.decision)
 

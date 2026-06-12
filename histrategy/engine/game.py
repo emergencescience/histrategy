@@ -1170,6 +1170,11 @@ class GameEngine:
         else:
             return self._process_turn_v1(player_decision)
 
+    def set_debug_context(self, session_id: str, jwt_token: str = "") -> None:
+        """Set session context for Postgres debug logging (called from API layer)."""
+        self._debug_session_id = session_id
+        self._debug_jwt = jwt_token
+
     def _process_turn_v2(self, player_decision: str) -> dict:
         """v2 turn processing pipeline."""
         ws = self.world_state_v2
@@ -1768,6 +1773,22 @@ class GameEngine:
         """
         ws = self.world_state_v2
 
+        # --- Debug logger: collect LLM calls & sim events for Postgres ---
+        _debug_log = None
+        _session_id = getattr(self, '_debug_session_id', '')
+        if _session_id:
+            from ..engine.debug_logger import TurnLogCollector
+            _debug_log = TurnLogCollector(
+                _session_id, ws.turn_number + 1,
+                jwt_token=getattr(self, '_debug_jwt', ''),
+            )
+            _debug_log.event("turn_start", {
+                "turn": ws.turn_number + 1,
+                "year": ws.year,
+                "season": str(ws.season),
+                "player_decision": player_decision[:200],
+            })
+
         # Step 1: Parse player policy
         policy_commands = []
         if self._macro_parser:
@@ -1806,6 +1827,11 @@ class GameEngine:
                         self._black_swan.inject_event(
                             prop["event_id"], prop.get("effects", {}), ws,
                         )
+                        if _debug_log:
+                            _debug_log.event("black_swan", {
+                                "event_id": prop["event_id"],
+                                "effects": prop.get("effects", {}),
+                            })
             except Exception as e:
                 import logging
                 logging.getLogger("histrategy").warning(f"Black swan check/inject failed: {e}")
@@ -1825,6 +1851,15 @@ class GameEngine:
 
             if mlm and hasattr(mlm, "total_all_tokens"):
                 _sim_tokens = mlm.total_all_tokens - _pre
+
+            if _debug_log and _sim_tokens > 0:
+                _debug_log.llm(
+                    call_type="macro_simulate",
+                    provider=getattr(mlm, "provider", "") if mlm else "",
+                    model=getattr(mlm, "model", "") if mlm else "",
+                    total_tokens=_sim_tokens,
+                    latency_ms=0,
+                )
 
         # Step 6: Apply LLM delta
         if llm_delta:
@@ -2096,6 +2131,10 @@ class GameEngine:
         # Keep only last 8 turns to bound context growth
         if len(self._turn_summaries) > 8:
             self._turn_summaries = self._turn_summaries[-8:]
+
+        # Flush debug logs to Postgres (fire-and-forget)
+        if _debug_log:
+            _debug_log.flush()
 
         self._save_v2()
         return result
