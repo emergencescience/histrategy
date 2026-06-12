@@ -262,8 +262,16 @@ class LLMAdapter:
         except json.JSONDecodeError:
             pass
 
+        # Clean common LLM JSON formatting issues
+        cleaned = self._clean_json_text(text)
+
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
+
         # Try ```json ... ``` blocks
-        json_match = re.search(r"```(?:json)?\s*\n?({.*?})\n?\s*```", text, re.DOTALL)
+        json_match = re.search(r"```(?:json)?\s*\n?({.*?})\n?\s*```", cleaned, re.DOTALL)
         if json_match:
             try:
                 return json.loads(json_match.group(1))
@@ -271,14 +279,23 @@ class LLMAdapter:
                 pass
 
         # Try { ... } outermost block
-        brace_match = re.search(r"(\{.*\})", text, re.DOTALL)
+        brace_match = re.search(r"(\{.*\})", cleaned, re.DOTALL)
         if brace_match:
             try:
                 return json.loads(brace_match.group(1))
             except json.JSONDecodeError:
                 pass
 
-        raise ValueError(f"Could not extract JSON from response:\n{text[:500]}")
+        raise ValueError(f"Could not extract JSON from response:\\n{text[:500]}")
+
+    @staticmethod
+    def _clean_json_text(text: str) -> str:
+        """Remove common LLM JSON formatting errors: trailing commas, comments."""
+        # Remove trailing commas before ] or }
+        text = re.sub(r",\s*([}\]])", r"\1", text)
+        # Remove single-line // comments (outside strings)
+        text = re.sub(r"//[^\n]*", "", text)
+        return text
 
     def _record_stats_and_log(
         self, messages: list[dict], response_data: dict, latency: float, metadata: dict | None = None
