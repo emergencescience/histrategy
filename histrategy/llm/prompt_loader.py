@@ -17,6 +17,7 @@ NARRATIVE_SYSTEM = load_prompt("narrative.md")
 PLAN_SUGGESTIONS_SYSTEM = load_prompt("plan_suggestions.md")
 NPC_INTERPRETER_SYSTEM = load_prompt("npc_interpreter.md")
 INTENT_PARSE_SYSTEM = load_prompt("intent_parse.md")
+WORLD_SIMULATOR_SYSTEM = load_prompt("world_simulator.md")
 
 # Dictionary of system prompt contents mapping to prompt names to detect in LLMAdapter and suppress verbose logs.
 KNOWN_PROMPTS = {
@@ -30,4 +31,5 @@ KNOWN_PROMPTS = {
     "PLAN_SUGGESTIONS_SYSTEM": PLAN_SUGGESTIONS_SYSTEM,
     "NPC_INTERPRETER_SYSTEM": NPC_INTERPRETER_SYSTEM,
     "INTENT_PARSE_SYSTEM": INTENT_PARSE_SYSTEM,
+    "WORLD_SIMULATOR_SYSTEM": WORLD_SIMULATOR_SYSTEM,
 }

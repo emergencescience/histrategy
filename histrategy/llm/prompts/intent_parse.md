@@ -9,9 +9,9 @@
 
 ## 支持的命令类型
 
-- **move**: 移动/调遣军队。params: destination(目标领土ID)。用于「集结」「调往」「行军」「移师」等
-- **attack**: 攻击敌方领土。params: target_territory(目标领土ID)
-- **defend**: 防守指定领土。params: territory(领土ID)。用于「防守」「布防」「戒备」「部署兵力防御」等
+- **move**: 移动/调遣军队。params: destination(目标领土ID), source_territory(出发地领土ID, 可选), amount(兵力数量, 可选, 整数), unit_type(兵种, 可选, 如 infantry/cavalry/archer/navy/all，可逗号和空格分隔)。用于「集结」「调往」「行军」「移师」等
+- **attack**: 攻击敌方领土。params: target_territory(目标领土ID), source_territory(出发地领土ID, 可选), amount(兵力数量, 可选, 整数), unit_type(兵种, 可选, 如 infantry/cavalry/archer/navy/all，可逗号和空格分隔)
+- **defend**: 防守指定领土。params: territory(领土ID), amount(兵力数量, 可选, 整数), unit_type(兵种, 可选, 如 infantry/cavalry/archer/navy/all，可逗号和空格分隔)。用于「防守」「布防」「戒备」「部署兵力防御」等
 - **recruit**: 招募新兵（花费金钱，减少人口）。params: territory(领土ID), unit_type(infantry/cavalry/archer/navy), amount(数量)。⚠️ 仅当玩家明确说「招募」「征兵」「招兵」时使用
 - **develop**: 发展领土。params: territory(领土ID)
 - **tax**: 调整税率。params: rate(0.1-0.5)
@@ -64,12 +64,20 @@
   "commands": [
     {
       "type": "move",
-      "params": {"destination": "xinye"},
+      "params": {
+        "destination": "xinye",
+        "source_territory": "wancheng",
+        "amount": 60000,
+        "unit_type": "infantry, cavalry"
+      },
       "notes": "南征刘备战役：集结宛城现有5万步兵和1万骑兵，春季行军进攻新野。玩家预期一周内攻克。"
     },
     {
       "type": "defend",
-      "params": {"territory": "xiapi"},
+      "params": {
+        "territory": "xiapi",
+        "amount": 30000
+      },
       "notes": "南征刘备战役配套：防范孙权从庐江进攻下邳，部署3万兵力防守。"
     }
   ]
@@ -95,17 +103,27 @@
   "commands": [
     {
       "type": "attack",
-      "params": {"target_territory": "xinye"},
+      "params": {
+        "target_territory": "xinye",
+        "source_territory": "wancheng",
+        "amount": 60000,
+        "unit_type": "infantry, cavalry"
+      },
       "notes": "【南征刘备战役】主力行动：从宛城集结6万大军（5万步兵+1万骑兵），春季行军进攻刘备仅5000兵的新野。预期一周攻克，目标俘获刘备、关羽、张飞。粮草消耗正常。"
     },
     {
       "type": "defend",
-      "params": {"territory": "xiapi"},
+      "params": {
+        "territory": "xiapi",
+        "amount": 30000
+      },
       "notes": "【南征刘备战役】东线防御：在下邳部署3万兵力，防范孙权从庐江方向进攻。"
     },
     {
       "type": "defend",
-      "params": {"territory": "wancheng"},
+      "params": {
+        "territory": "wancheng"
+      },
       "notes": "【南征刘备战役】后方警戒：刘表从襄阳可能偷袭宛城，留警戒兵力。"
     }
   ]
