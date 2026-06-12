@@ -406,6 +406,7 @@ class GameEngine:
             self.turn_memory = TurnMemory()
 
         # ── macro: quarterly policy engine ──
+        self._turn_summaries: list[dict] = []  # recent turn summaries for LLM context
         if self._use_macro and self.llm and self.llm.is_available:
             from ..policy.policy_parser import PolicyParser
             from ..policy.policy_validator import PolicyValidator
@@ -1818,6 +1819,7 @@ class GameEngine:
             llm_delta = self._macro_sim.simulate(
                 ws, policy_commands, player_decision,
                 baseline, bs_proposals,
+                turn_memory=self._turn_summaries[-8:],  # last 8 quarters
             )
 
             if mlm and hasattr(mlm, "total_all_tokens"):
@@ -2080,6 +2082,17 @@ class GameEngine:
                 ws.year += 1
         except (ValueError, IndexError):
             pass
+
+        # ── Record turn summary for LLM context in future turns ──
+        narrative_seeds = llm_delta.get("narrative_seeds", []) if llm_delta else []
+        summary_text = "; ".join(narrative_seeds[:2]) if narrative_seeds else narrative_text[:200]
+        self._turn_summaries.append({
+            "outcome_summary": f"[{ws.year}年{ws.season.cn if hasattr(ws.season, 'cn') else ws.season}] {player_decision[:80]} → {summary_text[:150]}",
+            "turn": ws.turn_number,
+        })
+        # Keep only last 8 turns to bound context growth
+        if len(self._turn_summaries) > 8:
+            self._turn_summaries = self._turn_summaries[-8:]
 
         self._save_v2()
         return result
