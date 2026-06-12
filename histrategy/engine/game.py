@@ -1959,6 +1959,8 @@ def _auto_mobilize_for_attack(commands: list, world_state) -> None:
     When a player says "attack with 60K from wancheng" but only 5K army
     exists, transfer faction.strength_actual reserves to the army.
     """
+    from histrategy_engine.world import UnitType
+
     faction = world_state.factions.get(world_state.player_faction_id)
     if not faction:
         return
@@ -1986,8 +1988,8 @@ def _auto_mobilize_for_attack(commands: list, world_state) -> None:
         if needed > 0 and needed <= reserves:
             infantry_needed = int(needed * 0.9)
             cavalry_needed = needed - infantry_needed
-            army.units["infantry"] = army.units.get("infantry", 0) + infantry_needed
-            army.units["cavalry"] = army.units.get("cavalry", 0) + cavalry_needed
+            army.units[UnitType.INFANTRY] = army.units.get(UnitType.INFANTRY, 0) + infantry_needed
+            army.units[UnitType.CAVALRY] = army.units.get(UnitType.CAVALRY, 0) + cavalry_needed
             faction.strength_actual -= needed
 
 
