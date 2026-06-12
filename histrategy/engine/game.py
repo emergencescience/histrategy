@@ -1713,17 +1713,15 @@ class GameEngine:
             },
         }
 
-
-def _normalize_seeds(raw_seeds: list) -> list[dict]:
-    """Normalize narrative_seeds from LLM — strings → {title: str} dicts."""
-    result = []
-    for s in (raw_seeds or []):
-        if isinstance(s, dict):
-            result.append(s)
-        elif isinstance(s, str):
-            result.append({"title": s, "trigger_after": "?", "description": ""})
-    return result
-
+    def _normalize_seeds(self, raw_seeds: list) -> list[dict]:
+        """Normalize narrative_seeds from LLM — strings → {title: str} dicts."""
+        result = []
+        for s in (raw_seeds or []):
+            if isinstance(s, dict):
+                result.append(s)
+            elif isinstance(s, str):
+                result.append({"title": s, "trigger_after": "?", "description": ""})
+        return result
 
     def _process_turn_macro(self, player_decision: str) -> dict:
         """Macro historical engine — quarterly policy simulation.
@@ -1857,6 +1855,44 @@ def _normalize_seeds(raw_seeds: list) -> list[dict]:
                                     if t_loc not in ws.factions[att].territories:
                                         ws.factions[att].territories.append(t_loc)
 
+        # Step 6.5: Apply NPC faction independent actions
+        if llm_delta:
+            npc_faction_actions = llm_delta.get("npc_faction_actions", [])
+            for nfa in npc_faction_actions:
+                fid = nfa.get("faction", "")
+                fid = faction_id_map.get(fid, fid)
+                if fid not in ws.factions or fid == ws.player_faction_id:
+                    continue
+                faction = ws.factions[fid]
+                action_type = nfa.get("action_type", "none")
+                params = nfa.get("params", {})
+
+                if action_type == "conscript":
+                    amount = params.get("amount", 5000)
+                    cost = int(amount * 0.5)
+                    if faction.treasury >= cost:
+                        faction.strength_actual = getattr(faction, "strength_actual", 0) + amount
+                        faction.treasury -= cost
+                elif action_type == "develop":
+                    # Boost economy in a random territory
+                    if faction.territories:
+                        faction.treasury -= params.get("cost", 300)
+                        faction.economy_actual = min(100, getattr(faction, "economy_actual", 50) + 5)
+                elif action_type == "diplomacy":
+                    target = nfa.get("target", "")
+                    target = faction_id_map.get(target, target)
+                    if target in ws.factions:
+                        rel_delta = params.get("relation_delta", 10)
+                        # Update relations if the faction has a relations dict
+                        if hasattr(faction, "relations"):
+                            cur = faction.relations.get(target, 0)
+                            faction.relations[target] = max(-100, min(100, cur + rel_delta))
+                elif action_type == "tax":
+                    # NPC adjusts tax rate
+                    new_rate = params.get("rate", 0.3)
+                    if hasattr(faction, "tax_rate"):
+                        faction.tax_rate = max(0.05, min(0.6, new_rate))
+
         # Step 7: Generate narrative (from LLM seeds + faction state)
         narrative_text = ""
         new_choices = []
@@ -1885,6 +1921,13 @@ def _normalize_seeds(raw_seeds: list) -> list[dict]:
                 desc = p.get("description", "")
                 if desc:
                     narrative_parts.append(f"🏛 {desc}")
+
+            # NPC faction independent actions
+            npc_fa = llm_delta.get("npc_faction_actions", [])
+            for nfa in npc_fa:
+                narr = nfa.get("narrative", "")
+                if narr:
+                    narrative_parts.append(f"⚡ {narr}")
 
         narrative_text = "\n\n".join(narrative_parts) if narrative_parts else "天下大势，波澜不惊。\n"
 
@@ -1930,6 +1973,12 @@ def _normalize_seeds(raw_seeds: list) -> list[dict]:
         # NPC data
         npc_acts = llm_delta.get("npc_actions", []) if llm_delta else []
         npc_reacts = llm_delta.get("diplomatic_reactions", []) if llm_delta else []
+        # Also include npc_faction_actions as NPC actions for frontend
+        npc_fa = llm_delta.get("npc_faction_actions", []) if llm_delta else []
+        for nfa in npc_fa:
+            narr = nfa.get("narrative", "")
+            if narr:
+                npc_acts.append({"faction": nfa.get("faction", "?"), "action": narr})
 
         # Game over?
         pf = ws.factions.get(ws.player_faction_id)
@@ -1949,7 +1998,7 @@ def _normalize_seeds(raw_seeds: list) -> list[dict]:
             },
             "_usage": {"command_tokens": _sim_tokens, "plan_tokens": 0,
                         "npc_tokens": 0, "sim_tokens": _sim_tokens},
-            "seeds": _normalize_seeds(llm_delta.get("narrative_seeds", []) if llm_delta else []),
+            "seeds": self._normalize_seeds(llm_delta.get("narrative_seeds", []) if llm_delta else []),
             "npc_reactions": npc_reacts,
             "npc_actions": npc_acts,
             "events_occurred": [p.get("event_id", "") for p in bs_proposals if p.get("triggered")],

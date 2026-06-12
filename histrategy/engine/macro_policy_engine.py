@@ -187,6 +187,9 @@ class MacroPolicyEngine:
             if not getattr(f, "is_active", True):
                 continue
             territories = list(f.territories) if f.territories else []
+            aggression = getattr(f, "aggression", 0.5)
+            caution = getattr(f, "caution", 0.5)
+            personality = getattr(f, "personality", "")
             lines.append(
                 f"- {fid} ({f.name}): "
                 f"兵力={getattr(f, 'strength_actual', 0)}, "
@@ -194,8 +197,20 @@ class MacroPolicyEngine:
                 f"民心={getattr(f, 'morale_actual', 0)}, "
                 f"税率={getattr(f, 'tax_rate', 0.3):.0%}, "
                 f"领地={territories}"
+                + (f", 性格=agg{aggression:.1f} cau{caution:.1f}" if personality else "")
             )
         lines.append("")
+
+        # Highlight NPC factions for independent decision-making
+        player_fid = ws.player_faction_id
+        npc_factions = [fid for fid in ws.factions if fid != player_fid and getattr(ws.factions[fid], "is_active", True)]
+        if npc_factions:
+            lines.append("## ⚡ NPC自主决策（必须为每个活跃NPC做出至少一项独立行动）")
+            lines.append("请为以上每个NPC势力输出至 npc_faction_actions 字段。")
+            lines.append("NPC不应被动——曹操会扩张，孙权会巩固，刘表会权衡。")
+            lines.append("若NPC宣战，需在 battle_results 中推演战役结果。")
+            lines.append("NPC之间的战争同样重要——例如刘璋vs张鲁的汉中争夺。")
+            lines.append("")
 
         lines.append("## 确定性经济基线")
         for fid in ws.factions:
@@ -234,6 +249,7 @@ class MacroPolicyEngine:
 
         validated = {
             "battle_results": result.get("battle_results", []),
+            "npc_faction_actions": result.get("npc_faction_actions", []),
             "diplomatic_reactions": result.get("diplomatic_reactions", []),
             "black_swan_events": result.get("black_swan_events", []),
             "political_events": result.get("political_events", []),
