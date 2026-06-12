@@ -1802,6 +1802,32 @@ class GameEngine:
                             ws.factions[old].territories.remove(loc)
                         if loc not in ws.factions[att].territories:
                             ws.factions[att].territories.append(loc)
+                        # Absorb ~20% of defender's troops stationed in captured city
+                        if old and old in ws.factions:
+                            old_faction = ws.factions[old]
+                            absorbed = int(old_faction.strength_actual * 0.2 / max(len(old_faction.territories), 1))
+                            if absorbed > 0:
+                                old_faction.strength_actual -= absorbed
+                                ws.factions[att].strength_actual = getattr(ws.factions[att], "strength_actual", 0) + absorbed
+            # Auto-surrender: factions with morale < 15 and ≤ 1 territory
+            for fid, f in list(ws.factions.items()):
+                if fid == ws.player_faction_id:
+                    continue
+                if getattr(f, "is_active", True) and getattr(f, "morale_actual", 50) < 15:
+                    if len(f.territories) <= 1:
+                        f.is_active = False
+                        # Transfer last territory to nearest neighbor
+                        if f.territories:
+                            last_t = f.territories[0]
+                            neighbors = getattr(ws.territories[last_t], "neighbors", [])
+                            for nid in neighbors:
+                                if nid in ws.territories:
+                                    n_owner = ws.territories[nid].owner_id
+                                    if n_owner in ws.factions and getattr(ws.factions[n_owner], "is_active", True):
+                                        ws.territories[last_t].owner_id = n_owner
+                                        if last_t not in ws.factions[n_owner].territories:
+                                            ws.factions[n_owner].territories.append(last_t)
+                                        break
             for br in llm_delta.get("battle_results", []):
                 if not br.get("territory_captured") and br.get("defender_faction"):
                     # Handle "defeated" factions — mark inactive

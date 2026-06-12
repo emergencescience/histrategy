@@ -17,20 +17,42 @@ if TYPE_CHECKING:
 
 @dataclass
 class EconomyParams:
-    """Tunable economic simulation parameters."""
+    """Tunable economic simulation parameters.
+
+    Calibration target: a mid-sized faction (5 territories, ~125k pop)
+    should be able to sustain ~50k troops with a small surplus at 30% tax.
+    """
+    # ── Population ──
     base_population_growth: float = 0.005       # per quarter (2%/year)
+
+    # ── Food ──
     base_food_per_soldier: float = 0.01         # food per soldier per quarter
     base_food_per_civilian: float = 0.002       # food per civilian per quarter
-    base_tax_revenue_per_pop: float = 0.0005    # tax revenue per population unit
-    morale_tax_penalty: float = 0.5             # morale penalty per 1% above 20% tax
-    food_morale_impact: float = 0.2             # morale change per food surplus/shortage
+    food_production_multiplier: float = 0.05    # food output per population * dev * fertility
+
+    # ── Taxation (revenue = pop × base_tax_revenue_per_pop × tax_rate) ──
+    base_tax_revenue_per_pop: float = 0.02      # tax revenue per population unit per quarter
+    max_tax_rate: float = 0.70                  # maximum allowed tax rate
+
+    # ── Military costs ──
+    military_maintenance_per_soldier: float = 0.001  # gold per soldier per quarter
+    conscript_cost: float = 2.0                      # one-time gold cost per conscript
+    conscript_food_penalty: float = 0.5              # food output loss per conscript
+
+    # ── Occupation / governance costs ──
+    occupation_cost_per_territory: float = 50.0      # gold per non-core territory per quarter
+    core_territory_count: int = 4                    # first N territories are "core" (no occupation cost)
+
+    # ── Morale ──
+    morale_tax_penalty: float = 0.3             # morale penalty per 1% above 20% tax
+    food_morale_impact: float = 0.1             # morale change per food surplus/shortage
+
+    # ── Development ──
     development_growth: float = 0.01            # development increase per quarter (with investment)
     development_decay: float = 0.995            # natural decay multiplier
-    conscript_cost: float = 0.5                 # treasury cost per conscript (lowered for macro realism)
-    conscript_food_penalty: float = 0.5         # food output loss per conscript (draft effect)
+
+    # ── Conscription limits ──
     max_conscript_ratio: float = 0.05           # max conscripts per quarter as % of total population
-    max_tax_rate: float = 0.70                  # maximum allowed tax rate
-    food_production_multiplier: float = 0.05    # food output per population * dev * fertility
 
 
 # ─── Result type ───────────────────────────────────────────────
@@ -176,7 +198,11 @@ class QuarterlyEngine:
             # Natural morale regen toward 50 — prevents death spiral
             if morale < 40 and morale_change <= 0:
                 morale_change += 2  # slow recovery toward neutral
-            # Policy effects
+            # Diminishing returns above 80 — harder to reach 100
+            if morale >= 80 and morale_change > 0:
+                diminishing = int((morale - 80) / 10)  # -1 at 80, -2 at 90, -3 at 99
+                morale_change = max(0, morale_change - diminishing)
+            # Policy effects (only apply law bonuses once per faction per game)
             for law in laws_to_apply.get(fid, []):
                 if law in ("屯田制", "民屯制"):
                     morale_change += 5  # people get land
@@ -198,9 +224,34 @@ class QuarterlyEngine:
                     faction.strength_actual = getattr(faction, "strength_actual", 0) + actual_amount
                     cost = actual_amount * p.conscript_cost
                     faction.treasury = max(0, treasury - cost)
+                    treasury = faction.treasury  # update local for subsequent cost calcs
                     # Drafting reduces food output
                     result.food_delta[fid] -= actual_amount * p.conscript_food_penalty
                     result.notable_events.append(f"{fid}征兵{actual_amount}人，花费{cost:.0f}金")
+
+            # ── Military Maintenance ──
+            # Every soldier costs gold each quarter (pay, equipment, supplies beyond food)
+            maintenance_cost = int(strength * p.military_maintenance_per_soldier)
+            if maintenance_cost > 0:
+                treasury_after_maint = max(0, treasury - maintenance_cost)
+                actual_cost = treasury - treasury_after_maint
+                faction.treasury = treasury_after_maint
+                treasury = treasury_after_maint
+                if actual_cost > 0:
+                    result.notable_events.append(f"{fid}军费{actual_cost}金（兵力{strength}）")
+
+            # ── Occupation / Governance Costs ──
+            # Territories beyond the core count cost gold to administer
+            num_territories = len(territories)
+            if num_territories > p.core_territory_count:
+                occupied = num_territories - p.core_territory_count
+                occupation_cost = int(occupied * p.occupation_cost_per_territory)
+                treasury_after_occ = max(0, treasury - occupation_cost)
+                actual_occ_cost = treasury - treasury_after_occ
+                faction.treasury = treasury_after_occ
+                treasury = treasury_after_occ
+                if actual_occ_cost > 0:
+                    result.notable_events.append(f"{fid}领地治理{actual_occ_cost}金（{num_territories}领地，{p.core_territory_count}核心+{occupied}占领区）")
 
             # ── Development ──
             dev_changes: dict[str, float] = {}
