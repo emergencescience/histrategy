@@ -279,7 +279,7 @@ def create_app(llm_provider: str | None = None) -> Any:
     from fastapi import FastAPI, Header
     from fastapi.middleware.cors import CORSMiddleware
 
-    from histrategy.server.persistence import save_game as persistence_save
+    from histrategy.server.persistence_adapter import create_persistence_adapter
 
     app = FastAPI(
         title="三國志略 API",
@@ -609,7 +609,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             "_usage": result.get("_usage", {}),
         }
 
-        # ── Persist turn AND world_state to orchestrator (best-effort) ──
+        # ── Persist turn AND world_state via adapter ──
         try:
             meta = _game_meta.get(game_id, {})
             session_id = meta.get("session_id", game_id)
@@ -617,49 +617,36 @@ def create_app(llm_provider: str | None = None) -> Any:
             if not jwt_token and authorization and authorization.startswith("Bearer "):
                 jwt_token = authorization[len("Bearer ") :]
 
-            if jwt_token and session_id:
-                import os as _os
-
-                from histrategy.server.persistence import append_turn as persist_turn
-                from histrategy.server.persistence import save_game as persist_save
-
-                orchestrator_url = _os.environ.get("ORCHESTRATOR_URL", "")
-                if orchestrator_url:
-                    # Extract token usage from result if available
-                    usage = result.get("_usage", {})
-                    persist_turn(
-                        jwt_token=jwt_token,
-                        session_id=session_id,
+            if session_id:
+                adapter = create_persistence_adapter(jwt_token or "")
+                ws = engine.world_state_v2
+                usage = result.get("_usage", {})
+                # Save state
+                try:
+                    world_dict = engine.to_dict()
+                    adapter.save_state(
+                        session_id, world_dict,
+                        status.get("turn", 1),
+                        status.get("year", 207),
+                        status.get("season", "春"),
+                    )
+                except Exception:
+                    pass
+                # Append turn history
+                try:
+                    adapter.append_turn(
+                        session_id,
                         turn_number=status.get("turn", 1),
                         year=status.get("year", 207),
                         season=status.get("season", "春"),
                         player_decision=req.decision,
-                        court_dialogue=result.get("court_dialogue"),
-                        suggestions=result.get("suggestions"),
                         narrative=result.get("narrative", ""),
                         aftermath=result.get("aftermath", ""),
-                        bureaucracy=result.get("bureaucracy"),
-                        npc_reactions=result.get("npc_reactions", result.get("npc_actions")),
                         state_changes=result.get("state_changes"),
-                        plan_tokens=usage.get("plan_tokens"),
-                        command_tokens=usage.get("command_tokens"),
-                        npc_tokens=usage.get("npc_tokens"),
-                        sim_tokens=usage.get("sim_tokens"),
+                        tokens=usage,
                     )
-                    # Also save world state for resume
-                    try:
-                        world_dict = engine.to_dict()
-                        persist_save(
-                            jwt_token,
-                            session_id,
-                            0,
-                            world_dict,
-                            status.get("turn", 1),
-                            status.get("year", 207),
-                            status.get("season", "春"),
-                        )
-                    except Exception:
-                        pass
+                except Exception:
+                    pass
         except Exception:
             pass  # Non-blocking — don't fail the game on persistence error
 
@@ -877,16 +864,6 @@ def create_app(llm_provider: str | None = None) -> Any:
         if authorization and authorization.startswith("Bearer "):
             jwt_token = authorization[len("Bearer ") :]
 
-        if not jwt_token:
-            return {"ok": False, "reason": "No JWT token provided"}
-
-        # Check ORCHESTRATOR_URL
-        import os as _os
-
-        orchestrator_url = _os.environ.get("ORCHESTRATOR_URL", "")
-        if not orchestrator_url:
-            return {"ok": False, "reason": "ORCHESTRATOR_URL not configured"}
-
         status = _build_faction_status(engine)
         meta = _game_meta.get(game_id, {})
 
@@ -897,18 +874,15 @@ def create_app(llm_provider: str | None = None) -> Any:
             world_state = {"faction": status}
 
         try:
-            # Use session_id from meta, fall back to game_id
+            adapter = create_persistence_adapter(jwt_token or "")
             session_id = meta.get("session_id", game_id)
-            result = persistence_save(
-                jwt_token=jwt_token,
-                session_id=session_id,
-                slot=0,
-                world_state=world_state,
-                turn=status.get("turn", 1),
-                year=status.get("year", 207),
-                season=status.get("season", "春"),
+            adapter.save_state(
+                session_id, world_state,
+                status.get("turn", 1),
+                status.get("year", 207),
+                status.get("season", "春"),
             )
-            return {"ok": True, "save_id": result.get("save_id")}
+            return {"ok": True, "session_id": session_id}
         except Exception as e:
             return {"ok": False, "reason": f"Save failed: {e}"}
 
