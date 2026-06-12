@@ -31,6 +31,7 @@ class CreateGameRequest(BaseModel):
 
 class CommandRequest(BaseModel):
     decision: str
+    session_id: str | None = None  # Orchestrator session ID for debug logging
 
 
 class GameSummary(BaseModel):
@@ -605,9 +606,9 @@ def create_app(llm_provider: str | None = None) -> Any:
         from histrategy.engine.game import _suppress_stderr
 
         # Set debug context for Postgres logging
-        meta = _game_meta.get(game_id, {})
-        session_id = meta.get("session_id", game_id)
-        jwt_token = meta.get("jwt_token", "")
+        # Prefer session_id from request (survives multi-worker), fallback to _game_meta
+        session_id = req.session_id or _game_meta.get(game_id, {}).get("session_id", game_id)
+        jwt_token = _game_meta.get(game_id, {}).get("jwt_token", "")
         engine.set_debug_context(session_id, jwt_token)
 
         with _suppress_stderr():
@@ -696,8 +697,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             })
         if llm_calls or sim_events:
             try:
-                _meta = _game_meta.get(game_id, {})
-                _sid = _meta.get("session_id", game_id)
+                _sid = session_id
                 _jwt = _meta.get("jwt_token", "")
                 import httpx as _httpx
                 _orch_url = _os.environ.get("ORCHESTRATOR_URL", "https://api.emergence.science").rstrip("/")
