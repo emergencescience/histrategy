@@ -26,8 +26,9 @@ class EconomyParams:
     food_morale_impact: float = 0.2             # morale change per food surplus/shortage
     development_growth: float = 0.01            # development increase per quarter (with investment)
     development_decay: float = 0.995            # natural decay multiplier
-    conscript_cost: float = 2.0                 # treasury cost per conscript
+    conscript_cost: float = 0.5                 # treasury cost per conscript (lowered for macro realism)
     conscript_food_penalty: float = 0.5         # food output loss per conscript (draft effect)
+    max_conscript_ratio: float = 0.05           # max conscripts per quarter as % of total population
     max_tax_rate: float = 0.70                  # maximum allowed tax rate
     food_production_multiplier: float = 0.05    # food output per population * dev * fertility
 
@@ -187,12 +188,19 @@ class QuarterlyEngine:
             # ── Conscription ──
             conscript_amount = conscriptions.get(fid, 0)
             if conscript_amount > 0:
-                faction.strength_actual = getattr(faction, "strength_actual", 0) + conscript_amount
-                cost = conscript_amount * p.conscript_cost
-                faction.treasury = max(0, treasury - cost)
-                # Drafting reduces food output
-                result.food_delta[fid] -= conscript_amount * p.conscript_food_penalty
-                result.notable_events.append(f"{fid}征兵{conscript_amount}人，花费{cost:.0f}金")
+                # Cap: can't conscript more than max_conscript_ratio of total population
+                max_draft = int(total_pop * p.max_conscript_ratio)
+                actual_amount = min(conscript_amount, max_draft)
+                # Cap: can't spend more than available treasury
+                max_affordable = int(treasury / p.conscript_cost) if p.conscript_cost > 0 else actual_amount
+                actual_amount = min(actual_amount, max_affordable)
+                if actual_amount > 0:
+                    faction.strength_actual = getattr(faction, "strength_actual", 0) + actual_amount
+                    cost = actual_amount * p.conscript_cost
+                    faction.treasury = max(0, treasury - cost)
+                    # Drafting reduces food output
+                    result.food_delta[fid] -= actual_amount * p.conscript_food_penalty
+                    result.notable_events.append(f"{fid}征兵{actual_amount}人，花费{cost:.0f}金")
 
             # ── Development ──
             dev_changes: dict[str, float] = {}

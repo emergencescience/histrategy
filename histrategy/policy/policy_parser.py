@@ -43,6 +43,8 @@ POLICY_PARSE_SYSTEM = """你是《三國志略》的尚书令（Policy Parser）
 4. 人物名必须使用拼音 ID（如 xunyu, zhugeliang, simayi）
 5. 势力名用拼音 ID（cao, shu, wu, liubiao, liuzhang, yuanshao）
 6. 领土名用拼音 ID（xuchang, wancheng, xinye, jianye, chengdu 等）
+7. **重要**: "收编敌军"、"收编荆州水军"、"收容旧部"等描述的是**占领敌军后吸收其部队**，应该用 declare_war + notes 来描述，而不是 conscript。conscript 仅用于从自己领地**新征募平民**入伍（如"征募5000新兵"、"在宛城征兵"）。
+8. **conscript 的量**：古代一郡一季最多征募总人口的5%（如新野3万人口→最多1500人）。不要解析出超过这个比例的征兵量。
 
 ## 输出格式
 
