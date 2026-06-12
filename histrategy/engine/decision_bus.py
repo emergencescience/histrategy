@@ -112,6 +112,18 @@ def collect_all_decisions(
         _collect_ai_decisions_parallel(
             major_ai, world_state, llm, turn_memory or [], results,
         )
+    elif major_ai:
+        # LLM not available → heuristic fallback for major NPCs too
+        for slot in major_ai:
+            decision, commands = _generate_heuristic_decision(
+                world_state, slot.faction_id,
+            )
+            results[slot.faction_id] = DecisionResult(
+                faction_id=slot.faction_id,
+                decision_text=decision,
+                commands=commands,
+                source="heuristic",
+            )
 
     # 3. 启发式：为次要 NPC 生成决策
     for slot in room.minor_ai_slots():
