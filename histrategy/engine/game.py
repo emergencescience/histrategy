@@ -2146,6 +2146,154 @@ class GameEngine:
         self._save_v2()
         return result
 
+    # ── Symmetric Multiplayer Path ───────────────────────────
+    # Bridges new GameRoom/FactionSlot/DecisionBus/QuarterlyResolver
+    # with the existing API response format. The single-player flow
+    # internally uses this symmetric architecture for true NPC autonomy.
+
+    def process_turn_symmetric(self, player_decision: str) -> dict:
+        """Process a turn using the symmetric multi-faction architecture.
+
+        Internally creates a GameRoom with 1 human + N AI slots,
+        each AI generates its own independent LLM decision,
+        then all decisions are resolved together in one quarter.
+        """
+        from ..engine.game_room import GameRoom, RoomPhase
+        from ..engine.decision_bus import collect_all_decisions
+        from ..engine.quarterly_resolver import QuarterlyResolver
+        import uuid as _uuid
+
+        ws = self.world_state_v2
+        faction_id = ws.player_faction_id
+
+        # ── Build GameRoom from engine state ──
+        room = GameRoom(
+            id=getattr(self, '_room_id', str(_uuid.uuid4())),
+            scenario="207",
+            year=ws.year,
+            season=ws.season.cn if hasattr(ws.season, "cn") else str(ws.season),
+            quarter_number=ws.turn_number,
+            phase=RoomPhase.WAITING,
+        )
+
+        # Add human slot
+        from ..engine.faction_slot import create_human_slot, create_ai_slot
+        room.slots[faction_id] = create_human_slot(faction_id, "player")
+
+        # Add AI slots for other active factions
+        for fid, f in ws.factions.items():
+            if fid == faction_id or not getattr(f, "is_active", True):
+                continue
+            room.slots[fid] = create_ai_slot(fid)
+
+        # Carry forward turn summaries
+        if hasattr(self, '_turn_summaries'):
+            room.turn_summaries = list(self._turn_summaries[-8:])
+
+        room.start_game()
+
+        # ── Submit human decision ──
+        human_slot = room.slots.get(faction_id)
+        if human_slot:
+            human_slot.submit_decision(player_decision)
+
+        # ── Collect all decisions (AI via parallel LLM) ──
+        llm = getattr(self.narrative_engine, "llm", None) if self.narrative_engine else None
+        if not llm and hasattr(self, "_macro_sim"):
+            llm = getattr(self._macro_sim, "llm", None)
+
+        decisions = collect_all_decisions(
+            room, ws, llm=llm,
+            turn_memory=room.turn_summaries,
+        )
+
+        # ── Resolve quarter ──
+        resolver = QuarterlyResolver(
+            intent_parser=getattr(self, "_macro_parser", None),
+            turn_controller=self.turn_controller,
+            history_engine=self.history_engine,
+            macro_policy_engine=getattr(self, "_macro_sim", None),
+            narrative_engine=self.narrative_engine,
+            black_swan_injector=getattr(self, "_black_swan", None),
+            guardrail_validator=getattr(self, "guardrail_validator", None),
+            state_applier=getattr(self, "state_applier", None),
+        )
+
+        quarterly = resolver.resolve(room, ws, decisions, llm=llm)
+
+        # ── Add turn summary ──
+        if quarterly.turn_summary:
+            if not hasattr(self, '_turn_summaries'):
+                self._turn_summaries = []
+            self._turn_summaries.append(quarterly.turn_summary)
+            if len(self._turn_summaries) > 8:
+                self._turn_summaries = self._turn_summaries[-8:]
+
+        # ── Collect NPC actions for response ──
+        npc_actions = []
+        for fid, dr in decisions.items():
+            if fid != faction_id:
+                faction = ws.factions.get(fid)
+                name = faction.name if faction else fid
+                npc_actions.append(f"{name}: {dr.decision_text[:80]}")
+
+        # ── Advance season/year ──
+        from histrategy_engine.world import Season as _Season
+        _seasons = list(_Season)
+        try:
+            _idx = _seasons.index(ws.season)
+            ws.season = _seasons[(_idx + 1) % len(_seasons)]
+            if ws.season == _seasons[0]:
+                ws.year += 1
+        except (ValueError, IndexError):
+            pass
+        ws.turn_number += 1
+
+        # ── Game over check ──
+        game_over = None
+        pf = ws.factions.get(faction_id)
+        if not pf or not pf.is_active:
+            game_over = True
+
+        # ── Build response in old format ──
+        narrative = quarterly.narratives.get(faction_id, "天下大势，波澜不惊。\n")
+
+        # Per-faction narratives summary
+        if len(quarterly.narratives) > 1:
+            other_narratives = []
+            for fid, narr in quarterly.narratives.items():
+                if fid != faction_id and narr:
+                    faction = ws.factions.get(fid)
+                    name = faction.name if faction else fid
+                    other_narratives.append(f"**{name}**: {narr[:120]}")
+            if other_narratives:
+                narrative += "\n\n---\n**天下动向**\n\n" + "\n\n".join(other_narratives[:3])
+
+        aftermath = "; ".join(npc_actions[:3]) if npc_actions else "天下平静。"
+
+        result = {
+            "narrative": narrative,
+            "aftermath": aftermath,
+            "bureaucracy": [{
+                "department": "尚书台", "official": "尚书令",
+                "action": f"执行{len(decisions)}个势力策令",
+            }],
+            "state_changes": quarterly.state_changes.get(faction_id, {}),
+            "_usage": {"command_tokens": 0, "plan_tokens": 0,
+                        "npc_tokens": 0, "sim_tokens": 0},
+            "seeds": [],
+            "npc_reactions": [],
+            "npc_actions": npc_actions,
+            "events_occurred": [e.get("event_id", "") for e in quarterly.history_events],
+            "new_choices": [],
+            "game_over": game_over,
+            "world_state": ws,
+            "knowledge_cards": [],
+        }
+
+        self._save_v2()
+        return result
+
     def _process_turn_v1(self, player_decision: str) -> dict:
         """v1 turn processing (unchanged)."""
         sim_result = self.sim_engine.simulate(self.world_state, player_decision)
