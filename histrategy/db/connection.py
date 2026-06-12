@@ -1,8 +1,12 @@
 """
-数据库连接管理 — SQLite（本地）/ PostgreSQL（Railway）自动切换。
+Database connection manager — SQLite (local) or PostgreSQL (Railway).
 
-入口函数 init_db() 在应用启动时调用，自动建表。
-所有 DML 操作通过 get_db() 获取连接。
+Detects database type from HISTRATEGY_DATABASE_URL:
+    - sqlite:///path/to/db  → SQLite3 (Python stdlib, zero install)
+    - postgresql://...       → psycopg2
+    - Not set                → defaults to ~/.histrategy/histrategy.db
+
+Auto-creates the database file and tables on first use.
 """
 
 from __future__ import annotations
@@ -10,336 +14,271 @@ from __future__ import annotations
 import json
 import logging
 import os
-import sqlite3
-import uuid
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger("histrategy.db")
 
-# 全局数据库文件路径
-DB_PATH: str | None = None
-DB_TYPE: str = "sqlite"  # "sqlite" | "postgresql"
+# ── Database URL Resolution ─────────────────────────
 
 
-def _resolve_db_path() -> str:
-    """解析数据库路径。优先使用环境变量，否则默认 ~/.histrategy/histrategy.db。"""
-    global DB_PATH, DB_TYPE
+def _resolve_database_url() -> str:
+    """Resolve HISTRATEGY_DATABASE_URL or default to SQLite."""
+    url = os.environ.get("HISTRATEGY_DATABASE_URL", "")
+    if url:
+        return url
 
-    # PostgreSQL 优先（Railway 生产环境）
-    pg_url = os.environ.get("HISTRATEGY_DATABASE_URL", "")
-    if pg_url:
-        DB_TYPE = "postgresql"
-        DB_PATH = pg_url
-        return pg_url
-
-    # SQLite 本地
-    data_dir = os.environ.get("HISTRATEGY_DATA_DIR", "")
-    if data_dir:
-        db_path = os.path.join(data_dir, "histrategy.db")
-    else:
-        db_path = os.path.expanduser("~/.histrategy/histrategy.db")
-
-    # 确保目录存在
-    db_dir = os.path.dirname(db_path)
-    if db_dir:
-        Path(db_dir).mkdir(parents=True, exist_ok=True)
-
-    DB_TYPE = "sqlite"
-    DB_PATH = db_path
-    return db_path
-
-
-def init_db(db_path: str | None = None) -> None:
-    """初始化数据库：创建所有表（幂等）。
-
-    首次启动时在 ~/.histrategy/histrategy.db 创建 SQLite 数据库。
-    如果设置了 HISTRATEGY_DATABASE_URL，则连接 PostgreSQL。
-
-    幂等安全：使用 CREATE TABLE IF NOT EXISTS。
-    """
-    db_path = db_path or _resolve_db_path()
-
-    if DB_TYPE == "postgresql":
-        _init_postgresql(db_path)
-    else:
-        _init_sqlite(db_path)
-
-    logger.info(f"Database initialized: {DB_TYPE} @ {db_path}")
-
-
-def _init_sqlite(db_path: str) -> None:
-    """初始化 SQLite 数据库。"""
-    conn = sqlite3.connect(db_path)
-    conn.execute("PRAGMA journal_mode=WAL")  # 更好的并发支持
-    conn.execute("PRAGMA foreign_keys=ON")
-
-    schema_path = os.path.join(os.path.dirname(__file__), "schema.sql")
-    with open(schema_path) as f:
-        schema_sql = f.read()
-
-    # 替换 SQLite 不兼容的语法
-    # datetime('now') 替换 PostgreSQL 的 NOW()
-    conn.executescript(schema_sql)
-    conn.commit()
-    conn.close()
-
-
-def _init_postgresql(dsn: str) -> None:
-    """初始化 PostgreSQL 数据库。"""
-    try:
-        import psycopg2
-    except ImportError:
-        logger.warning("psycopg2 not installed, falling back to SQLite")
-        _init_sqlite(_resolve_db_path())
-        return
-
-    conn = psycopg2.connect(dsn)
-    cur = conn.cursor()
-
-    schema_path = os.path.join(os.path.dirname(__file__), "schema.sql")
-    with open(schema_path) as f:
-        schema_sql = f.read()
-
-    # Replace SQLite-specific syntax with PostgreSQL
-    schema_sql = schema_sql.replace(
-        "datetime('now')", "NOW()"
+    data_dir = os.environ.get(
+        "HISTRATEGY_DATA_DIR",
+        os.path.expanduser("~/.histrategy"),
     )
-
-    cur.execute(schema_sql)
-    conn.commit()
-    cur.close()
-    conn.close()
+    db_path = os.path.join(data_dir, "histrategy.db")
+    return f"sqlite:///{db_path}"
 
 
-def get_db() -> sqlite3.Connection:
-    """获取数据库连接（SQLite）。
+DATABASE_URL = _resolve_database_url()
+_IS_SQLITE = DATABASE_URL.startswith("sqlite")
 
-    调用者负责在完成后关闭连接。
-    使用 WAL 模式和 foreign_keys=ON。
+
+# ── Connection Factory ─────────────────────────────
+
+
+def get_connection():
+    """Get a database connection (SQLite3 or psycopg2).
+
+    Returns:
+        A DB-API 2.0 connection object.
     """
-    if DB_PATH is None:
-        _resolve_db_path()
+    if _IS_SQLITE:
+        return _get_sqlite_connection()
+    else:
+        return _get_postgres_connection()
 
-    if DB_TYPE == "postgresql" and DB_PATH:
-        try:
-            import psycopg2
-            pg_conn = psycopg2.connect(DB_PATH)
-            return pg_conn  # type: ignore[return-value]
-        except ImportError:
-            # Fallback to SQLite
-            pass
 
-    conn = sqlite3.connect(DB_PATH or ":memory:")
+def _get_sqlite_connection():
+    """Create SQLite3 connection with WAL mode and foreign keys."""
+    import sqlite3
+
+    path = DATABASE_URL.replace("sqlite:///", "")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
-    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA busy_timeout=5000")
     return conn
 
 
-def now_iso() -> str:
-    """返回 ISO 8601 格式的当前时间字符串。"""
-    from datetime import datetime, timezone
-    return datetime.now(timezone.utc).isoformat()
+def _get_postgres_connection():
+    """Create PostgreSQL connection via psycopg2."""
+    import psycopg2
+    import psycopg2.extras
+
+    conn = psycopg2.connect(DATABASE_URL)
+    # Register UUID adapter
+    psycopg2.extras.register_uuid()
+    return conn
 
 
-# ── GameRoom 持久化 ──────────────────────────────
+# ── Schema Initialization ──────────────────────────
 
 
-def save_game_room(room_dict: dict, world_state_json: str | None = None) -> None:
-    """将 GameRoom 保存到数据库（UPSERT）。
+_SCHEMA_LOADED = False
 
-    Args:
-        room_dict: GameRoom.to_dict() 的输出
-        world_state_json: WorldState 的 JSON 序列化（可选）
-    """
-    conn = get_db()
+
+def init_db():
+    """Initialize the database schema (idempotent — safe to call every startup)."""
+    global _SCHEMA_LOADED
+    if _SCHEMA_LOADED:
+        return
+
+    conn = get_connection()
     try:
-        now = now_iso()
-        conn.execute(
-            """INSERT INTO game_room (id, host_user_id, scenario, year, season,
-               quarter_number, phase, world_state, slots, created_at, updated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-               ON CONFLICT(id) DO UPDATE SET
-               host_user_id=excluded.host_user_id,
-               year=excluded.year, season=excluded.season,
-               quarter_number=excluded.quarter_number,
-               phase=excluded.phase,
-               world_state=excluded.world_state,
-               slots=excluded.slots,
-               updated_at=excluded.updated_at""",
-            (
-                room_dict["id"],
-                room_dict.get("host_user_id"),
-                room_dict.get("scenario", "207"),
-                room_dict.get("year", 207),
-                room_dict.get("season", "春"),
-                room_dict.get("quarter_number", 0),
-                room_dict.get("phase", "lobby"),
-                world_state_json,
-                _json_dumps(room_dict.get("slots", {})),
-                now,
-                now,
-            ),
-        )
-
-        # Save faction slots
-        slots = room_dict.get("slots", {})
-        for fid, slot_data in slots.items():
-            slot_id = f"{room_dict['id']}_{fid}"
-            conn.execute(
-                """INSERT INTO faction_slot (id, room_id, faction_id,
-                   occupant_type, occupant_id, ai_model, ai_personality,
-                   pending_decision, pending_commands, is_active,
-                   created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                   ON CONFLICT(room_id, faction_id) DO UPDATE SET
-                   occupant_type=excluded.occupant_type,
-                   occupant_id=excluded.occupant_id,
-                   pending_decision=excluded.pending_decision,
-                   pending_commands=excluded.pending_commands,
-                   is_active=excluded.is_active,
-                   updated_at=excluded.updated_at""",
-                (
-                    slot_id,
-                    room_dict["id"],
-                    fid,
-                    slot_data.get("occupant_type", "open"),
-                    slot_data.get("occupant_id"),
-                    slot_data.get("ai_model"),
-                    slot_data.get("ai_personality"),
-                    slot_data.get("pending_decision"),
-                    _json_dumps(slot_data.get("pending_commands")),
-                    1 if slot_data.get("is_active", True) else 0,
-                    now,
-                    now,
-                ),
-            )
-
-        conn.commit()
-        logger.debug(f"Saved GameRoom {room_dict['id']} to DB")
-    finally:
-        conn.close()
-
-
-def load_game_room(room_id: str) -> dict | None:
-    """从数据库加载 GameRoom。
-
-    Returns:
-        room_dict (with 'slots' populated) or None if not found.
-    """
-    conn = get_db()
-    try:
-        row = conn.execute(
-            "SELECT * FROM game_room WHERE id = ?", (room_id,)
-        ).fetchone()
-        if not row:
-            return None
-
-        room_dict = dict(row)
-
-        # Load faction slots
-        slot_rows = conn.execute(
-            "SELECT * FROM faction_slot WHERE room_id = ?", (room_id,)
-        ).fetchall()
-
-        slots = {}
-        for sr in slot_rows:
-            sd = dict(sr)
-            fid = sd["faction_id"]
-            # Parse JSON fields
-            if sd.get("pending_commands") and isinstance(sd["pending_commands"], str):
-                try:
-                    sd["pending_commands"] = json.loads(sd["pending_commands"])
-                except (json.JSONDecodeError, TypeError):
-                    pass
-            slots[fid] = sd
-
-        room_dict["slots"] = slots
-        return room_dict
-    finally:
-        conn.close()
-
-
-def save_quarter_turn(
-    room_id: str,
-    quarter_number: int,
-    year: int,
-    season: str,
-    faction_decisions: dict,
-    baseline_result: dict | None = None,
-    macro_delta: dict | None = None,
-    narratives: dict | None = None,
-    state_changes: dict | None = None,
-    token_usage: dict | None = None,
-) -> str:
-    """保存一个季度的完整记录。
-
-    Returns:
-        turn_id (UUID)
-    """
-    turn_id = uuid.uuid4().hex
-    conn = get_db()
-    try:
-        conn.execute(
-            """INSERT INTO quarter_turn (id, room_id, quarter_number, year, season,
-               faction_decisions, baseline_result, macro_delta, narratives,
-               state_changes, token_usage, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (
-                turn_id,
-                room_id,
-                quarter_number,
-                year,
-                season,
-                _json_dumps(faction_decisions),
-                _json_dumps(baseline_result),
-                _json_dumps(macro_delta),
-                _json_dumps(narratives),
-                _json_dumps(state_changes),
-                _json_dumps(token_usage),
-                now_iso(),
-            ),
-        )
-        conn.commit()
-        return turn_id
-    finally:
-        conn.close()
-
-
-def list_game_rooms(status: str | None = None) -> list[dict]:
-    """列出所有游戏房间。
-
-    Args:
-        status: 过滤阶段 (lobby/waiting/resolving/finished)，None 返回全部
-    """
-    conn = get_db()
-    try:
-        if status:
-            rows = conn.execute(
-                "SELECT id, host_user_id, scenario, phase, quarter_number, "
-                "year, season, created_at, updated_at "
-                "FROM game_room WHERE phase = ? ORDER BY updated_at DESC",
-                (status,),
-            ).fetchall()
+        schema = _load_schema()
+        if _IS_SQLITE:
+            conn.executescript(schema)
         else:
-            rows = conn.execute(
-                "SELECT id, host_user_id, scenario, phase, quarter_number, "
-                "year, season, created_at, updated_at "
-                "FROM game_room ORDER BY updated_at DESC"
-            ).fetchall()
-        return [dict(r) for r in rows]
+            # PostgreSQL: execute statements individually
+            with conn.cursor() as cur:
+                cur.execute(schema)
+        conn.commit()
+        _SCHEMA_LOADED = True
+        logger.info("Database schema initialized (type=%s)", "sqlite" if _IS_SQLITE else "postgres")
     finally:
         conn.close()
 
 
-# ── Helpers ─────────────────────────────────────
-
-
-def _json_dumps(obj) -> str | None:
-    """安全地 JSON 序列化，失败时返回 None。"""
-    if obj is None:
-        return None
+def _load_schema() -> str:
+    """Load schema SQL from file."""
+    schema_path = os.path.join(os.path.dirname(__file__), "schema.sql")
     try:
-        return json.dumps(obj, ensure_ascii=False, default=str)
-    except (TypeError, ValueError):
+        with open(schema_path, encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        logger.warning("schema.sql not found at %s, using embedded schema", schema_path)
+        return _EMBEDDED_SCHEMA
+
+
+# ── Query Helpers ──────────────────────────────────
+
+
+def execute(sql: str, params: tuple = ()) -> list[dict]:
+    """Execute a query and return all rows as dicts."""
+    conn = get_connection()
+    try:
+        if _IS_SQLITE:
+            rows = conn.execute(sql, params).fetchall()
+            return [dict(row) for row in rows]
+        else:
+            with conn.cursor() as cur:
+                cur.execute(sql, params)
+                columns = [desc[0] for desc in cur.description] if cur.description else []
+                rows = cur.fetchall()
+                return [dict(zip(columns, row)) for row in rows]
+    finally:
+        conn.close()
+
+
+def execute_one(sql: str, params: tuple = ()) -> dict | None:
+    """Execute a query and return a single row as dict, or None."""
+    rows = execute(sql, params)
+    return rows[0] if rows else None
+
+
+def execute_write(sql: str, params: tuple = ()) -> int:
+    """Execute a write query (INSERT/UPDATE/DELETE) and return rowcount."""
+    conn = get_connection()
+    try:
+        if _IS_SQLITE:
+            cur = conn.execute(sql, params)
+            conn.commit()
+            return cur.rowcount
+        else:
+            with conn.cursor() as cur:
+                cur.execute(sql, params)
+                conn.commit()
+                return cur.rowcount
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def execute_many(sql: str, params_list: list[tuple]) -> int:
+    """Execute a write query with multiple parameter sets."""
+    conn = get_connection()
+    try:
+        if _IS_SQLITE:
+            cur = conn.executemany(sql, params_list)
+            conn.commit()
+            return cur.rowcount
+        else:
+            with conn.cursor() as cur:
+                cur.executemany(sql, params_list)
+                conn.commit()
+                return cur.rowcount
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def json_dumps(obj: Any) -> str:
+    """Serialize to JSON string for DB storage."""
+    return json.dumps(obj, ensure_ascii=False, default=str)
+
+
+def json_loads(text: str | None) -> Any:
+    """Deserialize from JSON string."""
+    if not text:
         return None
+    return json.loads(text)
+
+
+# ── Embedded Schema (fallback if schema.sql not found) ──
+
+_EMBEDDED_SCHEMA = """
+CREATE TABLE IF NOT EXISTS game_room (
+    id              TEXT PRIMARY KEY,
+    host_user_id    TEXT,
+    scenario        TEXT DEFAULT '207',
+    year            INTEGER DEFAULT 207,
+    season          TEXT DEFAULT '春',
+    quarter_number  INTEGER DEFAULT 0,
+    phase           TEXT DEFAULT 'lobby',
+    world_state     TEXT,
+    slots           TEXT,
+    decision_timeout INTEGER DEFAULT 300,
+    turn_summaries  TEXT DEFAULT '[]',
+    created_at      TEXT DEFAULT (datetime('now')),
+    updated_at      TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS faction_slot (
+    id              TEXT PRIMARY KEY,
+    room_id         TEXT NOT NULL REFERENCES game_room(id),
+    faction_id      TEXT NOT NULL,
+    occupant_type   TEXT NOT NULL DEFAULT 'open',
+    occupant_id     TEXT,
+    ai_model        TEXT,
+    ai_temperature  REAL DEFAULT 0.7,
+    pending_decision TEXT,
+    pending_commands TEXT,
+    is_active       INTEGER DEFAULT 1,
+    created_at      TEXT DEFAULT (datetime('now')),
+    updated_at      TEXT DEFAULT (datetime('now')),
+    UNIQUE(room_id, faction_id)
+);
+
+CREATE TABLE IF NOT EXISTS quarter_turn (
+    id              TEXT PRIMARY KEY,
+    room_id         TEXT NOT NULL REFERENCES game_room(id),
+    quarter_number  INTEGER NOT NULL,
+    year            INTEGER NOT NULL,
+    season          TEXT NOT NULL,
+    faction_decisions TEXT,
+    baseline_result  TEXT,
+    macro_delta      TEXT,
+    narratives       TEXT,
+    state_changes    TEXT,
+    token_usage      TEXT,
+    created_at       TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS llm_call_log (
+    id              TEXT PRIMARY KEY,
+    room_id         TEXT NOT NULL REFERENCES game_room(id),
+    quarter_number  INTEGER DEFAULT 0,
+    call_type       TEXT NOT NULL,
+    faction_id      TEXT,
+    provider        TEXT,
+    model           TEXT,
+    prompt_tokens       INTEGER DEFAULT 0,
+    completion_tokens   INTEGER DEFAULT 0,
+    total_tokens        INTEGER DEFAULT 0,
+    reasoning_tokens    INTEGER,
+    latency_ms          INTEGER DEFAULT 0,
+    system_prompt_type  TEXT,
+    user_prompt     TEXT,
+    response        TEXT,
+    error           TEXT,
+    created_at      TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS simulation_event_log (
+    id              TEXT PRIMARY KEY,
+    room_id         TEXT NOT NULL REFERENCES game_room(id),
+    quarter_number  INTEGER DEFAULT 0,
+    event_type      TEXT NOT NULL,
+    event_data      TEXT,
+    created_at      TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_faction_slot_room ON faction_slot(room_id);
+CREATE INDEX IF NOT EXISTS idx_quarter_turn_room ON quarter_turn(room_id, quarter_number);
+CREATE INDEX IF NOT EXISTS idx_llm_call_log_room ON llm_call_log(room_id, quarter_number);
+CREATE INDEX IF NOT EXISTS idx_sim_event_room ON simulation_event_log(room_id, quarter_number);
+"""
