@@ -420,6 +420,8 @@ def create_app(llm_provider: str | None = None) -> Any:
             if authorization and authorization.startswith("Bearer "):
                 jwt_token = authorization[len("Bearer ") :]
             _game_meta[game_id] = {"session_id": req.session_id, "jwt_token": jwt_token}
+            # Also store on engine directly (survives _game_meta loss on restart)
+            engine.set_debug_context(req.session_id, jwt_token or "")
 
         # Store language style preference for use by engine
         if req.language_style:
@@ -506,6 +508,7 @@ def create_app(llm_provider: str | None = None) -> Any:
                 if authorization and authorization.startswith("Bearer "):
                     jwt_token = authorization[len("Bearer ") :]
                 _game_meta[game_id] = {"session_id": req.session_id, "jwt_token": jwt_token}
+                engine.set_debug_context(req.session_id, jwt_token or "")
             status = _build_faction_status(engine)
             return {
                 "game_id": game_id,
