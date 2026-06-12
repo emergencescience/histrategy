@@ -19,16 +19,17 @@ if TYPE_CHECKING:
 class EconomyParams:
     """Tunable economic simulation parameters."""
     base_population_growth: float = 0.005       # per quarter (2%/year)
-    base_food_per_soldier: float = 0.1          # food consumed per soldier per quarter
-    base_food_per_civilian: float = 0.02        # food consumed per civilian per quarter
+    base_food_per_soldier: float = 0.01         # food per soldier per quarter
+    base_food_per_civilian: float = 0.002       # food per civilian per quarter
     base_tax_revenue_per_pop: float = 0.0005    # tax revenue per population unit
-    morale_tax_penalty: float = 0.3              # morale penalty per 1% above 20% tax (was 0.5)
-    food_morale_impact: float = 0.1              # morale change per food surplus/shortage (was 0.2)
+    morale_tax_penalty: float = 0.5             # morale penalty per 1% above 20% tax
+    food_morale_impact: float = 0.2             # morale change per food surplus/shortage
     development_growth: float = 0.01            # development increase per quarter (with investment)
     development_decay: float = 0.995            # natural decay multiplier
     conscript_cost: float = 2.0                 # treasury cost per conscript
     conscript_food_penalty: float = 0.5         # food output loss per conscript (draft effect)
     max_tax_rate: float = 0.70                  # maximum allowed tax rate
+    food_production_multiplier: float = 0.05    # food output per population * dev * fertility
 
 
 # ─── Result type ───────────────────────────────────────────────
@@ -146,7 +147,7 @@ class QuarterlyEngine:
                     dev = getattr(t, "development", 50)
                     fertility = getattr(t, "fertility", 5)
                     tpop = getattr(t, "population", 25000)
-                    food_produced += tpop * (dev / 100) * (fertility / 10) * 0.02
+                    food_produced += tpop * (dev / 100) * (fertility / 10) * p.food_production_multiplier
 
             # Law effects on food
             for law in laws_to_apply.get(fid, []):

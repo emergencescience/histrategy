@@ -1820,44 +1820,58 @@ class GameEngine:
                                     if t_loc not in ws.factions[att].territories:
                                         ws.factions[att].territories.append(t_loc)
 
-        # Step 7: Generate narrative
+        # Step 7: Generate narrative (from LLM seeds + faction state)
         narrative_text = ""
         new_choices = []
+
+        # Build macro-aware narrative from LLM delta
+        narrative_parts = []
+        if llm_delta:
+            seeds = llm_delta.get("narrative_seeds", [])
+            for s in seeds:
+                narrative_parts.append(f"### {s}")
+
+            battles = llm_delta.get("battle_results", [])
+            for b in battles:
+                n = b.get("narrative", "")
+                if n:
+                    narrative_parts.append(f"> {n}")
+
+            diplo = llm_delta.get("diplomatic_reactions", [])
+            for d in diplo:
+                act = d.get("action", "")
+                if act:
+                    narrative_parts.append(f"**{d.get('faction','?')}**: {act}")
+
+            polit = llm_delta.get("political_events", [])
+            for p in polit:
+                desc = p.get("description", "")
+                if desc:
+                    narrative_parts.append(f"🏛 {desc}")
+
+        narrative_text = "\n\n".join(narrative_parts) if narrative_parts else "天下大势，波澜不惊。\n"
+
+        # Generate plan suggestions
         if self.narrative_engine and self.narrative_engine.is_available:
-            try:
-                narrative_text = self.narrative_engine.generate_turn_narrative(
-                    baseline, deviation=ws.player_deviation,
-                    world_state=ws,
-                )
-            except Exception:
-                pass
             try:
                 new_choices = self.narrative_engine.generate_plan_suggestions(ws, ws.player_faction_id)
             except Exception:
                 pass
 
-        # Step 8: Aftermath
+        # Step 8: Aftermath (from actual faction state, not stale baseline)
+        pf = ws.factions.get(ws.player_faction_id)
         parts = []
-        for fid in ws.factions:
-            if not getattr(ws.factions[fid], "is_active", True):
-                continue
-            ch = baseline.resource_changes.get(fid, {})
-            if fid == ws.player_faction_id:
-                fd = ch.get("food_delta", 0)
-                tr = ch.get("tax_revenue", 0)
-                if fd:
-                    parts.append(f"粮草{'+' if fd>0 else ''}{fd}")
-                if tr:
-                    parts.append(f"资金+{tr}")
-        aftermath = ("本季度：" + "，".join(parts) + "。") if parts else "天下大势，波澜不惊。"
+        if pf:
+            parts.append(f"资金:{pf.treasury}")
+            parts.append(f"粮草:{pf.food}")
+            parts.append(f"民心:{getattr(pf, 'morale_actual', '?')}")
+            territories = list(pf.territories) if pf.territories else []
+            parts.append(f"领地:{len(territories)}")
+        aftermath = "本季度：" + "，".join(parts) + "。"
 
-        # Narrative summary
-        if narrative_text:
-            import re as _re
-            sents = _re.split(r"[。！？]", narrative_text)
-            sents = [s.strip() for s in sents if s.strip()]
-            if sents:
-                aftermath += " " + sents[-1] + "。"
+        # Add LLM narrative summary if available
+        if narrative_parts and len(narrative_parts) > 1:
+            aftermath += f" {narrative_parts[0].replace('### ', '')}。"
 
         # Knowledge cards
         kcards = []
