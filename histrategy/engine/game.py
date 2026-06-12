@@ -2132,9 +2132,12 @@ class GameEngine:
         if len(self._turn_summaries) > 8:
             self._turn_summaries = self._turn_summaries[-8:]
 
-        # Flush debug logs to Postgres (fire-and-forget)
+        # Attach debug log data to result for API layer to persist
         if _debug_log:
-            _debug_log.flush()
+            result["_debug_log"] = {
+                "llm_calls": _debug_log._llm_calls,
+                "sim_events": _debug_log._sim_events,
+            }
 
         self._save_v2()
         return result

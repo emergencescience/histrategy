@@ -672,6 +672,26 @@ def create_app(llm_provider: str | None = None) -> Any:
         except Exception:
             pass  # Non-blocking — don't fail the game on persistence error
 
+        # ── Persist debug logs (LLM calls + sim events) to orchestrator ──
+        debug_log = result.get("_debug_log")
+        if debug_log and (debug_log.get("llm_calls") or debug_log.get("sim_events")):
+            try:
+                import httpx as _httpx
+                _orch_url = _os.environ.get("ORCHESTRATOR_URL", "https://api.emergence.science").rstrip("/")
+                _log_resp = _httpx.post(
+                    f"{_orch_url}/games/histrategy/api/log/batch",
+                    json={
+                        "session_id": session_id,
+                        "turn_number": status.get("turn", 1),
+                        "llm_calls": debug_log.get("llm_calls", []),
+                        "sim_events": debug_log.get("sim_events", []),
+                    },
+                    headers={"Authorization": f"Bearer {jwt_token}"} if jwt_token else {},
+                    timeout=5.0,
+                )
+            except Exception:
+                pass  # Non-blocking
+
         return response_data
 
     @app.get("/api/games")
