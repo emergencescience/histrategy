@@ -1,0 +1,112 @@
+/* ═══ Histrategy v2 — Dark Three Kingdoms Theme ═══ */
+:root{
+  --bg:#1a1a2e;--bg-panel:#16213e;--bg-input:#0f3460;--bg-card:#1a2744;
+  --text:#e0d8c8;--text-dim:#8a8a7a;--text-bright:#f5e6c8;
+  --gold:#d4a017;--red:#c0392b;--blue:#2980b9;--green:#27ae60;
+  --border:#2a2a4a;--accent:#e74c3c;
+  --radius:6px;--transition:0.2s ease;
+  --font: -apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Noto Sans SC','Microsoft YaHei',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden}
+body{display:flex;flex-direction:column}
+
+/* ── Header ── */
+header{
+  background:linear-gradient(180deg,#2c1810,#16213e);
+  border-bottom:2px solid #3a2020;padding:6px 16px;
+  display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:10px;flex-wrap:wrap}
+header h1{font-size:1.1em;color:var(--gold);letter-spacing:2px;white-space:nowrap}
+header h1 span{color:var(--text-dim);font-size:.55em;margin-left:4px}
+.stats{display:flex;gap:12px;align-items:center;font-size:.75em;flex-wrap:wrap}
+.stat{text-align:center}
+.stat label{color:var(--text-dim);font-size:.6em;display:block;text-transform:uppercase}
+.stat span{color:var(--text-bright);font-weight:bold}
+.stat .g{color:var(--gold)}.stat .s{color:#5dade2}.stat .f{color:#f0c27a}
+#stat-lands{color:#58d68d;font-size:.7em;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.llm-badge{padding:2px 8px;border-radius:10px;font-size:.6em;font-weight:bold}
+.llm-on{background:rgba(39,174,96,.2);color:var(--green)}
+.llm-off{background:rgba(231,76,60,.2);color:var(--red)}
+
+/* ── Main Layout ── */
+main{display:flex;flex:1;min-height:0;gap:8px;padding:8px}
+.narrative-panel{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0}
+.side-panel{flex:0 0 280px;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+@media(max-width:768px){
+  main{flex-direction:column}
+  .side-panel{flex:0 0 auto;max-height:40vh}
+  header{font-size:.9em}
+  .stats{gap:6px}
+}
+
+/* ── Narrative Area ── */
+#narrative{
+  flex:1;background:var(--bg-panel);border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px;overflow-y:auto;
+  font-size:.85em;line-height:1.7;white-space:pre-wrap}
+#narrative h3{color:var(--gold);margin:10px 0 4px;font-size:1em}
+#narrative blockquote{color:var(--text-dim);border-left:2px solid var(--gold);padding-left:10px;margin:6px 0}
+#narrative .event{color:var(--red);font-weight:bold}
+#narrative .diplo{color:var(--blue)}
+#narrative .empty{color:var(--text-dim);text-align:center;padding:40px;font-style:italic}
+#narrative .turn-marker{color:var(--gold);font-weight:bold;border-bottom:1px solid var(--border);padding-bottom:4px;margin-bottom:10px}
+
+/* ── Input ── */
+.input-area{flex-shrink:0;display:flex;gap:8px;padding:0}
+#decision-input{
+  flex:1;background:var(--bg-input);color:var(--text-bright);border:1px solid var(--border);
+  border-radius:var(--radius);padding:10px 14px;font-size:.85em;font-family:var(--font);
+  resize:none;min-height:44px;max-height:120px;outline:none;transition:border var(--transition)}
+#decision-input:focus{border-color:var(--gold)}
+#decision-input::placeholder{color:var(--text-dim)}
+.btn{
+  background:linear-gradient(180deg,#3a2020,#2c1810);color:var(--gold);border:1px solid #5a3030;
+  border-radius:var(--radius);padding:8px 16px;font-size:.8em;cursor:pointer;white-space:nowrap;
+  font-weight:bold;letter-spacing:1px;transition:all var(--transition)}
+.btn:hover{background:linear-gradient(180deg,#5a3030,#3a2020);border-color:var(--gold)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-sm{padding:4px 10px;font-size:.7em}
+.btn-group{display:flex;gap:6px;flex-wrap:wrap}
+
+/* ── Side Panel Cards ── */
+.card{
+  background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+.card h4{color:var(--gold);font-size:.75em;margin-bottom:6px;letter-spacing:1px;text-transform:uppercase}
+.card p{font-size:.75em;line-height:1.5;color:var(--text-dim)}
+.card .val{color:var(--text-bright);font-weight:bold}
+.knowledge-card{border-left:3px solid var(--gold);background:var(--bg-card)}
+.knowledge-card .topic{color:var(--gold);font-weight:bold;font-size:.8em}
+.knowledge-card .logic{font-size:.7em;color:var(--text-dim);margin-top:2px}
+.blackswan-card{border-left:3px solid var(--red);background:rgba(192,57,43,.1)}
+.blackswan-card .swan-name{color:var(--red);font-weight:bold}
+.npc-card{border-left:3px solid var(--blue)}
+.npc-card .faction-name{color:var(--blue);font-weight:bold}
+
+/* ── Faction Select ── */
+#faction-select{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  flex:1;gap:16px;padding:20px}
+#faction-select h2{color:var(--gold);letter-spacing:3px}
+.faction-grid{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.faction-btn{
+  background:var(--bg-panel);border:2px solid var(--border);border-radius:var(--radius);
+  padding:16px 24px;cursor:pointer;text-align:center;transition:all var(--transition);min-width:120px}
+.faction-btn:hover{border-color:var(--gold);transform:translateY(-2px)}
+.faction-btn.selected{border-color:var(--gold);background:rgba(212,160,23,.1)}
+.faction-btn .name{color:var(--text-bright);font-size:1.1em;font-weight:bold}
+.faction-btn .desc{color:var(--text-dim);font-size:.7em;margin-top:4px}
+
+/* ── Toast ── */
+#toast{
+  position:fixed;bottom:16px;right:16px;background:var(--bg-panel);
+  border:1px solid var(--border);border-radius:var(--radius);padding:10px 16px;
+  font-size:.75em;color:var(--text);z-index:100;opacity:0;transition:opacity .3s;pointer-events:none}
+#toast.show{opacity:1}
+#toast.error{border-color:var(--red);color:var(--red)}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-dim)}

@@ -331,6 +331,22 @@ def create_app(llm_provider: str | None = None) -> Any:
         web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
         return FileResponse(_os.path.join(web_dir, "manual.html"))
 
+    @app.get("/css/{path:path}")
+    def serve_css(path: str):
+        """Serve CSS files."""
+        import os as _os
+        from fastapi.responses import FileResponse
+        web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
+        return FileResponse(_os.path.join(web_dir, "css", path))
+
+    @app.get("/js/{path:path}")
+    def serve_js(path: str):
+        """Serve JavaScript files."""
+        import os as _os
+        from fastapi.responses import FileResponse
+        web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
+        return FileResponse(_os.path.join(web_dir, "js", path))
+
     @app.get("/api/health")
     def health():
         # Actually probe LLM availability
