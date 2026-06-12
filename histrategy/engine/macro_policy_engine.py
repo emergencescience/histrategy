@@ -152,11 +152,11 @@ class MacroPolicyEngine:
                     "reason": "quarterly_simulation",
                 },
             )
+            # chat_structured may return raw string if json.loads fails
+            if isinstance(result, str):
+                result = self._extract_json(result)
             return self._validate_output(result)
         except Exception:
-            # Single attempt only — chat_structured handles JSON extraction
-            # internally. If it fails (network error, bad JSON, empty response),
-            # return empty dict rather than wasting tokens on retries.
             return {}
 
     # ── Context Builder ────────────────────────────────────
