@@ -675,21 +675,37 @@ def create_app(llm_provider: str | None = None) -> Any:
         except Exception:
             pass  # Non-blocking — don't fail the game on persistence error
 
-        # ── Persist debug logs (LLM calls + sim events) to orchestrator ──
+        # ── Persist debug logs to orchestrator ──
+        # Build logs from both engine-generated _debug_log and API-level _usage
+        llm_calls = []
+        sim_events = []
         debug_log = result.get("_debug_log")
-        if debug_log and (debug_log.get("llm_calls") or debug_log.get("sim_events")):
+        if debug_log:
+            llm_calls.extend(debug_log.get("llm_calls", []))
+            sim_events.extend(debug_log.get("sim_events", []))
+        # Also create a log entry from the _usage data (always available)
+        _usage = result.get("_usage", {})
+        _sim_tokens = _usage.get("sim_tokens") or _usage.get("command_tokens", 0)
+        if _sim_tokens > 0:
+            llm_calls.append({
+                "call_type": "macro_simulate",
+                "provider": "deepseek",
+                "model": _os.environ.get("LLM_MODEL", "deepseek-v4-flash"),
+                "total_tokens": _sim_tokens,
+                "latency_ms": 0,
+            })
+        if llm_calls or sim_events:
             try:
+                _meta = _game_meta.get(game_id, {})
+                _sid = _meta.get("session_id", game_id)
+                _jwt = _meta.get("jwt_token", "")
                 import httpx as _httpx
                 _orch_url = _os.environ.get("ORCHESTRATOR_URL", "https://api.emergence.science").rstrip("/")
-                _log_resp = _httpx.post(
+                _httpx.post(
                     f"{_orch_url}/games/histrategy/api/log/batch",
-                    json={
-                        "session_id": session_id,
-                        "turn_number": status.get("turn", 1),
-                        "llm_calls": debug_log.get("llm_calls", []),
-                        "sim_events": debug_log.get("sim_events", []),
-                    },
-                    headers={"Authorization": f"Bearer {jwt_token}"} if jwt_token else {},
+                    json={"session_id": _sid, "turn_number": status.get("turn", 1),
+                          "llm_calls": llm_calls, "sim_events": sim_events},
+                    headers={"Authorization": f"Bearer {_jwt}"} if _jwt else {},
                     timeout=5.0,
                 )
             except Exception:
