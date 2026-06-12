@@ -435,6 +435,9 @@ class LLMAdapter:
                             break
                     if matched_prompt:
                         msg_content = f"(Standard Template: {matched_prompt})"
+                    else:
+                        first_line = stripped_content.split("\n")[0][:120]
+                        msg_content = f"(Custom Prompt: {first_line}...)"
 
                 log_entry.append(f"[{role}]:\n{msg_content}\n")
                 log_entry.append(divider_minor)
@@ -573,6 +576,9 @@ class LLMAdapter:
                             break
                     if matched_prompt:
                         msg_content = f"(Standard Template: {matched_prompt})"
+                    else:
+                        first_line = stripped_content.split("\n")[0][:120]
+                        msg_content = f"(Custom Prompt: {first_line}...)"
 
                 log_entry.append(f"[{role}]:\n{msg_content}\n")
                 log_entry.append(divider_minor)

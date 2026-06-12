@@ -1714,6 +1714,17 @@ class GameEngine:
         }
 
 
+def _normalize_seeds(raw_seeds: list) -> list[dict]:
+    """Normalize narrative_seeds from LLM — strings → {title: str} dicts."""
+    result = []
+    for s in (raw_seeds or []):
+        if isinstance(s, dict):
+            result.append(s)
+        elif isinstance(s, str):
+            result.append({"title": s, "trigger_after": "?", "description": ""})
+    return result
+
+
     def _process_turn_macro(self, player_decision: str) -> dict:
         """Macro historical engine — quarterly policy simulation.
 
@@ -1938,7 +1949,7 @@ class GameEngine:
             },
             "_usage": {"command_tokens": _sim_tokens, "plan_tokens": 0,
                         "npc_tokens": 0, "sim_tokens": _sim_tokens},
-            "seeds": llm_delta.get("narrative_seeds", []) if llm_delta else [],
+            "seeds": _normalize_seeds(llm_delta.get("narrative_seeds", []) if llm_delta else []),
             "npc_reactions": npc_reacts,
             "npc_actions": npc_acts,
             "events_occurred": [p.get("event_id", "") for p in bs_proposals if p.get("triggered")],

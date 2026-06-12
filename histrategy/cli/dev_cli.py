@@ -240,9 +240,16 @@ def _show_llm_command_result(result: dict):
     if seeds:
         print("### 🔮 伏线机锋")
         for s in seeds:
-            trigger = s.get("trigger_after", "?")
-            title = s.get("title", "未知")
-            desc = s.get("description", "")
+            if isinstance(s, dict):
+                trigger = s.get("trigger_after", "?")
+                title = s.get("title", "未知")
+                desc = s.get("description", "")
+            elif isinstance(s, str):
+                title = s
+                trigger = "?"
+                desc = ""
+            else:
+                continue
             print(f"  - **{title}** *({trigger}回合后)*: {desc}")
         print()
 
