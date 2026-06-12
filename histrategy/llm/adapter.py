@@ -290,7 +290,9 @@ class LLMAdapter:
 
     @staticmethod
     def _clean_json_text(text: str) -> str:
-        """Remove common LLM JSON formatting errors: trailing commas, comments."""
+        """Remove common LLM JSON formatting errors: trailing commas, + before numbers, comments."""
+        # Remove + signs before numbers (LLMs often write +5 instead of 5)
+        text = re.sub(r":\s*\+\s*(\d)", r": \1", text)
         # Remove trailing commas before ] or }
         text = re.sub(r",\s*([}\]])", r"\1", text)
         # Remove single-line // comments (outside strings)
