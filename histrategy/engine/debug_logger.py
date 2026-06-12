@@ -87,6 +87,7 @@ class TurnLogCollector:
         if not self._llm_calls and not self._sim_events:
             return
         if not self.orchestrator_url:
+            _logger.warning("DebugLogger: no orchestrator_url, skipping flush")
             return
 
         payload = {
@@ -97,8 +98,8 @@ class TurnLogCollector:
         }
 
         # Clear local buffers immediately (even if POST fails)
-        llm_calls = self._llm_calls
-        sim_events = self._sim_events
+        llm_count = len(self._llm_calls)
+        sim_count = len(self._sim_events)
         self._llm_calls = []
         self._sim_events = []
 
@@ -107,14 +108,18 @@ class TurnLogCollector:
         if self.jwt_token:
             headers["Authorization"] = f"Bearer {self.jwt_token}"
 
+        _logger.info(f"Flushing {llm_count} LLM calls + {sim_count} sim events to {url}")
+
         def _post():
             try:
                 with httpx.Client(timeout=5.0) as client:
                     resp = client.post(url, json=payload, headers=headers)
                     if resp.status_code >= 400:
-                        _logger.debug(f"Log batch POST returned {resp.status_code}: {resp.text[:200]}")
-            except Exception:
-                _logger.debug("Log batch POST failed (non-critical)", exc_info=True)
+                        _logger.warning(f"Log batch POST {resp.status_code}: {resp.text[:200]}")
+                    else:
+                        _logger.info(f"Log batch POST OK: {resp.json()}")
+            except Exception as e:
+                _logger.warning(f"Log batch POST failed: {e}")
 
         t = threading.Thread(target=_post, daemon=True)
         t.start()
