@@ -1819,7 +1819,7 @@ class GameEngine:
             llm_delta = self._macro_sim.simulate(
                 ws, policy_commands, player_decision,
                 baseline, bs_proposals,
-                turn_memory=self._turn_summaries[-8:],  # last 8 quarters
+                turn_memory=getattr(self, '_turn_summaries', [])[-8:],  # last 8 quarters
             )
 
             if mlm and hasattr(mlm, "total_all_tokens"):
@@ -2086,6 +2086,8 @@ class GameEngine:
         # ── Record turn summary for LLM context in future turns ──
         narrative_seeds = llm_delta.get("narrative_seeds", []) if llm_delta else []
         summary_text = "; ".join(narrative_seeds[:2]) if narrative_seeds else narrative_text[:200]
+        if not hasattr(self, '_turn_summaries'):
+            self._turn_summaries = []
         self._turn_summaries.append({
             "outcome_summary": f"[{ws.year}年{ws.season.cn if hasattr(ws.season, 'cn') else ws.season}] {player_decision[:80]} → {summary_text[:150]}",
             "turn": ws.turn_number,
