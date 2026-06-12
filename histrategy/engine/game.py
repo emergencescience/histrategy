@@ -1174,6 +1174,8 @@ class GameEngine:
         """Set session context for Postgres debug logging (called from API layer)."""
         self._debug_session_id = session_id
         self._debug_jwt = jwt_token
+        import logging
+        logging.getLogger("histrategy").info(f"Debug context set: session={session_id[:12] if len(session_id)>12 else session_id}...")
 
     def _process_turn_v2(self, player_decision: str) -> dict:
         """v2 turn processing pipeline."""
@@ -1788,6 +1790,8 @@ class GameEngine:
                 "season": str(ws.season),
                 "player_decision": player_decision[:200],
             })
+            import logging
+            logging.getLogger("histrategy").info(f"Debug log initialized for session={_session_id[:12]}... turn={ws.turn_number+1}")
 
         # Step 1: Parse player policy
         policy_commands = []
