@@ -1301,6 +1301,11 @@ class GameEngine:
         if self.command_validator:
             player_commands = self.command_validator.validate(player_commands, ws)
 
+        # ── v3: Auto-mobilize ──────────────────────────────────
+        # When player says "attack with 60K from wancheng" but only 5K
+        # army exists, auto-transfer faction reserves to the army.
+        _auto_mobilize_for_attack(player_commands, ws)
+
         # Step 3: Execute deterministic baseline (same as v2 — TurnController)
         baseline_result = self.turn_controller.execute_turn(
             ws,
@@ -1946,6 +1951,44 @@ def _inject_v3_into_baseline(baseline_result, v3_delta: dict) -> None:
             "change": me.get("change", 0),
             "reason": me.get("reason", ""),
         })
+
+
+def _auto_mobilize_for_attack(commands: list, world_state) -> None:
+    """Auto-mobilize faction reserves for attack commands in v3 mode.
+
+    When a player says "attack with 60K from wancheng" but only 5K army
+    exists, transfer faction.strength_actual reserves to the army.
+    """
+    faction = world_state.factions.get(world_state.player_faction_id)
+    if not faction:
+        return
+
+    for cmd in commands:
+        if getattr(cmd, "type", "") != "attack":
+            continue
+        source = cmd.params.get("source_territory", "")
+        requested = cmd.params.get("amount", 0)
+        if not source or not requested:
+            continue
+
+        army = None
+        for a in world_state.armies.values():
+            if a.location == source and a.faction_id == world_state.player_faction_id:
+                army = a
+                break
+        if not army:
+            continue
+
+        current = army.total_troops
+        reserves = faction.strength_actual - current
+        needed = min(requested - current, reserves)
+
+        if needed > 0 and needed <= reserves:
+            infantry_needed = int(needed * 0.9)
+            cavalry_needed = needed - infantry_needed
+            army.units["infantry"] = army.units.get("infantry", 0) + infantry_needed
+            army.units["cavalry"] = army.units.get("cavalry", 0) + cavalry_needed
+            faction.strength_actual -= needed
 
 
 def apply_event_effects(world_state: V2WorldState, effects: dict) -> None:
