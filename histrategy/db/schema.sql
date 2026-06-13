@@ -93,6 +93,19 @@ CREATE TABLE IF NOT EXISTS simulation_event_log (
     created_at      TEXT DEFAULT (datetime('now'))
 );
 
+-- ═══════════════════════════════════════════════════════════
+-- room_player: 谁在房间里（与势力选择分离）
+-- ═══════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS room_player (
+    id              TEXT PRIMARY KEY,
+    room_id         TEXT NOT NULL REFERENCES game_room(id),
+    user_id         TEXT NOT NULL,
+    role            TEXT DEFAULT 'player',       -- host | player | spectator
+    display_name    TEXT DEFAULT '',
+    joined_at       TEXT DEFAULT (datetime('now')),
+    UNIQUE(room_id, user_id)
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_faction_slot_room ON faction_slot(room_id);
 CREATE INDEX IF NOT EXISTS idx_quarter_turn_room ON quarter_turn(room_id, quarter_number);

@@ -276,6 +276,16 @@ CREATE TABLE IF NOT EXISTS simulation_event_log (
     created_at      TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS room_player (
+    id              TEXT PRIMARY KEY,
+    room_id         TEXT NOT NULL REFERENCES game_room(id),
+    user_id         TEXT NOT NULL,
+    role            TEXT DEFAULT 'player',
+    display_name    TEXT DEFAULT '',
+    joined_at       TEXT DEFAULT (datetime('now')),
+    UNIQUE(room_id, user_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_faction_slot_room ON faction_slot(room_id);
 CREATE INDEX IF NOT EXISTS idx_quarter_turn_room ON quarter_turn(room_id, quarter_number);
 CREATE INDEX IF NOT EXISTS idx_llm_call_log_room ON llm_call_log(room_id, quarter_number);

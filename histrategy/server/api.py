@@ -975,69 +975,75 @@ def create_app(llm_provider: str | None = None) -> Any:
             return {"ok": False, "reason": f"Save failed: {e}"}
 
     # ═══════════════════════════════════════════════════════════
-    # Multiplayer Room Endpoints
+    # Multiplayer Room Endpoints (v2: room_player symmetric)
     # ═══════════════════════════════════════════════════════════
 
     from fastapi import Body
 
     @app.post("/api/rooms")
     def api_create_room(body: dict = Body(...)):
+        """创建房间。host 不自动选势力。"""
         from histrategy.server.room_manager import create_room
 
-        room = create_room(
-            host_user_id=body.get("host_user_id", ""),
+        result = create_room(
+            host_user_id=body.get("user_id", ""),
+            host_name=body.get("display_name", ""),
             scenario=body.get("scenario", "207"),
             faction_ids=body.get("faction_ids", ["cao", "shu", "wu"]),
         )
-        return {"ok": True, "room_id": room.id, "phase": room.phase.value}
+        return result
 
-    @app.post("/api/rooms/{room_id}/join")
-    def api_join_room(room_id: str, body: dict = Body(...)):
-        from histrategy.server.room_manager import join_room
+    @app.post("/api/rooms/{room_id}/enter")
+    def api_enter_room(room_id: str, body: dict = Body(...)):
+        """进入房间（任何人都可以，host/player/spectator）。"""
+        from histrategy.server.room_manager import enter_room
 
-        result = join_room(
+        return enter_room(
             room_id,
-            body.get("faction_id", ""),
-            body.get("user_id", body.get("faction_id", "")),
+            body.get("user_id", ""),
             body.get("display_name", ""),
         )
-        return result
+
+    @app.post("/api/rooms/{room_id}/pick")
+    def api_pick_faction(room_id: str, body: dict = Body(...)):
+        """选择势力。"""
+        from histrategy.server.room_manager import pick_faction
+
+        return pick_faction(
+            room_id,
+            body.get("user_id", ""),
+            body.get("faction_id", ""),
+        )
 
     @app.post("/api/rooms/{room_id}/start")
-    def api_start_room(room_id: str):
+    def api_start_room(room_id: str, body: dict = Body(...)):
+        """host 开始游戏。"""
         from histrategy.server.room_manager import start_game
 
-        result = start_game(room_id, "host")
-        return result
+        return start_game(room_id, body.get("user_id", ""))
 
     @app.post("/api/rooms/{room_id}/decide")
     def api_submit_decision(room_id: str, body: dict = Body(...)):
+        """提交本季度决策。"""
         from histrategy.server.room_manager import submit_decision
 
-        result = submit_decision(
+        return submit_decision(
             room_id,
             body.get("faction_id", ""),
-            body.get("user_id", body.get("faction_id", "")),
+            body.get("user_id", ""),
             body.get("decision", ""),
         )
-        return result
 
     @app.get("/api/rooms/{room_id}/status")
     def api_room_status(room_id: str, faction_id: str = ""):
+        """获取房间状态。"""
         from histrategy.server.room_manager import get_room_status
 
         fid = faction_id if faction_id else None
         return get_room_status(room_id, fid)
 
-    @app.get("/api/rooms")
-    def api_list_rooms():
-        from histrategy.server.room_manager import list_rooms
-
-        return {"rooms": list_rooms()}
-
     @app.get("/mp")
     def serve_multiplayer_page():
-        """Serve the multiplayer HTML client."""
         import os as _os
         from fastapi.responses import FileResponse
 
