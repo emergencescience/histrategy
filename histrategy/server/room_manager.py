@@ -471,8 +471,8 @@ def _init_world_state(room: "GameRoom"):
 
 def _resolve_and_advance(room: "GameRoom"):
     from histrategy.engine.decision_bus import collect_all_decisions
-    from histrategy.engine.quarterly_resolver import QuarterlyResolver
     from histrategy.engine.game_room import RoomPhase
+    from histrategy.engine.engine_switch import detect_engine_mode, EngineMode
 
     if room.phase.value == "resolving":
         return
@@ -483,13 +483,20 @@ def _resolve_and_advance(room: "GameRoom"):
         room.advance_quarter()
         return
 
+    engine_mode = detect_engine_mode()
     llm = _get_llm()
     decisions = collect_all_decisions(room, ws, llm=llm, turn_memory=room.turn_summaries)
 
-    resolver = QuarterlyResolver(
-        turn_controller=getattr(room, "_turn_controller", None),
-    )
-    result = resolver.resolve(room, ws, decisions, llm=llm)
+    # 根据引擎模式选择仿真器
+    if engine_mode == EngineMode.V1:
+        result = _resolve_v1(room, ws, decisions, llm)
+    else:
+        # V2/V3 使用现有 QuarterlyResolver
+        from histrategy.engine.quarterly_resolver import QuarterlyResolver
+        resolver = QuarterlyResolver(
+            turn_controller=getattr(room, "_turn_controller", None),
+        )
+        result = resolver.resolve(room, ws, decisions, llm=llm)
 
     room._last_narratives = result.narratives
     npc_actions = []
@@ -516,6 +523,43 @@ def _resolve_and_advance(room: "GameRoom"):
     _try_save(room, ws_dict)
     _save_quarter(room, decisions, result)
     _write_backup(room, ws_dict)
+
+
+def _resolve_v1(room, ws, decisions, llm):
+    """V1 引擎：纯 LLM 仿真。"""
+    from histrategy.engine.v1_simulator import V1Simulator, _apply_v1_state_to_world, save_v1_state_to_db
+    from dataclasses import dataclass
+
+    simulator = V1Simulator(llm)
+
+    fd = {}
+    for fid, dr in decisions.items():
+        fd[fid] = {"decision": dr.decision_text, "commands": dr.commands}
+
+    v1_result = simulator.simulate(ws, fd, room.turn_summaries)
+
+    # 将 V1 结果应用到 WorldState
+    _apply_v1_state_to_world(ws, v1_result.get("factions", {}))
+
+    # 写入 DB
+    save_v1_state_to_db(room.id, room.quarter_number, ws, v1_result)
+
+    # 构建兼容 result 对象
+    @dataclass
+    class V1Result:
+        narratives: dict
+        state_changes: dict
+        turn_summary: dict | None
+
+    narratives = {}
+    for fid in decisions:
+        narratives[fid] = v1_result.get("narrative", "")
+
+    return V1Result(
+        narratives=narratives,
+        state_changes={},
+        turn_summary={"quarter": room.quarter_number, "engine": "v1"},
+    )
 
 
 def _get_llm():
