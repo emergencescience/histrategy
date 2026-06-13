@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三國志略 · 多人对战</title>
+<style>
+:root {
+  --bg: #1a1a2e; --panel: #16213e; --border: #0f3460;
+  --gold: #d4a574; --text: #e0d6c2; --muted: #8a8a8a;
+  --cao: #4a90d9; --shu: #5cb85c; --wu: #d9534f;
+  --btn: #0f3460; --btn-hover: #1a5276;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:var(--bg); color:var(--text); font-family:"Noto Serif SC","SimSun",serif; min-height:100vh; }
+h1 { font-size:1.4em; color:var(--gold); text-align:center; padding:16px 0; }
+h2 { font-size:1.1em; color:var(--gold); margin:12px 0 8px; }
+.container { max-width:800px; margin:0 auto; padding:16px; }
+.panel { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:16px; }
+input, button, select { font-family:inherit; font-size:0.95em; }
+input { width:100%; padding:10px; background:#1a1a2e; border:1px solid var(--border); color:var(--text); border-radius:6px; margin:6px 0; }
+.btn { display:inline-block; padding:10px 20px; background:var(--btn); color:var(--gold); border:1px solid var(--border); border-radius:6px; cursor:pointer; margin:4px; }
+.btn:hover { background:var(--btn-hover); }
+.btn.primary { background:#2d6a4f; }
+.btn.danger { background:#8b0000; }
+.btn:disabled { opacity:0.4; cursor:not-allowed; }
+.faction-btn { padding:8px 16px; margin:4px; border-radius:6px; cursor:pointer; }
+.faction-btn.cao { border:2px solid var(--cao); color:var(--cao); background:transparent; }
+.faction-btn.shu { border:2px solid var(--shu); color:var(--shu); background:transparent; }
+.faction-btn.wu  { border:2px solid var(--wu);  color:var(--wu); background:transparent; }
+.faction-btn.selected { color:#fff; }
+.faction-btn.selected.cao { background:var(--cao); }
+.faction-btn.selected.shu { background:var(--shu); }
+.faction-btn.selected.wu  { background:var(--wu); }
+.faction-btn.taken { opacity:0.3; cursor:not-allowed; text-decoration:line-through; }
+.faction-badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:0.85em; margin:0 4px; }
+.faction-badge.cao { background:var(--cao); color:#fff; }
+.faction-badge.shu { background:var(--shu); color:#fff; }
+.faction-badge.wu  { background:var(--wu); color:#fff; }
+.slot-row { display:flex; align-items:center; padding:8px; margin:4px 0; background:rgba(255,255,255,0.03); border-radius:6px; }
+.slot-row .status { margin-left:auto; font-size:0.85em; color:var(--muted); }
+.narrative-box { max-height:400px; overflow-y:auto; padding:12px; background:rgba(0,0,0,0.2); border-radius:6px; line-height:1.7; }
+.narrative-box h3 { color:var(--gold); margin:8px 0 4px; }
+.narrative-box p { margin:4px 0; }
+#status-bar { text-align:center; padding:8px; font-size:0.9em; color:var(--muted); }
+#status-bar .ready { color:#5cb85c; }
+#status-bar .waiting { color:#d4a574; }
+#room-info { font-size:0.85em; color:var(--muted); text-align:center; padding:8px; }
+.hidden { display:none; }
+.flex-row { display:flex; gap:8px; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>⚔ 三國志略 · 多人对战</h1>
+<div id="room-info"></div>
+
+<!-- Lobby: Create or Join -->
+<div id="lobby-panel" class="panel">
+  <h2>🏯 创建或加入房间</h2>
+  <div id="create-section">
+    <button class="btn primary" onclick="createRoom()">创建新房间</button>
+  </div>
+  <div style="margin-top:12px">
+    <input id="join-room-id" placeholder="输入房间 ID 加入已有房间">
+    <button class="btn" onclick="joinRoom()">加入房间</button>
+  </div>
+</div>
+
+<!-- Faction Selection -->
+<div id="faction-panel" class="panel hidden">
+  <h2>选择势力</h2>
+  <div id="faction-buttons"></div>
+  <button class="btn primary" onclick="selectFaction()">确认选择</button>
+</div>
+
+<!-- Game Panel -->
+<div id="game-panel" class="panel hidden">
+  <div id="status-bar">⏳ 等待其他玩家...</div>
+  <h2>📜 局势推演</h2>
+  <div id="narrative" class="narrative-box"></div>
+  <div style="margin-top:12px">
+    <input id="decision-input" placeholder="输入你的决策...（例如：进攻新野）">
+    <button class="btn primary" id="submit-btn" onclick="submitDecision()">传令</button>
+  </div>
+</div>
+</div>
+
+<script>
+const API = '';
+let roomId = '';
+let myFaction = '';
+let myUserId = 'player_' + Math.random().toString(36).slice(2,8);
+let pollTimer = null;
+
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  return r.json();
+}
+
+function show(id) { document.getElementById(id).classList.remove('hidden'); }
+function hide(id) { document.getElementById(id).classList.add('hidden'); }
+function el(id) { return document.getElementById(id); }
+
+// ── Create Room ──────────────────────
+async function createRoom() {
+  const r = await api('POST', '/api/rooms', { scenario: '207', faction_ids: ['cao','shu','wu'] });
+  if (r.ok) {
+    roomId = r.room_id;
+    el('room-info').innerHTML = `房间 ID: <b style="color:var(--gold)">${roomId}</b> (分享给对手)`;
+    hide('lobby-panel');
+    loadFactionButtons();
+  }
+}
+
+// ── Join Room ────────────────────────
+async function joinRoom() {
+  roomId = el('join-room-id').value.trim();
+  if (!roomId) return alert('请输入房间 ID');
+  el('room-info').innerHTML = `房间 ID: <b style="color:var(--gold)">${roomId}</b>`;
+  hide('lobby-panel');
+  loadFactionButtons();
+}
+
+// ── Faction Selection ────────────────
+async function loadFactionButtons() {
+  const status = await api('GET', `/api/rooms/${roomId}/status`);
+  if (!status.ok) return alert('房间不存在');
+  
+  show('faction-panel');
+  const div = el('faction-buttons');
+  div.innerHTML = '';
+  
+  for (const [fid, s] of Object.entries(status.slots)) {
+    const taken = s.occupant_type === 'human';
+    const isMe = taken && s.occupant_id === myUserId;
+    const cls = `faction-btn ${fid} ${taken ? 'taken' : ''}`;
+    const label = {cao:'曹操(魏)', shu:'刘备(蜀)', wu:'孙权(吴)'}[fid] || fid;
+    const btn = document.createElement('button');
+    btn.className = cls;
+    btn.textContent = isMe ? `${label} ✓ (你)` : (taken ? `${label} (已被选)` : label);
+    btn.onclick = () => {
+      if (taken) return;
+      document.querySelectorAll('.faction-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      myFaction = fid;
+    };
+    div.appendChild(btn);
+  }
+}
+
+async function selectFaction() {
+  if (!myFaction) return alert('请先选择一个势力');
+  const r = await api('POST', `/api/rooms/${roomId}/join`, {
+    faction_id: myFaction, user_id: myUserId, display_name: myFaction
+  });
+  if (r.ok) {
+    hide('faction-panel');
+    startPolling();
+  } else {
+    alert(r.error);
+  }
+}
+
+// ── Start Polling ────────────────────
+function startPolling() {
+  show('game-panel');
+  el('status-bar').textContent = '⏳ 等待房主开始游戏...';
+  el('submit-btn').disabled = true;
+  
+  pollTimer = setInterval(async () => {
+    const status = await api('GET', `/api/rooms/${roomId}/status?faction_id=${myFaction}`);
+    if (!status.ok) return;
+    
+    const phase = status.phase;
+    
+    if (phase === 'lobby') {
+      el('status-bar').innerHTML = '<span class="waiting">⏳ 等待开始 (在另一个 tab 创建房间后点"开始")</span>';
+      el('submit-btn').disabled = true;
+    } else if (phase === 'waiting') {
+      const submitted = status.submitted || [];
+      const pending = status.pending || [];
+      el('submit-btn').disabled = submitted.includes(myFaction);
+      
+      if (submitted.includes(myFaction)) {
+        el('status-bar').innerHTML = `<span class="ready">✓ 已传令 · 等待: ${pending.join(', ')}</span>`;
+      } else {
+        el('status-bar').innerHTML = `<span class="waiting">⏳ 请传令 · 已传令: ${submitted.join(', ') || '无'}</span>`;
+      }
+    } else if (phase === 'resolving') {
+      el('status-bar').innerHTML = '<span class="waiting">⚙ 季度推演中...</span>';
+      el('submit-btn').disabled = true;
+    }
+    
+    // Show narrative if available
+    if (status.narrative) {
+      el('narrative').innerHTML = status.narrative.replace(/\n/g, '<br>');
+      
+      // Show NPC actions
+      const npcDiv = document.getElementById('npc-actions') || document.createElement('div');
+      npcDiv.id = 'npc-actions';
+      if (status.npc_actions && status.npc_actions.length > 0) {
+        npcDiv.innerHTML = '<br><b>天下动向:</b><br>' + status.npc_actions.map(a => '· ' + a).join('<br>');
+        if (!document.getElementById('npc-actions')) el('narrative').appendChild(npcDiv);
+      }
+    }
+    
+    // Update year/season
+    el('room-info').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · ${status.year || 207}年${status.season || '春'} · 第${status.quarter || 0}季`;
+  }, 2000);
+}
+
+// ── Submit Decision ──────────────────
+async function submitDecision() {
+  const decision = el('decision-input').value.trim();
+  if (!decision) return;
+  
+  el('submit-btn').disabled = true;
+  el('submit-btn').textContent = '传令中...';
+  
+  const r = await api('POST', `/api/rooms/${roomId}/decide`, {
+    faction_id: myFaction, user_id: myUserId, decision: decision
+  });
+  
+  if (r.ok) {
+    el('decision-input').value = '';
+    el('submit-btn').textContent = r.status === 'ready' ? '✓ 已传令（等待对手）' : '✓ 已传令';
+  } else {
+    alert(r.error);
+    el('submit-btn').disabled = false;
+    el('submit-btn').textContent = '传令';
+  }
+}
+
+// ── Start Game (auto on load if host) ──
+async function startGame() {
+  const r = await api('POST', `/api/rooms/${roomId}/start`);
+  if (r.ok) {
+    el('status-bar').innerHTML = '<span class="ready">✓ 游戏开始!</span>';
+  } else {
+    alert(r.error);
+  }
+}
+
+// Add a "Start Game" button for the first player
+setTimeout(() => {
+  if (roomId) {
+    const div = document.createElement('div');
+    div.style.cssText = 'text-align:center;padding:8px;';
+    div.innerHTML = '<button class="btn primary" onclick="startGame()">开始游戏 (房主)</button>';
+    el('game-panel').insertBefore(div, el('game-panel').firstChild);
+  }
+}, 3000);
+</script>
+</body>
+</html>

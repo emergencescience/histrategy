@@ -974,6 +974,76 @@ def create_app(llm_provider: str | None = None) -> Any:
         except Exception as e:
             return {"ok": False, "reason": f"Save failed: {e}"}
 
+    # ═══════════════════════════════════════════════════════════
+    # Multiplayer Room Endpoints
+    # ═══════════════════════════════════════════════════════════
+
+    from fastapi import Body
+
+    @app.post("/api/rooms")
+    def api_create_room(body: dict = Body(...)):
+        from histrategy.server.room_manager import create_room
+
+        room = create_room(
+            host_user_id=body.get("host_user_id", ""),
+            scenario=body.get("scenario", "207"),
+            faction_ids=body.get("faction_ids", ["cao", "shu", "wu"]),
+        )
+        return {"ok": True, "room_id": room.id, "phase": room.phase.value}
+
+    @app.post("/api/rooms/{room_id}/join")
+    def api_join_room(room_id: str, body: dict = Body(...)):
+        from histrategy.server.room_manager import join_room
+
+        result = join_room(
+            room_id,
+            body.get("faction_id", ""),
+            body.get("user_id", body.get("faction_id", "")),
+            body.get("display_name", ""),
+        )
+        return result
+
+    @app.post("/api/rooms/{room_id}/start")
+    def api_start_room(room_id: str):
+        from histrategy.server.room_manager import start_game
+
+        result = start_game(room_id, "host")
+        return result
+
+    @app.post("/api/rooms/{room_id}/decide")
+    def api_submit_decision(room_id: str, body: dict = Body(...)):
+        from histrategy.server.room_manager import submit_decision
+
+        result = submit_decision(
+            room_id,
+            body.get("faction_id", ""),
+            body.get("user_id", body.get("faction_id", "")),
+            body.get("decision", ""),
+        )
+        return result
+
+    @app.get("/api/rooms/{room_id}/status")
+    def api_room_status(room_id: str, faction_id: str = ""):
+        from histrategy.server.room_manager import get_room_status
+
+        fid = faction_id if faction_id else None
+        return get_room_status(room_id, fid)
+
+    @app.get("/api/rooms")
+    def api_list_rooms():
+        from histrategy.server.room_manager import list_rooms
+
+        return {"rooms": list_rooms()}
+
+    @app.get("/mp")
+    def serve_multiplayer_page():
+        """Serve the multiplayer HTML client."""
+        import os as _os
+        from fastapi.responses import FileResponse
+
+        web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
+        return FileResponse(_os.path.join(web_dir, "mp.html"))
+
     return app
 
 
