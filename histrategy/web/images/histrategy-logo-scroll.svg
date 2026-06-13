@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 180" width="100%" height="100%" fill="none">
+  <defs>
+    <!-- Warm gold gradient for borders, scroll ends, and highlights -->
+    <linearGradient id="gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D4AF37" />
+      <stop offset="25%" stop-color="#F3E5AB" />
+      <stop offset="50%" stop-color="#AA7C11" />
+      <stop offset="75%" stop-color="#F3E5AB" />
+      <stop offset="100%" stop-color="#AA7C11" />
+    </linearGradient>
+
+    <!-- Silk scroll gold-yellow background gradient -->
+    <linearGradient id="scroll-silk-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#B7950B" />
+      <stop offset="50%" stop-color="#D4AF37" />
+      <stop offset="100%" stop-color="#7D6608" />
+    </linearGradient>
+
+    <!-- Edict parchment background gradient -->
+    <linearGradient id="parchment-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FDFBF7" />
+      <stop offset="10%" stop-color="#F3E5AB" />
+      <stop offset="90%" stop-color="#FDFBF7" />
+      <stop offset="100%" stop-color="#E5D38A" />
+    </linearGradient>
+
+    <!-- Shadow filter for 3D depth -->
+    <filter id="drop-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="4" flood-color="#000000" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <!-- Main interactive design components with drop shadow -->
+  <g filter="url(#drop-shadow)">
+    <!-- Scroll Rods (Ends) -->
+    <g>
+      <!-- Left Rod Axis -->
+      <rect x="18" y="18" width="12" height="144" fill="url(#gold-grad)" rx="2" />
+      <!-- Left Top Knob -->
+      <circle cx="24" cy="12" r="9" fill="url(#gold-grad)" />
+      <rect x="20" y="12" width="9" height="6" fill="#120202" opacity="0.3" />
+      <!-- Left Bottom Knob -->
+      <circle cx="24" cy="168" r="9" fill="url(#gold-grad)" />
+      <rect x="20" y="162" width="9" height="6" fill="#120202" opacity="0.3" />
+
+      <!-- Right Rod Axis -->
+      <rect x="310" y="18" width="12" height="144" fill="url(#gold-grad)" rx="2" />
+      <!-- Right Top Knob -->
+      <circle cx="316" cy="12" r="9" fill="url(#gold-grad)" />
+      <rect x="312" y="12" width="9" height="6" fill="#120202" opacity="0.3" />
+      <!-- Right Bottom Knob -->
+      <circle cx="316" cy="168" r="9" fill="url(#gold-grad)" />
+      <rect x="312" y="162" width="9" height="6" fill="#120202" opacity="0.3" />
+    </g>
+
+    <!-- Scroll Back/Brocade Frame -->
+    <rect x="24" y="26" width="292" height="128" fill="url(#scroll-silk-grad)" stroke="url(#gold-grad)" stroke-width="2" rx="3" />
+    <!-- Scroll Red Border Silk -->
+    <rect x="29" y="31" width="282" height="118" fill="none" stroke="#7B241C" stroke-width="3" opacity="0.9" />
+
+    <!-- Center Writing Parchment (Decree Body) -->
+    <rect x="64" y="39" width="212" height="102" fill="url(#parchment-grad)" rx="1" />
+    <rect x="64" y="39" width="212" height="102" fill="none" stroke="url(#scroll-silk-grad)" stroke-width="1.2" opacity="0.5" />
+
+    <!-- Vertical Classical Text Lines -->
+    <!-- Column 1 (Right) -->
+    <path d="M 238 54 L 238 126" stroke="#1C2833" stroke-width="4" stroke-linecap="round" stroke-dasharray="4 8 8 5 7" opacity="0.85" />
+    <!-- Column 2 -->
+    <path d="M 203 54 L 203 126" stroke="#1C2833" stroke-width="4" stroke-linecap="round" stroke-dasharray="8 5 6 7 5" opacity="0.85" />
+    <!-- Column 3 -->
+    <path d="M 168 54 L 168 126" stroke="#1C2833" stroke-width="4" stroke-linecap="round" stroke-dasharray="5 8 5 9 4" opacity="0.85" />
+    <!-- Column 4 -->
+    <path d="M 133 54 L 133 126" stroke="#1C2833" stroke-width="4" stroke-linecap="round" stroke-dasharray="7 6 9 5 6" opacity="0.85" />
+    
+    <!-- Imperial Red Seal Stamp (玉玺印章) -->
+    <g transform="translate(86, 100)">
+      <rect x="0" y="0" width="26" height="26" fill="#900C3F" stroke="url(#gold-grad)" stroke-width="1" rx="2" filter="url(#drop-shadow)" />
+      <path d="M 5 5 L 21 5 M 5 13 L 21 13 M 5 21 L 21 21 M 13 5 L 13 21" stroke="url(#gold-grad)" stroke-width="1.2" opacity="0.8" />
+    </g>
+  </g>
+</svg>
