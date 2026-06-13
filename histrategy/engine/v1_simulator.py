@@ -282,13 +282,15 @@ def save_v1_state_to_db(
 
         factions_data = v1_result.get("factions", {})
         logger.warning(
-            "save_v1_state_to_db: room=%s q=%d factions_in_result=%d keys=%s",
+            "save_v1_state_to_db: room=%s q=%d factions_in_result=%d keys=%s ws_factions=%s",
             room_id, quarter_number, len(factions_data), list(factions_data.keys())[:10],
+            list(ws.factions.keys())[:10],
         )
 
         for fid, data in factions_data.items():
             faction = ws.factions.get(fid)
             if not faction:
+                logger.warning("save_v1_state_to_db: SKIP fid=%s - not in ws.factions", fid)
                 continue
 
             # ── 保存完整状态快照 (game_state) ──
