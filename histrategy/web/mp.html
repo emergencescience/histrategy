@@ -142,10 +142,10 @@ function show(id) { document.getElementById(id).classList.remove('hidden'); }
 function hide(id) { document.getElementById(id).classList.add('hidden'); }
 function el(id) { return document.getElementById(id); }
 
-// Read room & faction from URL (for player joining via link)
+// Read room, faction & player_token from URL (for player joining via link)
 function parseURL() {
   const p = new URLSearchParams(location.search);
-  return { room: p.get('room') || '', faction: p.get('faction') || '' };
+  return { room: p.get('room') || '', faction: p.get('faction') || '', player_token: p.get('player_token') || '' };
 }
 
 // ── Init ───────────────────────
@@ -168,11 +168,11 @@ function parseURL() {
   });
 
   // Auto-join if URL has room + faction
-  const { room, faction } = parseURL();
+  const { room, faction, player_token } = parseURL();
   if (room && faction) {
     el('join-room-id').value = room;
     el('join-faction').value = faction;
-    doJoinRoom();
+    doJoinRoom(player_token);
   }
 })();
 
@@ -191,7 +191,7 @@ async function doCreateRoom() {
   roomId = r.room_id;
   myRole = 'host';
 
-  // Show player links — game already started
+  // Show player links — use server-returned links with player_token for multi-browser isolation
   hide('home-panel');
   show('room-created-panel');
   el('top-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · 已开始`;
@@ -200,30 +200,46 @@ async function doCreateRoom() {
   linksDiv.innerHTML = '';
   const factionNames = {caocao:'曹操军(魏)', liubei:'刘备军(蜀)', sunquan:'孙权军(吴)'};
 
-  humanFactions.forEach(fid => {
-    const url = `${location.origin}/mp?room=${roomId}&faction=${fid}`;
-    const div = document.createElement('div');
-    div.className = 'player-link';
-    div.innerHTML = `
-      <span class="faction-tag ${['caocao','liubei','sunquan'].includes(fid) ? fid : ''}">${factionNames[fid] || fid}</span>
-      <code>${url}</code>
-      <button class="copy-btn" onclick="copyLink(this, '${url}')">复制链接</button>`;
-    linksDiv.appendChild(div);
-  });
+  // 优先使用服务端返回的 player_links（含 player_token）
+  const playerLinks = r.player_links || [];
+  if (playerLinks.length > 0) {
+    playerLinks.forEach(link => {
+      const fid = link.faction;
+      const cssClass = ['caocao','liubei','sunquan'].includes(fid) ? fid : fid;
+      const div = document.createElement('div');
+      div.className = 'player-link';
+      div.innerHTML = `
+        <span class="faction-tag ${cssClass}">${factionNames[fid] || fid} — ${link.player_name || ''}</span>
+        <code>${link.url}</code>
+        <button class="copy-btn" onclick="copyLink(this, '${link.url}')">复制链接</button>`;
+      linksDiv.appendChild(div);
+    });
+  } else {
+    // 旧格式回退：自行构造 URL（无 player_token，兼容旧服务端）
+    humanFactions.forEach(fid => {
+      const url = `${location.origin}/mp?room=${roomId}&faction=${fid}`;
+      const div = document.createElement('div');
+      div.className = 'player-link';
+      div.innerHTML = `
+        <span class="faction-tag ${['caocao','liubei','sunquan'].includes(fid) ? fid : ''}">${factionNames[fid] || fid}</span>
+        <code>${url}</code>
+        <button class="copy-btn" onclick="copyLink(this, '${url}')">复制链接</button>`;
+      linksDiv.appendChild(div);
+    });
+  }
 
   // Stay on link page — Host needs to share links before playing
 }
 
 // ── Join Room ───────────────────
-async function doJoinRoom() {
+async function doJoinRoom(playerToken) {
   const rid = el('join-room-id').value.trim();
   const fid = el('join-faction').value;
   if (!rid) { alert('请输入房间 ID'); return; }
 
-  const r = await api('POST', `/api/rooms/${rid}/enter`, {
-    user_id: myUserId,
-    faction: fid,
-  });
+  const body = { user_id: myUserId, faction: fid };
+  if (playerToken) body.player_token = playerToken;
+  const r = await api('POST', `/api/rooms/${rid}/enter`, body);
   if (!r.ok) { alert(r.error); return; }
 
   roomId = rid;
