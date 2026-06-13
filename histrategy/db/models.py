@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from .connection import execute, execute_one, execute_write, json_dumps, json_loads
+from .connection import _IS_SQLITE, execute, execute_one, execute_write, json_dumps, json_loads
 
 if TYPE_CHECKING:
     from histrategy.engine.game_room import GameRoom
@@ -329,27 +329,60 @@ def save_game_state(
     """
     state_id = str(uuid.uuid4())
 
-    execute_write(
-        """INSERT OR REPLACE INTO game_state
-            (id, room_id, quarter_number, faction_id,
-             population, troops, food, treasury, morale,
-             territories, policies, is_active)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        (
-            state_id,
-            room_id,
-            quarter_number,
-            faction_id,
-            population,
-            troops,
-            food,
-            treasury,
-            morale,
-            json_dumps(territories) if territories else "[]",
-            json_dumps(policies) if policies else "{}",
-            1 if is_active else 0,
-        ),
-    )
+    # Cross-DB upsert: SQLite uses INSERT OR REPLACE, PostgreSQL uses ON CONFLICT
+    if _IS_SQLITE:
+        execute_write(
+            """INSERT OR REPLACE INTO game_state
+                (id, room_id, quarter_number, faction_id,
+                 population, troops, food, treasury, morale,
+                 territories, policies, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                state_id,
+                room_id,
+                quarter_number,
+                faction_id,
+                population,
+                troops,
+                food,
+                treasury,
+                morale,
+                json_dumps(territories) if territories else "[]",
+                json_dumps(policies) if policies else "{}",
+                1 if is_active else 0,
+            ),
+        )
+    else:
+        execute_write(
+            """INSERT INTO game_state
+                (id, room_id, quarter_number, faction_id,
+                 population, troops, food, treasury, morale,
+                 territories, policies, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (room_id, quarter_number, faction_id) DO UPDATE SET
+                population = EXCLUDED.population,
+                troops = EXCLUDED.troops,
+                food = EXCLUDED.food,
+                treasury = EXCLUDED.treasury,
+                morale = EXCLUDED.morale,
+                territories = EXCLUDED.territories,
+                policies = EXCLUDED.policies,
+                is_active = EXCLUDED.is_active""",
+            (
+                state_id,
+                room_id,
+                quarter_number,
+                faction_id,
+                population,
+                troops,
+                food,
+                treasury,
+                morale,
+                json_dumps(territories) if territories else "[]",
+                json_dumps(policies) if policies else "{}",
+                1 if is_active else 0,
+            ),
+        )
     return state_id
 
 
@@ -452,23 +485,47 @@ def save_policy_state(
     """Save a policy/tech state. Returns the policy ID."""
     policy_id = str(uuid.uuid4())
 
-    execute_write(
-        """INSERT OR REPLACE INTO policy_state
-            (id, room_id, quarter_number, faction_id, policy_type,
-             policy_name, policy_level, params, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        (
-            policy_id,
-            room_id,
-            quarter_number,
-            faction_id,
-            policy_type,
-            policy_name,
-            policy_level,
-            json_dumps(params) if params else "{}",
-            status,
-        ),
-    )
+    if _IS_SQLITE:
+        execute_write(
+            """INSERT OR REPLACE INTO policy_state
+                (id, room_id, quarter_number, faction_id, policy_type,
+                 policy_name, policy_level, params, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                policy_id,
+                room_id,
+                quarter_number,
+                faction_id,
+                policy_type,
+                policy_name,
+                policy_level,
+                json_dumps(params) if params else "{}",
+                status,
+            ),
+        )
+    else:
+        execute_write(
+            """INSERT INTO policy_state
+                (id, room_id, quarter_number, faction_id, policy_type,
+                 policy_name, policy_level, params, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT (room_id, faction_id, policy_name, status) DO UPDATE SET
+                quarter_number = EXCLUDED.quarter_number,
+                policy_type = EXCLUDED.policy_type,
+                policy_level = EXCLUDED.policy_level,
+                params = EXCLUDED.params""",
+            (
+                policy_id,
+                room_id,
+                quarter_number,
+                faction_id,
+                policy_type,
+                policy_name,
+                policy_level,
+                json_dumps(params) if params else "{}",
+                status,
+            ),
+        )
     return policy_id
 
 
