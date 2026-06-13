@@ -29,7 +29,7 @@ def _start_server_thread(host: str, port: int, data_dir: str, api_key: str):
     os.environ["HISTRATEGY_ENGINE"] = "v1"
 
     import logging
-    logging.basicConfig(level=logging.ERROR)
+    logging.basicConfig(level=logging.INFO)
 
     from histrategy.server.api import create_app
     import uvicorn
