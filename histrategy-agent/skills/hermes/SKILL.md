@@ -11,6 +11,7 @@ metadata:
     tags: [gaming, strategy, three-kingdoms, multiplayer, history, feishu]
     related_skills: []
     category: gaming
+    requires: histrategy-sdk>=0.2.0
     slash_commands:
       - /histrategy
       - /三国
@@ -25,41 +26,82 @@ metadata:
 - 用户在当前会话中已有活跃游戏存档
 
 ## Quick Start
-- `/histrategy new` — 开始新游戏，选择势力
-- `/histrategy load` — 加载已有存档
-- `/histrategy status` — 查看当前局势
-- `/histrategy join` — 加入多人游戏（群聊）
+- `/histrategy new [faction]` — 开始单人游戏，可选指定势力
+- `/histrategy host caocao=张三 liubei=李四` — 创建多人房间
+- `/histrategy join <room_id> <faction> [token]` — 加入多人游戏
+- `/histrategy play <decision>` — 提交回合决策
+- `/histrategy status` — 查看当前状态
+- `/histrategy turns` — 查看回合历史
 - `/histrategy help` — 显示帮助
-- 直接发送指令 — 如「进攻洛阳」「招募步兵」「与孙权结盟」
 
 ## Procedure
 
-### 1. 新游戏 (/histrategy new)
-1. 调用 `scripts/entry.py` 的 `handle_new_game(platform, chat_id, user_id)`
-2. 展示 5 个可选势力（刘备/曹操/孙权/刘表/刘璋）
-3. 用户回复势力名称后，初始化世界状态
-4. 渲染势力简介 + 起始状态 + 地图
-5. 保存会话
+### 1. 单人模式 (`/histrategy new [faction]`)
 
-### 2. 回合处理（玩家发送指令时）
-1. 加载存档：`scripts/entry.py handle_turn(platform, chat_id, user_id, text)`
-2. Intent parser 解析玩家意图
-3. Engine 执行游戏逻辑
-4. LLM 生成叙事（或离线 fallback）
-5. 渲染结果：叙事 + 地图 + 状态卡片 + 建议选项
-6. 保存状态
-7. 将完整结果发送到聊天
+使用 `histrategy_sdk.Room`（基于文件的状态管理）:
 
-### 3. 多人模式
-- 第一位发 `/histrategy new` 的是房主
-- 其他人发 `/histrategy join` 加入
-- 房主可选势力分配方式
-- 回合制轮流行动
+```python
+from histrategy_sdk import Room
 
-### 4. 存档管理
-- `/histrategy save` — 保存当前进度
+# 创建房间（支持 shu / wei / wu / neutral 等势力）
+room = Room.create("my-game", faction="shu")
+
+# 提交决策
+result = room.play("联吴抗曹")
+
+# 查看状态
+room.status()
+```
+
+工作流：
+1. 创建房间时展示势力简介 + 起始状态 + 地图
+2. 玩家通过 `/histrategy play <decision>` 提交决策 → `room.play(decision_text)`
+3. 引擎执行游戏逻辑，LLM 生成叙事
+4. 渲染结果：叙事 + 地图 + 状态卡片 + 建议选项
+5. 重复步骤 2-4，直到游戏结束
+
+### 2. 多人模式
+
+使用 `histrategy_sdk.MultiplayerRoom`:
+
+#### 房主创建房间 (`/histrategy host caocao=张三 liubei=李四`)
+
+```python
+from histrategy_sdk import MultiplayerRoom
+
+client = get_client()  # 平台客户端
+room = MultiplayerRoom.create(client, {
+    "caocao": "张三",
+    "liubei": "李四",
+})
+# 将 room.player_links 分享给对应玩家
+```
+
+#### 玩家加入 (`/histrategy join <room_id> <faction> [token]`)
+
+```python
+room = MultiplayerRoom.join(client, room_id, faction, token)
+```
+
+#### 回合决策 (`/histrategy play <decision>`)
+
+```python
+# 提交决策
+room.decide("攻打襄阳")
+
+# 等待结算
+room.wait_for_resolve()
+
+# 查看结果
+status = room.status()
+```
+
+### 3. 状态管理
+
+- `/histrategy status` — 查看当前状态（`room.status()`）
+- `/histrategy turns` — 查看回合历史
+- `/histrategy save` — 保存进度
 - `/histrategy load` — 加载存档
-- `/histrategy status` — 查看当前状态
 - `/histrategy delete` — 删除存档
 
 ## Output Format (Feishu)

@@ -18,6 +18,7 @@ metadata:
     category: gaming
     min_version: "1.0.0"
     clawhub_id: histrategy
+    requires: histrategy-sdk>=0.2.0
   tags: [gaming, strategy, three-kingdoms, multiplayer, history, feishu]
 ---
 
@@ -27,22 +28,82 @@ metadata:
 When a user sends `/histrategy`, `/三国`, `/sanguo`, or any message containing 「三国志略」「三国」in a chat where this skill is active.
 
 ## Quick Start
-- `/histrategy new` — Start a new campaign (pick your faction)
-- `/histrategy load` — Load saved game
-- `/histrategy status` — View current world state
-- `/histrategy join` — Join a multiplayer session (group chat)
+- `/histrategy new [faction]` — Start single-player game (optionally specify faction)
+- `/histrategy host caocao=Alice liubei=Bob` — Create multiplayer room
+- `/histrategy join <room_id> <faction> [token]` — Join multiplayer game
+- `/histrategy play <decision>` — Submit turn decision
+- `/histrategy status` — View current state
+- `/histrategy turns` — View turn history
 - `/histrategy help` — Show help
-- Direct input — Natural language commands like "Attack Luoyang", "Recruit cavalry"
 
 ## Core Loop
-1. Player inputs natural language command
-2. AI processes the turn: intent parsing → engine execution → narrative generation
-3. Returns: narrative + map + status cards + suggestions
-4. World evolves continuously; NPC factions act autonomously
 
-## Multiplayer Mode
-In group chats, the first player to start a game becomes the host. Others join via `/histrategy join`.
-Turn-based: each player commands their faction in sequence.
+### Single-Player (`/histrategy new [faction]`)
+
+Uses `histrategy_sdk.Room` (file-based state management):
+
+```python
+from histrategy_sdk import Room
+
+# Create a room (supports shu / wei / wu / neutral)
+room = Room.create("my-game", faction="shu")
+
+# Submit a decision
+result = room.play("Ally with Wu against Cao")
+
+# View status
+room.status()
+```
+
+Workflow:
+1. On room creation, display faction intro + starting state + map
+2. Player submits decision via `/histrategy play <decision>` → `room.play(decision_text)`
+3. Engine executes game logic, LLM generates narrative
+4. Render result: narrative + map + status cards + suggested actions
+5. Repeat steps 2-4 until game ends
+
+### Multiplayer
+
+Uses `histrategy_sdk.MultiplayerRoom`:
+
+#### Host creates room (`/histrategy host caocao=Alice liubei=Bob`)
+
+```python
+from histrategy_sdk import MultiplayerRoom
+
+client = get_client()  # platform client
+room = MultiplayerRoom.create(client, {
+    "caocao": "Alice",
+    "liubei": "Bob",
+})
+# Share room.player_links with respective players
+```
+
+#### Player joins (`/histrategy join <room_id> <faction> [token]`)
+
+```python
+room = MultiplayerRoom.join(client, room_id, faction, token)
+```
+
+#### Turn decisions (`/histrategy play <decision>`)
+
+```python
+# Submit decision
+room.decide("Attack Xiangyang")
+
+# Wait for resolution
+room.wait_for_resolve()
+
+# View results
+status = room.status()
+```
+
+### State Management
+- `/histrategy status` — View current state (`room.status()`)
+- `/histrategy turns` — View turn history
+- `/histrategy save` — Save progress
+- `/histrategy load` — Load saved game
+- `/histrategy delete` — Delete save
 
 ## Output Format (Feishu Markdown)
 

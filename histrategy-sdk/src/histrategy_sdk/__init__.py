@@ -8,26 +8,53 @@ in-memory state — designed for AI agents that reset context daily.
 Quick Start
 -----------
 
+**Option A: Remote Server (lightweight, no engine deps)**
+
+    from histrategy_sdk import ServerClient
+
+    client = ServerClient()
+    game = client.create_game(faction="shu")
+    result = client.execute_command(game["game_id"], "联吴抗曹，攻打襄阳")
+    print(result["narrative"])
+
+    # Multiplayer
+    from histrategy_sdk import MultiplayerRoom
+
+    result = MultiplayerRoom.create(
+        client, {"caocao": "曹操", "liubei": "刘备"}
+    )
+    room = MultiplayerRoom.join(
+        client, result["room_id"], "caocao",
+        result["player_links"][0]["player_token"]
+    )
+    room.decide("发展农业")
+
+**Option B: Direct Engine (in-process, needs histrategy-engine)**
+
+    pip install histrategy-sdk[engine]
+
+    from histrategy_sdk import DirectEngine
+
+    engine = DirectEngine(faction="shu")
+    intro = engine.get_intro()
+    result = engine.execute("联吴抗曹")
+    print(result["narrative"])
+
+    # Save and restore
+    data = engine.to_dict()
+    engine2 = DirectEngine.from_dict(data)
+
+**Option C: File-based Room (persistent, no network)**
+
     from histrategy_sdk import Room
 
-    # Create a new game room
-    room = Room.create("my-game", faction="shu")
-
-    # Play a turn (reads state from disk, executes, writes back)
+    room = Room.create("my-campaign", faction="shu")
     result = room.play("联吴抗曹，攻打襄阳")
-    print(result.narrative)
-
-    # Come back tomorrow — state survives agent context reset
-    room2 = Room.load("my-game")
-    result2 = room2.play("休养生息")
-
-    # Multiplayer: each faction has its own room
-    room_shu = Room.create("three-kingdoms/shu", faction="shu")
-    room_cao = Room.create("three-kingdoms/cao", faction="cao")
-    room_wu  = Room.create("three-kingdoms/wu", faction="wu")
+    print(result["narrative"])
 """
 
-from ._engine import DirectEngine
+from ._client import ServerClient
+from ._mp_room import MultiplayerRoom
 from ._room import Room
 from .exceptions import (
     APIError,
@@ -38,23 +65,40 @@ from .exceptions import (
     TurnExecutionError,
 )
 from .types import (
+    CreateRoomResult,
     FactionStatus,
     GameIntro,
     PlanData,
+    PlayerLink,
     RestoreResult,
+    RoomStatus,
     TokenUsage,
     TurnResult,
 )
 
+# DirectEngine is optional — import fails gracefully if histrategy not installed
+try:
+    from ._engine import DirectEngine
+except ImportError:
+    DirectEngine = None  # type: ignore[assignment]
+
 __all__ = [
-    # Core API
-    "Room",
+    # Client
+    "ServerClient",
+    # Engine (optional)
     "DirectEngine",
+    # File-based Room
+    "Room",
+    # Multiplayer
+    "MultiplayerRoom",
     # Types
+    "CreateRoomResult",
     "FactionStatus",
     "GameIntro",
     "PlanData",
+    "PlayerLink",
     "RestoreResult",
+    "RoomStatus",
     "TokenUsage",
     "TurnResult",
     # Exceptions

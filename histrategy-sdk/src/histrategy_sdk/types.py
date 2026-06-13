@@ -83,3 +83,42 @@ class RestoreResult(TypedDict):
     restored: bool
     restored_turn: int
     restored_year: int
+
+
+# ── Multiplayer Types ───────────────────────────────────
+
+
+class PlayerLink(TypedDict):
+    """A player link in a pre-assigned multiplayer room."""
+
+    faction: str
+    player_name: str
+    player_token: str
+    url: str
+
+
+class CreateRoomResult(TypedDict):
+    """Response from creating a multiplayer room."""
+
+    ok: bool
+    room_id: str
+    host_token: str
+    phase: str
+    human_factions: list[str]
+    player_links: list[PlayerLink]
+
+
+class RoomStatus(TypedDict):
+    """Room status response from the multiplayer API."""
+
+    ok: bool
+    room_id: str
+    host_user_id: str
+    phase: str
+    year: int
+    season: str
+    quarter: int
+    players: dict[str, dict]
+    slots: dict[str, dict]
+    submitted: list[str]
+    pending: list[str]
