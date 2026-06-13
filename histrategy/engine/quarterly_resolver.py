@@ -298,6 +298,8 @@ class QuarterlyResolver:
                 return faction_id, ""
 
         factions = list(all_decisions.keys())
+        if not factions:
+            return narratives
         with ThreadPoolExecutor(max_workers=min(len(factions), 4)) as executor:
             futures = {executor.submit(_narrate_one, fid): fid for fid in factions}
             for future in as_completed(futures):

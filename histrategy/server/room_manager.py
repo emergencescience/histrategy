@@ -348,8 +348,17 @@ def submit_decision(room_id: str, faction_id: str, user_id: str, decision: str) 
 
     if not pending:
         # 异步执行（LLM 调用可能耗时 30-60s，不能阻塞 HTTP 响应）
-        import threading
-        t = threading.Thread(target=_resolve_and_advance, args=(room,), daemon=True)
+        import threading, traceback
+
+        def _resolve_safe(room):
+            try:
+                _resolve_and_advance(room)
+            except Exception as exc:
+                logger.error("Room %s resolve failed: %s", room.id, exc)
+                traceback.print_exc()
+                room.phase = type(room.phase).WAITING  # reset on error
+
+        t = threading.Thread(target=_resolve_safe, args=(room,), daemon=True)
         t.start()
 
     status = "resolving" if not pending else "waiting"
@@ -529,9 +538,7 @@ def _resolve_and_advance(room: GameRoom):
     if engine_mode == EngineMode.V1:
         result = _resolve_v1(room, ws, decisions, llm)
     else:
-        # V2/V3: 使用完整初始化的 QuarterlyResolver
         result = _resolve_v3(room, ws, decisions, llm)
-        result = resolver.resolve(room, ws, decisions, llm=llm)
 
     room._last_narratives = result.narratives
     npc_actions = []
@@ -605,11 +612,17 @@ def _resolve_v3(room, ws, decisions, llm):
 
     # 创建临时 GameEngine 来获取所有子引擎
     try:
+        import os
+        os.environ.setdefault("HISTRATEGY_MACRO", "1")  # 确保 MacroPolicyEngine 初始化
         from histrategy.engine.game import GameEngine
-        engine = GameEngine(scenario=room.scenario, new_game=False, llm=llm)
-        # 将 room 的 world_state 注入
+        engine = GameEngine(scenario=room.scenario, new_game=True, llm=llm)
+        # 将 room 的 world_state 注入（覆盖新创建的世界）
         engine.world_state_v2 = ws
         engine._use_v2 = True
+        # 设定玩家 faction（任意一个人类 faction 即可，QuarterlyResolver 需要）
+        for slot in room.human_slots():
+            engine.set_player_faction(slot.faction_id)
+            break
     except Exception as e:
         logger.warning(f"GameEngine init failed: {e}, using bare QuarterlyResolver")
         resolver = QuarterlyResolver()
