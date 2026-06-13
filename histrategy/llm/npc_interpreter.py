@@ -69,9 +69,7 @@ class NPCInterpreter:
                 "turn": state.turn,
                 "year": state.year,
                 "season": (
-                    state.current_season.name
-                    if hasattr(state.current_season, "name")
-                    else str(state.current_season)
+                    state.current_season.name if hasattr(state.current_season, "name") else str(state.current_season)
                 ),
                 "category": "npc_interpreter",
                 "reason": "interpret",

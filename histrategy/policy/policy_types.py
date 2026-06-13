@@ -9,19 +9,21 @@ from dataclasses import dataclass, field
 
 # ─── Policy command types ──────────────────────────────────────
 
-POLICY_COMMAND_TYPES = frozenset({
-    "tax_rate",      # Set tax rate for territories
-    "law",           # Enact/abolish a law or institution
-    "appoint",       # Appoint/dismiss a character to/from a position
-    "diplomacy",     # Send envoy, form alliance, break relations
-    "declare_war",   # Declare war on another faction (battles are LLM-simulated)
-    "sue_peace",     # Offer peace / become tributary
-    "relocate_capital",  # Move capital to another territory
-    "intelligence",  # Send spies, gather intel
-    "develop",       # Invest in territory development
-    "trade",         # Establish trade route
-    "conscript",     # Raise troops (macro-level, no unit micromanagement)
-})
+POLICY_COMMAND_TYPES = frozenset(
+    {
+        "tax_rate",  # Set tax rate for territories
+        "law",  # Enact/abolish a law or institution
+        "appoint",  # Appoint/dismiss a character to/from a position
+        "diplomacy",  # Send envoy, form alliance, break relations
+        "declare_war",  # Declare war on another faction (battles are LLM-simulated)
+        "sue_peace",  # Offer peace / become tributary
+        "relocate_capital",  # Move capital to another territory
+        "intelligence",  # Send spies, gather intel
+        "develop",  # Invest in territory development
+        "trade",  # Establish trade route
+        "conscript",  # Raise troops (macro-level, no unit micromanagement)
+    }
+)
 
 
 @dataclass
@@ -35,14 +37,13 @@ class PolicyCommand:
 
     type: str
     params: dict = field(default_factory=dict)
-    notes: str = ""          # Original context from player text
-    source_text: str = ""    # The raw text fragment this came from
+    notes: str = ""  # Original context from player text
+    source_text: str = ""  # The raw text fragment this came from
 
     def __post_init__(self):
         if self.type not in POLICY_COMMAND_TYPES:
             raise ValueError(
-                f"Unknown policy command type '{self.type}'. "
-                f"Must be one of: {', '.join(sorted(POLICY_COMMAND_TYPES))}"
+                f"Unknown policy command type '{self.type}'. Must be one of: {', '.join(sorted(POLICY_COMMAND_TYPES))}"
             )
 
 

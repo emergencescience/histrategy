@@ -18,7 +18,7 @@ NPC数量限制：
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 
 
@@ -106,7 +106,7 @@ class FactionSlot:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "FactionSlot":
+    def from_dict(cls, data: dict) -> FactionSlot:
         return cls(
             faction_id=data["faction_id"],
             occupant_type=OccupantType(data.get("occupant_type", "open")),

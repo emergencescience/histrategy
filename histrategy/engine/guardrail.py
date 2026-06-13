@@ -98,9 +98,7 @@ class GuardrailValidator:
                 if faction and faction in world_state.factions:
                     sanitized["political_events"].append(pe)
                 else:
-                    warnings.append(
-                        GuardrailWarning("political_event", f"Unknown faction: {faction}")
-                    )
+                    warnings.append(GuardrailWarning("political_event", f"Unknown faction: {faction}"))
 
         # ── Validate NPC actions ──
         if "npc_actions" in delta:
@@ -109,9 +107,7 @@ class GuardrailValidator:
                 if faction and faction in world_state.factions:
                     sanitized["npc_actions"].append(na)
                 else:
-                    warnings.append(
-                        GuardrailWarning("npc_action", f"Unknown faction: {faction}")
-                    )
+                    warnings.append(GuardrailWarning("npc_action", f"Unknown faction: {faction}"))
 
         accepted = len(violations) == 0
 
@@ -145,23 +141,17 @@ class GuardrailValidator:
         # Constraint: captured/escaped characters must be valid
         for char_id in bo.get("captured_characters", []):
             if char_id not in ws.characters:
-                raise GuardrailViolation(
-                    "captured_characters", f"Unknown character: {char_id}"
-                )
+                raise GuardrailViolation("captured_characters", f"Unknown character: {char_id}")
         for char_id in bo.get("escaped_characters", []):
             if char_id not in ws.characters:
-                raise GuardrailViolation(
-                    "escaped_characters", f"Unknown character: {char_id}"
-                )
+                raise GuardrailViolation("escaped_characters", f"Unknown character: {char_id}")
 
         # Constraint: cannot capture AND have the same character escape
         captured = set(bo.get("captured_characters", []))
         escaped = set(bo.get("escaped_characters", []))
         overlap = captured & escaped
         if overlap:
-            raise GuardrailViolation(
-                "characters", f"Characters both captured and escaped: {overlap}"
-            )
+            raise GuardrailViolation("characters", f"Characters both captured and escaped: {overlap}")
 
         # Find the baseline battle for deviation check
         if hasattr(baseline, "battles"):
@@ -173,8 +163,10 @@ class GuardrailValidator:
                     # Non-combat outcomes (surrender, retreat) may have zero casualties
                     llm_result = bo.get("llm_result", "")
                     is_non_combat = llm_result in (
-                        "defender_surrendered", "defender_retreated",
-                        "attacker_repelled", "stalemate",
+                        "defender_surrendered",
+                        "defender_retreated",
+                        "attacker_repelled",
+                        "stalemate",
                     )
 
                     if not is_non_combat:
@@ -183,14 +175,20 @@ class GuardrailValidator:
                             if ratio > 2.0 or ratio < 0.1:
                                 raise GuardrailViolation(
                                     "casualties.attacker",
-                                    f"Attacker casualties {atk_loss} deviate too far from baseline {base_atk} (ratio={ratio:.2f})",
+                                    (
+                                        f"Attacker casualties {atk_loss} deviate too far"
+                                        f" from baseline {base_atk} (ratio={ratio:.2f})"
+                                    ),
                                 )
                         if base_def > 0:
                             ratio = def_loss / base_def
                             if ratio > 2.0 or ratio < 0.1:
                                 raise GuardrailViolation(
                                     "casualties.defender",
-                                    f"Defender casualties {def_loss} deviate too far from baseline {base_def} (ratio={ratio:.2f})",
+                                    (
+                                        f"Defender casualties {def_loss} deviate too far"
+                                        f" from baseline {base_def} (ratio={ratio:.2f})"
+                                    ),
                                 )
                     break
 
@@ -207,13 +205,9 @@ class GuardrailValidator:
         # Constraint: morale must stay in [0, 100]
         new_morale = current_morale + change
         if new_morale < 0:
-            raise GuardrailViolation(
-                "change", f"Morale would go below 0: {current_morale} + {change} = {new_morale}"
-            )
+            raise GuardrailViolation("change", f"Morale would go below 0: {current_morale} + {change} = {new_morale}")
         if new_morale > 100:
-            raise GuardrailViolation(
-                "change", f"Morale would exceed 100: {current_morale} + {change} = {new_morale}"
-            )
+            raise GuardrailViolation("change", f"Morale would exceed 100: {current_morale} + {change} = {new_morale}")
 
         # Constraint: territory must exist if specified
         territory = me.get("territory", "")

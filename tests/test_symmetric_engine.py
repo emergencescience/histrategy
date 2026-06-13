@@ -4,25 +4,23 @@ Tests FactionSlot, GameRoom, DecisionBus, and DB persistence
 without requiring LLM API keys (uses heuristic fallback paths).
 """
 
-import uuid
-
 import pytest
+
 from histrategy.db import init_db, load_room, save_quarter_turn, save_room
 from histrategy.engine.decision_bus import DecisionResult
 from histrategy.engine.faction_slot import (
-    FactionSlot,
     HEURISTIC_NPC_FACTIONS,
-    LLM_NPC_FACTIONS,
+    FactionSlot,
     OccupantType,
-    create_human_slot,
     create_ai_slot,
+    create_human_slot,
     create_open_slot,
 )
 from histrategy.engine.game_room import (
     GameRoom,
     RoomPhase,
-    create_single_player_room,
     create_multi_player_room,
+    create_single_player_room,
 )
 
 
@@ -240,6 +238,7 @@ class TestDBPersistence:
 
         # Re-import to pick up new URL
         import histrategy.db.connection as conn_module
+
         conn_module.DATABASE_URL = f"sqlite:///{db_path}"
         conn_module._IS_SQLITE = True
         conn_module._SCHEMA_LOADED = False
@@ -288,7 +287,10 @@ class TestDBPersistence:
         save_room(room)
 
         tid = save_quarter_turn(
-            room.id, quarter_number=1, year=208, season="夏",
+            room.id,
+            quarter_number=1,
+            year=208,
+            season="夏",
             faction_decisions={"cao": {"decision": "南征", "commands": []}},
             token_usage={"npc_cao": 500},
         )
@@ -362,7 +364,9 @@ class TestSymmetricEngineIntegration:
                 decision, commands = gen(ws, slot.faction_id)
                 slot.submit_decision(decision, commands)
                 decisions[slot.faction_id] = DecisionResult(
-                    slot.faction_id, decision, commands,
+                    slot.faction_id,
+                    decision,
+                    commands,
                     source="heuristic",
                 )
 

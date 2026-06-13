@@ -63,7 +63,8 @@ shu=刘备, cao=曹操, wu=孙权, liubiao=刘表, liuzhang=刘璋
 
 返回纯JSON：{"action": "...", "target": "...", "params": {...}}"""
 
-NARRATIVE_SYSTEM = """你是《三國志略》的史官。根据本回合发生的事件，以文白相间的三国演义体写一段简短的回合叙事（2-3句话）。
+NARRATIVE_SYSTEM = """你是《三國志略》的史官。根据本回合发生的事件，  # noqa: E501
+以文白相间的三国演义体写一段简短的回合叙事（2-3句话）。
 
 ## 风格要求
 - 文白相间，有历史感
@@ -189,10 +190,7 @@ class TurnProcessor:
         target = result.get("target", "")
         params_target = result.get("params", {}).get("target", "")
         # Actions requiring a target
-        if action in ("attack", "move", "develop", "diplomacy"):
-            if not target and not params_target:
-                return False  # Fall back to keyword
-        return True
+        return not (action in ("attack", "move", "develop", "diplomacy") and not target and not params_target)
 
     def _llm_intent(self, text: str, faction_id: str) -> dict | None:
         """Use LLM to understand player intent."""
@@ -218,7 +216,7 @@ class TurnProcessor:
 
     def _keyword_intent(self, text: str, faction_id: str) -> dict:
         """Keyword-based intent parser (offline fallback)."""
-        text_lower = text.lower().strip()
+        text.lower().strip()
 
         if any(kw in text for kw in ["状态", "情报", "status", "info", "查看", "天下大势"]):
             return {"action": "info", "target": "", "params": {}}

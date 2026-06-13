@@ -13,6 +13,7 @@ def load_prompt(filename: str, default: str | None = None) -> str | None:
     with open(path, encoding="utf-8") as f:
         return f.read().strip()
 
+
 ADVISOR_SYSTEM_PROMPT = load_prompt("advisor.md")
 ALIGNMENT_SYSTEM_PROMPT = load_prompt("alignment.md")
 VALIDATION_SYSTEM_PROMPT = load_prompt("validation.md")

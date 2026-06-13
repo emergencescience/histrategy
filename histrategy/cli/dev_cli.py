@@ -40,11 +40,10 @@ def run_dev(faction_choice: int | None = None, force_new: bool = False):
     """
     provider_info = detect_provider()
     llm = None
-    game_master = None
 
     if provider_info["name"]:
         llm = LLMAdapter()
-        game_master = GameMaster(llm)
+        GameMaster(llm)
         print(f"[系统] 检测到 {provider_info['name']} API ({provider_info['model']})", file=sys.stderr)
     else:
         print("[系统] 未检测到 API Key，将启动离线模式", file=sys.stderr)
@@ -84,7 +83,7 @@ def run_dev(faction_choice: int | None = None, force_new: bool = False):
 
         if faction_choice is None:
             print("=== 选择势力 ===")
-            for i, (fid, name, desc) in enumerate(factions, 1):
+            for i, (_, name, desc) in enumerate(factions, 1):
                 print(f"  {i}. {name} - {desc}")
             print()
             try:
@@ -272,7 +271,8 @@ def _show_offline_plan_mode(engine: GameEngine):
         ws = engine.world_state_v2
         print(f"\n  {ws.year}年{ws.season.cn} | 第{ws.turn_number}回合")
         print(
-            f"  {player.name}：兵力{player.strength_actual:,} | 经济{player.economy_actual} | 民心{player.morale_actual}"
+            f"  {player.name}：兵力{player.strength_actual:,}"
+            f" | 经济{player.economy_actual} | 民心{player.morale_actual}"
         )
     else:
         print(

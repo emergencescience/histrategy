@@ -285,9 +285,7 @@ class GameMaster:
                 "turn": state.turn,
                 "year": state.year,
                 "season": (
-                    state.current_season.name
-                    if hasattr(state.current_season, "name")
-                    else str(state.current_season)
+                    state.current_season.name if hasattr(state.current_season, "name") else str(state.current_season)
                 ),
                 "category": "gamemaster",
                 "reason": "intro",
@@ -387,9 +385,7 @@ class GameMaster:
                 "turn": state.turn,
                 "year": state.year,
                 "season": (
-                    state.current_season.name
-                    if hasattr(state.current_season, "name")
-                    else str(state.current_season)
+                    state.current_season.name if hasattr(state.current_season, "name") else str(state.current_season)
                 ),
                 "category": "gamemaster",
                 "reason": "plan",
@@ -468,9 +464,7 @@ class GameMaster:
                 "turn": state.turn,
                 "year": state.year,
                 "season": (
-                    state.current_season.name
-                    if hasattr(state.current_season, "name")
-                    else str(state.current_season)
+                    state.current_season.name if hasattr(state.current_season, "name") else str(state.current_season)
                 ),
                 "category": "gamemaster",
                 "reason": "command",

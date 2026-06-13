@@ -48,6 +48,7 @@ def memory():
     yield tm
     # cleanup
     import shutil
+
     shutil.rmtree(tmp, ignore_errors=True)
 
 
@@ -57,63 +58,107 @@ def world_state():
 
     ws.territories = {
         "xuchang": Territory(
-            id="xuchang", name="许昌", owner_id="cao",
-            fertility=7, terrain_type=TerrainType.PLAINS,
-            population=100000, development=70,
+            id="xuchang",
+            name="许昌",
+            owner_id="cao",
+            fertility=7,
+            terrain_type=TerrainType.PLAINS,
+            population=100000,
+            development=70,
             neighbors=["wancheng", "luoyang"],
         ),
         "wancheng": Territory(
-            id="wancheng", name="宛城", owner_id="cao",
-            fertility=6, terrain_type=TerrainType.PLAINS,
-            population=50000, development=40,
+            id="wancheng",
+            name="宛城",
+            owner_id="cao",
+            fertility=6,
+            terrain_type=TerrainType.PLAINS,
+            population=50000,
+            development=40,
             neighbors=["xuchang", "xinye"],
         ),
         "xinye": Territory(
-            id="xinye", name="新野", owner_id="shu",
-            fertility=6, terrain_type=TerrainType.PLAINS,
-            population=30000, development=25,
+            id="xinye",
+            name="新野",
+            owner_id="shu",
+            fertility=6,
+            terrain_type=TerrainType.PLAINS,
+            population=30000,
+            development=25,
             neighbors=["wancheng"],
         ),
     }
 
     ws.factions = {
         "cao": FactionState(
-            id="cao", name="曹操", ruler_id="cao_cao", capital="xuchang",
+            id="cao",
+            name="曹操",
+            ruler_id="cao_cao",
+            capital="xuchang",
             territories=["xuchang", "wancheng"],
-            strength_actual=150000, treasury=50000, food=30000,
-            morale_actual=60, tax_rate=0.3,
-            aggression=0.8, is_active=True,
+            strength_actual=150000,
+            treasury=50000,
+            food=30000,
+            morale_actual=60,
+            tax_rate=0.3,
+            aggression=0.8,
+            is_active=True,
         ),
         "shu": FactionState(
-            id="shu", name="刘备", ruler_id="liu_bei", capital="xinye",
+            id="shu",
+            name="刘备",
+            ruler_id="liu_bei",
+            capital="xinye",
             territories=["xinye"],
-            strength_actual=5000, treasury=3000, food=2000,
-            morale_actual=65, tax_rate=0.2,
-            mercy=0.95, is_active=True,
+            strength_actual=5000,
+            treasury=3000,
+            food=2000,
+            morale_actual=65,
+            tax_rate=0.2,
+            mercy=0.95,
+            is_active=True,
         ),
     }
 
     ws.armies = {
         "army_cao_1": Army(
-            id="army_cao_1", faction_id="cao", location="wancheng",
+            id="army_cao_1",
+            faction_id="cao",
+            location="wancheng",
             units={UnitType.INFANTRY: 50000, UnitType.CAVALRY: 10000},
         ),
         "army_shu_1": Army(
-            id="army_shu_1", faction_id="shu", location="xinye",
+            id="army_shu_1",
+            faction_id="shu",
+            location="xinye",
             units={UnitType.INFANTRY: 5000},
         ),
     }
 
     ws.characters = {
         "cao_cao": Character(
-            id="cao_cao", name="曹操", faction_id="cao",
-            alive=True, loyalty=100, leadership=95,
-            might=75, intelligence=92, politics=95, location="xuchang",
+            id="cao_cao",
+            name="曹操",
+            faction_id="cao",
+            alive=True,
+            loyalty=100,
+            leadership=95,
+            might=75,
+            intelligence=92,
+            politics=95,
+            location="xuchang",
         ),
         "liu_bei": Character(
-            id="liu_bei", name="刘备", faction_id="shu",
-            alive=True, loyalty=100, leadership=85,
-            might=70, intelligence=78, politics=82, location="xinye",
+            id="liu_bei",
+            name="刘备",
+            faction_id="shu",
+            alive=True,
+            loyalty=100,
+            leadership=85,
+            might=70,
+            intelligence=78,
+            politics=82,
+            location="xinye",
         ),
     }
 
@@ -130,38 +175,47 @@ class TestGuardrailBattleOverrides:
 
     def test_valid_override_passes(self, guardrail, world_state):
         delta = {
-            "battle_overrides": [{
-                "location": "xinye",
-                "baseline_result": "victory",
-                "llm_result": "defender_surrendered",
-                "casualties": {"attacker": 0, "defender": 0},
-                "reasoning": "刘备主动弃城",
-                "territory_captured": True,
-                "captured_characters": [],
-                "escaped_characters": ["liu_bei"],
-            }]
+            "battle_overrides": [
+                {
+                    "location": "xinye",
+                    "baseline_result": "victory",
+                    "llm_result": "defender_surrendered",
+                    "casualties": {"attacker": 0, "defender": 0},
+                    "reasoning": "刘备主动弃城",
+                    "territory_captured": True,
+                    "captured_characters": [],
+                    "escaped_characters": ["liu_bei"],
+                }
+            ]
         }
         # Create a minimal baseline with matching battle
         from histrategy_engine.world import BattleResult, CombatResult
-        baseline = TurnResult(battles=[
-            CombatResult(
-                battle_id="b1", location="xinye",
-                attacker_id="cao", defender_id="shu",
-                attacker_casualties={UnitType.INFANTRY: 500},
-                defender_casualties={UnitType.INFANTRY: 1000},
-                result=BattleResult.VICTORY,
-            )
-        ])
+
+        baseline = TurnResult(
+            battles=[
+                CombatResult(
+                    battle_id="b1",
+                    location="xinye",
+                    attacker_id="cao",
+                    defender_id="shu",
+                    attacker_casualties={UnitType.INFANTRY: 500},
+                    defender_casualties={UnitType.INFANTRY: 1000},
+                    result=BattleResult.VICTORY,
+                )
+            ]
+        )
         result = guardrail.validate(delta, world_state, baseline)
         assert result["accepted"] is True
         assert len(result["violations"]) == 0
 
     def test_unknown_territory_rejected(self, guardrail, world_state):
         delta = {
-            "battle_overrides": [{
-                "location": "atlantis",
-                "casualties": {"attacker": 100, "defender": 100},
-            }]
+            "battle_overrides": [
+                {
+                    "location": "atlantis",
+                    "casualties": {"attacker": 100, "defender": 100},
+                }
+            ]
         }
         baseline = TurnResult()
         result = guardrail.validate(delta, world_state, baseline)
@@ -170,10 +224,12 @@ class TestGuardrailBattleOverrides:
 
     def test_negative_casualties_rejected(self, guardrail, world_state):
         delta = {
-            "battle_overrides": [{
-                "location": "xinye",
-                "casualties": {"attacker": -500, "defender": 100},
-            }]
+            "battle_overrides": [
+                {
+                    "location": "xinye",
+                    "casualties": {"attacker": -500, "defender": 100},
+                }
+            ]
         }
         baseline = TurnResult()
         result = guardrail.validate(delta, world_state, baseline)
@@ -181,12 +237,14 @@ class TestGuardrailBattleOverrides:
 
     def test_same_character_captured_and_escaped_rejected(self, guardrail, world_state):
         delta = {
-            "battle_overrides": [{
-                "location": "xinye",
-                "casualties": {"attacker": 100, "defender": 100},
-                "captured_characters": ["liu_bei"],
-                "escaped_characters": ["liu_bei"],
-            }]
+            "battle_overrides": [
+                {
+                    "location": "xinye",
+                    "casualties": {"attacker": 100, "defender": 100},
+                    "captured_characters": ["liu_bei"],
+                    "escaped_characters": ["liu_bei"],
+                }
+            ]
         }
         baseline = TurnResult()
         result = guardrail.validate(delta, world_state, baseline)
@@ -194,11 +252,13 @@ class TestGuardrailBattleOverrides:
 
     def test_unknown_character_rejected(self, guardrail, world_state):
         delta = {
-            "battle_overrides": [{
-                "location": "xinye",
-                "casualties": {"attacker": 100, "defender": 100},
-                "captured_characters": ["zhuge_liang"],
-            }]
+            "battle_overrides": [
+                {
+                    "location": "xinye",
+                    "casualties": {"attacker": 100, "defender": 100},
+                    "captured_characters": ["zhuge_liang"],
+                }
+            ]
         }
         baseline = TurnResult()
         result = guardrail.validate(delta, world_state, baseline)
@@ -206,20 +266,26 @@ class TestGuardrailBattleOverrides:
 
     def test_casualty_deviation_too_high_rejected(self, guardrail, world_state):
         delta = {
-            "battle_overrides": [{
-                "location": "xinye",
-                "casualties": {"attacker": 50000, "defender": 5000},  # 100x baseline
-            }]
+            "battle_overrides": [
+                {
+                    "location": "xinye",
+                    "casualties": {"attacker": 50000, "defender": 5000},  # 100x baseline
+                }
+            ]
         }
-        baseline = TurnResult(battles=[
-            CombatResult(
-                battle_id="b1", location="xinye",
-                attacker_id="cao", defender_id="shu",
-                attacker_casualties={UnitType.INFANTRY: 500},
-                defender_casualties={UnitType.INFANTRY: 1000},
-                result=BattleResult.VICTORY,
-            )
-        ])
+        baseline = TurnResult(
+            battles=[
+                CombatResult(
+                    battle_id="b1",
+                    location="xinye",
+                    attacker_id="cao",
+                    defender_id="shu",
+                    attacker_casualties={UnitType.INFANTRY: 500},
+                    defender_casualties={UnitType.INFANTRY: 1000},
+                    result=BattleResult.VICTORY,
+                )
+            ]
+        )
         result = guardrail.validate(delta, world_state, baseline)
         assert result["accepted"] is False
 
@@ -229,12 +295,14 @@ class TestGuardrailMoraleEvents:
 
     def test_valid_morale_passes(self, guardrail, world_state):
         delta = {
-            "morale_events": [{
-                "faction": "cao",
-                "change": 5,
-                "reason": "邺城仁政三季",
-                "persistent_note": "邺城民心稳固",
-            }]
+            "morale_events": [
+                {
+                    "faction": "cao",
+                    "change": 5,
+                    "reason": "邺城仁政三季",
+                    "persistent_note": "邺城民心稳固",
+                }
+            ]
         }
         baseline = TurnResult()
         result = guardrail.validate(delta, world_state, baseline)
@@ -242,10 +310,12 @@ class TestGuardrailMoraleEvents:
 
     def test_morale_exceeds_100_rejected(self, guardrail, world_state):
         delta = {
-            "morale_events": [{
-                "faction": "cao",
-                "change": 50,  # 60 + 50 = 110 > 100
-            }]
+            "morale_events": [
+                {
+                    "faction": "cao",
+                    "change": 50,  # 60 + 50 = 110 > 100
+                }
+            ]
         }
         baseline = TurnResult()
         result = guardrail.validate(delta, world_state, baseline)
@@ -253,10 +323,12 @@ class TestGuardrailMoraleEvents:
 
     def test_morale_below_0_rejected(self, guardrail, world_state):
         delta = {
-            "morale_events": [{
-                "faction": "shu",
-                "change": -100,  # 65 - 100 = -35 < 0
-            }]
+            "morale_events": [
+                {
+                    "faction": "shu",
+                    "change": -100,  # 65 - 100 = -35 < 0
+                }
+            ]
         }
         baseline = TurnResult()
         result = guardrail.validate(delta, world_state, baseline)
@@ -264,10 +336,12 @@ class TestGuardrailMoraleEvents:
 
     def test_unknown_faction_rejected(self, guardrail, world_state):
         delta = {
-            "morale_events": [{
-                "faction": "dongzhuo",
-                "change": 5,
-            }]
+            "morale_events": [
+                {
+                    "faction": "dongzhuo",
+                    "change": 5,
+                }
+            ]
         }
         baseline = TurnResult()
         result = guardrail.validate(delta, world_state, baseline)
@@ -275,10 +349,12 @@ class TestGuardrailMoraleEvents:
 
     def test_large_but_valid_morale_generates_warning(self, guardrail, world_state):
         delta = {
-            "morale_events": [{
-                "faction": "cao",
-                "change": 16,  # >15 → soft warning, not hard rejection
-            }]
+            "morale_events": [
+                {
+                    "faction": "cao",
+                    "change": 16,  # >15 → soft warning, not hard rejection
+                }
+            ]
         }
         baseline = TurnResult()
         result = guardrail.validate(delta, world_state, baseline)
@@ -313,11 +389,13 @@ class TestStateApplier:
 
     def test_applies_morale_change(self, applier, world_state):
         delta = {
-            "morale_events": [{
-                "faction": "cao",
-                "change": 10,
-                "reason": "大胜提振",
-            }]
+            "morale_events": [
+                {
+                    "faction": "cao",
+                    "change": 10,
+                    "reason": "大胜提振",
+                }
+            ]
         }
         original = world_state.factions["cao"].morale_actual
         applier.apply(delta, world_state)
@@ -325,9 +403,7 @@ class TestStateApplier:
 
     def test_morale_clamped_at_100(self, applier, world_state):
         world_state.factions["cao"].morale_actual = 98
-        delta = {
-            "morale_events": [{"faction": "cao", "change": 10}]
-        }
+        delta = {"morale_events": [{"faction": "cao", "change": 10}]}
         applier.apply(delta, world_state)
         assert world_state.factions["cao"].morale_actual == 100
 
@@ -336,10 +412,12 @@ class TestStateApplier:
         # Move cao army to xinye (attacking shu territory)
         world_state.armies["army_cao_1"].location = "xinye"
         delta = {
-            "battle_overrides": [{
-                "location": "xinye",
-                "casualties": {"attacker": 5000, "defender": 2000},
-            }]
+            "battle_overrides": [
+                {
+                    "location": "xinye",
+                    "casualties": {"attacker": 5000, "defender": 2000},
+                }
+            ]
         }
         applier.apply(delta, world_state)
         assert world_state.armies["army_cao_1"].total_troops <= initial - 4000  # ~5000 with rounding
@@ -348,22 +426,26 @@ class TestStateApplier:
         # Move cao army to xinye so it can capture
         world_state.armies["army_cao_1"].location = "xinye"
         delta = {
-            "battle_overrides": [{
-                "location": "xinye",
-                "casualties": {"attacker": 500, "defender": 2000},
-                "territory_captured": True,
-            }]
+            "battle_overrides": [
+                {
+                    "location": "xinye",
+                    "casualties": {"attacker": 500, "defender": 2000},
+                    "territory_captured": True,
+                }
+            ]
         }
         applier.apply(delta, world_state)
         assert world_state.territories["xinye"].owner_id == "cao"
 
     def test_character_captured(self, applier, world_state):
         delta = {
-            "battle_overrides": [{
-                "location": "xinye",
-                "casualties": {"attacker": 100, "defender": 500},
-                "captured_characters": ["liu_bei"],
-            }]
+            "battle_overrides": [
+                {
+                    "location": "xinye",
+                    "casualties": {"attacker": 100, "defender": 500},
+                    "captured_characters": ["liu_bei"],
+                }
+            ]
         }
         applier.apply(delta, world_state)
         assert world_state.characters["liu_bei"].faction_id == ""
@@ -384,7 +466,10 @@ class TestTurnMemory:
 
     def test_records_and_retrieves_turns(self, memory):
         memory.record_turn(
-            "test_room", 1, 208, "春",
+            "test_room",
+            1,
+            208,
+            "春",
             "发展内政",
             "许昌开发度提升",
             ["发展"],
@@ -392,7 +477,10 @@ class TestTurnMemory:
             [],
         )
         memory.record_turn(
-            "test_room", 2, 208, "夏",
+            "test_room",
+            2,
+            208,
+            "夏",
             "进攻新野",
             "新野攻克",
             ["战斗"],
@@ -408,11 +496,25 @@ class TestTurnMemory:
 
     def test_persistent_effects_accumulate(self, memory):
         memory.record_turn(
-            "test_room", 1, 208, "春", "test", "summary", [], {},
+            "test_room",
+            1,
+            208,
+            "春",
+            "test",
+            "summary",
+            [],
+            {},
             [{"note": "邺城仁政第一季"}],
         )
         memory.record_turn(
-            "test_room", 2, 208, "夏", "test", "summary", [], {},
+            "test_room",
+            2,
+            208,
+            "夏",
+            "test",
+            "summary",
+            [],
+            {},
             [{"note": "邺城仁政第二季"}],
         )
 
@@ -427,8 +529,15 @@ class TestTurnMemory:
     def test_get_n_turns_respects_limit(self, memory):
         for i in range(10):
             memory.record_turn(
-                "test_room", i + 1, 208, "春",
-                f"turn {i+1}", "ok", [], {"morale": 50}, [],
+                "test_room",
+                i + 1,
+                208,
+                "春",
+                f"turn {i + 1}",
+                "ok",
+                [],
+                {"morale": 50},
+                [],
             )
         recent = memory.get_recent_turns("test_room", n=3)
         assert len(recent) == 3
@@ -436,15 +545,36 @@ class TestTurnMemory:
 
     def test_clean_future_turns(self, memory):
         memory.record_turn(
-            "test_room", 1, 208, "春", "decision 1", "summary 1", [], {},
+            "test_room",
+            1,
+            208,
+            "春",
+            "decision 1",
+            "summary 1",
+            [],
+            {},
             [{"note": "effect 1", "turn": 1}],
         )
         memory.record_turn(
-            "test_room", 2, 208, "夏", "decision 2", "summary 2", [], {},
+            "test_room",
+            2,
+            208,
+            "夏",
+            "decision 2",
+            "summary 2",
+            [],
+            {},
             [{"note": "effect 2", "turn": 2}],
         )
         memory.record_turn(
-            "test_room", 3, 208, "秋", "decision 3", "summary 3", [], {},
+            "test_room",
+            3,
+            208,
+            "秋",
+            "decision 3",
+            "summary 3",
+            [],
+            {},
             [{"note": "effect 3", "turn": 3}],
         )
 

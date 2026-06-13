@@ -36,14 +36,14 @@ POLICY_PARSE_SYSTEM = (
     "| conscript | amount(征兵数量), territory(可选) | 征兵动员 |\n\n"
     "## 核心规则\n\n"
     "1. 一项玩家决策可能分解为多条策令\n"
-    "2. 法令(law)应该使用历史上真实存在的制度名（如\"屯田制\"、\"九品中正制\"、\"盐铁专卖\"）\n"
+    '2. 法令(law)应该使用历史上真实存在的制度名（如"屯田制"、"九品中正制"、"盐铁专卖"）\n'
     "3. 每个策令的 notes 字段保留玩家原文中的上下文和意图\n"
     "4. 人物名必须使用拼音 ID（如 xunyu, zhugeliang, simayi）\n"
     "5. 势力名用拼音 ID（cao, shu, wu, liubiao, liuzhang, yuanshao）\n"
     "6. 领土名用拼音 ID（xuchang, wancheng, xinye, jianye, chengdu 等）\n"
-    "7. **重要**: \"收编敌军\"、\"收编荆州水军\"、\"收容旧部\"等描述的是**占领敌军后吸收其部队**，"
+    '7. **重要**: "收编敌军"、"收编荆州水军"、"收容旧部"等描述的是**占领敌军后吸收其部队**，'
     "应该用 declare_war + notes 来描述，而不是 conscript。conscript "
-    "仅用于从自己领地**新征募平民**入伍（如\"征募5000新兵\"、\"在宛城征兵\"）。\n"
+    '仅用于从自己领地**新征募平民**入伍（如"征募5000新兵"、"在宛城征兵"）。\n'
     "8. **conscript 的量**：古代一郡一季最多征募总人口的5%（如新野3万人口→最多1500人）。"
     "不要解析出超过这个比例的征兵量。\n\n"
     "## 输出格式\n\n"
@@ -57,50 +57,107 @@ POLICY_PARSE_SYSTEM = (
 # ─── Name mapping ──────────────────────────────────────────────
 
 TERRITORY_TO_ID: dict[str, str] = {
-    "许昌": "xuchang", "xuchang": "xuchang",
-    "洛阳": "luoyang", "luoyang": "luoyang",
-    "邺城": "ye", "邺": "ye", "ye": "ye",
-    "宛城": "wancheng", "wancheng": "wancheng",
-    "常山": "changshan", "changshan": "changshan",
-    "蓟县": "ji", "蓟": "ji", "ji": "ji",
-    "濮阳": "puyang", "puyang": "puyang",
-    "北海": "beihai", "beihai": "beihai",
-    "下邳": "xiapi", "xiapi": "xiapi",
-    "新野": "xinye", "xinye": "xinye",
-    "建业": "jianye", "建業": "jianye", "jianye": "jianye",
-    "吴郡": "wu", "吳郡": "wu",
-    "会稽": "kuaiji", "會稽": "kuaiji", "kuaiji": "kuaiji",
-    "柴桑": "chaisang", "chaisang": "chaisang",
-    "庐江": "lujiang", "廬江": "lujiang", "lujiang": "lujiang",
-    "豫章": "yuzhang", "yuzhang": "yuzhang",
-    "丹阳": "danyang", "danyang": "danyang",
-    "襄阳": "xiangyang", "襄陽": "xiangyang", "xiangyang": "xiangyang",
-    "江陵": "jiangling", "jiangling": "jiangling",
-    "长沙": "changsha", "長沙": "changsha", "changsha": "changsha",
-    "江口": "jiangkou", "jiangkou": "jiangkou",
-    "成都": "chengdu", "chengdu": "chengdu",
-    "汉中": "hanshui", "漢中": "hanshui", "hanshui": "hanshui",
-    "江州": "jiangzhou", "jiangzhou": "jiangzhou",
-    "南郡": "nanjun", "nanjun": "nanjun",
+    "许昌": "xuchang",
+    "xuchang": "xuchang",
+    "洛阳": "luoyang",
+    "luoyang": "luoyang",
+    "邺城": "ye",
+    "邺": "ye",
+    "ye": "ye",
+    "宛城": "wancheng",
+    "wancheng": "wancheng",
+    "常山": "changshan",
+    "changshan": "changshan",
+    "蓟县": "ji",
+    "蓟": "ji",
+    "ji": "ji",
+    "濮阳": "puyang",
+    "puyang": "puyang",
+    "北海": "beihai",
+    "beihai": "beihai",
+    "下邳": "xiapi",
+    "xiapi": "xiapi",
+    "新野": "xinye",
+    "xinye": "xinye",
+    "建业": "jianye",
+    "建業": "jianye",
+    "jianye": "jianye",
+    "吴郡": "wu",
+    "吳郡": "wu",
+    "会稽": "kuaiji",
+    "會稽": "kuaiji",
+    "kuaiji": "kuaiji",
+    "柴桑": "chaisang",
+    "chaisang": "chaisang",
+    "庐江": "lujiang",
+    "廬江": "lujiang",
+    "lujiang": "lujiang",
+    "豫章": "yuzhang",
+    "yuzhang": "yuzhang",
+    "丹阳": "danyang",
+    "danyang": "danyang",
+    "襄阳": "xiangyang",
+    "襄陽": "xiangyang",
+    "xiangyang": "xiangyang",
+    "江陵": "jiangling",
+    "jiangling": "jiangling",
+    "长沙": "changsha",
+    "長沙": "changsha",
+    "changsha": "changsha",
+    "江口": "jiangkou",
+    "jiangkou": "jiangkou",
+    "成都": "chengdu",
+    "chengdu": "chengdu",
+    "汉中": "hanshui",
+    "漢中": "hanshui",
+    "hanshui": "hanshui",
+    "江州": "jiangzhou",
+    "jiangzhou": "jiangzhou",
+    "南郡": "nanjun",
+    "nanjun": "nanjun",
 }
 
 FACTION_TO_ID: dict[str, str] = {
-    "曹操": "cao", "曹": "cao", "cao": "cao",
-    "刘备": "shu", "蜀": "shu", "刘": "shu", "shu": "shu",
-    "孙权": "wu", "吴": "wu", "孙": "wu", "wu": "wu",
-    "刘表": "liubiao", "liubiao": "liubiao",
-    "刘璋": "liuzhang", "liuzhang": "liuzhang",
-    "袁绍": "yuanshao", "yuanshao": "yuanshao",
+    "曹操": "cao",
+    "曹": "cao",
+    "cao": "cao",
+    "刘备": "shu",
+    "蜀": "shu",
+    "刘": "shu",
+    "shu": "shu",
+    "孙权": "wu",
+    "吴": "wu",
+    "孙": "wu",
+    "wu": "wu",
+    "刘表": "liubiao",
+    "liubiao": "liubiao",
+    "刘璋": "liuzhang",
+    "liuzhang": "liuzhang",
+    "袁绍": "yuanshao",
+    "yuanshao": "yuanshao",
 }
 
 CHARACTER_TO_ID: dict[str, str] = {
-    "荀彧": "xunyu", "司马懿": "simayi", "夏侯渊": "xiahouyuan",
-    "张郃": "zhanghe", "张辽": "zhangliao", "程昱": "chengyu",
-    "诸葛亮": "zhugeliang", "关羽": "guanyu", "张飞": "zhangfei",
-    "赵云": "zhaoyun", "庞统": "pangtong", "法正": "fazheng",
-    "黄忠": "huangzhong", "魏延": "weiyan",
-    "周瑜": "zhouyu", "鲁肃": "lusu", "吕蒙": "lvmeng",
-    "陆逊": "luxun", "甘宁": "ganning", "黄盖": "huanggai",
+    "荀彧": "xunyu",
+    "司马懿": "simayi",
+    "夏侯渊": "xiahouyuan",
+    "张郃": "zhanghe",
+    "张辽": "zhangliao",
+    "程昱": "chengyu",
+    "诸葛亮": "zhugeliang",
+    "关羽": "guanyu",
+    "张飞": "zhangfei",
+    "赵云": "zhaoyun",
+    "庞统": "pangtong",
+    "法正": "fazheng",
+    "黄忠": "huangzhong",
+    "魏延": "weiyan",
+    "周瑜": "zhouyu",
+    "鲁肃": "lusu",
+    "吕蒙": "lvmeng",
+    "陆逊": "luxun",
+    "甘宁": "ganning",
+    "黄盖": "huanggai",
 }
 
 
@@ -150,7 +207,8 @@ class PolicyParser:
         # Build longest-first sorted unique names (exclude names that == their ID)
         names = sorted(
             [cn for cn, pid in all_terms.items() if cn != pid],
-            key=len, reverse=True,
+            key=len,
+            reverse=True,
         )
 
         # Single-pass replacement using placeholders to prevent double-matching
@@ -229,9 +287,19 @@ class PolicyParser:
             if not isinstance(item, dict):
                 continue
             cmd_type = item.get("type", "").strip()
-            if cmd_type not in {"tax_rate", "law", "appoint", "diplomacy",
-                                 "declare_war", "sue_peace", "relocate_capital",
-                                 "intelligence", "develop", "trade", "conscript"}:
+            if cmd_type not in {
+                "tax_rate",
+                "law",
+                "appoint",
+                "diplomacy",
+                "declare_war",
+                "sue_peace",
+                "relocate_capital",
+                "intelligence",
+                "develop",
+                "trade",
+                "conscript",
+            }:
                 continue
             params = item.get("params", {})
             notes = item.get("notes", "")
@@ -265,10 +333,10 @@ class PolicyParser:
         if name in mapping:
             return mapping[name]
         # Strip annotation like "刘表(liubiao)" → try "刘表" lookup
-        if '(' in name and name.endswith(')'):
-            paren_idx = name.index('(')
+        if "(" in name and name.endswith(")"):
+            paren_idx = name.index("(")
             # Extract the ID part: "刘表(liubiao)" → "liubiao"
-            inner_id = name[paren_idx + 1:-1]
+            inner_id = name[paren_idx + 1 : -1]
             if inner_id in mapping:
                 return mapping[inner_id]
             # Try base name: "刘表(liubiao)" → "刘表"
@@ -292,12 +360,14 @@ class PolicyParser:
         )
         if tax_matches:
             rate = int(tax_matches[-1]) / 100
-            commands.append(PolicyCommand(
-                type="tax_rate",
-                params={"rate": rate},
-                notes=f"关键词匹配: 税率{int(rate*100)}%",
-                source_text=f"税率{int(rate*100)}%",
-            ))
+            commands.append(
+                PolicyCommand(
+                    type="tax_rate",
+                    params={"rate": rate},
+                    notes=f"关键词匹配: 税率{int(rate * 100)}%",
+                    source_text=f"税率{int(rate * 100)}%",
+                )
+            )
 
         # War declaration
         war_patterns = [
@@ -310,12 +380,14 @@ class PolicyParser:
             if war_match:
                 target_name = war_match.group(1)
                 target_id = self._normalize_id(target_name, FACTION_TO_ID)
-                commands.append(PolicyCommand(
-                    type="declare_war",
-                    params={"target": target_id},
-                    notes=f"关键词匹配: 对{target_name}宣战",
-                    source_text=war_match.group(0),
-                ))
+                commands.append(
+                    PolicyCommand(
+                        type="declare_war",
+                        params={"target": target_id},
+                        notes=f"关键词匹配: 对{target_name}宣战",
+                        source_text=war_match.group(0),
+                    )
+                )
                 break
 
         # Diplomacy — "与X结好", "派使者...与X...", "与X结盟"
@@ -328,32 +400,38 @@ class PolicyParser:
             target_name = diplomacy_match.group(1)
             target_id = self._normalize_id(target_name, FACTION_TO_ID)
             action = "alliance" if "盟" in diplomacy_match.group(0) or "好" in diplomacy_match.group(0) else "trade"
-            commands.append(PolicyCommand(
-                type="diplomacy",
-                params={"target": target_id, "action": action},
-                notes=f"关键词匹配: 与{target_name}建交",
-                source_text=diplomacy_match.group(0),
-            ))
+            commands.append(
+                PolicyCommand(
+                    type="diplomacy",
+                    params={"target": target_id, "action": action},
+                    notes=f"关键词匹配: 与{target_name}建交",
+                    source_text=diplomacy_match.group(0),
+                )
+            )
 
         # Conscription — "征募X", "征兵X", "募兵X"
         conscript_match = re.search(r"(?:征募|征召|募兵|征兵|募集)\s*(\d{2,6})", text)
         if conscript_match:
             amount = int(conscript_match.group(1))
-            commands.append(PolicyCommand(
-                type="conscript",
-                params={"amount": amount},
-                notes=f"关键词匹配: 征兵{amount}人",
-                source_text=conscript_match.group(0),
-            ))
+            commands.append(
+                PolicyCommand(
+                    type="conscript",
+                    params={"amount": amount},
+                    notes=f"关键词匹配: 征兵{amount}人",
+                    source_text=conscript_match.group(0),
+                )
+            )
 
         # Law
         law_match = re.search(r"(推行|实行|颁布|废除)(.{2,6}(?:制|法|令))", text)
         if law_match:
-            commands.append(PolicyCommand(
-                type="law",
-                params={"name": law_match.group(2)},
-                notes=f"关键词匹配: {law_match.group(0)}",
-                source_text=law_match.group(0),
-            ))
+            commands.append(
+                PolicyCommand(
+                    type="law",
+                    params={"name": law_match.group(2)},
+                    notes=f"关键词匹配: {law_match.group(0)}",
+                    source_text=law_match.group(0),
+                )
+            )
 
         return commands

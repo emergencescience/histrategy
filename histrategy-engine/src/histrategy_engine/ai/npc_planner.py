@@ -111,9 +111,7 @@ class NPCPlanner:
         # Build a perceived WorldState that masks hidden information
         # This is a lightweight FOW filter: for border factions we use
         # midpoint estimates; for non-border factions we hide strength entirely
-        perceived_ws = self._build_perceived_worldstate(
-            local, world_state, faction_id
-        )
+        perceived_ws = self._build_perceived_worldstate(local, world_state, faction_id)
 
         # Use the original engine to generate concrete commands
         # (informed by strategic intent from local state + perceived world)
@@ -318,17 +316,15 @@ class NPCPlanner:
                 f.strength_actual = est
 
         # Mask territory ownership for territories not visible to this faction
-        visible_territory_ids: set[str] = set(local.my_territories)
-        for pf in local.perceived_factions.values():
+        set(local.my_territories)
+        for _pf in local.perceived_factions.values():
             # We can see territory counts but not exact territory lists
             # for non-border factions
             pass
 
         # For visible armies, we keep them. Others are hidden.
         visible_army_ids = set(local.visible_armies.keys())
-        armies_to_remove = [
-            aid for aid in ws.armies if aid not in visible_army_ids
-        ]
+        armies_to_remove = [aid for aid in ws.armies if aid not in visible_army_ids]
         for aid in armies_to_remove:
             army = ws.armies.get(aid)
             if army and army.faction_id != faction_id:

@@ -15,14 +15,15 @@ from dataclasses import dataclass, field
 @dataclass
 class KnowledgeCard:
     """A knowledge card connecting game events to real history."""
+
     topic: str
-    trigger_event: str = ""              # What game event triggered this card
-    historical_source: str = ""          # e.g., "《三国志·魏书·武帝纪》"
-    source_quote: str = ""               # Original text quote
-    modern_scholarship: str = ""         # Modern academic interpretation
-    scholar: str = ""                    # Scholar name
-    scholar_work: str = ""               # Scholar's work
-    engine_logic: str = ""               # How the engine models this
+    trigger_event: str = ""  # What game event triggered this card
+    historical_source: str = ""  # e.g., "《三国志·魏书·武帝纪》"
+    source_quote: str = ""  # Original text quote
+    modern_scholarship: str = ""  # Modern academic interpretation
+    scholar: str = ""  # Scholar name
+    scholar_work: str = ""  # Scholar's work
+    engine_logic: str = ""  # How the engine models this
     related_topics: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -120,10 +121,12 @@ class KnowledgeBase:
         q = query.lower()
         results = []
         for card in self._cards.values():
-            if (q in card.topic.lower() or
-                q in card.historical_source.lower() or
-                q in card.modern_scholarship.lower() or
-                any(q in t.lower() for t in card.related_topics)):
+            if (
+                q in card.topic.lower()
+                or q in card.historical_source.lower()
+                or q in card.modern_scholarship.lower()
+                or any(q in t.lower() for t in card.related_topics)
+            ):
                 results.append(card)
         return results
 

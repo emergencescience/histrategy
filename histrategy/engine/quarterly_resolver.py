@@ -105,7 +105,9 @@ class QuarterlyResolver:
         if self.turn_controller:
             try:
                 baseline = self._execute_baseline(
-                    world_state, all_commands, room,
+                    world_state,
+                    all_commands,
+                    room,
                 )
             except Exception as e:
                 logger.error(f"TurnController failed: {e}")
@@ -116,6 +118,7 @@ class QuarterlyResolver:
         if self.black_swan_injector and self.history_engine:
             try:
                 from histrategy.engine.game import apply_event_effects
+
                 proposals = self.history_engine.check_events(
                     world_state.year,
                     world_state.season,
@@ -142,8 +145,12 @@ class QuarterlyResolver:
         if self.macro_policy_engine and llm:
             try:
                 macro_delta = self._run_macro_simulation(
-                    world_state, all_commands, all_decisions,
-                    baseline, bs_proposals, room,
+                    world_state,
+                    all_commands,
+                    all_decisions,
+                    baseline,
+                    bs_proposals,
+                    room,
                 )
             except Exception as e:
                 logger.error(f"MacroPolicyEngine failed: {e}")
@@ -152,7 +159,8 @@ class QuarterlyResolver:
         if macro_delta and self.guardrail_validator:
             try:
                 macro_delta = self.guardrail_validator.validate(
-                    macro_delta, world_state,
+                    macro_delta,
+                    world_state,
                 )
             except Exception as e:
                 logger.warning(f"GuardrailValidator failed: {e}")
@@ -167,8 +175,12 @@ class QuarterlyResolver:
         if self.narrative_engine:
             try:
                 results.narratives = self._generate_narratives(
-                    world_state, all_commands, all_decisions,
-                    baseline, macro_delta, room,
+                    world_state,
+                    all_commands,
+                    all_decisions,
+                    baseline,
+                    macro_delta,
+                    room,
                 )
             except Exception as e:
                 logger.error(f"Narrative generation failed: {e}")
@@ -179,20 +191,28 @@ class QuarterlyResolver:
 
         # ── Step 8: 回合摘要 ──
         results.turn_summary = _build_turn_summary(
-            room, world_state, all_decisions, results,
+            room,
+            world_state,
+            all_decisions,
+            results,
         )
 
         return results
 
     def _execute_baseline(
-        self, ws: WorldState, all_commands: dict[str, list], room: GameRoom,
+        self,
+        ws: WorldState,
+        all_commands: dict[str, list],
+        room: GameRoom,
     ):
         """执行确定性基线（TurnController multi-faction）。"""
         # 尝试 multi-faction 模式
         if hasattr(self.turn_controller, "execute_multi_faction_turn"):
             return self.turn_controller.execute_multi_faction_turn(
-                ws, all_commands,
-                year=ws.year, turn_number=ws.turn_number,
+                ws,
+                all_commands,
+                year=ws.year,
+                turn_number=ws.turn_number,
             )
 
         # 回退：按 faction 逐个执行
@@ -209,8 +229,13 @@ class QuarterlyResolver:
         return None
 
     def _run_macro_simulation(
-        self, ws, all_commands, all_decisions, baseline,
-        bs_proposals, room,
+        self,
+        ws,
+        all_commands,
+        all_decisions,
+        baseline,
+        bs_proposals,
+        room,
     ) -> dict:
         """运行 LLM 宏观模拟。"""
         # 构建玩家策令文本（主要faction的决策）
@@ -229,26 +254,30 @@ class QuarterlyResolver:
         npc_actions = []
         for fid, decision in all_decisions.items():
             if fid != player_faction:
-                npc_actions.append({
-                    "faction": fid,
-                    "action": decision,
-                })
+                npc_actions.append(
+                    {
+                        "faction": fid,
+                        "action": decision,
+                    }
+                )
 
         return self.macro_policy_engine.simulate(
             ws,
             policy_commands=player_commands,
             player_decision=player_decision,
             baseline=baseline or _empty_baseline(ws),
-            history_events=[
-                {"event_id": p.event_id, "title": p.title}
-                for p in bs_proposals
-            ] if bs_proposals else [],
+            history_events=[{"event_id": p.event_id, "title": p.title} for p in bs_proposals] if bs_proposals else [],
             turn_memory=room.turn_summaries[-8:] if room.turn_summaries else [],
         )
 
     def _generate_narratives(
-        self, ws, all_commands, all_decisions,
-        baseline, macro_delta, room,
+        self,
+        ws,
+        all_commands,
+        all_decisions,
+        baseline,
+        macro_delta,
+        room,
     ) -> dict[str, str]:
         """并行生成每个 faction 视角的叙事。"""
         narratives: dict[str, str] = {}
@@ -256,7 +285,10 @@ class QuarterlyResolver:
         def _narrate_one(faction_id: str) -> tuple[str, str]:
             try:
                 narrative = self.narrative_engine.generate_faction_narrative(
-                    ws, faction_id, baseline, macro_delta,
+                    ws,
+                    faction_id,
+                    baseline,
+                    macro_delta,
                     decision=all_decisions.get(faction_id, ""),
                     commands=all_commands.get(faction_id, []),
                 )
@@ -282,8 +314,12 @@ class QuarterlyResult:
     """季度模拟的完整结果。"""
 
     __slots__ = (
-        "narratives", "state_changes", "history_events",
-        "total_latency_ms", "turn_summary", "game_over",
+        "narratives",
+        "state_changes",
+        "history_events",
+        "total_latency_ms",
+        "turn_summary",
+        "game_over",
     )
 
     def __init__(self):
@@ -301,19 +337,24 @@ class QuarterlyResult:
 def _empty_baseline(ws: WorldState):
     """创建一个空的基线结果（当 TurnController 不可用时）。"""
     from types import SimpleNamespace
+
     return SimpleNamespace(
-        battles=[], resource_changes={}, character_events=[],
-        history_events=[], season_name=str(getattr(ws.season, "cn", "?")),
+        battles=[],
+        resource_changes={},
+        character_events=[],
+        history_events=[],
+        season_name=str(getattr(ws.season, "cn", "?")),
         year=ws.year,
     )
 
 
 def _extract_state_changes(
-    ws: WorldState, decisions: dict[str, DecisionResult],
+    ws: WorldState,
+    decisions: dict[str, DecisionResult],
 ) -> dict[str, dict]:
     """提取所有 faction 的状态变更摘要。"""
     changes = {}
-    for faction_id, dr in decisions.items():
+    for faction_id, _dr in decisions.items():
         faction = ws.factions.get(faction_id)
         if not faction:
             continue
@@ -343,16 +384,12 @@ def _build_turn_summary(
         name = faction.name if faction else fid
         decision_summaries.append(f"{name}: {short}")
 
-    events_str = "; ".join(
-        e.get("title", "") for e in results.history_events[:3]
-    ) if results.history_events else "天下无事"
+    events_str = (
+        "; ".join(e.get("title", "") for e in results.history_events[:3]) if results.history_events else "天下无事"
+    )
 
     return {
-        "outcome_summary": (
-            f"[{ws.year}年{season_cn}] "
-            + " | ".join(decision_summaries[:3])
-            + f" → {events_str}"
-        ),
+        "outcome_summary": (f"[{ws.year}年{season_cn}] " + " | ".join(decision_summaries[:3]) + f" → {events_str}"),
         "turn": ws.turn_number,
         "year": ws.year,
         "season": season_cn,

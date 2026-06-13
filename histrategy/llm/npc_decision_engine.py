@@ -17,9 +17,8 @@ from __future__ import annotations
 import json
 from typing import TYPE_CHECKING
 
+from histrategy.engine.faction_slot import LLM_NPC_FACTIONS, FactionSlot
 from histrategy.llm.prompt_loader import load_prompt
-
-from histrategy.engine.faction_slot import FactionSlot, LLM_NPC_FACTIONS
 
 if TYPE_CHECKING:
     from histrategy_engine.world import WorldState
@@ -33,8 +32,16 @@ NPC_DECISION_SYSTEM = load_prompt(
 
 # 可用命令类型（与 IntentParser 保持一致）
 NPC_COMMAND_TYPES = [
-    "attack", "defend", "recruit", "move", "develop",
-    "diplomacy", "tax", "conscript", "appoint", "wait",
+    "attack",
+    "defend",
+    "recruit",
+    "move",
+    "develop",
+    "diplomacy",
+    "tax",
+    "conscript",
+    "appoint",
+    "wait",
 ]
 
 
@@ -85,8 +92,11 @@ class NPCDecisionEngine:
 
         try:
             return self._generate_llm(
-                world_state, faction_id, faction,
-                turn_memory or [], slot,
+                world_state,
+                faction_id,
+                faction,
+                turn_memory or [],
+                slot,
             )
         except Exception:
             # LLM 失败时回退到启发式
@@ -148,24 +158,26 @@ class NPCDecisionEngine:
         # 1. 招募：兵力不足时
         strength = getattr(faction, "strength_actual", 0)
         if strength < 10000 and faction.treasury > 2000:
-            commands.append({
-                "type": "conscript",
-                "params": {"amount": 3000},
-                "reasoning": "兵力薄弱，扩充军备以自保",
-            })
+            commands.append(
+                {
+                    "type": "conscript",
+                    "params": {"amount": 3000},
+                    "reasoning": "兵力薄弱，扩充军备以自保",
+                }
+            )
             decision_parts.append("征兵三千")
 
         # 2. 发展：稳定期开发领地
         if faction.treasury > 5000 and faction.food > 3000:
-            capital = faction.capital or (
-                faction.territories[0] if faction.territories else None
-            )
+            capital = faction.capital or (faction.territories[0] if faction.territories else None)
             if capital:
-                commands.append({
-                    "type": "develop",
-                    "params": {"territory": capital},
-                    "reasoning": "发展领地经济",
-                })
+                commands.append(
+                    {
+                        "type": "develop",
+                        "params": {"territory": capital},
+                        "reasoning": "发展领地经济",
+                    }
+                )
                 decision_parts.append(f"开发{capital}")
 
         # 3. 外交：与相邻势力保持和平
@@ -233,11 +245,7 @@ class NPCDecisionEngine:
             est_str = getattr(f, "strength_estimated", 0)
             morale_est = getattr(f, "morale_estimated", 50)
             territories = list(f.territories) if f.territories else []
-            lines.append(
-                f"- {f.name} ({fid}): "
-                f"兵力≈{est_str:,}, 民心≈{morale_est}, "
-                f"领地={territories}"
-            )
+            lines.append(f"- {f.name} ({fid}): 兵力≈{est_str:,}, 民心≈{morale_est}, 领地={territories}")
         lines.append("")
 
         # 历史记忆
@@ -265,12 +273,14 @@ class NPCDecisionEngine:
             cmd_type = item.get("type", "")
             if cmd_type not in NPC_COMMAND_TYPES:
                 continue
-            commands.append({
-                "type": cmd_type,
-                "params": item.get("params", {}),
-                "reasoning": item.get("reasoning", ""),
-                "faction_id": faction_id,
-            })
+            commands.append(
+                {
+                    "type": cmd_type,
+                    "params": item.get("params", {}),
+                    "reasoning": item.get("reasoning", ""),
+                    "faction_id": faction_id,
+                }
+            )
         return commands
 
     def _get_neighbors(self, ws: WorldState, faction_id: str) -> list[str]:

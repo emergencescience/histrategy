@@ -29,8 +29,8 @@ class BlackSwanInjector:
 
     def __init__(self, seed: int | None = None):
         self._rng = random.Random(seed)
-        self._triggered: set[str] = set()      # already triggered this game
-        self._averted: set[str] = set()        # explicitly averted
+        self._triggered: set[str] = set()  # already triggered this game
+        self._averted: set[str] = set()  # explicitly averted
         self._blocked_downstream: set[str] = set()  # downstream events blocked
 
     def check_events(
@@ -57,28 +57,39 @@ class BlackSwanInjector:
         # If we have a history_engine, use its event definitions
         if history_engine:
             try:
-                raw_proposals = history_engine.check_events(
-                    year, season, world_state, deviation=deviation
-                )
+                raw_proposals = history_engine.check_events(year, season, world_state, deviation=deviation)
                 for prop in raw_proposals:
                     event_id = prop.event_id if hasattr(prop, "event_id") else prop.get("event_id", "")
                     if event_id and event_id not in self._triggered:
                         # Apply stochastic triggering based on gravity
-                        gravity = getattr(prop, "history_gravity", 0.8) if hasattr(prop, "history_gravity") else prop.get("history_gravity", 0.8)
+                        gravity = (
+                            getattr(prop, "history_gravity", 0.8)
+                            if hasattr(prop, "history_gravity")
+                            else prop.get("history_gravity", 0.8)
+                        )
                         triggered = self._roll(gravity, deviation)
-                        proposals.append({
-                            "event_id": event_id,
-                            "title": getattr(prop, "title", "") if hasattr(prop, "title") else prop.get("title", ""),
-                            "gravity": gravity,
-                            "triggered": triggered,
-                            "effects": getattr(prop, "effects", {}) if hasattr(prop, "effects") else prop.get("effects", {}),
-                            "outcome": "triggered" if triggered else "averted",
-                        })
+                        proposals.append(
+                            {
+                                "event_id": event_id,
+                                "title": getattr(prop, "title", "")
+                                if hasattr(prop, "title")
+                                else prop.get("title", ""),
+                                "gravity": gravity,
+                                "triggered": triggered,
+                                "effects": (
+                                    getattr(prop, "effects", {})
+                                    if hasattr(prop, "effects")
+                                    else prop.get("effects", {})
+                                ),
+                                "outcome": "triggered" if triggered else "averted",
+                            }
+                        )
                         if triggered:
                             self._triggered.add(event_id)
                             self._block_downstream(event_id, history_engine)
             except Exception as e:
                 import logging
+
                 logging.getLogger("histrategy").warning(f"BlackSwanInjector.check_events failed: {e}")
 
         return proposals

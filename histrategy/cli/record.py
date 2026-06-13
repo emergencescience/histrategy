@@ -378,7 +378,7 @@ def render_turn_html(turn: dict, template: str) -> str:
     for s in suggestions[:4]:
         tag = ""
         text = s
-        m = s[:12]
+        s[:12]
         if "【" in s and "】" in s:
             parts = s.split("】", 1)
             tag = parts[0][1:]
@@ -644,10 +644,7 @@ def generate_video(session_id: str) -> str:
     else:
         # Check if first file matches a 4-digit number (e.g. 0000.png)
         base = Path(first_file).stem
-        if base.isdigit() and len(base) == 4:
-            pattern = "%04d.png"
-        else:
-            pattern = first_file.replace(base, "%04d")  # Fallback guess
+        pattern = "%04d.png" if base.isdigit() and len(base) == 4 else first_file.replace(base, "%04d")
 
     input_pattern = str(frames_dir / pattern)
 
@@ -675,12 +672,12 @@ def generate_video(session_id: str) -> str:
         # Re-raise or fallback to composite_video
         success = composite_video(frames_dir, output_video, fps=0.5)
         if not success:
-            raise RuntimeError("ffmpeg executable not found on system. Please install ffmpeg.")
+            raise RuntimeError("ffmpeg executable not found on system. Please install ffmpeg.") from None
     except subprocess.CalledProcessError as e:
         # Fallback to concat demuxer if direct pattern match fails
         success = composite_video(frames_dir, output_video, fps=0.5)
         if not success:
-            raise RuntimeError(f"ffmpeg failed: {e.stderr}")
+            raise RuntimeError(f"ffmpeg failed: {e.stderr}") from None
 
     return str(output_video)
 

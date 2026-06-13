@@ -14,7 +14,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger("histrategy.db")
@@ -135,7 +134,7 @@ def execute(sql: str, params: tuple = ()) -> list[dict]:
                 cur.execute(sql, params)
                 columns = [desc[0] for desc in cur.description] if cur.description else []
                 rows = cur.fetchall()
-                return [dict(zip(columns, row)) for row in rows]
+                return [dict(zip(columns, row, strict=False)) for row in rows]
     finally:
         conn.close()
 

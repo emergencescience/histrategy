@@ -347,6 +347,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         import os as _os
 
         from fastapi.responses import FileResponse
+
         web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
         return FileResponse(_os.path.join(web_dir, "css", path))
 
@@ -356,6 +357,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         import os as _os
 
         from fastapi.responses import FileResponse
+
         web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
         return FileResponse(_os.path.join(web_dir, "js", path))
 
@@ -365,6 +367,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         import os as _os
 
         from fastapi.responses import FileResponse
+
         web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
         return FileResponse(_os.path.join(web_dir, "images", path))
 
@@ -670,7 +673,8 @@ def create_app(llm_provider: str | None = None) -> Any:
                 try:
                     world_dict = engine.to_dict()
                     adapter.save_state(
-                        session_id, world_dict,
+                        session_id,
+                        world_dict,
                         status.get("turn", 1),
                         status.get("year", 207),
                         status.get("season", "春"),
@@ -707,23 +711,27 @@ def create_app(llm_provider: str | None = None) -> Any:
             }
             # Log to stdout (visible in railway logs)
             import json as _json
+
             print(f"[HISTRATEGY_LOG] {_json.dumps(log_entry, ensure_ascii=False)}", flush=True)
             # Also POST to orchestrator Postgres
             try:
                 _jwt = _game_meta.get(game_id, {}).get("jwt_token", "")
                 import httpx as _httpx
+
                 _orch_url = _os.environ.get("ORCHESTRATOR_URL", "https://api.emergence.science").rstrip("/")
                 _httpx.post(
                     f"{_orch_url}/games/histrategy/api/log/batch",
                     json={
                         "session_id": session_id,
                         "turn_number": status.get("turn", 1),
-                        "llm_calls": [{
-                            "call_type": "macro_simulate",
-                            "provider": "deepseek",
-                            "model": _os.environ.get("LLM_MODEL", "deepseek-v4-flash"),
-                            "total_tokens": _sim_tokens,
-                        }],
+                        "llm_calls": [
+                            {
+                                "call_type": "macro_simulate",
+                                "provider": "deepseek",
+                                "model": _os.environ.get("LLM_MODEL", "deepseek-v4-flash"),
+                                "total_tokens": _sim_tokens,
+                            }
+                        ],
                         "sim_events": [],
                     },
                     headers={"Authorization": f"Bearer {_jwt}"} if _jwt else {},
@@ -956,7 +964,8 @@ def create_app(llm_provider: str | None = None) -> Any:
             adapter = create_persistence_adapter(jwt_token or "")
             session_id = meta.get("session_id", game_id)
             adapter.save_state(
-                session_id, world_state,
+                session_id,
+                world_state,
                 status.get("turn", 1),
                 status.get("year", 207),
                 status.get("season", "春"),

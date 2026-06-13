@@ -88,7 +88,7 @@ class TestFormatEngineTurnResult:
         )
         output = self.engine.render_turn_result(result)
         # Should truncate to max 10 events (+ header line)
-        event_lines = [l for l in output.split("\n") if l.startswith("- 事件")]
+        event_lines = [line for line in output.split("\n") if line.startswith("- 事件")]
         assert len(event_lines) <= 11  # header + up to 10 events
 
     def test_render_turn_result_empty_suggestions(self):

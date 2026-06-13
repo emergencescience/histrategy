@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..world import WorldState
+    from ..world import Character, WorldState
 
 
 @dataclass
@@ -342,7 +342,7 @@ class LocalWorldStateProjector:
     def _char_role(self, char: Character, faction_id: str, world_state: WorldState) -> str:
         """Determine a character's role (governor, commander, etc.)."""
         if char.is_governor:
-            for tid in (
+            for _tid in (
                 world_state.factions[faction_id].territories
                 if faction_id in world_state.factions
                 else []

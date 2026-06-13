@@ -97,7 +97,7 @@ def test_turn_controller_famine_and_legitimacy():
     assert world.factions["shu"].food == 0
     assert world.factions["shu"].morale_actual == 70 - 5
     assert world.factions["shu"].legitimacy == 50 - 10
-    # Population lost 5%: 30000 * 0.95 = 28500. Since calculate_population_growth runs, let's verify it is around 28500 (less than 29000).
+    # Population lost 5%: 30000 * 0.95 = 28500. Since calculate_population_growth runs, verify around 28500 (< 29000).
     assert world.territories["t1"].population < 29000
     assert result.resource_changes["shu"].get("famine_occurred") is True
 

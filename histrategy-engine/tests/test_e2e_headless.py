@@ -389,9 +389,6 @@ def scenario_1_liubei_historical():
 
     # Sim 207冬 → 223春 turns
     for turn_num in range(1, 60):
-        year_before = world.year
-        season_before = world.season
-
         # Get historical events for this turn
         proposals = hist_eng.check_events(
             world.year, world.season, world, deviation=world.player_deviation
@@ -418,7 +415,8 @@ def scenario_1_liubei_historical():
         if result.battles:
             for b in result.battles:
                 log.append(
-                    f"  [Battle] {world.year}年{world.season.cn} — {b.result.value}: {b.attacker_id} vs {b.defender_id}"
+                    f"  [Battle] {world.year}年{world.season.cn}"
+                    f" — {b.result.value}: {b.attacker_id} vs {b.defender_id}"
                 )
 
         for ce in result.character_events:
@@ -553,14 +551,13 @@ def _apply_liubei_historical_script(world: WorldState, turn_num: int):
             world.factions["shu"].relations["wu"] = 60
 
     # 荆南四郡 (turn ~15)
-    if turn_num == 15:
-        if "shu" in world.factions:
-            shu = world.factions["shu"]
-            for tid in ["jiangkou"]:
-                if tid in world.territories and world.territories[tid].owner_id != "shu":
-                    world.territories[tid].owner_id = "shu"
-                    if tid not in shu.territories:
-                        shu.territories.append(tid)
+    if turn_num == 15 and "shu" in world.factions:
+        shu = world.factions["shu"]
+        for tid in ["jiangkou"]:
+            if tid in world.territories and world.territories[tid].owner_id != "shu":
+                world.territories[tid].owner_id = "shu"
+                if tid not in shu.territories:
+                    shu.territories.append(tid)
 
     # 入蜀 (turn ~25)
     if turn_num == 25:
@@ -901,7 +898,7 @@ def scenario_2_liubei_alt_jingzhou():
     log.append(f"\n最终: {world.year}年{world.season.cn}")
     log.append(f"刘备领土: {factions['shu'].territories}")
     log.append(
-        f"触发: {hist_eng.triggered_count}  未触发: {hist_eng.averted_count}  阻断: {hist_eng.blocked_count}"
+        f"触发: {hist_eng.triggered_count}  未触发: {hist_eng.averted_count}  阻断: {hist_eng.blocked_count}"  # noqa: E501
     )
 
     write_log("e2e-scenario-2-liubei-alt-jingzhou.log", log)
@@ -947,7 +944,7 @@ def scenario_3_caocao_unification():
     dec_eng = DecisionEngine()
     tc = TurnController(map_eng, char_eng, dom_eng, mil_eng, dec_eng)
     hist_eng = HistoryEngine(KNOWLEDGE_PATH)
-    rag = HistoricalRAG(KNOWLEDGE_PATH)
+    HistoricalRAG(KNOWLEDGE_PATH)
 
     territories = {
         "xuchang": Territory(
@@ -1273,7 +1270,7 @@ def _get_caocao_commands(world: WorldState) -> list[Command]:
         return cmds
 
     # Aggressive: attack neighboring enemies
-    cao_territories = list(world.territories.keys())
+    list(world.territories.keys())
     for tid in faction.territories:
         t = world.territories.get(tid)
         if not t:
@@ -2217,8 +2214,6 @@ def test_liubei_historical_207_223():
 
     # Simulate 207冬 → 223春
     for turn_num in range(1, 65):
-        year_before = world.year
-
         # Check historical events
         proposals = hist_eng.check_events(
             world.year, world.season, world, deviation=world.player_deviation
@@ -2280,7 +2275,7 @@ def test_liubei_historical_207_223():
                 log.append("    ✓ 夷陵之战")
 
         # RAG context
-        rag_events = rag.retrieve(world.year, deviation=world.player_deviation, max_events=4)
+        rag.retrieve(world.year, deviation=world.player_deviation, max_events=4)
 
         # Player commands — historical path
         cmds = _get_liubei_historical_commands(world)
@@ -2294,7 +2289,8 @@ def test_liubei_historical_207_223():
         if result.battles:
             for b in result.battles:
                 log.append(
-                    f"  [Battle] {world.year}年{world.season.cn} — {b.result.value}: {b.attacker_id} vs {b.defender_id}"
+                    f"  [Battle] {world.year}年{world.season.cn}"
+                    f" — {b.result.value}: {b.attacker_id} vs {b.defender_id}"
                 )
                 if b.territory_captured:
                     log.append(f"    → {b.location} 易手")
@@ -2322,7 +2318,7 @@ def test_liubei_historical_207_223():
         f"历史事件: 触发{hist_eng.triggered_count} 未触发{hist_eng.averted_count} 阻断{hist_eng.blocked_count}"
     )
     log.append(
-        f"RAG 最终上下文: {rag.build_llm_context(rag.retrieve(world.year, deviation=world.player_deviation, max_events=3))}"
+        f"RAG 最终上下文: {rag.build_llm_context(rag.retrieve(world.year, deviation=world.player_deviation, max_events=3))}"  # noqa: E501
     )
 
     write_log("e2e-scenario-5-liubei-enhanced.log", log)
@@ -2344,7 +2340,7 @@ def test_liubei_averted_red_cliffs():
     dom_eng = DomesticEngine()
     mil_eng = MilitaryEngine()
     dec_eng = DecisionEngine()
-    tc = TurnController(map_eng, char_eng, dom_eng, mil_eng, dec_eng)
+    TurnController(map_eng, char_eng, dom_eng, mil_eng, dec_eng)
     hist_eng = HistoryEngine(KNOWLEDGE_PATH)
     rag = HistoricalRAG(KNOWLEDGE_PATH)
 
@@ -2742,9 +2738,7 @@ def test_liubei_averted_red_cliffs():
     )
 
     # Check events -> Red Cliffs preconditions should fail and be marked as averted
-    proposals = hist_eng.check_events(
-        world.year, world.season, world, deviation=world.player_deviation
-    )
+    hist_eng.check_events(world.year, world.season, world, deviation=world.player_deviation)
 
     # Assert Changbanpo is averted
     assert "changban_208" in world.averted_events
@@ -2781,7 +2775,7 @@ def test_caocao_conquest():
     dec_eng = DecisionEngine()
     tc = TurnController(map_eng, char_eng, dom_eng, mil_eng, dec_eng)
     hist_eng = HistoryEngine(KNOWLEDGE_PATH)
-    rag = HistoricalRAG(KNOWLEDGE_PATH)
+    HistoricalRAG(KNOWLEDGE_PATH)
 
     territories = {
         "xuchang": Territory(
@@ -3086,7 +3080,7 @@ def test_caocao_conquest():
         if result.battles:
             for b in result.battles:
                 log.append(
-                    f"  [Battle] {b.result.value}: {b.attacker_id} vs {b.defender_id} at {b.location}"
+                    f"  [Battle] {b.result.value}: {b.attacker_id} vs {b.defender_id} at {b.location}"  # noqa: E501
                 )
                 if b.territory_captured:
                     log.append(f"    ✓ 攻克 {b.location}!")
@@ -3531,7 +3525,7 @@ def test_sunquan_defense():
             battles_fought += len(result.battles)
             for b in result.battles:
                 log.append(
-                    f"  [Battle] {b.result.value}: {b.attacker_id} vs {b.defender_id} at {b.location}"
+                    f"  [Battle] {b.result.value}: {b.attacker_id} vs {b.defender_id} at {b.location}"  # noqa: E501
                 )
                 if b.territory_captured:
                     territories_captured += 1

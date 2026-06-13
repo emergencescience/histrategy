@@ -15,7 +15,7 @@ import os
 import random
 from typing import TYPE_CHECKING
 
-from ..world import EventProposal, HistoricalEvent, Season, WorldState
+from ..world import EventProposal, Season, WorldState
 
 if TYPE_CHECKING:
     pass
@@ -106,10 +106,7 @@ class HistoryEngine:
         proposals: list[EventProposal] = []
 
         # Accept both Season enum and string (e.g. "春", "summer")
-        if isinstance(season, str):
-            season_label = season
-        else:
-            season_label = season.cn
+        season_label = season if isinstance(season, str) else season.cn
         if season_label == "春":
             season_month = 3
         elif season_label == "夏":
@@ -139,7 +136,7 @@ class HistoryEngine:
 
             if not (year_min <= year <= year_max):
                 # Check if event is in a range
-                title = evt_data.get("title", "")
+                evt_data.get("title", "")
                 if not self._year_in_range(year, evt_data):
                     continue
 
@@ -413,7 +410,9 @@ class HistoryEngine:
                             "event_id": ds_id,
                             "title": ds_data["title"],
                             "alternative_id": "averted",
-                            "description": f"由于{evt_data['title']}未发生，{ds_data['title']}也不会发生",
+                            "description": (
+                                f"由于{evt_data['title']}未发生，{ds_data['title']}也不会发生"
+                            ),
                             "effects": {},
                             "divergence_level": "high",
                         }

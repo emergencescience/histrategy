@@ -20,12 +20,13 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING
 
-from .faction_slot import FactionSlot, LLM_NPC_FACTIONS
+from .faction_slot import FactionSlot
 
 if TYPE_CHECKING:
     from histrategy_engine.world import WorldState
 
     from histrategy.llm.adapter import LLMAdapter
+
     from .game_room import GameRoom
 
 logger = logging.getLogger("histrategy.decision_bus")
@@ -38,8 +39,12 @@ class DecisionResult:
     """一个 faction 的决策收集结果。"""
 
     __slots__ = (
-        "faction_id", "decision_text", "commands",
-        "source", "latency_ms", "error",
+        "faction_id",
+        "decision_text",
+        "commands",
+        "source",
+        "latency_ms",
+        "error",
     )
 
     def __init__(
@@ -62,9 +67,7 @@ class DecisionResult:
         return (
             f"DecisionResult({self.faction_id}, "
             f"source={self.source}, "
-            f"latency={self.latency_ms:.0f}ms"
-            + (f", error={self.error}" if self.error else "")
-            + ")"
+            f"latency={self.latency_ms:.0f}ms" + (f", error={self.error}" if self.error else "") + ")"
         )
 
 
@@ -104,19 +107,21 @@ def collect_all_decisions(
             )
 
     # 2. 并行 LLM 调用：为主要 NPC 生成独立决策
-    major_ai = [
-        s for s in room.major_ai_slots()
-        if s.faction_id not in results
-    ]
+    major_ai = [s for s in room.major_ai_slots() if s.faction_id not in results]
     if major_ai and llm:
         _collect_ai_decisions_parallel(
-            major_ai, world_state, llm, turn_memory or [], results,
+            major_ai,
+            world_state,
+            llm,
+            turn_memory or [],
+            results,
         )
     elif major_ai:
         # LLM not available → heuristic fallback for major NPCs too
         for slot in major_ai:
             decision, commands = _generate_heuristic_decision(
-                world_state, slot.faction_id,
+                world_state,
+                slot.faction_id,
             )
             results[slot.faction_id] = DecisionResult(
                 faction_id=slot.faction_id,
@@ -129,7 +134,8 @@ def collect_all_decisions(
     for slot in room.minor_ai_slots():
         if slot.faction_id not in results:
             decision, commands = _generate_heuristic_decision(
-                world_state, slot.faction_id,
+                world_state,
+                slot.faction_id,
             )
             results[slot.faction_id] = DecisionResult(
                 faction_id=slot.faction_id,
@@ -144,17 +150,21 @@ def collect_all_decisions(
         for slot in room.human_slots():
             if slot.faction_id not in results:
                 logger.warning(
-                    f"Human player {slot.occupant_id} for faction "
-                    f"{slot.faction_id} timed out after {elapsed:.0f}s"
+                    f"Human player {slot.occupant_id} for faction {slot.faction_id} timed out after {elapsed:.0f}s"
                 )
                 if llm:
                     decision, commands = _generate_llm_decision(
-                        world_state, slot.faction_id, llm, turn_memory or [], slot,
+                        world_state,
+                        slot.faction_id,
+                        llm,
+                        turn_memory or [],
+                        slot,
                     )
                     source = "auto_timeout_llm"
                 else:
                     decision, commands = _generate_heuristic_decision(
-                        world_state, slot.faction_id,
+                        world_state,
+                        slot.faction_id,
                     )
                     source = "auto_timeout_heuristic"
                 results[slot.faction_id] = DecisionResult(
@@ -185,7 +195,10 @@ def _collect_ai_decisions_parallel(
         t0 = time.time()
         try:
             decision, commands = engine.generate(
-                world_state, slot.faction_id, turn_memory, slot,
+                world_state,
+                slot.faction_id,
+                turn_memory,
+                slot,
             )
             latency = (time.time() - t0) * 1000
             return DecisionResult(
@@ -200,7 +213,8 @@ def _collect_ai_decisions_parallel(
             logger.error(f"NPC decision failed for {slot.faction_id}: {e}")
             # 回退到启发式
             decision, commands = _generate_heuristic_decision(
-                world_state, slot.faction_id,
+                world_state,
+                slot.faction_id,
             )
             return DecisionResult(
                 faction_id=slot.faction_id,
@@ -212,10 +226,7 @@ def _collect_ai_decisions_parallel(
             )
 
     with ThreadPoolExecutor(max_workers=len(ai_slots)) as executor:
-        futures = {
-            executor.submit(_generate_one, slot): slot
-            for slot in ai_slots
-        }
+        futures = {executor.submit(_generate_one, slot): slot for slot in ai_slots}
         for future in as_completed(futures):
             result = future.result()
             results[result.faction_id] = result
@@ -257,33 +268,37 @@ def _generate_heuristic_decision(
     # 招募：兵力低于10000且有资金
     if strength < 10000 and treasury > 2000:
         amount = min(3000, treasury // 2)
-        commands.append({
-            "type": "conscript",
-            "params": {"amount": amount},
-            "reasoning": "补充兵力",
-        })
+        commands.append(
+            {
+                "type": "conscript",
+                "params": {"amount": amount},
+                "reasoning": "补充兵力",
+            }
+        )
         parts.append(f"征兵{amount}")
 
     # 发展：资金充裕时开发首都
     if treasury > 5000 and food > 3000:
-        capital = faction.capital or (
-            faction.territories[0] if faction.territories else None
-        )
+        capital = faction.capital or (faction.territories[0] if faction.territories else None)
         if capital:
-            commands.append({
-                "type": "develop",
-                "params": {"territory": capital},
-                "reasoning": "发展经济",
-            })
+            commands.append(
+                {
+                    "type": "develop",
+                    "params": {"territory": capital},
+                    "reasoning": "发展经济",
+                }
+            )
             parts.append(f"开发{capital}")
 
     # 税收到30%以上降低
     if faction.tax_rate > 0.35:
-        commands.append({
-            "type": "tax",
-            "params": {"tax_rate": 0.3},
-            "reasoning": "减轻民负",
-        })
+        commands.append(
+            {
+                "type": "tax",
+                "params": {"tax_rate": 0.3},
+                "reasoning": "减轻民负",
+            }
+        )
         parts.append("降低税率至三成")
 
     decision = "、".join(parts) + "。" if parts else "休整观望。"

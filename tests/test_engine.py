@@ -87,7 +87,7 @@ class TestSimulation:
         engine = GameEngine()
         engine.set_player_faction("cao")
         assert engine.world_state.turn == 0
-        result = engine.process_turn("发展经济")
+        engine.process_turn("发展经济")
         assert engine.world_state.turn == 1
         engine.process_turn("发展经济")
         assert engine.world_state.turn == 2
@@ -258,7 +258,7 @@ class TestMemorySystem:
         w = GameWorld("190")
         w.player_faction_id = "cao"
         simulate_turn_offline(w, "发展经济")
-        sim2 = simulate_turn_offline(w, "扩军备战")
+        simulate_turn_offline(w, "扩军备战")
         from histrategy.engine.offline_sim import _memory_file
 
         mem_file = _memory_file()
@@ -553,7 +553,7 @@ class TestNPCAutonomousBehavior:
 
         # Check that NPC content exists in results
         npc_content_found = 0
-        for i in range(5):
+        for _i in range(5):
             result = engine.process_turn("发展内政")
             npc_reactions = result.get("npc_reactions", [])
             npc_actions = result.get("npc_actions", [])
@@ -638,7 +638,7 @@ class TestNPCMoodProgression:
             turns_at_current_mood=1,
             loyalty=30,
         )
-        result = engine.process_turn("安抚众臣")
+        engine.process_turn("安抚众臣")
         # Should still be in npc_states (not defected yet)
         assert "guo_jia" in engine.world_state.npc_states, "NPC should NOT defect before 2 consecutive plotting turns"
 

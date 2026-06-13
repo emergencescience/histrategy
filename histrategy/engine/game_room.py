@@ -19,10 +19,9 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 from .faction_slot import (
-    FactionSlot,
     HEURISTIC_NPC_FACTIONS,
     LLM_NPC_FACTIONS,
-    OccupantType,
+    FactionSlot,
     create_ai_slot,
     create_open_slot,
 )
@@ -32,10 +31,10 @@ if TYPE_CHECKING:
 
 
 class RoomPhase(Enum):
-    LOBBY = "lobby"          # 等待玩家加入
-    WAITING = "waiting"      # 等待所有 faction 提交本季度决策
+    LOBBY = "lobby"  # 等待玩家加入
+    WAITING = "waiting"  # 等待所有 faction 提交本季度决策
     RESOLVING = "resolving"  # 正在执行季度引擎（拒绝新提交）
-    FINISHED = "finished"    # 游戏结束
+    FINISHED = "finished"  # 游戏结束
 
 
 @dataclass
@@ -59,7 +58,7 @@ class GameRoom:
     world_state: WorldState | None = None
 
     # 等待超时配置（秒）
-    decision_timeout: int = 300       # 人类玩家提交决策的超时
+    decision_timeout: int = 300  # 人类玩家提交决策的超时
 
     # 回合记忆（最近 N 个季度的摘要，供 LLM 上下文使用）
     turn_summaries: list[dict] = field(default_factory=list)
@@ -79,10 +78,7 @@ class GameRoom:
 
     def pending_slots(self) -> list[str]:
         """本季度尚未提交决策的 faction_id 列表。"""
-        return [
-            fid for fid, s in self.slots.items()
-            if s.is_active and not s.has_submitted()
-        ]
+        return [fid for fid, s in self.slots.items() if s.is_active and not s.has_submitted()]
 
     # ── 类型分组 ──────────────────────────────────
 
@@ -96,17 +92,11 @@ class GameRoom:
 
     def major_ai_slots(self) -> list[FactionSlot]:
         """主要 NPC 势力（cao/shu/wu）—— 使用 LLM 独立决策。"""
-        return [
-            s for s in self.slots.values()
-            if s.is_ai() and s.faction_id in LLM_NPC_FACTIONS
-        ]
+        return [s for s in self.slots.values() if s.is_ai() and s.faction_id in LLM_NPC_FACTIONS]
 
     def minor_ai_slots(self) -> list[FactionSlot]:
         """次要 NPC 势力 —— 使用启发式规则。"""
-        return [
-            s for s in self.slots.values()
-            if s.is_ai() and s.faction_id in HEURISTIC_NPC_FACTIONS
-        ]
+        return [s for s in self.slots.values() if s.is_ai() and s.faction_id in HEURISTIC_NPC_FACTIONS]
 
     def active_slots(self) -> list[FactionSlot]:
         """所有活跃槽位（无论人类/AI）。"""
@@ -159,7 +149,7 @@ class GameRoom:
         }
 
     @classmethod
-    def from_dict(cls, data: dict, world_state: WorldState | None = None) -> "GameRoom":
+    def from_dict(cls, data: dict, world_state: WorldState | None = None) -> GameRoom:
         """从字典重建 GameRoom（不含 world_state，需单独加载）。"""
         room = cls(
             id=data["id"],

@@ -153,7 +153,7 @@ class TestLLMIntegration:
         """Provider detection should work with env vars."""
         from histrategy.llm.adapter import detect_provider
 
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory():
             # Test no provider
             provider = detect_provider()
             assert isinstance(provider, dict)
@@ -169,7 +169,7 @@ class TestKnowledgeBase:
         from histrategy.engine.world import GameWorld
 
         world = GameWorld("190")
-        for char_id, char in world.characters.items():
+        for _char_id, char in world.characters.items():
             assert char.faction in world.factions, f"Character {char.name} references unknown faction {char.faction}"
 
     def test_regions_have_owners(self):
@@ -177,7 +177,7 @@ class TestKnowledgeBase:
         from histrategy.engine.world import GameWorld
 
         world = GameWorld("190")
-        for region_id, region in world.regions.items():
+        for _region_id, region in world.regions.items():
             assert region.owner in world.factions or region.owner == "other", (
                 f"Region {region.name} has unknown owner {region.owner}"
             )

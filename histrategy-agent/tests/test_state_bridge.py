@@ -94,7 +94,6 @@ class TestStateBridgeCommands:
 
     def test_execute_tax(self):
         faction = self.session.world_state.factions["shu"]
-        initial_treasury = faction.treasury
 
         result = self.bridge.execute_command(Command(type="tax", params={"rate": 0.3}, faction_id="shu"))
         assert result["success"] is True

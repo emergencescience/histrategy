@@ -7,11 +7,10 @@ strategic choke-points, and visibility/fog-of-war.
 
 from __future__ import annotations
 
-from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ..world import StrategicPoint, TerrainType, Territory, UnitType
+from ..world import TerrainType, Territory, UnitType
 
 if TYPE_CHECKING:
     pass  # avoid circular imports at type-check time

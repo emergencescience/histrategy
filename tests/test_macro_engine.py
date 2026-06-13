@@ -53,7 +53,9 @@ def world_state():
 
     # Factions
     ws.factions["cao"] = FactionState(
-        id="cao", name="曹操", ruler_id="caocao",
+        id="cao",
+        name="曹操",
+        ruler_id="caocao",
         capital="xuchang",
         territories=["xuchang", "wancheng", "luoyang", "ye"],
         is_active=True,
@@ -62,10 +64,14 @@ def world_state():
         treasury=62300,
         food=18904,
         tax_rate=0.40,
-        aggression=0.8, cunning=0.9, caution=0.3,
+        aggression=0.8,
+        cunning=0.9,
+        caution=0.3,
     )
     ws.factions["shu"] = FactionState(
-        id="shu", name="刘备", ruler_id="liubei",
+        id="shu",
+        name="刘备",
+        ruler_id="liubei",
         capital="xinye",
         territories=["xinye"],
         is_active=True,
@@ -74,10 +80,14 @@ def world_state():
         treasury=3300,
         food=0,
         tax_rate=0.20,
-        aggression=0.3, cunning=0.3, caution=0.7,
+        aggression=0.3,
+        cunning=0.3,
+        caution=0.7,
     )
     ws.factions["wu"] = FactionState(
-        id="wu", name="孙权", ruler_id="sunquan",
+        id="wu",
+        name="孙权",
+        ruler_id="sunquan",
         capital="jianye",
         territories=["jianye", "wu", "chaisang", "lujiang"],
         is_active=True,
@@ -88,7 +98,9 @@ def world_state():
         tax_rate=0.30,
     )
     ws.factions["liubiao"] = FactionState(
-        id="liubiao", name="刘表", ruler_id="liubiao",
+        id="liubiao",
+        name="刘表",
+        ruler_id="liubiao",
         capital="xiangyang",
         territories=["xiangyang", "jiangling"],
         is_active=True,
@@ -101,6 +113,7 @@ def world_state():
 
     # Territories
     from histrategy_engine.world import TerrainType
+
     for tid, pop, dev, fert in [
         ("xuchang", 100000, 70, 7),
         ("wancheng", 50000, 45, 7),
@@ -115,9 +128,12 @@ def world_state():
         ("lujiang", 45000, 42, 6),
     ]:
         ws.territories[tid] = Territory(
-            id=tid, name=tid,
-            population=pop, development=dev,
-            fertility=fert, terrain_type=TerrainType.PLAINS,
+            id=tid,
+            name=tid,
+            population=pop,
+            development=dev,
+            fertility=fert,
+            terrain_type=TerrainType.PLAINS,
         )
         # Set owner based on faction territories
         for fid, f in ws.factions.items():
@@ -137,23 +153,32 @@ def world_state():
         ("simayi", "司马懿", "cao", "xuchang"),
     ]:
         ws.characters[cid] = Character(
-            id=cid, name=name, faction_id=fid,
-            location=loc, alive=True, loyalty=75,
+            id=cid,
+            name=name,
+            faction_id=fid,
+            location=loc,
+            alive=True,
+            loyalty=75,
         )
 
     # Armies
     from histrategy_engine.world import UnitType
+
     ws.armies["army_cao_1"] = Army(
-        id="army_cao_1", faction_id="cao",
+        id="army_cao_1",
+        faction_id="cao",
         location="wancheng",
         units={UnitType.INFANTRY: 5000},
-        morale=80, supply=30,
+        morale=80,
+        supply=30,
     )
     ws.armies["army_shu_1"] = Army(
-        id="army_shu_1", faction_id="shu",
+        id="army_shu_1",
+        faction_id="shu",
         location="xinye",
         units={UnitType.INFANTRY: 5000},
-        morale=80, supply=30,
+        morale=80,
+        supply=30,
     )
 
     return ws

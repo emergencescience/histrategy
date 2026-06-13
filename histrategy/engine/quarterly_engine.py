@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 # ─── Configurable parameters ───────────────────────────────────
 
+
 @dataclass
 class EconomyParams:
     """Tunable economic simulation parameters.
@@ -22,46 +23,49 @@ class EconomyParams:
     Calibration target: a mid-sized faction (5 territories, ~125k pop)
     should be able to sustain ~50k troops with a small surplus at 30% tax.
     """
+
     # ── Population ──
-    base_population_growth: float = 0.005       # per quarter (2%/year)
+    base_population_growth: float = 0.005  # per quarter (2%/year)
 
     # ── Food ──
-    base_food_per_soldier: float = 0.01         # food per soldier per quarter
-    base_food_per_civilian: float = 0.002       # food per civilian per quarter
-    food_production_multiplier: float = 0.05    # food output per population * dev * fertility
+    base_food_per_soldier: float = 0.01  # food per soldier per quarter
+    base_food_per_civilian: float = 0.002  # food per civilian per quarter
+    food_production_multiplier: float = 0.05  # food output per population * dev * fertility
 
     # ── Taxation (revenue = pop × base_tax_revenue_per_pop × tax_rate) ──
-    base_tax_revenue_per_pop: float = 0.02      # tax revenue per population unit per quarter
-    max_tax_rate: float = 0.70                  # maximum allowed tax rate
+    base_tax_revenue_per_pop: float = 0.02  # tax revenue per population unit per quarter
+    max_tax_rate: float = 0.70  # maximum allowed tax rate
 
     # ── Military costs ──
     military_maintenance_per_soldier: float = 0.001  # gold per soldier per quarter
-    conscript_cost: float = 2.0                      # one-time gold cost per conscript
-    conscript_food_penalty: float = 0.5              # food output loss per conscript
+    conscript_cost: float = 2.0  # one-time gold cost per conscript
+    conscript_food_penalty: float = 0.5  # food output loss per conscript
 
     # ── Occupation / governance costs ──
-    occupation_cost_per_territory: float = 50.0      # gold per non-core territory per quarter
-    core_territory_count: int = 4                    # first N territories are "core" (no occupation cost)
+    occupation_cost_per_territory: float = 50.0  # gold per non-core territory per quarter
+    core_territory_count: int = 4  # first N territories are "core" (no occupation cost)
 
     # ── Morale ──
-    morale_tax_penalty: float = 0.3             # morale penalty per 1% above 20% tax
-    food_morale_impact: float = 0.1             # morale change per food surplus/shortage
+    morale_tax_penalty: float = 0.3  # morale penalty per 1% above 20% tax
+    food_morale_impact: float = 0.1  # morale change per food surplus/shortage
 
     # ── Development ──
-    development_growth: float = 0.01            # development increase per quarter (with investment)
-    development_decay: float = 0.995            # natural decay multiplier
+    development_growth: float = 0.01  # development increase per quarter (with investment)
+    development_decay: float = 0.995  # natural decay multiplier
 
     # ── Conscription limits ──
-    max_conscript_ratio: float = 0.05           # max conscripts per quarter as % of total population
+    max_conscript_ratio: float = 0.05  # max conscripts per quarter as % of total population
 
 
 # ─── Result type ───────────────────────────────────────────────
 
+
 @dataclass
 class QuarterResult:
     """Deterministic baseline for one quarter's economic/population simulation."""
+
     year: int
-    quarter: int                                    # 0-3 (spring, summer, autumn, winter)
+    quarter: int  # 0-3 (spring, summer, autumn, winter)
     season_name: str = ""
 
     # Per-faction changes
@@ -86,6 +90,7 @@ class QuarterResult:
 
 
 # ─── Engine ────────────────────────────────────────────────────
+
 
 class QuarterlyEngine:
     """Deterministic quarterly simulation — economy, population, morale.
@@ -144,7 +149,8 @@ class QuarterlyEngine:
             # ── Population (simplified) ──
             total_pop = sum(
                 getattr(world_state.territories[t], "population", 25000)
-                for t in territories if t in world_state.territories
+                for t in territories
+                if t in world_state.territories
             )
             growth = total_pop * p.base_population_growth
             # High tax slows growth, high morale accelerates
@@ -158,10 +164,7 @@ class QuarterlyEngine:
             result.tax_revenue[fid] = revenue
 
             # ── Food ──
-            food_consumed = (
-                strength * p.base_food_per_soldier +
-                total_pop * p.base_food_per_civilian
-            )
+            food_consumed = strength * p.base_food_per_soldier + total_pop * p.base_food_per_civilian
             # Food production from agriculture tech and development
             food_produced = 0
             for tid in territories:
@@ -251,7 +254,9 @@ class QuarterlyEngine:
                 faction.treasury = treasury_after_occ
                 treasury = treasury_after_occ
                 if actual_occ_cost > 0:
-                    result.notable_events.append(f"{fid}领地治理{actual_occ_cost}金（{num_territories}领地，{p.core_territory_count}核心+{occupied}占领区）")
+                    result.notable_events.append(
+                        f"{fid}领地治理{actual_occ_cost}金（{num_territories}领地，{p.core_territory_count}核心+{occupied}占领区）"
+                    )
 
             # ── Development ──
             dev_changes: dict[str, float] = {}

@@ -163,9 +163,7 @@ class WorldSimulator:
         if hasattr(baseline, "battles") and baseline.battles:
             lines.append("### 战斗结果")
             for b in baseline.battles:
-                lines.append(
-                    f"- {b.location}: {b.attacker_id} vs {b.defender_id} → {b.result.value}"
-                )
+                lines.append(f"- {b.location}: {b.attacker_id} vs {b.defender_id} → {b.result.value}")
                 if hasattr(b, "territory_captured") and b.territory_captured:
                     lines.append(f"  → 领地易手: {b.location} 归 {b.attacker_id}")
                 atk_loss = sum(b.attacker_casualties.values()) if hasattr(b, "attacker_casualties") else 0
@@ -208,8 +206,7 @@ class WorldSimulator:
             loc = char.location if hasattr(char, "location") else "?"
             loyalty = char.loyalty if hasattr(char, "loyalty") else 50
             lines.append(
-                f"- {char.id} ({char.name}): faction={char.faction_id}, "
-                f"location={loc}, loyalty={loyalty}, alive=True"
+                f"- {char.id} ({char.name}): faction={char.faction_id}, location={loc}, loyalty={loyalty}, alive=True"
             )
         lines.append("")
 

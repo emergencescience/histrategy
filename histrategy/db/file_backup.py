@@ -10,6 +10,7 @@ by quarter number + event reason.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 from datetime import datetime, timezone
@@ -29,7 +30,7 @@ def get_backup_dir(room_id: str) -> str:
 
 
 def write_room_snapshot(
-    room: "GameRoom",
+    room: GameRoom,
     world_state_dict: dict | None = None,
     reason: str = "quarter_complete",
 ):
@@ -129,8 +130,7 @@ def list_backups(room_id: str, limit: int = 20) -> list[str]:
         return []
 
     files = sorted(
-        [os.path.join(backup_dir, f) for f in os.listdir(backup_dir)
-         if f.endswith(".json")],
+        [os.path.join(backup_dir, f) for f in os.listdir(backup_dir) if f.endswith(".json")],
         key=os.path.getmtime,
         reverse=True,
     )
@@ -146,7 +146,5 @@ def cleanup_old_backups(room_id: str, keep: int = 50):
     """
     files = list_backups(room_id, limit=999)
     for f in files[keep:]:
-        try:
+        with contextlib.suppress(OSError):
             os.remove(f)
-        except OSError:
-            pass

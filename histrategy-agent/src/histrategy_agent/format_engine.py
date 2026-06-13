@@ -134,17 +134,15 @@ class FormatEngine:
             "liuzhang": "益",
         }
 
-        player_faction = world_state.factions.get(faction_id)
-        capital_id = player_faction.capital if player_faction else ""
+        world_state.factions.get(faction_id)
 
         lines = []
         lines.append("天下大势图")
         lines.append("─" * 40)
 
-        for tid, territory in sorted(world_state.territories.items()):
+        for _tid, territory in sorted(world_state.territories.items()):
             owner = territory.owner_id
             symbol = faction_symbols.get(owner, "·")
-            marker = "★" if tid == capital_id else "  "
             name = territory.name
             neighbors = " → ".join(
                 world_state.territories[n].name if n in world_state.territories else n for n in territory.neighbors[:2]

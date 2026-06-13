@@ -7,7 +7,6 @@ JSON fields are serialized/deserialized via json.dumps/loads.
 
 from __future__ import annotations
 
-import json
 import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
@@ -28,15 +27,10 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
         room: GameRoom to save
         world_state_dict: WorldState serialized to dict
     """
-    from histrategy.engine.game_room import RoomPhase
 
-    existing = execute_one(
-        "SELECT id FROM game_room WHERE id = ?", (room.id,)
-    )
+    existing = execute_one("SELECT id FROM game_room WHERE id = ?", (room.id,))
 
-    slots_json = json_dumps({
-        fid: s.to_dict() for fid, s in room.slots.items()
-    })
+    slots_json = json_dumps({fid: s.to_dict() for fid, s in room.slots.items()})
     summaries_json = json_dumps(room.turn_summaries)
     ws_json = json_dumps(world_state_dict) if world_state_dict else None
     now = datetime.now(timezone.utc).isoformat()
@@ -49,9 +43,15 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
                 updated_at = ?
             WHERE id = ?""",
             (
-                room.year, room.season, room.quarter_number,
-                room.phase.value, ws_json, slots_json,
-                summaries_json, now, room.id,
+                room.year,
+                room.season,
+                room.quarter_number,
+                room.phase.value,
+                ws_json,
+                slots_json,
+                summaries_json,
+                now,
+                room.id,
             ),
         )
     else:
@@ -62,10 +62,19 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
                  turn_summaries, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
-                room.id, room.host_user_id, room.scenario,
-                room.year, room.season, room.quarter_number,
-                room.phase.value, ws_json, slots_json,
-                room.decision_timeout, summaries_json, now, now,
+                room.id,
+                room.host_user_id,
+                room.scenario,
+                room.year,
+                room.season,
+                room.quarter_number,
+                room.phase.value,
+                ws_json,
+                slots_json,
+                room.decision_timeout,
+                summaries_json,
+                now,
+                now,
             ),
         )
 
@@ -79,9 +88,7 @@ def _save_faction_slots(room: GameRoom):
 
     for faction_id, slot in room.slots.items():
         slot_id = f"{room.id}_{faction_id}"
-        existing = execute_one(
-            "SELECT id FROM faction_slot WHERE id = ?", (slot_id,)
-        )
+        existing = execute_one("SELECT id FROM faction_slot WHERE id = ?", (slot_id,))
 
         commands_json = json_dumps(slot.pending_commands) if slot.pending_commands else None
 
@@ -110,7 +117,9 @@ def _save_faction_slots(room: GameRoom):
                      pending_commands, is_active, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
-                    slot_id, room.id, faction_id,
+                    slot_id,
+                    room.id,
+                    faction_id,
                     slot.occupant_type.value,
                     slot.occupant_id,
                     slot.ai_model,
@@ -118,7 +127,8 @@ def _save_faction_slots(room: GameRoom):
                     slot.pending_decision,
                     commands_json,
                     1 if slot.is_active else 0,
-                    now, now,
+                    now,
+                    now,
                 ),
             )
 
@@ -128,8 +138,8 @@ def load_room(room_id: str) -> GameRoom | None:
 
     Returns None if room not found.
     """
-    from histrategy.engine.game_room import GameRoom, RoomPhase
     from histrategy.engine.faction_slot import FactionSlot
+    from histrategy.engine.game_room import GameRoom, RoomPhase
 
     row = execute_one("SELECT * FROM game_room WHERE id = ?", (room_id,))
     if not row:
@@ -160,9 +170,7 @@ def load_room(room_id: str) -> GameRoom | None:
 
 def load_world_state_dict(room_id: str) -> dict | None:
     """Load just the world_state JSON from a room (without rebuilding GameRoom)."""
-    row = execute_one(
-        "SELECT world_state FROM game_room WHERE id = ?", (room_id,)
-    )
+    row = execute_one("SELECT world_state FROM game_room WHERE id = ?", (room_id,))
     if not row:
         return None
     return json_loads(row.get("world_state"))
@@ -193,7 +201,11 @@ def save_quarter_turn(
              narratives, state_changes, token_usage)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
-            turn_id, room_id, quarter_number, year, season,
+            turn_id,
+            room_id,
+            quarter_number,
+            year,
+            season,
             json_dumps(faction_decisions),
             json_dumps(baseline_result) if baseline_result else None,
             json_dumps(macro_delta) if macro_delta else None,
@@ -247,10 +259,22 @@ def log_llm_call(
              system_prompt_type, user_prompt, response, error)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
-            log_id, room_id, quarter_number, call_type, faction_id,
-            provider, model, prompt_tokens, completion_tokens,
-            total_tokens, reasoning_tokens, latency_ms,
-            system_prompt_type, user_prompt, response, error,
+            log_id,
+            room_id,
+            quarter_number,
+            call_type,
+            faction_id,
+            provider,
+            model,
+            prompt_tokens,
+            completion_tokens,
+            total_tokens,
+            reasoning_tokens,
+            latency_ms,
+            system_prompt_type,
+            user_prompt,
+            response,
+            error,
         ),
     )
     return log_id
@@ -273,8 +297,11 @@ def log_sim_event(
             (id, room_id, quarter_number, event_type, event_data)
         VALUES (?, ?, ?, ?, ?)""",
         (
-            event_id, room_id, quarter_number,
-            event_type, json_dumps(event_data) if event_data else None,
+            event_id,
+            room_id,
+            quarter_number,
+            event_type,
+            json_dumps(event_data) if event_data else None,
         ),
     )
     return event_id
