@@ -292,6 +292,7 @@ def save_v1_state_to_db(
                 continue
 
             # ── 保存完整状态快照 (game_state) ──
+            logger.warning("V1 save_game_state: fid=%s troops=%s food=%s", fid, data.get("troops"), data.get("food"))
             save_game_state(
                 room_id=room_id,
                 quarter_number=quarter_number,
@@ -305,6 +306,7 @@ def save_v1_state_to_db(
                 policies=data.get("policies", {}),
                 is_active=data.get("is_active", True),
             )
+            logger.warning("V1 save_game_state DONE: fid=%s", fid)
 
             # ── 保存五项增量 (turn_delta) ──
             if old_state and fid in old_state:
