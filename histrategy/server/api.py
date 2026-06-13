@@ -428,6 +428,15 @@ def create_app(llm_provider: str | None = None) -> Any:
         except Exception as e:
             v2_error = f"{type(e).__name__}: {e}"
 
+        # DB type detection
+        try:
+            from histrategy.db.connection import _IS_SQLITE as _sqlite_flag, DATABASE_URL as _db_url
+            db_type = "sqlite" if _sqlite_flag else "postgres"
+            db_host = _db_url.split("@")[-1].split("/")[0] if "@" in _db_url else "local"
+        except Exception:
+            db_type = "unknown"
+            db_host = "unknown"
+
         return {
             "status": "ok",
             "games_active": len(_games),
@@ -440,6 +449,10 @@ def create_app(llm_provider: str | None = None) -> Any:
                 "version": "v2" if v2_available else "v1",
                 "v2_available": v2_available,
                 "v2_error": v2_error,
+            },
+            "db": {
+                "type": db_type,
+                "host": db_host,
             },
         }
 

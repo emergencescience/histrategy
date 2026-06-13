@@ -347,4 +347,4 @@ def save_v1_state_to_db(
                         )
 
     except Exception as e:
-        logger.warning(f"V1 DB save failed (non-fatal): {e}")
+        logger.warning(f"V1 DB save failed (non-fatal): {e}", exc_info=True)
