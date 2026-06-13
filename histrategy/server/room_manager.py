@@ -46,15 +46,18 @@ def create_room(
     host_name: str = "",
     scenario: str = "207",
     human_faction_ids: list[str] | None = None,
+    pre_assigned: dict[str, str] | None = None,
 ) -> dict:
     """创建房间并立即开始游戏。
 
-    Host 选择哪些势力由人类控制，其余自动变 AI NPC。
-    游戏立即开始（AI NPC 开始生成决策），人类通过 /mp?room=xxx&faction=caocao 加入。
-    不需要 Host 再手动点"开始游戏"。
+    Host 预分配势力（推荐）：pre_assigned = {"caocao": "张三", "liubei": "李四"}
+    → 每个玩家获得专属链接 /mp?room=xxx&faction=caocao&player_token=<token>
+    → 未分配的势力自动变 AI NPC
+
+    兼容旧 API：human_faction_ids = ["caocao", "liubei"] → 设为 OPEN 等待加入
 
     Returns:
-        {"ok": True, "room_id": str, "phase": "waiting", ...}
+        {"ok": True, "room_id": str, "player_links": [{faction, token, url}], ...}
     """
     from histrategy.engine.faction_slot import (
         FACTION_DISPLAY_TO_ID,
@@ -67,7 +70,16 @@ def create_room(
     from histrategy.engine.game_room import GameRoom, RoomPhase
 
     # 翻译显示名 → 内部 ID（caocao→cao, liubei→shu, sunquan→wu）
-    internal_ids = [FACTION_DISPLAY_TO_ID.get(f, f) for f in (human_faction_ids or PLAYABLE_FACTIONS)]
+    if pre_assigned:
+        # 新流程：Host 预分配势力到具体玩家
+        internal_map = {}
+        for display_fid, player_name in pre_assigned.items():
+            internal_fid = FACTION_DISPLAY_TO_ID.get(display_fid, display_fid)
+            internal_map[internal_fid] = player_name
+        internal_ids = list(internal_map.keys())
+    else:
+        internal_ids = [FACTION_DISPLAY_TO_ID.get(f, f) for f in (human_faction_ids or PLAYABLE_FACTIONS)]
+        internal_map = None
 
     if not internal_ids:
         internal_ids = ["cao", "shu", "wu"]
@@ -79,9 +91,28 @@ def create_room(
     _rooms[room.id] = room
     _players[room.id] = {}
 
-    # 人类势力 → OPEN（等待玩家加入）
+    # 人类势力 → OPEN（等待玩家加入）或 HUMAN（预分配）
+    player_links = []
     for fid in internal_ids:
-        room.slots[fid] = create_open_slot(fid)
+        if internal_map:
+            # 预分配：直接设为 HUMAN，生成专属 token
+            from histrategy.engine.faction_slot import create_human_slot
+            player_user_id = "u_" + uuid.uuid4().hex
+            player_token = uuid.uuid4().hex
+            slot = create_human_slot(fid, player_user_id)
+            room.slots[fid] = slot
+            player_name = internal_map[fid]
+            display_fid = FACTION_ID_TO_DISPLAY.get(fid, fid)
+            player_links.append({
+                "faction": display_fid,
+                "player_name": player_name,
+                "player_token": player_token,
+                "url": f"/mp?room={room.id}&faction={display_fid}&player_token={player_token}",
+            })
+            # 注册玩家
+            _enter_player(room.id, player_user_id, "player", player_name, player_token)
+        else:
+            room.slots[fid] = create_open_slot(fid)
 
     # 未指定的势力 → AI NPC
     for fid in LLM_NPC_FACTIONS:
@@ -104,13 +135,16 @@ def create_room(
     display_factions = [FACTION_ID_TO_DISPLAY.get(f, f) for f in internal_ids]
 
     logger.info(f"Room created+started: {room.id} by {host_user_id or 'anon'} (humans: {display_factions})")
-    return {
+    result = {
         "ok": True,
         "room_id": room.id,
         "host_token": host_token,
         "phase": "waiting",
         "human_factions": display_factions,
     }
+    if player_links:
+        result["player_links"] = player_links
+    return result
 
 
 def enter_room(
@@ -118,11 +152,12 @@ def enter_room(
     user_id: str = "",
     display_name: str = "",
     faction: str = "",
+    player_token: str = "",
 ) -> dict:
     """进入房间。
 
-    简化模式：玩家访问 /mp?room=xxx&faction=cao 即可自动进入。
-    不需要 user_id —— 由后端自动生成。
+    简化模式：玩家访问 /mp?room=xxx&faction=cao&player_token=xxx 即可自动进入。
+    player_token 是 Host 创建房间时分配的凭证，防止同浏览器 session 混淆。
 
     Returns:
         {"ok": True, "faction": str, ...} 或 error
@@ -136,7 +171,14 @@ def enter_room(
 
     # 自动生成 user_id（不需要人类维护 user 表）
     if not user_id:
-        user_id = "u_" + uuid.uuid4().hex[:8]
+        # 如果提供了 player_token，尝试查找已有玩家
+        if player_token and room_id in _players:
+            for uid, pdata in _players[room_id].items():
+                if pdata.get("player_token") == player_token:
+                    user_id = uid
+                    break
+        if not user_id:
+            user_id = "u_" + uuid.uuid4().hex  # full UUID v4 for uniqueness
 
     # 翻译显示名 → 内部 ID
     if faction:
@@ -348,7 +390,8 @@ def submit_decision(room_id: str, faction_id: str, user_id: str, decision: str) 
 
     if not pending:
         # 异步执行（LLM 调用可能耗时 30-60s，不能阻塞 HTTP 响应）
-        import threading, traceback
+        import threading
+        import traceback
 
         def _resolve_safe(room):
             try:
@@ -467,6 +510,11 @@ def _get_room(room_id: str) -> GameRoom | None:
         room = load_room(room_id)
         if room:
             _rooms[room_id] = room
+            # 从 DB 恢复的房间如果处于 WAITING 阶段且有 AI NPC，
+            # 需要立即触发 NPC 决策生成（from_dict 会清空 pending_decision）
+            if room.phase.value == "waiting" and any(s.is_ai() and s.is_active for s in room.slots.values()):
+                logger.info(f"Room {room_id} loaded from DB (Q{room.quarter_number}), triggering NPC decisions")
+                _trigger_npc_decisions(room)
             return room
     except Exception:
         pass

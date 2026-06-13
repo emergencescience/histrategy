@@ -154,7 +154,7 @@ class LLMAdapter:
         self,
         messages: list[dict],
         temperature: float = 0.7,
-        max_tokens: int = 4096,
+        max_tokens: int = 16384,
         metadata: dict | None = None,
     ) -> str:
         """Send a chat completion request."""
@@ -194,7 +194,7 @@ class LLMAdapter:
         messages: list[dict],
         response_format: dict | None = None,
         temperature: float = 0.7,
-        max_tokens: int = 8192,
+        max_tokens: int = 16384,
         metadata: dict | None = None,
     ) -> dict:
         """Send a chat completion request with structured output.

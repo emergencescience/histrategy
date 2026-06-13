@@ -107,7 +107,23 @@ def collect_all_decisions(
             )
 
     # 2. 并行 LLM 调用：为主要 NPC 生成独立决策
-    major_ai = [s for s in room.major_ai_slots() if s.faction_id not in results]
+    # 但如果 AI slot 已经有预生成的 pending_decision（来自 _trigger_npc_decisions），
+    # 直接复用——避免对 NPC 重复调 LLM
+    pre_submitted_ai = [
+        s for s in room.major_ai_slots()
+        if s.faction_id not in results and s.has_submitted()
+    ]
+    for s in pre_submitted_ai:
+        results[s.faction_id] = DecisionResult(
+            faction_id=s.faction_id,
+            decision_text=s.pending_decision or "",
+            commands=s.pending_commands,
+            source="llm",
+        )
+    major_ai = [
+        s for s in room.major_ai_slots()
+        if s.faction_id not in results
+    ]
     if major_ai and llm:
         _collect_ai_decisions_parallel(
             major_ai,

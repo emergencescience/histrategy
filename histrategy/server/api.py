@@ -984,26 +984,35 @@ def create_app(llm_provider: str | None = None) -> Any:
     def api_create_room(body: dict = Body(...)):
         """创建房间。
 
-        human_faction_ids: Host 选择哪些势力由人类控制，其余自动变 AI NPC。
-        玩家通过 /mp?room=xxx&faction=cao 直接进入。
+        新流程（推荐）: pre_assigned = {"caocao": "张三", "liubei": "李四"}
+        → Host 预分配势力，每个玩家获得专属链接。
 
-        示例: {"human_faction_ids": ["cao", "shu", "wu"]}
+        旧流程: human_faction_ids = ["cao", "shu", "wu"]
+        → 势力设为 OPEN 等待玩家手动加入。
         """
         from histrategy.server.room_manager import create_room
 
-        human_faction_ids = body.get("human_faction_ids", ["cao", "shu", "wu"])
-
-        result = create_room(
-            host_user_id=body.get("user_id", ""),
-            host_name=body.get("display_name", ""),
-            scenario=body.get("scenario", "207"),
-            human_faction_ids=human_faction_ids,
-        )
+        pre_assigned = body.get("pre_assigned")
+        if pre_assigned:
+            result = create_room(
+                host_user_id=body.get("user_id", ""),
+                host_name=body.get("display_name", ""),
+                scenario=body.get("scenario", "207"),
+                pre_assigned=pre_assigned,
+            )
+        else:
+            human_faction_ids = body.get("human_faction_ids", ["cao", "shu", "wu"])
+            result = create_room(
+                host_user_id=body.get("user_id", ""),
+                host_name=body.get("display_name", ""),
+                scenario=body.get("scenario", "207"),
+                human_faction_ids=human_faction_ids,
+            )
         return result
 
     @app.post("/api/rooms/{room_id}/enter")
     def api_enter_room(room_id: str, body: dict = Body(...)):
-        """进入房间（任何人都可以，host/player/spectator）。"""
+        """进入房间。支持 player_token 验证（预分配模式）。"""
         from histrategy.server.room_manager import enter_room
 
         return enter_room(
@@ -1011,6 +1020,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             body.get("user_id", ""),
             body.get("display_name", ""),
             body.get("faction", ""),
+            body.get("player_token", ""),
         )
 
     @app.post("/api/rooms/{room_id}/pick")

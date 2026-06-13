@@ -307,6 +307,129 @@ class TestDBPersistence:
         assert loaded_ws["year"] == 207
 
 
+
+class TestNPCTriggerDecisions:
+    """Test _trigger_npc_decisions behavior across round transitions."""
+
+    @staticmethod
+    def _make_mock_world_state(factions_data: dict[str, dict] | None = None):
+        """Create a mock world state sufficient for heuristic NPC decisions."""
+
+        class MockFaction:
+            def __init__(self, name, **kwargs):
+                self.name = name
+                self.is_active = kwargs.get("is_active", True)
+                self.strength_actual = kwargs.get("strength", 10000)
+                self.treasury = kwargs.get("treasury", 8000)
+                self.food = kwargs.get("food", 5000)
+                self.territories = kwargs.get("territories", ["capital_city"])
+                self.capital = kwargs.get("capital", "capital_city")
+                self.tax_rate = kwargs.get("tax_rate", 0.3)
+                self.relations = {}
+
+        class MockWS:
+            def __init__(self, factions):
+                self.factions = factions
+                self.territories = {}
+                self.year = 207
+                self.season = "春"
+
+        if factions_data is None:
+            factions_data = {
+                "cao": {"name": "曹操", "strength": 50000},
+                "wu": {"name": "孙权", "strength": 30000},
+                "shu": {"name": "刘备", "strength": 15000},
+            }
+        return MockWS({fid: MockFaction(**data) for fid, data in factions_data.items()})
+
+    def test_trigger_generates_decisions_for_ai_slots(self):
+        """After _trigger_npc_decisions, all AI slots should have pending decisions."""
+        room = create_single_player_room("cao", "test-user")
+        room.world_state = self._make_mock_world_state()
+
+        # Initially no AI slots have submitted
+        for slot in room.ai_slots():
+            assert not slot.has_submitted(), f"AI slot {slot.faction_id} should start unsubmitted"
+
+        # Trigger NPC decisions
+        from histrategy.server.room_manager import _trigger_npc_decisions
+        _trigger_npc_decisions(room)
+
+        # All AI slots should now have submitted decisions
+        ai_slots = room.ai_slots()
+        assert len(ai_slots) > 0, "Room should have AI slots"
+        for slot in ai_slots:
+            assert slot.has_submitted(), f"AI slot {slot.faction_id} should have pending_decision after trigger"
+            assert isinstance(slot.pending_decision, str) and len(slot.pending_decision) > 0
+
+    def test_no_ai_slots_returns_early(self):
+        """If all slots are human, _trigger_npc_decisions should return without error."""
+        room = GameRoom(id="all-human", phase=RoomPhase.WAITING)
+        room.slots["cao"] = create_human_slot("cao", "p1")
+        room.slots["shu"] = create_human_slot("shu", "p2")
+        room.slots["wu"] = create_human_slot("wu", "p3")
+        room.world_state = self._make_mock_world_state()
+
+        # Should not raise
+        from histrategy.server.room_manager import _trigger_npc_decisions
+        _trigger_npc_decisions(room)
+        # All human — nothing should have been submitted
+        for slot in room.slots.values():
+            assert not slot.has_submitted()
+
+    def test_advance_quarter_clears_then_trigger_regenerates(self):
+        """After advance_quarter clears decisions, _trigger_npc_decisions regenerates fresh ones."""
+        room = create_single_player_room("cao", "test-user")
+        room.world_state = self._make_mock_world_state()
+
+        from histrategy.server.room_manager import _trigger_npc_decisions
+        _trigger_npc_decisions(room)
+
+        # Record first round decisions
+        first_decisions = {
+            fid: slot.pending_decision
+            for fid, slot in room.slots.items() if slot.is_ai()
+        }
+        assert len(first_decisions) == 2  # shu, wu
+
+        # Advance quarter — should clear ALL decisions
+        room.advance_quarter()
+        assert room.quarter_number == 1
+        for slot in room.slots.values():
+            assert not slot.has_submitted(), f"Slot {slot.faction_id} should be cleared after advance_quarter"
+
+        # Re-trigger for next round
+        _trigger_npc_decisions(room)
+        for slot in room.ai_slots():
+            assert slot.has_submitted(), f"AI slot {slot.faction_id} should have new decision for Q{room.quarter_number}"
+            # Decision may be the same (heuristic is deterministic) — that's fine
+            # The important thing is that it was regenerated
+
+    def test_trigger_without_world_state_is_noop(self):
+        """If world_state is None, _trigger_npc_decisions should return without error."""
+        room = create_single_player_room("cao", "test-user")
+        room.world_state = None
+
+        from histrategy.server.room_manager import _trigger_npc_decisions
+        _trigger_npc_decisions(room)
+        # No crash, no submissions
+        for slot in room.ai_slots():
+            assert not slot.has_submitted()
+
+    def test_trigger_only_submits_for_active_slots(self):
+        """Inactive (defeated) AI slots should not get decisions."""
+        room = create_single_player_room("cao", "test-user")
+        room.world_state = self._make_mock_world_state()
+        # Mark wu as inactive
+        room.slots["wu"].is_active = False
+
+        from histrategy.server.room_manager import _trigger_npc_decisions
+        _trigger_npc_decisions(room)
+
+        assert room.slots["shu"].has_submitted(), "Active AI shu should get decision"
+        assert not room.slots["wu"].has_submitted(), "Inactive AI wu should NOT get decision"
+
+
 class TestSymmetricEngineIntegration:
     """Integration tests for the full symmetric flow."""
 
