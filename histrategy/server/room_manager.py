@@ -347,11 +347,15 @@ def submit_decision(room_id: str, faction_id: str, user_id: str, decision: str) 
     pending = [fid for fid, s in room.slots.items() if s.is_active and not s.has_submitted()]
 
     if not pending:
-        _resolve_and_advance(room)
+        # 异步执行（LLM 调用可能耗时 30-60s，不能阻塞 HTTP 响应）
+        import threading
+        t = threading.Thread(target=_resolve_and_advance, args=(room,), daemon=True)
+        t.start()
 
+    status = "resolving" if not pending else "waiting"
     return {
         "ok": True,
-        "status": "ready" if not pending else "waiting",
+        "status": status,
         "submitted": submitted,
         "pending": pending,
     }
