@@ -104,9 +104,16 @@ def init_db():
             except Exception:
                 pass  # 列已存在（SQLite 不支持 IF NOT EXISTS for ALTER TABLE）
         else:
-            # PostgreSQL: execute statements individually
+            # PostgreSQL: execute statements individually (psycopg2 doesn't support multi-statement)
             with conn.cursor() as cur:
-                cur.execute(schema)
+                for stmt in schema.split(";"):
+                    stmt = stmt.strip()
+                    if stmt and not stmt.startswith("--"):
+                        try:
+                            cur.execute(stmt)
+                        except Exception as _stmt_err:
+                            logger.warning("Schema statement skipped: %s", str(_stmt_err)[:100])
+                conn.commit()
                 try:
                     cur.execute("ALTER TABLE room_player ADD COLUMN IF NOT EXISTS player_token TEXT DEFAULT ''")
                     conn.commit()
@@ -141,6 +148,7 @@ def execute(sql: str, params: tuple = ()) -> list[dict]:
             rows = conn.execute(sql, params).fetchall()
             return [dict(row) for row in rows]
         else:
+            sql = sql.replace("?", "%s")
             with conn.cursor() as cur:
                 cur.execute(sql, params)
                 columns = [desc[0] for desc in cur.description] if cur.description else []
@@ -165,6 +173,7 @@ def execute_write(sql: str, params: tuple = ()) -> int:
             conn.commit()
             return cur.rowcount
         else:
+            sql = sql.replace("?", "%s")
             with conn.cursor() as cur:
                 cur.execute(sql, params)
                 conn.commit()
@@ -185,6 +194,7 @@ def execute_many(sql: str, params_list: list[tuple]) -> int:
             conn.commit()
             return cur.rowcount
         else:
+            sql = sql.replace("?", "%s")
             with conn.cursor() as cur:
                 cur.executemany(sql, params_list)
                 conn.commit()
