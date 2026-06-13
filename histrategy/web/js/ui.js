@@ -89,11 +89,14 @@ const UI = {
         <h2>🏯 选择势力</h2>
         <div class="faction-grid">
           <div class="faction-btn" data-faction="cao">
-            <div class="name">曹操</div><div class="desc">乱世奸雄·奉天子以令不臣</div></div>
+            <img src="/images/avatar_cao.png" alt="曹操" class="faction-avatar">
+            <div class="name">曹操</div><div class="desc">魏 · 魏武大帝</div></div>
           <div class="faction-btn" data-faction="shu">
-            <div class="name">刘备</div><div class="desc">汉室宗亲·以仁德取天下</div></div>
+            <img src="/images/avatar_shu.png" alt="刘备" class="faction-avatar">
+            <div class="name">刘备</div><div class="desc">蜀 · 汉昭烈帝</div></div>
           <div class="faction-btn" data-faction="wu">
-            <div class="name">孙权</div><div class="desc">江东猛虎·据长江天险</div></div>
+            <img src="/images/avatar_wu.png" alt="孙权" class="faction-avatar">
+            <div class="name">孙权</div><div class="desc">吴 · 东吴大帝</div></div>
         </div>
         <button class="btn" id="start-game-btn" disabled>开始新游戏</button>
       </div>`;

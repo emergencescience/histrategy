@@ -12,6 +12,7 @@ Usage:
 
 from __future__ import annotations
 
+import contextlib
 import uuid
 from typing import Any
 
@@ -118,10 +119,8 @@ def _get_or_create_engine(
         import os as _os
 
         _os.environ["DEEPSEEK_API_KEY"] = llm_api_key
-    try:
+    with contextlib.suppress(Exception):
         llm = LLMAdapter(provider=_llm_provider or None)
-    except Exception:
-        pass
 
     game_id = uuid.uuid4().hex[:12]
     engine = GameEngine(scenario=scenario, new_game=True, llm=llm)
@@ -346,6 +345,7 @@ def create_app(llm_provider: str | None = None) -> Any:
     def serve_css(path: str):
         """Serve CSS files."""
         import os as _os
+
         from fastapi.responses import FileResponse
         web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
         return FileResponse(_os.path.join(web_dir, "css", path))
@@ -354,9 +354,19 @@ def create_app(llm_provider: str | None = None) -> Any:
     def serve_js(path: str):
         """Serve JavaScript files."""
         import os as _os
+
         from fastapi.responses import FileResponse
         web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
         return FileResponse(_os.path.join(web_dir, "js", path))
+
+    @app.get("/images/{path:path}")
+    def serve_images(path: str):
+        """Serve image files."""
+        import os as _os
+
+        from fastapi.responses import FileResponse
+        web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
+        return FileResponse(_os.path.join(web_dir, "images", path))
 
     @app.get("/api/health")
     def health():
@@ -655,7 +665,6 @@ def create_app(llm_provider: str | None = None) -> Any:
 
             if session_id:
                 adapter = create_persistence_adapter(jwt_token or "")
-                ws = engine.world_state_v2
                 usage = result.get("_usage", {})
                 # Save state
                 try:
@@ -669,7 +678,7 @@ def create_app(llm_provider: str | None = None) -> Any:
                 except Exception:
                     pass
                 # Append turn history
-                try:
+                with contextlib.suppress(Exception):
                     adapter.append_turn(
                         session_id,
                         turn_number=status.get("turn", 1),
@@ -681,8 +690,6 @@ def create_app(llm_provider: str | None = None) -> Any:
                         state_changes=result.get("state_changes"),
                         tokens=usage,
                     )
-                except Exception:
-                    pass
         except Exception:
             pass  # Non-blocking — don't fail the game on persistence error
 
@@ -858,21 +865,20 @@ def create_app(llm_provider: str | None = None) -> Any:
                 player_events = loaded_data
 
         # 2. If player_events is still empty, try to get from active engine
-        if not player_events and engine:
-            if getattr(engine, "_use_v2", False) and engine.world_state_v2:
-                ws = engine.world_state_v2
-                completed = ws.completed_events
-                if getattr(engine, "history_engine", None):
-                    for evt_id in completed:
-                        evt = next((e for e in engine.history_engine.all_events if e["id"] == evt_id), None)
-                        if evt:
-                            player_events.append(
-                                {"title": evt.get("title", evt_id), "description": evt.get("description", "")}
-                            )
-                        else:
-                            player_events.append({"title": evt_id, "description": ""})
-                else:
-                    player_events = [{"title": evt_id, "description": ""} for evt_id in completed]
+        if not player_events and engine and getattr(engine, "_use_v2", False) and engine.world_state_v2:
+            ws = engine.world_state_v2
+            completed = ws.completed_events
+            if getattr(engine, "history_engine", None):
+                for evt_id in completed:
+                    evt = next((e for e in engine.history_engine.all_events if e["id"] == evt_id), None)
+                    if evt:
+                        player_events.append(
+                            {"title": evt.get("title", evt_id), "description": evt.get("description", "")}
+                        )
+                    else:
+                        player_events.append({"title": evt_id, "description": ""})
+            else:
+                player_events = [{"title": evt_id, "description": ""} for evt_id in completed]
 
         # 3. Fallback: try loading from global or local current_session_log.json
         if not player_events:
@@ -894,10 +900,8 @@ def create_app(llm_provider: str | None = None) -> Any:
         # Build LLM adapter if available
         llm = None
         if _llm_provider:
-            try:
+            with contextlib.suppress(Exception):
                 llm = LLMAdapter(provider=_llm_provider)
-            except Exception:
-                pass
 
         summary_text = generate_chronicle(player_events, llm_adapter=llm)
         return {
@@ -917,9 +921,9 @@ def create_app(llm_provider: str | None = None) -> Any:
             video_path = generate_video(game_id)
             return {"game_id": game_id, "video_path": video_path, "status": "success"}
         except FileNotFoundError as e:
-            raise HTTPException(status_code=404, detail=str(e))
+            raise HTTPException(status_code=404, detail=str(e)) from e
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to generate video: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Failed to generate video: {str(e)}") from e
 
     @app.post("/api/games/{game_id}/autosave")
     def autosave_game(game_id: str, authorization: str | None = Header(default=None)):
@@ -939,14 +943,14 @@ def create_app(llm_provider: str | None = None) -> Any:
         if authorization and authorization.startswith("Bearer "):
             jwt_token = authorization[len("Bearer ") :]
 
+        if not jwt_token:
+            return {"ok": False, "reason": "No JWT token provided"}
+
         status = _build_faction_status(engine)
         meta = _game_meta.get(game_id, {})
 
         # Build world state dict from engine
-        if engine._use_v2 and engine.world_state_v2:
-            world_state = engine.to_dict()
-        else:
-            world_state = {"faction": status}
+        world_state = engine.to_dict() if engine._use_v2 and engine.world_state_v2 else {"faction": status}
 
         try:
             adapter = create_persistence_adapter(jwt_token or "")

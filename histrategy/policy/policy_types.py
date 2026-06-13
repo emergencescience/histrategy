@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-
 # ─── Policy command types ──────────────────────────────────────
 
 POLICY_COMMAND_TYPES = frozenset({
@@ -80,19 +79,19 @@ OPTIONAL_PARAMS: dict[str, set[str]] = {
 
 def validate_policy_params(cmd_type: str, params: dict) -> list[str]:
     """Check required params exist, warn about unknown params.
-    
+
     Returns list of error messages (empty = valid).
     """
     errors = []
     required = REQUIRED_PARAMS.get(cmd_type, set())
     known = required | OPTIONAL_PARAMS.get(cmd_type, set())
-    
+
     for key in required:
         if key not in params:
             errors.append(f"'{cmd_type}' requires param '{key}'")
-    
+
     for key in params:
         if key not in known:
             errors.append(f"'{cmd_type}' has unknown param '{key}'")
-    
+
     return errors

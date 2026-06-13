@@ -12,7 +12,6 @@ Usage per turn:
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import threading
@@ -25,7 +24,7 @@ _logger = logging.getLogger("histrategy.debug_logger")
 
 class TurnLogCollector:
     """Collects log records in memory and flushes to orchestrator.
-    
+
     Fire-and-forget: flush() spawns a daemon thread so it never
     blocks the game turn if the orchestrator is slow/unreachable.
     """
