@@ -21,61 +21,90 @@ input, button { font-family:inherit; font-size:0.95em; }
 input { width:100%; padding:10px; background:#1a1a2e; border:1px solid var(--border); color:var(--text); border-radius:6px; margin:6px 0; }
 .btn { display:inline-block; padding:10px 20px; background:var(--btn); color:var(--gold); border:1px solid var(--border); border-radius:6px; cursor:pointer; margin:4px; }
 .btn:hover { background:var(--btn-hover); }
-.btn.primary { background:#2d6a4f; }
+.btn.primary { background:#2d6a4f; font-size:1.05em; }
 .btn:disabled { opacity:0.4; cursor:not-allowed; }
-.faction-btn { padding:8px 16px; margin:4px; border-radius:6px; cursor:pointer; background:transparent; font-size:0.95em; }
-.faction-btn.cao { border:2px solid var(--cao); color:var(--cao); }
-.faction-btn.shu { border:2px solid var(--shu); color:var(--shu); }
-.faction-btn.wu  { border:2px solid var(--wu);  color:var(--wu); }
-.faction-btn.selected.cao { background:var(--cao); color:#fff; }
-.faction-btn.selected.shu { background:var(--shu); color:#fff; }
-.faction-btn.selected.wu  { background:var(--wu); color:#fff; }
-.faction-btn.taken { opacity:0.3; cursor:not-allowed; text-decoration:line-through; }
-.faction-badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:0.85em; margin:0 4px; }
-.faction-badge.cao { background:var(--cao); color:#fff; }
-.faction-badge.shu { background:var(--shu); color:#fff; }
-.faction-badge.wu  { background:var(--wu); color:#fff; }
-.slot-row { display:flex; align-items:center; padding:8px; margin:4px 0; background:rgba(255,255,255,0.03); border-radius:6px; flex-wrap:wrap; }
-.slot-row .name { min-width:100px; }
+
+/* 势力选择 toggle 按钮 */
+.faction-toggle { display:inline-block; padding:10px 20px; margin:4px; border-radius:6px; cursor:pointer;
+  background:transparent; font-size:0.95em; border:2px solid var(--border); color:var(--muted);
+  transition:all 0.2s; }
+.faction-toggle.cao { border-color:var(--cao); }
+.faction-toggle.shu { border-color:var(--shu); }
+.faction-toggle.wu  { border-color:var(--wu); }
+.faction-toggle.other { border-color:var(--muted); }
+.faction-toggle.on.cao { background:var(--cao); color:#fff; border-color:var(--cao); }
+.faction-toggle.on.shu { background:var(--shu); color:#fff; border-color:var(--shu); }
+.faction-toggle.on.wu  { background:var(--wu); color:#fff; border-color:var(--wu); }
+.faction-toggle.on.other { background:var(--gold); color:#1a1a2e; border-color:var(--gold); }
+
+/* 玩家进入链接 */
+.player-link { display:block; padding:8px 12px; margin:6px 0; background:rgba(255,255,255,0.05); border-radius:6px;
+  border-left:3px solid var(--gold); }
+.player-link code { color:var(--gold); font-size:0.9em; word-break:break-all; }
+.player-link .copy-btn { float:right; background:var(--btn); color:var(--text); border:none; padding:4px 10px;
+  border-radius:4px; cursor:pointer; font-size:0.8em; }
+.player-link .faction-tag { display:inline-block; padding:2px 8px; border-radius:3px; font-size:0.8em;
+  margin-right:8px; font-weight:bold; }
+.faction-tag.cao { background:var(--cao); color:#fff; }
+.faction-tag.shu { background:var(--shu); color:#fff; }
+.faction-tag.wu  { background:var(--wu); color:#fff; }
+
+/* 游戏界面 */
 .narrative-box { max-height:400px; overflow-y:auto; padding:12px; background:rgba(0,0,0,0.2); border-radius:6px; line-height:1.7; }
 #status-bar { text-align:center; padding:8px; font-size:0.9em; color:var(--muted); }
 .ready { color:#5cb85c; }
 .waiting { color:#d4a574; }
-#room-link { background:var(--panel); border:1px solid var(--gold); padding:10px; border-radius:6px; text-align:center; margin:12px 0; word-break:break-all; }
-#room-link code { color:var(--gold); font-size:1.1em; }
 .hidden { display:none; }
-.role-badge { display:inline-block; padding:1px 6px; border-radius:3px; font-size:0.75em; margin-left:4px; }
-.role-badge.host { background:var(--gold); color:#1a1a2e; }
-.role-badge.player { background:var(--cao); color:#fff; }
+.faction-badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:0.85em; margin:0 4px; }
+.faction-badge.cao { background:var(--cao); color:#fff; }
+.faction-badge.shu { background:var(--shu); color:#fff; }
+.faction-badge.wu  { background:var(--wu); color:#fff; }
 </style>
 </head>
 <body>
 <div class="container">
 <h1>⚔ 三國志略 · 多人对战</h1>
-<div id="room-bar"></div>
+<div id="top-bar"></div>
 
-<!-- Lobby: Create or Enter -->
-<div id="lobby-panel" class="panel">
-  <h2>🏯 创建或加入房间</h2>
-  <div style="margin:8px 0">
-    <input id="name-input" placeholder="你的名字（可选）">
-  </div>
-  <button class="btn primary" onclick="doCreateRoom()">创建新房间</button>
-  <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border)">
-    <input id="room-id-input" placeholder="粘贴房间 ID">
-    <button class="btn" onclick="doEnterRoom()">进入房间</button>
+<!-- Screen 1: Create or Join -->
+<div id="home-panel" class="panel">
+  <h2>🏯 开始游戏</h2>
+  <p style="color:var(--muted); margin-bottom:16px">房主创建房间，其他人通过链接加入。不需要注册，不需要账号。</p>
+
+  <!-- Create Room -->
+  <h3>▸ 创建房间（房主）</h3>
+  <p style="font-size:0.85em; color:var(--muted)">选择由人类控制的势力：</p>
+  <div id="create-faction-toggles" style="margin:8px 0"></div>
+  <button class="btn primary" onclick="doCreateRoom()">创建房间</button>
+
+  <!-- Join Room -->
+  <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--border)">
+    <h3>▸ 加入房间（玩家）</h3>
+    <p style="font-size:0.85em; color:var(--muted)">粘贴房主分享的链接，或手动输入房间号和势力：</p>
+    <input id="join-room-id" placeholder="房间 ID（从链接中复制）">
+    <div style="display:flex; gap:8px; margin-top:8px">
+      <select id="join-faction" style="flex:1; padding:10px; background:#1a1a2e; border:1px solid var(--border); color:var(--text); border-radius:6px">
+        <option value="cao">曹操 (魏)</option>
+        <option value="shu">刘备 (蜀)</option>
+        <option value="wu">孙权 (吴)</option>
+      </select>
+      <button class="btn primary" onclick="doJoinRoom()">进入</button>
+    </div>
   </div>
 </div>
 
-<!-- Room Lobby (faction selection) -->
-<div id="room-lobby-panel" class="panel hidden">
-  <h2>选择势力</h2>
-  <div id="player-list"></div>
-  <div id="faction-buttons" style="margin-top:8px"></div>
-  <div id="host-controls" style="margin-top:12px; text-align:center"></div>
+<!-- Screen 2: Room created — show player links -->
+<div id="room-created-panel" class="panel hidden">
+  <h2>✅ 房间已创建</h2>
+  <p style="color:var(--muted); margin-bottom:12px">把下面的链接发给其他玩家，每人点一个进入：</p>
+  <div id="player-links"></div>
+  <div style="margin-top:16px; text-align:center">
+    <button class="btn primary" id="start-game-btn" onclick="doStart()">开始游戏</button>
+    <p style="color:var(--muted); font-size:0.8em; margin-top:8px">等所有玩家进入后再开始</p>
+  </div>
 </div>
 
-<!-- Game -->
+<!-- Screen 3: Game -->
 <div id="game-panel" class="panel hidden">
   <div id="status-bar">⏳ 等待...</div>
   <h2>📜 局势推演</h2>
@@ -91,11 +120,12 @@ input { width:100%; padding:10px; background:#1a1a2e; border:1px solid var(--bor
 <script>
 const API = '';
 let roomId = '';
-let myUserId = 'u_' + Math.random().toString(36).slice(2,8);
+let myUserId = 'u_' + Math.random().toString(36).slice(2,10);
 let myFaction = '';
 let myRole = '';
 let pollTimer = null;
 
+// ── Utils ──────────────────────
 async function api(method, path, body) {
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (body) opts.body = JSON.stringify(body);
@@ -106,103 +136,166 @@ function show(id) { document.getElementById(id).classList.remove('hidden'); }
 function hide(id) { document.getElementById(id).classList.add('hidden'); }
 function el(id) { return document.getElementById(id); }
 
-// ── Create Room ─────────────────────
+// Read room & faction from URL (for player joining via link)
+function parseURL() {
+  const p = new URLSearchParams(location.search);
+  return { room: p.get('room') || '', faction: p.get('faction') || '' };
+}
+
+// ── Init ───────────────────────
+(function init() {
+  // Render faction toggles for room creation
+  const toggles = [
+    {id:'cao', name:'曹操 (魏)', css:'cao'},
+    {id:'shu', name:'刘备 (蜀)', css:'shu'},
+    {id:'wu',  name:'孙权 (吴)', css:'wu'},
+    {id:'liubiao', name:'刘表 (荆州)', css:'other'},
+    {id:'liuzhang', name:'刘璋 (益州)', css:'other'},
+  ];
+  const div = el('create-faction-toggles');
+  toggles.forEach(t => {
+    const btn = document.createElement('span');
+    btn.className = `faction-toggle ${t.css} ${(t.id==='cao'||t.id==='shu'||t.id==='wu')?'on':''}`;
+    btn.textContent = t.name;
+    btn.dataset.fid = t.id;
+    btn.onclick = function() { this.classList.toggle('on'); };
+    div.appendChild(btn);
+  });
+
+  // Auto-join if URL has room + faction
+  const { room, faction } = parseURL();
+  if (room && faction) {
+    el('join-room-id').value = room;
+    el('join-faction').value = faction;
+    doJoinRoom();
+  }
+})();
+
+// ── Create Room ────────────────
 async function doCreateRoom() {
-  const name = el('name-input').value.trim();
-  const r = await api('POST', '/api/rooms', { user_id: myUserId, display_name: name });
-  if (r.ok) {
-    roomId = r.room_id;
-    myRole = 'host';
-    el('room-bar').innerHTML = `<div id="room-link">房间 ID: <code>${roomId}</code> <br><small>分享此 ID 给其他玩家</small></div>`;
-    hide('lobby-panel');
-    refreshLobby();
-  }
-}
+  // Collect selected human factions from toggles
+  const toggles = document.querySelectorAll('.faction-toggle.on');
+  const humanFactions = Array.from(toggles).map(t => t.dataset.fid);
+  if (humanFactions.length < 1) { alert('至少选择一个人类势力'); return; }
 
-// ── Enter Room ──────────────────────
-async function doEnterRoom() {
-  roomId = el('room-id-input').value.trim();
-  if (!roomId) return;
-  const name = el('name-input').value.trim();
-  const r = await api('POST', `/api/rooms/${roomId}/enter`, { user_id: myUserId, display_name: name });
-  if (r.ok) {
-    myRole = r.role || 'player';
-    el('room-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · 角色: <span class="role-badge ${myRole}">${myRole}</span>`;
-    hide('lobby-panel');
-    refreshLobby();
-  } else {
-    alert(r.error);
-  }
-}
+  const r = await api('POST', '/api/rooms', {
+    user_id: myUserId,
+    human_faction_ids: humanFactions,
+  });
+  if (!r.ok) { alert(r.error || '创建失败'); return; }
 
-// ── Lobby Refresh (poll faction status) ──
-async function refreshLobby() {
-  show('room-lobby-panel');
-  const status = await api('GET', `/api/rooms/${roomId}/status`);
-  if (!status.ok) return;
+  roomId = r.room_id;
+  myRole = 'host';
 
-  const phase = status.phase;
-  if (phase !== 'lobby') {
-    // Game started!
-    hide('room-lobby-panel');
-    startGameLoop(status);
-    return;
-  }
+  // Show player links
+  hide('home-panel');
+  show('room-created-panel');
+  el('top-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b>`;
 
-  // Show players
-  const plist = el('player-list');
-  plist.innerHTML = '<b>房间成员:</b><br>';
-  for (const [uid, p] of Object.entries(status.players || {})) {
-    const rb = `<span class="role-badge ${p.role}">${p.role}</span>`;
-    plist.innerHTML += `· ${p.display_name || uid} ${rb}<br>`;
-  }
+  const linksDiv = el('player-links');
+  linksDiv.innerHTML = '';
+  const factionNames = {cao:'曹操(魏)', shu:'刘备(蜀)', wu:'孙权(吴)',
+    liubiao:'刘表(荆州)', liuzhang:'刘璋(益州)', zhanglu:'张鲁(汉中)', machao:'马超(西凉)'};
 
-  // Show faction buttons
-  const fb = el('faction-buttons');
-  fb.innerHTML = '';
-  for (const [fid, s] of Object.entries(status.slots || {})) {
-    const taken = s.occupant_type === 'human';
-    const isMe = taken && s.occupant_id === myUserId;
-    const label = {cao:'曹操(魏)', shu:'刘备(蜀)', wu:'孙权(吴)'}[fid] || fid;
+  humanFactions.forEach(fid => {
+    const url = `${location.origin}/mp?room=${roomId}&faction=${fid}`;
+    const div = document.createElement('div');
+    div.className = 'player-link';
+    div.innerHTML = `
+      <span class="faction-tag ${['cao','shu','wu'].includes(fid) ? fid : ''}">${factionNames[fid] || fid}</span>
+      <code>${url}</code>
+      <button class="copy-btn" onclick="copyLink(this, '${url}')">复制链接</button>`;
+    linksDiv.appendChild(div);
+  });
+
+  // Host can also pick a faction
+  const hostDiv = document.createElement('div');
+  hostDiv.style.cssText = 'margin-top:12px; padding-top:12px; border-top:1px solid var(--border)';
+  hostDiv.innerHTML = '<p style="color:var(--muted); font-size:0.85em">房主你也可以选一个势力玩：</p>';
+  humanFactions.forEach(fid => {
     const btn = document.createElement('button');
-    btn.className = `faction-btn ${fid} ${isMe ? 'selected' : ''} ${taken && !isMe ? 'taken' : ''}`;
-    btn.textContent = isMe ? `${label} ✓ (你)` : (taken ? `${label} (已选)` : label);
-    if (!taken && myRole !== 'spectator') {
-      btn.onclick = async () => {
-        const r = await api('POST', `/api/rooms/${roomId}/pick`, { user_id: myUserId, faction_id: fid });
-        if (r.ok) { myFaction = fid; refreshLobby(); }
-        else alert(r.error);
-      };
-    }
-    fb.appendChild(btn);
-  }
+    btn.className = `btn faction-toggle ${fid}`;
+    btn.textContent = factionNames[fid] || fid;
+    btn.onclick = async () => {
+      // Host enters as player for this faction
+      const r2 = await api('POST', `/api/rooms/${roomId}/enter`, {
+        user_id: myUserId, faction: fid, display_name: '房主'
+      });
+      if (r2.ok) { myFaction = fid; alert(`你已选择 ${factionNames[fid] || fid}。等其他人加入后点击"开始游戏"。`); }
+    };
+    hostDiv.appendChild(btn);
+  });
+  linksDiv.appendChild(hostDiv);
 
-  // Host controls
-  const hc = el('host-controls');
-  if (myRole === 'host') {
-    const humanCount = Object.values(status.slots || {}).filter(s => s.occupant_type === 'human').length;
-    hc.innerHTML = `<button class="btn primary" onclick="doStart()" ${humanCount < 1 ? 'disabled' : ''}>开始游戏</button>`;
-  } else {
-    hc.innerHTML = '<small style="color:var(--muted)">等待房主开始游戏...</small>';
-  }
-
-  // Re-poll
-  if (phase === 'lobby') pollTimer = setTimeout(refreshLobby, 2000);
+  // Poll for players joining
+  pollLobby();
 }
 
-// ── Start Game ──────────────────────
+// ── Join Room ───────────────────
+async function doJoinRoom() {
+  const rid = el('join-room-id').value.trim();
+  const fid = el('join-faction').value;
+  if (!rid) { alert('请输入房间 ID'); return; }
+
+  const r = await api('POST', `/api/rooms/${rid}/enter`, {
+    user_id: myUserId,
+    faction: fid,
+  });
+  if (!r.ok) { alert(r.error); return; }
+
+  roomId = rid;
+  myFaction = fid;
+  myRole = r.role || 'player';
+  myUserId = r.user_id || myUserId;
+
+  hide('home-panel');
+  el('top-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · 势力: <span class="faction-badge ${fid}">${fid}</span>`;
+
+  // Check if game already started
+  const status = await api('GET', `/api/rooms/${roomId}/status?faction_id=${myFaction}`);
+  if (status.phase !== 'lobby') {
+    startGameLoop(status);
+  } else {
+    // Show waiting screen
+    show('room-created-panel');
+    el('player-links').innerHTML = '<p style="color:var(--muted)">已加入，等待房主开始游戏...</p>';
+    el('start-game-btn').style.display = 'none';
+    pollLobby();
+  }
+}
+
+// ── Copy Link ───────────────────
+function copyLink(btn, url) {
+  navigator.clipboard.writeText(url).then(() => {
+    btn.textContent = '已复制!';
+    setTimeout(() => btn.textContent = '复制链接', 2000);
+  });
+}
+
+// ── Poll Lobby ──────────────────
+function pollLobby() {
+  clearTimeout(pollTimer);
+  pollTimer = setTimeout(async () => {
+    const s = await api('GET', `/api/rooms/${roomId}/status`);
+    if (s.phase !== 'lobby') {
+      hide('room-created-panel');
+      startGameLoop(s);
+      return;
+    }
+    pollLobby();
+  }, 2000);
+}
+
+// ── Start Game ──────────────────
 async function doStart() {
   const r = await api('POST', `/api/rooms/${roomId}/start`, { user_id: myUserId });
-  if (r.ok) {
-    clearTimeout(pollTimer);
-    hide('room-lobby-panel');
-    startGameLoop(r);
-  } else {
-    alert(r.error);
-  }
+  if (!r.ok) { alert(r.error); return; }
+  clearTimeout(pollTimer);
+  hide('room-created-panel');
+  startGameLoop(r);
 }
 
-// ── Game Loop ───────────────────────
+// ── Game Loop ───────────────────
 function startGameLoop(initialStatus) {
   show('game-panel');
   updateGameUI(initialStatus);
@@ -214,7 +307,7 @@ function startGameLoop(initialStatus) {
 
 function updateGameUI(s) {
   if (!s.ok) return;
-  el('room-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · ${s.year||207}年${s.season||'春'} · 第${s.quarter||0}季`;
+  el('top-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · ${s.year||207}年${s.season||'春'} · 第${s.quarter||0}季`;
 
   const phase = s.phase;
   const submitted = s.submitted || [];
@@ -244,7 +337,7 @@ function updateGameUI(s) {
   }
 }
 
-// ── Submit Decision ────────────────
+// ── Submit Decision ─────────────
 async function doDecide() {
   const decision = el('decision-input').value.trim();
   if (!decision || !myFaction) return;

@@ -44,23 +44,21 @@ def create_room(
     host_user_id: str = "",
     host_name: str = "",
     scenario: str = "207",
-    faction_ids: list[str] | None = None,
-    slots: dict[str, str] | None = None,
+    human_faction_ids: list[str] | None = None,
 ) -> dict:
     """创建一个新房间。
 
-    两种模式：
-    1. faction_ids (旧): 指定可选势力列表，玩家进入后自己选
-    2. slots (新): Host 预分配 {faction_id: user_id}，玩家无需选势力
+    Host 选择哪些势力由人类控制，其余自动变 AI NPC。
+    玩家访问 /mp?room=xxx&faction=cao 自动进入。
 
     Returns:
-        {"ok": True, "room_id": str, ["host_token": str], ["player_tokens": {user_id: token}]}
+        {"ok": True, "room_id": str}
     """
     from histrategy.engine.game_room import GameRoom
-    from histrategy.engine.faction_slot import create_open_slot, create_human_slot
+    from histrategy.engine.faction_slot import create_open_slot, create_ai_slot, LLM_NPC_FACTIONS, HEURISTIC_NPC_FACTIONS
 
-    if faction_ids is None and slots is None:
-        faction_ids = ["cao", "shu", "wu"]
+    if not human_faction_ids:
+        human_faction_ids = ["cao", "shu", "wu"]
 
     room = GameRoom(
         host_user_id=host_user_id,
@@ -69,56 +67,38 @@ def create_room(
     _rooms[room.id] = room
     _players[room.id] = {}
 
-    player_tokens: dict[str, str] = {}
+    # 人类势力 → OPEN（等待玩家通过 /mp?room=xxx&faction=yyy 进入）
+    for fid in human_faction_ids:
+        room.slots[fid] = create_open_slot(fid)
 
-    if slots:
-        # 新模式：Host 预分配势力给玩家
-        for faction_id, user_id in slots.items():
-            room.slots[faction_id] = create_human_slot(faction_id, user_id)
-            token = uuid.uuid4().hex
-            player_tokens[user_id] = token
-            _enter_player(room.id, user_id, "player", user_id, token)
-            logger.info(f"Room {room.id}: pre-assigned {user_id} → {faction_id}")
+    # 未指定的人类势力 → AI NPC
+    all_factions = set(LLM_NPC_FACTIONS) | set(HEURISTIC_NPC_FACTIONS)
+    for fid in all_factions:
+        if fid not in room.slots:
+            room.slots[fid] = create_ai_slot(fid)
 
-        # 未分配的势力 → AI NPC
-        from histrategy.engine.faction_slot import create_ai_slot, LLM_NPC_FACTIONS, HEURISTIC_NPC_FACTIONS
-        all_factions = set(LLM_NPC_FACTIONS) | set(HEURISTIC_NPC_FACTIONS)
-        for fid in all_factions:
-            if fid not in room.slots:
-                room.slots[fid] = create_ai_slot(fid)
-    else:
-        # 旧模式：开放势力等待玩家选择
-        for fid in (faction_ids or []):
-            room.slots[fid] = create_open_slot(fid)
-
-    # host 自动进入房间（如果 host 不在 slots 中）
-    if host_user_id and host_user_id not in _players[room.id]:
-        host_token = uuid.uuid4().hex
-        _enter_player(room.id, host_user_id, "host", host_name, host_token)
-        player_tokens["host"] = host_token
-    elif host_user_id:
-        # host 也在 slots 里（自己也是玩家），升级到 host 角色
-        _players[room.id][host_user_id]["role"] = "host"
-        player_tokens["host"] = _players[room.id][host_user_id].get("player_token", "")
-
+    # host 自动进入房间（host 也可以选势力玩）
+    host_token = uuid.uuid4().hex
+    _enter_player(room.id, host_user_id or ("host_" + uuid.uuid4().hex[:6]), "host", host_name or "房主", host_token)
     _try_save(room)
 
-    logger.info(f"Room created: {room.id} by {host_user_id or 'anon'} (mode={'preassigned' if slots else 'open'})")
-    result = {"ok": True, "room_id": room.id}
-    if player_tokens:
-        result["player_tokens"] = player_tokens
-    return result
+    logger.info(f"Room created: {room.id} by {host_user_id or 'anon'} (human factions: {human_faction_ids})")
+    return {"ok": True, "room_id": room.id, "host_token": host_token, "human_factions": human_faction_ids}
 
 
 def enter_room(
     room_id: str,
-    user_id: str,
+    user_id: str = "",
     display_name: str = "",
+    faction: str = "",
 ) -> dict:
-    """进入房间（玩家/观战者）。
+    """进入房间。
+
+    简化模式：玩家访问 /mp?room=xxx&faction=cao 即可自动进入。
+    不需要 user_id —— 由后端自动生成。
 
     Returns:
-        {"ok": True, "role": "player", "room": {...}} 或 error
+        {"ok": True, "faction": str, ...} 或 error
     """
     room = _get_room(room_id)
     if not room:
@@ -127,38 +107,46 @@ def enter_room(
     if room_id not in _players:
         _players[room_id] = {}
 
+    # 自动生成 user_id（不需要人类维护 user 表）
+    if not user_id:
+        user_id = "u_" + uuid.uuid4().hex[:8]
+
+    # 如果指定了 faction，自动占据该势力（如果 slot 存在且 open）
+    if faction and faction in room.slots:
+        slot = room.slots[faction]
+        if slot.is_open():
+            # 自动占据势力
+            from histrategy.engine.faction_slot import create_human_slot
+            room.slots[faction] = create_human_slot(faction, user_id)
+            logger.info(f"Player {user_id} auto-claimed {faction} in room {room_id}")
+            _try_save(room)
+        elif slot.is_human() and slot.occupant_id != user_id:
+            return {"ok": False, "error": f"势力 {faction} 已被其他人占据"}
+
     # 如果已在房间里，返回当前状态
     if user_id in _players[room_id]:
         p = _players[room_id][user_id]
-        return {
+        result = {
             "ok": True, "already_in": True,
-            "role": p["role"], "room": _room_summary(room),
+            "role": p["role"],
+            "faction": faction,
+            "room": _room_summary(room),
         }
+        return result
 
     # 新玩家
     role = "player"
-
-    # 检查是否有预分配的势力（Host 预分配模式）
-    preassigned_faction = None
-    for fid, s in room.slots.items():
-        if s.is_human() and s.occupant_id == user_id:
-            preassigned_faction = fid
-            break
-
-    # 生成 player_token 用于同浏览器多 tab 隔离
     player_token = uuid.uuid4().hex
-
-    _enter_player(room_id, user_id, role, display_name, player_token)
+    _enter_player(room_id, user_id, role, display_name or ("玩家_" + user_id[-4:]), player_token)
 
     result = {
         "ok": True,
         "role": role,
+        "user_id": user_id,
+        "faction": faction,
         "player_token": player_token,
         "room": _room_summary(room),
     }
-    if preassigned_faction:
-        result["faction"] = preassigned_faction
-        result["auto_assigned"] = True
     return result
 
 

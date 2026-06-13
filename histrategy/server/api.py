@@ -984,21 +984,20 @@ def create_app(llm_provider: str | None = None) -> Any:
     def api_create_room(body: dict = Body(...)):
         """创建房间。
 
-        两种模式：
-        - slots (预分配): {"cao": "player1", "shu": "player2"} — Host提前指定谁玩谁
-        - faction_ids (开放): ["cao", "shu", "wu"] — 玩家进入后自己选
+        human_faction_ids: Host 选择哪些势力由人类控制，其余自动变 AI NPC。
+        玩家通过 /mp?room=xxx&faction=cao 直接进入。
+
+        示例: {"human_faction_ids": ["cao", "shu", "wu"]}
         """
         from histrategy.server.room_manager import create_room
 
-        slots = body.get("slots")
-        faction_ids = body.get("faction_ids")
+        human_faction_ids = body.get("human_faction_ids", ["cao", "shu", "wu"])
 
         result = create_room(
             host_user_id=body.get("user_id", ""),
             host_name=body.get("display_name", ""),
             scenario=body.get("scenario", "207"),
-            faction_ids=faction_ids,
-            slots=slots,
+            human_faction_ids=human_faction_ids,
         )
         return result
 
