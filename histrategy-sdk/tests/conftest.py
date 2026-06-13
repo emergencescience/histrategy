@@ -2,13 +2,10 @@
 
 Starts a local histrategy server in a background thread for multiplayer tests.
 """
-
 from __future__ import annotations
 
-import multiprocessing
 import os
 import socket
-import sys
 import threading
 import time
 import uuid
@@ -24,19 +21,12 @@ def _find_free_port() -> int:
         return s.getsockname()[1]
 
 
-def _start_server_process(
-    host: str,
-    port: int,
-    data_dir: str,
-    api_key: str,
-    ready_event: multiprocessing.Event,
-):
-    """Start the histrategy server in a subprocess (isolated env)."""
+def _start_server_thread(host: str, port: int, data_dir: str, api_key: str):
+    """Start the histrategy server in a daemon thread (same process)."""
     os.environ["DEEPSEEK_API_KEY"] = api_key
     os.environ["HISTRATEGY_DATA_DIR"] = data_dir
     os.environ["HISTRATEGY_ENGINE"] = "v1"
 
-    # Suppress most logging during tests
     import logging
     logging.basicConfig(level=logging.ERROR)
 
@@ -44,10 +34,6 @@ def _start_server_process(
     import uvicorn
 
     app = create_app(llm_provider="deepseek")
-
-    # Signal ready
-    ready_event.set()
-
     uvicorn.run(app, host=host, port=port, log_level="warning")
 
 
@@ -56,11 +42,11 @@ def histrategy_server():
     """Start a histrategy server for the test session.
 
     Sets HISTRATEGY_ENGINE=v1 and uses DEEPSEEK_API_KEY from environment.
-    Uses a subprocess for full isolation.
+    Uses a daemon thread (same process) for reliable env + threading.
     """
     api_key = os.environ.get("DEEPSEEK_API_KEY", "") or os.environ.get("OPENAI_API_KEY", "")
     if not api_key:
-        # Try loading from .env file in histrategy repo
+        # Try loading from .env file
         env_path = os.path.join(os.path.dirname(__file__), "../../../histrategy/.env")
         if os.path.exists(env_path):
             with open(env_path) as f:
@@ -82,19 +68,13 @@ def histrategy_server():
         f"test-{uuid.uuid4().hex[:8]}",
     )
 
-    # Use fork for proper env inheritance (spawn doesn't share os.environ)
-    ctx = multiprocessing.get_context("fork")
-    ready = ctx.Event()
-
-    proc = ctx.Process(
-        target=_start_server_process,
-        args=(host, port, data_dir, api_key, ready),
+    # Start server in daemon thread (shares process, reliable env + threading)
+    t = threading.Thread(
+        target=_start_server_thread,
+        args=(host, port, data_dir, api_key),
+        daemon=True,
     )
-    proc.daemon = True
-    proc.start()
-
-    # Wait for server to be ready (up to 30s)
-    ready.wait(timeout=30)
+    t.start()
 
     # Health-check the server
     import httpx
@@ -109,20 +89,11 @@ def histrategy_server():
             pass
         time.sleep(0.5)
     else:
-        proc.terminate()
-        proc.join(timeout=5)
         pytest.fail("Server did not become healthy within 30s")
 
     yield {"base_url": base_url, "host": host, "port": port, "data_dir": data_dir}
 
-    # Cleanup
-    proc.terminate()
-    proc.join(timeout=10)
-    if proc.is_alive():
-        proc.kill()
-        proc.join(timeout=5)
-
-    # Remove test data dir
+    # Cleanup test data dir
     import shutil
     data_path = Path(data_dir)
     if data_path.exists():
