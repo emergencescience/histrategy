@@ -28,9 +28,11 @@ def _start_server_process(
     host: str,
     port: int,
     data_dir: str,
+    api_key: str,
     ready_event: multiprocessing.Event,
 ):
     """Start the histrategy server in a subprocess (isolated env)."""
+    os.environ["DEEPSEEK_API_KEY"] = api_key
     os.environ["HISTRATEGY_DATA_DIR"] = data_dir
     os.environ["HISTRATEGY_ENGINE"] = "v1"
 
@@ -86,7 +88,7 @@ def histrategy_server():
 
     proc = ctx.Process(
         target=_start_server_process,
-        args=(host, port, data_dir, ready),
+        args=(host, port, data_dir, api_key, ready),
     )
     proc.daemon = True
     proc.start()

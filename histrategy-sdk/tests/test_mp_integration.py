@@ -148,7 +148,7 @@ class TestMultiplayerRoom:
 
         # After the last submit, resolution should happen
         # Wait for resolve
-        final = cao.wait_for_resolve(timeout=120)
+        final = cao.wait_for_resolve(timeout=180)
         assert final["ok"] is True
         assert final["phase"] == "waiting"
 
@@ -170,7 +170,7 @@ class TestMultiplayerRoom:
         )
 
         cao.decide("发展农业")
-        cao.wait_for_resolve(timeout=120)
+        cao.wait_for_resolve(timeout=180)
 
         turns = cao.get_turns()
         assert isinstance(turns, list)
