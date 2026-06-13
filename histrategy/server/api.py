@@ -1053,6 +1053,7 @@ def create_app(llm_provider: str | None = None) -> Any:
     @app.get("/mp")
     def serve_multiplayer_page():
         import os as _os
+
         from fastapi.responses import FileResponse
 
         web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")

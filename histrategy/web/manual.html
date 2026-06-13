@@ -53,12 +53,20 @@ blockquote{background:var(--bg-panel);border-left:3px solid var(--gold);padding:
 .nav a:hover{background:var(--bg-input);text-decoration:none;border-color:var(--gold)}
 
 .footer{margin-top:80px;padding-top:24px;border-top:1px solid var(--border);color:var(--text-dim);font-size:.85em}
+.manual-header{display:flex;align-items:center;gap:20px;margin-bottom:24px}
+.manual-logo{height:80px;width:80px;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.4));transition:transform 0.3s ease}
+.manual-logo:hover{transform:scale(1.08) rotate(-5deg)}
 </style>
 </head>
 <body>
 <div class="container">
 
-<h1>三國志略 <span class="sub">玩家手册 · v2</span></h1>
+<div class="manual-header">
+  <img src="/images/histrategy-logo.svg" alt="三國志略 Logo" class="manual-logo">
+  <div>
+    <h1>三國志略 <span class="sub">玩家手册 · v2</span></h1>
+  </div>
+</div>
 
 <div class="nav">
   <a href="#quickstart">快速开始</a>

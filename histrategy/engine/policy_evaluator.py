@@ -28,11 +28,11 @@ _BUILTIN_POLICY_EFFECTS: dict[str, dict] = {
     # 经济政策
     "屯田制": {
         "food_multiplier": 1.10,  # 粮食产出 +10%
-        "morale_bonus": 2,         # 每季度民心 +2
+        "morale_bonus": 2,  # 每季度民心 +2
     },
     "盐铁专营": {
         "treasury_bonus_per_pop": 0.0001,  # 每人口额外税收
-        "morale_penalty": -1,               # 垄断引发民怨
+        "morale_penalty": -1,  # 垄断引发民怨
     },
     "均田制": {
         "food_multiplier": 1.05,
@@ -42,8 +42,8 @@ _BUILTIN_POLICY_EFFECTS: dict[str, dict] = {
     # 军事政策
     "征兵令": {
         "conscript_cost_multiplier": 0.7,  # 征兵费用 -30%
-        "max_conscript_multiplier": 1.5,    # 征兵上限 +50%
-        "morale_penalty": -3,                # 强制征兵引发不满
+        "max_conscript_multiplier": 1.5,  # 征兵上限 +50%
+        "morale_penalty": -3,  # 强制征兵引发不满
     },
     "军屯制": {
         "food_multiplier": 1.05,
@@ -51,11 +51,11 @@ _BUILTIN_POLICY_EFFECTS: dict[str, dict] = {
     },
     # 法律/行政政策
     "九品中正制": {
-        "advisor_bonus": 2,       # 谋士效果 +2
+        "advisor_bonus": 2,  # 谋士效果 +2
         "morale_bonus": 2,
     },
     "科举制": {
-        "advisor_bonus": 3,       # 谋士效果 +3
+        "advisor_bonus": 3,  # 谋士效果 +3
         "tax_revenue_multiplier": 1.05,  # 官僚效率提升
     },
     "察举制": {
@@ -64,9 +64,9 @@ _BUILTIN_POLICY_EFFECTS: dict[str, dict] = {
     },
     # 外交政策
     "和亲": {
-        "diplomacy_bonus": 5,     # 外交关系 +5
+        "diplomacy_bonus": 5,  # 外交关系 +5
         "morale_bonus": 2,
-        "treasury_cost": 5000,    # 一次性支出
+        "treasury_cost": 5000,  # 一次性支出
     },
     "羁縻政策": {
         "territory_stability": 0.8,  # 新占城池稳定性 +20%

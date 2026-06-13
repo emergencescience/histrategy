@@ -18,8 +18,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from histrategy.llm.adapter import LLMAdapter
     from histrategy_engine.world import WorldState
+
+    from histrategy.llm.adapter import LLMAdapter
 
 logger = logging.getLogger("histrategy.v1")
 
@@ -45,9 +46,9 @@ def _build_context(
     for fid, faction in ws.factions.items():
         if not faction.is_active:
             continue
-        territories_str = "、".join(
-            [ws.territories[tid].name for tid in faction.territories if tid in ws.territories]
-        ) or "无领地"
+        territories_str = (
+            "、".join([ws.territories[tid].name for tid in faction.territories if tid in ws.territories]) or "无领地"
+        )
         parts.append(
             f"### {faction.name} ({fid})\n"
             f"- 城池: {territories_str}\n"
@@ -75,7 +76,7 @@ def _build_context(
     if turn_memory:
         parts.append("\n## 历史摘要\n")
         for i, summary in enumerate(turn_memory[-4:]):
-            parts.append(f"Q{summary.get('quarter', i+1)}: {json.dumps(summary, ensure_ascii=False)}")
+            parts.append(f"Q{summary.get('quarter', i + 1)}: {json.dumps(summary, ensure_ascii=False)}")
 
     return "\n".join(parts)
 
@@ -174,7 +175,14 @@ class V1Simulator:
                         except json.JSONDecodeError:
                             break
             logger.warning(f"V1: failed to parse LLM response (len={len(response)}), using fallback")
-            return {"narrative": "V1 解析失败", "factions": {}, "events": [], "battles": [], "diplomacy": [], "knowledge_cards": []}
+            return {
+                "narrative": "V1 解析失败",
+                "factions": {},
+                "events": [],
+                "battles": [],
+                "diplomacy": [],
+                "knowledge_cards": [],
+            }
 
     def _fallback(self, ws: WorldState, faction_decisions: dict) -> dict:
         """V1 不可用时的回退：简单确定性计算。"""

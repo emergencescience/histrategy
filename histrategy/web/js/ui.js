@@ -86,7 +86,10 @@ const UI = {
     const main = this.el('main-content');
     main.innerHTML = `
       <div id="faction-select">
-        <h2>🏯 选择势力</h2>
+        <div class="logo-container">
+          <img src="/images/histrategy-logo.svg" alt="三國志略" class="main-logo">
+        </div>
+        <h2>选择势力</h2>
         <div class="faction-grid">
           <div class="faction-btn" data-faction="cao">
             <img src="/images/avatar_cao.png" alt="曹操" class="faction-avatar">

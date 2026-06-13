@@ -19,7 +19,6 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 from .faction_slot import (
-    FACTION_DISPLAY_TO_ID,
     LLM_NPC_FACTIONS,
     FactionSlot,
     create_ai_slot,

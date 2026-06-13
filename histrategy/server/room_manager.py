@@ -24,14 +24,15 @@ if TYPE_CHECKING:
     from histrategy.engine.game_room import GameRoom
 
 # 内存中的房间 {room_id: GameRoom}
-_rooms: dict[str, "GameRoom"] = {}
+_rooms: dict[str, GameRoom] = {}
 # 内存中的玩家 {room_id: {user_id: {role, display_name}}}
 _players: dict[str, dict[str, dict]] = {}
 
 
-def _try_save(room: "GameRoom", ws_dict: dict | None = None):
+def _try_save(room: GameRoom, ws_dict: dict | None = None):
     try:
         from histrategy.db.models import save_room
+
         save_room(room, ws_dict)
     except Exception as e:
         logger.warning(f"Room save failed (non-fatal): {e}")
@@ -54,11 +55,14 @@ def create_room(
     Returns:
         {"ok": True, "room_id": str}
     """
-    from histrategy.engine.game_room import GameRoom
     from histrategy.engine.faction_slot import (
-        create_open_slot, create_ai_slot, LLM_NPC_FACTIONS,
-        FACTION_DISPLAY_TO_ID, PLAYABLE_FACTIONS,
+        FACTION_DISPLAY_TO_ID,
+        LLM_NPC_FACTIONS,
+        PLAYABLE_FACTIONS,
+        create_ai_slot,
+        create_open_slot,
     )
+    from histrategy.engine.game_room import GameRoom
 
     # 翻译显示名 → 内部 ID（caocao→cao, liubei→shu, sunquan→wu）
     human_faction_ids = [FACTION_DISPLAY_TO_ID.get(f, f) for f in (human_faction_ids or PLAYABLE_FACTIONS)]
@@ -119,6 +123,7 @@ def enter_room(
     # 翻译显示名 → 内部 ID
     if faction:
         from histrategy.engine.faction_slot import FACTION_DISPLAY_TO_ID
+
         faction = FACTION_DISPLAY_TO_ID.get(faction, faction)
 
     # 如果指定了 faction，自动占据该势力（如果 slot 存在且 open）
@@ -127,6 +132,7 @@ def enter_room(
         if slot.is_open():
             # 自动占据势力
             from histrategy.engine.faction_slot import create_human_slot
+
             room.slots[faction] = create_human_slot(faction, user_id)
             logger.info(f"Player {user_id} auto-claimed {faction} in room {room_id}")
             _try_save(room)
@@ -137,7 +143,8 @@ def enter_room(
     if user_id in _players[room_id]:
         p = _players[room_id][user_id]
         result = {
-            "ok": True, "already_in": True,
+            "ok": True,
+            "already_in": True,
             "role": p["role"],
             "faction": faction,
             "room": _room_summary(room),
@@ -175,6 +182,7 @@ def kick_player(room_id: str, host_user_id: str, target_user_id: str) -> dict:
         for slot in room.slots.values():
             if slot.is_human() and slot.occupant_id == target_user_id:
                 from histrategy.engine.faction_slot import create_open_slot
+
                 room.slots[slot.faction_id] = create_open_slot(slot.faction_id)
         del _players[room_id][target_user_id]
 
@@ -212,10 +220,12 @@ def pick_faction(room_id: str, user_id: str, faction_id: str) -> dict:
     for fid, s in room.slots.items():
         if s.is_human() and s.occupant_id == user_id and fid != faction_id:
             from histrategy.engine.faction_slot import create_open_slot
+
             room.slots[fid] = create_open_slot(fid)
 
     # 占据新势力
     from histrategy.engine.faction_slot import create_human_slot
+
     room.slots[faction_id] = create_human_slot(faction_id, user_id)
     _try_save(room)
 
@@ -247,6 +257,7 @@ def start_game(room_id: str, user_id: str) -> dict:
 
     # 未选的 slot 变 AI
     from histrategy.engine.faction_slot import create_ai_slot
+
     for fid, s in list(room.slots.items()):
         if s.is_open():
             room.slots[fid] = create_ai_slot(fid)
@@ -326,8 +337,12 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
     from histrategy.engine.faction_slot import FACTION_ID_TO_DISPLAY
 
     room_players = _players.get(room_id, {})
-    submitted = [FACTION_ID_TO_DISPLAY.get(fid, fid) for fid, s in room.slots.items() if s.is_active and s.has_submitted()]
-    pending = [FACTION_ID_TO_DISPLAY.get(fid, fid) for fid, s in room.slots.items() if s.is_active and not s.has_submitted()]
+    submitted = [
+        FACTION_ID_TO_DISPLAY.get(fid, fid) for fid, s in room.slots.items() if s.is_active and s.has_submitted()
+    ]
+    pending = [
+        FACTION_ID_TO_DISPLAY.get(fid, fid) for fid, s in room.slots.items() if s.is_active and not s.has_submitted()
+    ]
 
     status = {
         "ok": True,
@@ -338,8 +353,7 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
         "season": room.season,
         "quarter": room.quarter_number,
         "players": {
-            uid: {"role": p["role"], "display_name": p.get("display_name", "")}
-            for uid, p in room_players.items()
+            uid: {"role": p["role"], "display_name": p.get("display_name", "")} for uid, p in room_players.items()
         },
         "slots": {
             FACTION_ID_TO_DISPLAY.get(fid, fid): {
@@ -367,7 +381,7 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
 # ── Internal ─────────────────────────────────────────
 
 
-def _trigger_npc_decisions(room: "GameRoom"):
+def _trigger_npc_decisions(room: GameRoom):
     """在回合开始时立即为所有 AI NPC 生成决策。
 
     这样当人类玩家提交决策后，不需要等待 NPC LLM 调用——
@@ -382,41 +396,32 @@ def _trigger_npc_decisions(room: "GameRoom"):
     llm = _get_llm()
 
     # 只收集 AI NPC 的决策（人类会在自己的时机提交）
-    ai_only = {
-        fid: s
-        for fid, s in room.slots.items()
-        if s.is_ai() and s.is_active
-    }
+    ai_only = {fid: s for fid, s in room.slots.items() if s.is_ai() and s.is_active}
 
     if not ai_only:
         return
 
-    logger.info(
-        f"Room {room.id} Q{room.quarter_number}: triggering NPC decisions for {list(ai_only.keys())}"
-    )
+    logger.info(f"Room {room.id} Q{room.quarter_number}: triggering NPC decisions for {list(ai_only.keys())}")
 
     # 临时替换 room.slots 为只含 AI 的版本，避免 DecisionBus 等待人类
     # 使用 collect_all_decisions 为 AI 生成决策
     try:
-        decisions = collect_all_decisions(
-            room, ws, llm=llm, turn_memory=room.turn_summaries
-        )
+        decisions = collect_all_decisions(room, ws, llm=llm, turn_memory=room.turn_summaries)
         # 将 AI 决策写入对应的 slot
         for fid, dr in decisions.items():
             if fid in room.slots:
                 room.slots[fid].submit_decision(dr.decision_text, dr.commands)
-        logger.info(
-            f"Room {room.id}: NPC decisions ready — {list(decisions.keys())}"
-        )
+        logger.info(f"Room {room.id}: NPC decisions ready — {list(decisions.keys())}")
     except Exception as e:
         logger.error(f"Room {room.id}: NPC decision trigger failed: {e}")
 
 
-def _get_room(room_id: str) -> "GameRoom | None":
+def _get_room(room_id: str) -> GameRoom | None:
     if room_id in _rooms:
         return _rooms[room_id]
     try:
         from histrategy.db.models import load_room
+
         room = load_room(room_id)
         if room:
             _rooms[room_id] = room
@@ -440,6 +445,7 @@ def _enter_player(room_id: str, user_id: str, role: str, display_name: str, play
 def _save_player_to_db(room_id: str, user_id: str, role: str, display_name: str):
     try:
         from histrategy.db.connection import execute_write
+
         pid = f"{room_id}_{user_id}"
         execute_write(
             """INSERT OR REPLACE INTO room_player (id, room_id, user_id, role, display_name)
@@ -450,19 +456,17 @@ def _save_player_to_db(room_id: str, user_id: str, role: str, display_name: str)
         pass
 
 
-def _room_summary(room: "GameRoom") -> dict:
+def _room_summary(room: GameRoom) -> dict:
     return {
         "room_id": room.id,
         "phase": room.phase.value,
-        "slots": {
-            fid: s.occupant_type.value
-            for fid, s in room.slots.items()
-        },
+        "slots": {fid: s.occupant_type.value for fid, s in room.slots.items()},
     }
 
 
-def _init_world_state(room: "GameRoom"):
+def _init_world_state(room: GameRoom):
     from histrategy.engine.game import GameEngine
+
     engine = GameEngine(scenario=room.scenario, new_game=True)
     humans = [s for s in room.slots.values() if s.is_human()]
     if humans:
@@ -470,10 +474,10 @@ def _init_world_state(room: "GameRoom"):
     room.world_state = engine.world_state_v2
 
 
-def _resolve_and_advance(room: "GameRoom"):
+def _resolve_and_advance(room: GameRoom):
     from histrategy.engine.decision_bus import collect_all_decisions
+    from histrategy.engine.engine_switch import EngineMode, detect_engine_mode
     from histrategy.engine.game_room import RoomPhase
-    from histrategy.engine.engine_switch import detect_engine_mode, EngineMode
 
     if room.phase.value == "resolving":
         return
@@ -494,6 +498,7 @@ def _resolve_and_advance(room: "GameRoom"):
     else:
         # V2/V3 使用现有 QuarterlyResolver
         from histrategy.engine.quarterly_resolver import QuarterlyResolver
+
         resolver = QuarterlyResolver(
             turn_controller=getattr(room, "_turn_controller", None),
         )
@@ -528,8 +533,9 @@ def _resolve_and_advance(room: "GameRoom"):
 
 def _resolve_v1(room, ws, decisions, llm):
     """V1 引擎：纯 LLM 仿真。"""
-    from histrategy.engine.v1_simulator import V1Simulator, _apply_v1_state_to_world, save_v1_state_to_db
     from dataclasses import dataclass
+
+    from histrategy.engine.v1_simulator import V1Simulator, _apply_v1_state_to_world, save_v1_state_to_db
 
     simulator = V1Simulator(llm)
 
@@ -566,6 +572,7 @@ def _resolve_v1(room, ws, decisions, llm):
 def _get_llm():
     try:
         from histrategy.llm.adapter import LLMAdapter
+
         return LLMAdapter()
     except Exception:
         return None
@@ -574,6 +581,7 @@ def _get_llm():
 def _advance_season(ws):
     try:
         from histrategy_engine.world import Season
+
         seasons = list(Season)
         idx = seasons.index(ws.season)
         ws.season = seasons[(idx + 1) % len(seasons)]
@@ -587,18 +595,28 @@ def _advance_season(ws):
 def _save_quarter(room, decisions, result):
     try:
         from histrategy.db.models import save_quarter_turn
-        fd = {fid: {"decision": dr.decision_text, "commands": dr.commands, "source": dr.source}
-              for fid, dr in decisions.items()}
-        save_quarter_turn(room.id, room.quarter_number, room.year, room.season,
-                          faction_decisions=fd, narratives=result.narratives,
-                          state_changes=result.state_changes)
+
+        fd = {
+            fid: {"decision": dr.decision_text, "commands": dr.commands, "source": dr.source}
+            for fid, dr in decisions.items()
+        }
+        save_quarter_turn(
+            room.id,
+            room.quarter_number,
+            room.year,
+            room.season,
+            faction_decisions=fd,
+            narratives=result.narratives,
+            state_changes=result.state_changes,
+        )
     except Exception as e:
         logger.warning(f"Quarter save failed: {e}")
 
 
 def _write_backup(room, ws_dict):
     try:
-        from histrategy.db.file_backup import write_room_snapshot, cleanup_old_backups
+        from histrategy.db.file_backup import cleanup_old_backups, write_room_snapshot
+
         write_room_snapshot(room, ws_dict, "quarter_complete")
         cleanup_old_backups(room.id, keep=20)
     except Exception:
