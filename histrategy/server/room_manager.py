@@ -688,7 +688,7 @@ def _resolve_v1(room, ws, decisions, llm):
         fd[fid] = {"decision": dr.decision_text, "commands": dr.commands}
 
     v1_result = simulator.simulate(ws, fd, room.turn_summaries)
-    logger.info(
+    logger.warning(
         "V1 resolve: room=%s result_keys=%s factions_count=%d",
         room.id, list(v1_result.keys()), len(v1_result.get("factions", {})),
     )

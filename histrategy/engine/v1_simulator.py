@@ -281,7 +281,7 @@ def save_v1_state_to_db(
         from histrategy.db.models import save_game_state, save_policy_state, save_turn_delta
 
         factions_data = v1_result.get("factions", {})
-        logger.info(
+        logger.warning(
             "save_v1_state_to_db: room=%s q=%d factions_in_result=%d keys=%s",
             room_id, quarter_number, len(factions_data), list(factions_data.keys())[:10],
         )
