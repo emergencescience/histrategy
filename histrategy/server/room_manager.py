@@ -67,12 +67,13 @@ def create_room(
     _rooms[room.id] = room
     _players[room.id] = {}
 
-    # host 自动进入房间
-    _enter_player(room.id, host_user_id, "host", host_name)
+    # host 自动进入房间，生成 player_token
+    host_token = uuid.uuid4().hex
+    _enter_player(room.id, host_user_id, "host", host_name, host_token)
     _try_save(room)
 
     logger.info(f"Room created: {room.id} by {host_user_id or 'anon'}")
-    return {"ok": True, "room_id": room.id}
+    return {"ok": True, "room_id": room.id, "host_token": host_token}
 
 
 def enter_room(
@@ -102,8 +103,19 @@ def enter_room(
 
     # 新玩家：默认 player 角色
     role = "player"
-    _enter_player(room_id, user_id, role, display_name)
-    return {"ok": True, "role": role, "room": _room_summary(room)}
+
+    # 生成 player_token 用于同浏览器多 tab 隔离
+    # 这个 token 独立于 JWT——两个 Chrome tab 使用不同的 token，
+    # 即使 JWT 相同也能区分不同玩家
+    player_token = uuid.uuid4().hex
+
+    _enter_player(room_id, user_id, role, display_name, player_token)
+    return {
+        "ok": True,
+        "role": role,
+        "player_token": player_token,
+        "room": _room_summary(room),
+    }
 
 
 def kick_player(room_id: str, host_user_id: str, target_user_id: str) -> dict:
@@ -207,6 +219,9 @@ def start_game(room_id: str, user_id: str) -> dict:
     room.start_game()
     _try_save(room)
 
+    # NPC 立即下命令（不等人类提交）
+    _trigger_npc_decisions(room)
+
     humans = [s.faction_id for s in room.slots.values() if s.is_human()]
     ais = [s.faction_id for s in room.slots.values() if s.is_ai()]
     return {
@@ -307,6 +322,51 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
 # ── Internal ─────────────────────────────────────────
 
 
+def _trigger_npc_decisions(room: "GameRoom"):
+    """在回合开始时立即为所有 AI NPC 生成决策。
+
+    这样当人类玩家提交决策后，不需要等待 NPC LLM 调用——
+    NPC 已经提前提交了决策，最后一个人类提交即可立即 resolve。
+    """
+    from histrategy.engine.decision_bus import collect_all_decisions
+
+    ws = room.world_state
+    if ws is None:
+        return
+
+    llm = _get_llm()
+
+    # 只收集 AI NPC 的决策（人类会在自己的时机提交）
+    ai_only = {
+        fid: s
+        for fid, s in room.slots.items()
+        if s.is_ai() and s.is_active
+    }
+
+    if not ai_only:
+        return
+
+    logger.info(
+        f"Room {room.id} Q{room.quarter_number}: triggering NPC decisions for {list(ai_only.keys())}"
+    )
+
+    # 临时替换 room.slots 为只含 AI 的版本，避免 DecisionBus 等待人类
+    # 使用 collect_all_decisions 为 AI 生成决策
+    try:
+        decisions = collect_all_decisions(
+            room, ws, llm=llm, turn_memory=room.turn_summaries
+        )
+        # 将 AI 决策写入对应的 slot
+        for fid, dr in decisions.items():
+            if fid in room.slots:
+                room.slots[fid].submit_decision(dr.decision_text, dr.commands)
+        logger.info(
+            f"Room {room.id}: NPC decisions ready — {list(decisions.keys())}"
+        )
+    except Exception as e:
+        logger.error(f"Room {room.id}: NPC decision trigger failed: {e}")
+
+
 def _get_room(room_id: str) -> "GameRoom | None":
     if room_id in _rooms:
         return _rooms[room_id]
@@ -321,10 +381,14 @@ def _get_room(room_id: str) -> "GameRoom | None":
     return None
 
 
-def _enter_player(room_id: str, user_id: str, role: str, display_name: str):
+def _enter_player(room_id: str, user_id: str, role: str, display_name: str, player_token: str = ""):
     if room_id not in _players:
         _players[room_id] = {}
-    _players[room_id][user_id] = {"role": role, "display_name": display_name}
+    _players[room_id][user_id] = {
+        "role": role,
+        "display_name": display_name,
+        "player_token": player_token,
+    }
     _save_player_to_db(room_id, user_id, role, display_name)
 
 
@@ -400,6 +464,9 @@ def _resolve_and_advance(room: "GameRoom"):
     _advance_season(ws)
     room.advance_quarter()
     room.world_state = ws
+
+    # 下个季度 NPC 立即下命令
+    _trigger_npc_decisions(room)
 
     ws_dict = ws.to_dict() if hasattr(ws, "to_dict") else None
     _try_save(room, ws_dict)

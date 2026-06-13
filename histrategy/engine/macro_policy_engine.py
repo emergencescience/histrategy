@@ -150,7 +150,7 @@ class MacroPolicyEngine:
                 messages,
                 response_format={"type": "json_object"},
                 temperature=0.3,
-                max_tokens=4096,
+                max_tokens=8192,
                 metadata={
                     "category": "macro_sim",
                     "reason": "quarterly_simulation",

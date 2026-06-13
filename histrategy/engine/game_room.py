@@ -47,7 +47,7 @@ class GameRoom:
     - 通过 RoomPhase 状态机驱动多 faction 季度循环
     """
 
-    id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
+    id: str = field(default_factory=lambda: uuid.uuid4().hex)  # full UUID v4 (32-char hex)
     host_user_id: str | None = None
     scenario: str = "207"
     year: int = 207

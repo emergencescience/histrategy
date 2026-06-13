@@ -122,7 +122,7 @@ def _get_or_create_engine(
     with contextlib.suppress(Exception):
         llm = LLMAdapter(provider=_llm_provider or None)
 
-    game_id = uuid.uuid4().hex[:12]
+    game_id = uuid.uuid4().hex  # full UUID v4
     engine = GameEngine(scenario=scenario, new_game=True, llm=llm)
     engine.set_player_faction(faction)
 
@@ -542,7 +542,7 @@ def create_app(llm_provider: str | None = None) -> Any:
                 "restore_error": restore_error,
             }
 
-        game_id = uuid.uuid4().hex[:12]
+        game_id = uuid.uuid4().hex  # full UUID v4
         _games[game_id] = engine
 
         if req.session_id:

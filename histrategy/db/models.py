@@ -305,3 +305,192 @@ def log_sim_event(
         ),
     )
     return event_id
+
+
+# ── Game State (world state snapshot) ────────────────────
+
+
+def save_game_state(
+    room_id: str,
+    quarter_number: int,
+    faction_id: str,
+    population: int = 0,
+    troops: int = 0,
+    food: float = 0,
+    treasury: float = 0,
+    morale: int = 50,
+    territories: list | None = None,
+    policies: dict | None = None,
+    is_active: bool = True,
+) -> str:
+    """Save a faction's game state snapshot for a quarter.
+
+    Returns the state ID.
+    """
+    state_id = str(uuid.uuid4())
+
+    execute_write(
+        """INSERT OR REPLACE INTO game_state
+            (id, room_id, quarter_number, faction_id,
+             population, troops, food, treasury, morale,
+             territories, policies, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            state_id,
+            room_id,
+            quarter_number,
+            faction_id,
+            population,
+            troops,
+            food,
+            treasury,
+            morale,
+            json_dumps(territories) if territories else "[]",
+            json_dumps(policies) if policies else "{}",
+            1 if is_active else 0,
+        ),
+    )
+    return state_id
+
+
+def get_game_state(room_id: str, quarter_number: int, faction_id: str) -> dict | None:
+    """Get a faction's game state for a specific quarter."""
+    row = execute_one(
+        """SELECT * FROM game_state
+        WHERE room_id = ? AND quarter_number = ? AND faction_id = ?""",
+        (room_id, quarter_number, faction_id),
+    )
+    if not row:
+        return None
+    return {
+        "id": row["id"],
+        "room_id": row["room_id"],
+        "quarter_number": row["quarter_number"],
+        "faction_id": row["faction_id"],
+        "population": row["population"],
+        "troops": row["troops"],
+        "food": row["food"],
+        "treasury": row["treasury"],
+        "morale": row["morale"],
+        "territories": json_loads(row.get("territories", "[]")),
+        "policies": json_loads(row.get("policies", "{}")),
+        "is_active": bool(row.get("is_active", 1)),
+    }
+
+
+def get_latest_game_states(room_id: str, quarter_number: int) -> list[dict]:
+    """Get all factions' latest game states for a quarter."""
+    return execute(
+        """SELECT * FROM game_state
+        WHERE room_id = ? AND quarter_number = ?
+        ORDER BY faction_id""",
+        (room_id, quarter_number),
+    )
+
+
+# ── Turn Delta (per-turn incremental changes) ──────────
+
+
+def save_turn_delta(
+    room_id: str,
+    quarter_number: int,
+    faction_id: str,
+    delta_type: str,
+    old_value: float,
+    new_value: float,
+    reason: str = "",
+    source: str = "deterministic",
+) -> str:
+    """Save a per-turn delta record. Returns the delta ID."""
+    delta_id = str(uuid.uuid4())
+    delta = new_value - old_value
+
+    execute_write(
+        """INSERT INTO turn_delta
+            (id, room_id, quarter_number, faction_id, delta_type,
+             old_value, new_value, delta, reason, source)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            delta_id,
+            room_id,
+            quarter_number,
+            faction_id,
+            delta_type,
+            old_value,
+            new_value,
+            delta,
+            reason,
+            source,
+        ),
+    )
+    return delta_id
+
+
+def get_turn_deltas(room_id: str, quarter_number: int) -> list[dict]:
+    """Get all deltas for a quarter."""
+    return execute(
+        """SELECT * FROM turn_delta
+        WHERE room_id = ? AND quarter_number = ?
+        ORDER BY faction_id, delta_type""",
+        (room_id, quarter_number),
+    )
+
+
+# ── Policy State (policies / tech tree) ─────────────────
+
+
+def save_policy_state(
+    room_id: str,
+    quarter_number: int,
+    faction_id: str,
+    policy_type: str,
+    policy_name: str,
+    policy_level: int = 1,
+    params: dict | None = None,
+    status: str = "active",
+) -> str:
+    """Save a policy/tech state. Returns the policy ID."""
+    policy_id = str(uuid.uuid4())
+
+    execute_write(
+        """INSERT OR REPLACE INTO policy_state
+            (id, room_id, quarter_number, faction_id, policy_type,
+             policy_name, policy_level, params, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            policy_id,
+            room_id,
+            quarter_number,
+            faction_id,
+            policy_type,
+            policy_name,
+            policy_level,
+            json_dumps(params) if params else "{}",
+            status,
+        ),
+    )
+    return policy_id
+
+
+def get_active_policies(room_id: str, faction_id: str) -> list[dict]:
+    """Get all active policies for a faction."""
+    return execute(
+        """SELECT * FROM policy_state
+        WHERE room_id = ? AND faction_id = ? AND status = 'active'
+        ORDER BY quarter_number""",
+        (room_id, faction_id),
+    )
+
+
+def revoke_policy(room_id: str, faction_id: str, policy_name: str) -> bool:
+    """Revoke a policy. Returns True if any row was updated."""
+    from datetime import datetime, timezone
+
+    now = datetime.now(timezone.utc).isoformat()
+    result = execute_write(
+        """UPDATE policy_state
+        SET status = 'revoked', revoked_at = ?
+        WHERE room_id = ? AND faction_id = ? AND policy_name = ? AND status = 'active'""",
+        (now, room_id, faction_id, policy_name),
+    )
+    return result > 0

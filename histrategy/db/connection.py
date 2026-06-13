@@ -286,8 +286,66 @@ CREATE TABLE IF NOT EXISTS room_player (
     UNIQUE(room_id, user_id)
 );
 
+-- 世界状态快照表：每个势力在当前季度的完整状态
+-- 一张表存储所有数值+非数值状态（城池/人口/兵力/粮草/政策/科技树）
+CREATE TABLE IF NOT EXISTS game_state (
+    id              TEXT PRIMARY KEY,
+    room_id         TEXT NOT NULL REFERENCES game_room(id),
+    quarter_number  INTEGER NOT NULL,
+    faction_id      TEXT NOT NULL,
+    -- 数值状态
+    population      INTEGER DEFAULT 0,
+    troops          INTEGER DEFAULT 0,
+    food            REAL DEFAULT 0,
+    treasury        REAL DEFAULT 0,
+    morale          INTEGER DEFAULT 50,
+    -- 城池控制（JSON: [{"territory_id": "xuchang", "population": 50000, "development": 60}, ...]）
+    territories     TEXT DEFAULT '[]',
+    -- 非数值状态（政策/科技树/法律/外交等 — JSON blob）
+    policies        TEXT DEFAULT '{}',
+    -- 额外元数据
+    is_active       INTEGER DEFAULT 1,
+    created_at      TEXT DEFAULT (datetime('now')),
+    UNIQUE(room_id, quarter_number, faction_id)
+);
+
+-- 增量表：记录每个轮次各势力的数值变化（人口增减/粮草消耗/兵力变化等）
+CREATE TABLE IF NOT EXISTS turn_delta (
+    id              TEXT PRIMARY KEY,
+    room_id         TEXT NOT NULL REFERENCES game_room(id),
+    quarter_number  INTEGER NOT NULL,
+    faction_id      TEXT NOT NULL,
+    delta_type      TEXT NOT NULL,  -- 'population' | 'troops' | 'food' | 'treasury' | 'morale'
+    old_value       REAL,
+    new_value       REAL,
+    delta           REAL,
+    reason          TEXT,           -- 变化原因（如 "屯田制+5%", "战争伤亡-2000", "征税+1500"）
+    source          TEXT DEFAULT 'deterministic',  -- 'deterministic' | 'llm' | 'black_swan'
+    created_at      TEXT DEFAULT (datetime('now'))
+);
+
+-- 策略/科技状态表：存储每个势力的政策法令和科技树进展
+-- 每次仿真时读取此表，用来影响数值计算
+CREATE TABLE IF NOT EXISTS policy_state (
+    id              TEXT PRIMARY KEY,
+    room_id         TEXT NOT NULL REFERENCES game_room(id),
+    quarter_number  INTEGER NOT NULL,  -- 政策生效的季度
+    faction_id      TEXT NOT NULL,
+    policy_type     TEXT NOT NULL,    -- 'law' | 'diplomacy' | 'economic' | 'military' | 'tech'
+    policy_name     TEXT NOT NULL,    -- '科举制' | '盐铁专营' | '屯田制' | '九品中正制'
+    policy_level    INTEGER DEFAULT 1, -- 政策等级（科技树层级）
+    params          TEXT DEFAULT '{}', -- 政策参数（JSON）
+    status          TEXT DEFAULT 'active', -- 'active' | 'revoked' | 'expired'
+    activated_at    TEXT DEFAULT (datetime('now')),
+    revoked_at      TEXT,
+    UNIQUE(room_id, faction_id, policy_name, status)
+);
+
 CREATE INDEX IF NOT EXISTS idx_faction_slot_room ON faction_slot(room_id);
 CREATE INDEX IF NOT EXISTS idx_quarter_turn_room ON quarter_turn(room_id, quarter_number);
 CREATE INDEX IF NOT EXISTS idx_llm_call_log_room ON llm_call_log(room_id, quarter_number);
 CREATE INDEX IF NOT EXISTS idx_sim_event_room ON simulation_event_log(room_id, quarter_number);
+CREATE INDEX IF NOT EXISTS idx_game_state_room ON game_state(room_id, quarter_number);
+CREATE INDEX IF NOT EXISTS idx_turn_delta_room ON turn_delta(room_id, quarter_number);
+CREATE INDEX IF NOT EXISTS idx_policy_state_room ON policy_state(room_id, faction_id);
 """

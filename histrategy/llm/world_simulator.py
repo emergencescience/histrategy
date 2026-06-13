@@ -82,13 +82,13 @@ class WorldSimulator:
                 max_tokens=4096,
             )
             return self._validate_output(result)
-        except Exception:
-            # Fallback: try plain chat with JSON extraction
-            try:
-                result = self.llm.chat(
-                    messages,
-                    temperature=0.3,
-                    max_tokens=4096,
+                max_tokens=8192,
+                metadata=metadata,
+            )
+            response = self.llm.chat(
+                messages,
+                temperature=0.3,
+                max_tokens=8192,
                 )
                 return self._validate_output(self._extract_json(result))
             except Exception:
