@@ -255,6 +255,18 @@ def _build_faction_status(engine) -> dict:
 # ─── FastAPI App ─────────────────────────────────────────────────
 
 
+def _safe_json_loads(value: str | None, default: Any = None) -> Any:
+    """Safely deserialize a JSON string, returning default on failure."""
+    if not value:
+        return default
+    try:
+        import json as _json
+
+        return _json.loads(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def create_app(llm_provider: str | None = None) -> Any:
     """Create and configure the FastAPI application."""
     global _llm_provider
@@ -1061,6 +1073,82 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         fid = faction_id if faction_id else None
         return get_room_status(room_id, fid)
+
+    @app.get("/api/rooms/{room_id}/turns")
+    def api_room_turns(room_id: str):
+        """返回指定 room 的所有 quarter_turn 记录。"""
+        from histrategy.db.models import get_quarter_turns
+
+        raw_turns = get_quarter_turns(room_id, limit=10000)
+
+        turns = []
+        for row in raw_turns:
+            turn = {
+                "quarter_number": row["quarter_number"],
+                "year": row["year"],
+                "season": row["season"],
+                "faction_decisions": _safe_json_loads(row.get("faction_decisions")),
+                "narratives": _safe_json_loads(row.get("narratives")),
+                "state_changes": _safe_json_loads(row.get("state_changes")),
+                "token_usage": _safe_json_loads(row.get("token_usage")),
+            }
+            turns.append(turn)
+
+        # Return in ascending quarter_number order
+        turns.sort(key=lambda t: t["quarter_number"])
+
+        return {
+            "room_id": room_id,
+            "turns": turns,
+            "count": len(turns),
+        }
+
+    @app.get("/api/rooms/{room_id}/state")
+    def api_room_state(room_id: str):
+        """返回 game_state 和 policy_state，用于游戏恢复。"""
+        from fastapi.responses import JSONResponse
+
+        from histrategy.db.models import get_active_policies, get_latest_game_states
+        from histrategy.server.room_manager import _get_room
+
+        room = _get_room(room_id)
+        if not room:
+            return JSONResponse(status_code=404, content={"error": "房间不存在"})
+
+        quarter_number = room.quarter_number
+
+        raw_states = get_latest_game_states(room_id, quarter_number)
+
+        factions = []
+        for row in raw_states:
+            fid = row["faction_id"]
+            policies_list = get_active_policies(room_id, fid)
+            policies = {}
+            for p in policies_list:
+                policies[p["policy_name"]] = {
+                    "policy_type": p["policy_type"],
+                    "policy_level": p.get("policy_level", 1),
+                    "params": _safe_json_loads(p.get("params")),
+                    "status": p.get("status", "active"),
+                }
+
+            factions.append({
+                "faction_id": fid,
+                "population": row["population"],
+                "troops": row["troops"],
+                "food": row["food"],
+                "treasury": row["treasury"],
+                "morale": row["morale"],
+                "territories": _safe_json_loads(row.get("territories"), default=[]),
+                "policies": policies,
+                "is_active": bool(row.get("is_active", 1)),
+            })
+
+        return {
+            "room_id": room_id,
+            "quarter_number": quarter_number,
+            "factions": factions,
+        }
 
     @app.get("/mp")
     def serve_multiplayer_page():
