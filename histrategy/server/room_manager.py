@@ -711,7 +711,8 @@ def _resolve_v1(room, ws, decisions, llm):
     _apply_v1_state_to_world(ws, v1_factions)
 
     # 写入 DB（传入旧状态以计算 delta）
-    save_v1_state_to_db(room.id, room.quarter_number, ws, v1_result, old_state=old_state)
+    # Note: room.quarter_number hasn't been incremented yet — save with next quarter
+    save_v1_state_to_db(room.id, room.quarter_number + 1, ws, v1_result, old_state=old_state)
 
     # 构建兼容 result 对象
     @dataclass
