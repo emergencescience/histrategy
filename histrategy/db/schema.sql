@@ -112,3 +112,65 @@ CREATE INDEX IF NOT EXISTS idx_faction_slot_room ON faction_slot(room_id);
 CREATE INDEX IF NOT EXISTS idx_quarter_turn_room ON quarter_turn(room_id, quarter_number);
 CREATE INDEX IF NOT EXISTS idx_llm_call_log_room ON llm_call_log(room_id, quarter_number);
 CREATE INDEX IF NOT EXISTS idx_sim_event_room ON simulation_event_log(room_id, quarter_number);
+
+-- ═══════════════════════════════════════════════════════════
+-- game_state: 每季度各势力完整状态快照（数值+城池+政策）
+-- ═══════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS game_state (
+    id              TEXT PRIMARY KEY,
+    room_id         TEXT NOT NULL REFERENCES game_room(id),
+    quarter_number  INTEGER NOT NULL,
+    faction_id      TEXT NOT NULL,
+    -- 数值状态
+    population      INTEGER DEFAULT 0,
+    troops          INTEGER DEFAULT 0,
+    food            REAL DEFAULT 0,
+    treasury        REAL DEFAULT 0,
+    morale          INTEGER DEFAULT 50,
+    -- 城池控制（JSON: [{"territory_id": "xuchang", "population": 50000, ...}]）
+    territories     TEXT DEFAULT '[]',
+    -- 非数值状态（政策/科技树 — JSON blob）
+    policies        TEXT DEFAULT '{}',
+    is_active       INTEGER DEFAULT 1,
+    created_at      TEXT DEFAULT (datetime('now')),
+    UNIQUE(room_id, quarter_number, faction_id)
+);
+
+-- ═══════════════════════════════════════════════════════════
+-- turn_delta: 每轮数值增量（人口/兵力/粮草/库金/民心变化）
+-- ═══════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS turn_delta (
+    id              TEXT PRIMARY KEY,
+    room_id         TEXT NOT NULL REFERENCES game_room(id),
+    quarter_number  INTEGER NOT NULL,
+    faction_id      TEXT NOT NULL,
+    delta_type      TEXT NOT NULL,  -- 'population' | 'troops' | 'food' | 'treasury' | 'morale'
+    old_value       REAL,
+    new_value       REAL,
+    delta           REAL,
+    reason          TEXT,           -- 变化原因（如 "屯田制+5%", "战争伤亡-2000"）
+    source          TEXT DEFAULT 'deterministic',  -- 'deterministic' | 'llm' | 'black_swan'
+    created_at      TEXT DEFAULT (datetime('now'))
+);
+
+-- ═══════════════════════════════════════════════════════════
+-- policy_state: 政策法令和科技树状态
+-- ═══════════════════════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS policy_state (
+    id              TEXT PRIMARY KEY,
+    room_id         TEXT NOT NULL REFERENCES game_room(id),
+    quarter_number  INTEGER NOT NULL,
+    faction_id      TEXT NOT NULL,
+    policy_type     TEXT NOT NULL,    -- 'law' | 'diplomacy' | 'economic' | 'military' | 'tech'
+    policy_name     TEXT NOT NULL,    -- '科举制' | '盐铁专营' | '屯田制' | '九品中正制'
+    policy_level    INTEGER DEFAULT 1,
+    params          TEXT DEFAULT '{}',
+    status          TEXT DEFAULT 'active',
+    activated_at    TEXT DEFAULT (datetime('now')),
+    revoked_at      TEXT,
+    UNIQUE(room_id, faction_id, policy_name, status)
+);
+
+CREATE INDEX IF NOT EXISTS idx_game_state_room ON game_state(room_id, quarter_number);
+CREATE INDEX IF NOT EXISTS idx_turn_delta_room ON turn_delta(room_id, quarter_number);
+CREATE INDEX IF NOT EXISTS idx_policy_state_room ON policy_state(room_id, faction_id);

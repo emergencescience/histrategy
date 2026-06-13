@@ -1043,7 +1043,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
     @app.post("/api/rooms/{room_id}/decide")
     def api_submit_decision(room_id: str, body: dict = Body(...)):
-        """提交本季度决策。"""
+        """提交本季度决策。支持 player_token 解析。"""
         from histrategy.server.room_manager import submit_decision
 
         return submit_decision(
@@ -1051,6 +1051,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             body.get("faction_id", ""),
             body.get("user_id", ""),
             body.get("decision", ""),
+            body.get("player_token", ""),
         )
 
     @app.get("/api/rooms/{room_id}/status")

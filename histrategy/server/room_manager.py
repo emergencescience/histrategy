@@ -353,13 +353,26 @@ def start_game(room_id: str, user_id: str) -> dict:
 # ── Decision & Status ───────────────────────────────
 
 
-def submit_decision(room_id: str, faction_id: str, user_id: str, decision: str) -> dict:
-    """提交本季度决策。全员提交后自动 resolve。"""
+def submit_decision(room_id: str, faction_id: str, user_id: str, decision: str, player_token: str = "") -> dict:
+    """提交本季度决策。全员提交后自动 resolve。
+
+    如果提供了 player_token，优先用它解析 user_id（预分配模式）。
+    """
     room = _get_room(room_id)
     if not room:
         return {"ok": False, "error": "房间不存在"}
 
-    # 自动修复：如果 room 有 world_state 但 phase 还是 lobby，说明 create 时的保存没生效
+    # player_token 解析（预分配模式：前端可能不知道 user_id）
+    if player_token and room_id in _players:
+        for uid, pdata in _players[room_id].items():
+            if pdata.get("player_token") == player_token:
+                user_id = uid
+                break
+
+    if not user_id:
+        return {"ok": False, "error": "缺少 user_id 或 player_token"}
+
+    # 自动修复：如果 room 有 world_state 但 phase 还是 lobby
     from histrategy.engine.game_room import RoomPhase
     if room.phase == RoomPhase.LOBBY and room.world_state is not None:
         logger.warning(f"Room {room_id} has world_state but phase=lobby — auto-advancing to WAITING")
