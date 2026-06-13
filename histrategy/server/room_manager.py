@@ -615,13 +615,11 @@ def _room_summary(room: GameRoom) -> dict:
 
 
 def _init_world_state(room: GameRoom):
-    from histrategy.engine.game import GameEngine
+    from histrategy.engine.game import create_initial_world
 
-    engine = GameEngine(scenario=room.scenario, new_game=True)
     humans = [s for s in room.slots.values() if s.is_human()]
-    if humans:
-        engine.set_player_faction(humans[0].faction_id)
-    room.world_state = engine.world_state_v2
+    player_faction = humans[0].faction_id if humans else "cao"
+    room.world_state = create_initial_world(player_faction)
 
 
 def _resolve_and_advance(room: GameRoom):
