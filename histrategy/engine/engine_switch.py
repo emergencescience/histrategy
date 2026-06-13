@@ -31,14 +31,14 @@ def detect_engine_mode() -> EngineMode:
     """
     engine = os.environ.get("HISTRATEGY_ENGINE", "").lower()
 
-    if engine == "v1":
-        return EngineMode.V1
-    elif engine == "v3":
-        return EngineMode.V3
-    elif engine == "v2":
-        return EngineMode.V2
-    elif engine == "macro":
-        return EngineMode.MACRO
+    mode_map = {
+        "v1": EngineMode.V1,
+        "v2": EngineMode.V2,
+        "v3": EngineMode.V3,
+        "macro": EngineMode.MACRO,
+    }
+    if engine in mode_map:
+        return mode_map[engine]
 
     # 兼容旧环境变量
     if os.environ.get("HISTRATEGY_MACRO") == "1":

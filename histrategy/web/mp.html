@@ -99,15 +99,12 @@ input { width:100%; padding:10px; background:#1a1a2e; border:1px solid var(--bor
   </div>
 </div>
 
-<!-- Screen 2: Room created — show player links -->
+<!-- Screen 2: Room created — show player links, game already started -->
 <div id="room-created-panel" class="panel hidden">
-  <h2>✅ 房间已创建</h2>
-  <p style="color:var(--muted); margin-bottom:12px">把下面的链接发给其他玩家，每人点一个进入：</p>
+  <h2>✅ 游戏已开始</h2>
+  <p style="color:var(--muted); margin-bottom:12px">AI NPC 已在运筹帷幄。把下面的链接发给其他玩家：</p>
   <div id="player-links"></div>
-  <div style="margin-top:16px; text-align:center">
-    <button class="btn primary" id="start-game-btn" onclick="doStart()">开始游戏</button>
-    <p style="color:var(--muted); font-size:0.8em; margin-top:8px">等所有玩家进入后再开始</p>
-  </div>
+  <p style="color:var(--gold); text-align:center; margin-top:12px; font-size:0.9em">⚔ 玩家通过链接进入后即可传令，全员传令后自动推演下一季度</p>
 </div>
 
 <!-- Screen 3: Game -->
@@ -160,7 +157,7 @@ function parseURL() {
   const div = el('create-faction-toggles');
   toggles.forEach(t => {
     const btn = document.createElement('span');
-    btn.className = `faction-toggle ${t.css} ${(t.id==='cao'||t.id==='shu'||t.id==='wu')?'on':''}`;
+    btn.className = `faction-toggle ${t.css} ${(t.id==='caocao'||t.id==='liubei'||t.id==='sunquan')?'on':''}`;
     btn.textContent = t.name;
     btn.dataset.fid = t.id;
     btn.onclick = function() { this.classList.toggle('on'); };
@@ -176,9 +173,8 @@ function parseURL() {
   }
 })();
 
-// ── Create Room ────────────────
+// ── Create Room (game starts immediately) ──
 async function doCreateRoom() {
-  // Collect selected human factions from toggles
   const toggles = document.querySelectorAll('.faction-toggle.on');
   const humanFactions = Array.from(toggles).map(t => t.dataset.fid);
   if (humanFactions.length < 1) { alert('至少选择一个人类势力'); return; }
@@ -192,10 +188,10 @@ async function doCreateRoom() {
   roomId = r.room_id;
   myRole = 'host';
 
-  // Show player links
+  // Show player links — game already started
   hide('home-panel');
   show('room-created-panel');
-  el('top-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b>`;
+  el('top-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · 已开始`;
 
   const linksDiv = el('player-links');
   linksDiv.innerHTML = '';
@@ -206,33 +202,14 @@ async function doCreateRoom() {
     const div = document.createElement('div');
     div.className = 'player-link';
     div.innerHTML = `
-      <span class="faction-tag ${['cao','shu','wu'].includes(fid) ? fid : ''}">${factionNames[fid] || fid}</span>
+      <span class="faction-tag ${['caocao','liubei','sunquan'].includes(fid) ? fid : ''}">${factionNames[fid] || fid}</span>
       <code>${url}</code>
       <button class="copy-btn" onclick="copyLink(this, '${url}')">复制链接</button>`;
     linksDiv.appendChild(div);
   });
 
-  // Host can also pick a faction
-  const hostDiv = document.createElement('div');
-  hostDiv.style.cssText = 'margin-top:12px; padding-top:12px; border-top:1px solid var(--border)';
-  hostDiv.innerHTML = '<p style="color:var(--muted); font-size:0.85em">房主你也可以选一个势力玩：</p>';
-  humanFactions.forEach(fid => {
-    const btn = document.createElement('button');
-    btn.className = `btn faction-toggle ${fid}`;
-    btn.textContent = factionNames[fid] || fid;
-    btn.onclick = async () => {
-      // Host enters as player for this faction
-      const r2 = await api('POST', `/api/rooms/${roomId}/enter`, {
-        user_id: myUserId, faction: fid, display_name: '房主'
-      });
-      if (r2.ok) { myFaction = fid; alert(`你已选择 ${factionNames[fid] || fid}。等其他人加入后点击"开始游戏"。`); }
-    };
-    hostDiv.appendChild(btn);
-  });
-  linksDiv.appendChild(hostDiv);
-
-  // Poll for players joining
-  pollLobby();
+  // Poll game status (game already in WAITING phase)
+  pollGameStatus();
 }
 
 // ── Join Room ───────────────────
@@ -255,17 +232,9 @@ async function doJoinRoom() {
   hide('home-panel');
   el('top-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · 势力: <span class="faction-badge ${fid}">${fid}</span>`;
 
-  // Check if game already started
+  // Game is already started — go straight to game
   const status = await api('GET', `/api/rooms/${roomId}/status?faction_id=${myFaction}`);
-  if (status.phase !== 'lobby') {
-    startGameLoop(status);
-  } else {
-    // Show waiting screen
-    show('room-created-panel');
-    el('player-links').innerHTML = '<p style="color:var(--muted)">已加入，等待房主开始游戏...</p>';
-    el('start-game-btn').style.display = 'none';
-    pollLobby();
-  }
+  startGameLoop(status);
 }
 
 // ── Copy Link ───────────────────
@@ -276,27 +245,18 @@ function copyLink(btn, url) {
   });
 }
 
-// ── Poll Lobby ──────────────────
-function pollLobby() {
+// ── Poll Game Status ────────────
+function pollGameStatus() {
   clearTimeout(pollTimer);
   pollTimer = setTimeout(async () => {
     const s = await api('GET', `/api/rooms/${roomId}/status`);
-    if (s.phase !== 'lobby') {
+    if (s.phase === 'waiting' || s.phase === 'resolving') {
       hide('room-created-panel');
       startGameLoop(s);
       return;
     }
-    pollLobby();
+    pollGameStatus();
   }, 2000);
-}
-
-// ── Start Game ──────────────────
-async function doStart() {
-  const r = await api('POST', `/api/rooms/${roomId}/start`, { user_id: myUserId });
-  if (!r.ok) { alert(r.error); return; }
-  clearTimeout(pollTimer);
-  hide('room-created-panel');
-  startGameLoop(r);
 }
 
 // ── Game Loop ───────────────────

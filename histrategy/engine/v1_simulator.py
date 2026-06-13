@@ -247,8 +247,7 @@ def _apply_v1_state_to_world(ws: WorldState, v1_factions: dict) -> WorldState:
         # 城池易手
         if "territories" in data:
             new_territory_ids = [t["id"] if isinstance(t, dict) else t for t in data["territories"]]
-            # 找到失去的城池（被其他势力占领）
-            lost = set(faction.territories) - set(new_territory_ids)
+            # 城池易手：新占城池从原所有者移除
             for tid in new_territory_ids:
                 if tid not in faction.territories:
                     # 从原所有者移除

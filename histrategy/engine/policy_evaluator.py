@@ -159,7 +159,6 @@ class PolicyEvaluator:
         narrative_parts = []
 
         food = faction.food
-        treasury = faction.treasury
 
         # 粮食加成
         food_mult = policy_params.get("food_multiplier", builtin.get("food_multiplier", 0))

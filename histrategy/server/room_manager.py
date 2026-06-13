@@ -47,28 +47,30 @@ def create_room(
     scenario: str = "207",
     human_faction_ids: list[str] | None = None,
 ) -> dict:
-    """创建一个新房间。
+    """创建房间并立即开始游戏。
 
     Host 选择哪些势力由人类控制，其余自动变 AI NPC。
-    玩家访问 /mp?room=xxx&faction=cao 自动进入。
+    游戏立即开始（AI NPC 开始生成决策），人类通过 /mp?room=xxx&faction=caocao 加入。
+    不需要 Host 再手动点"开始游戏"。
 
     Returns:
-        {"ok": True, "room_id": str}
+        {"ok": True, "room_id": str, "phase": "waiting", ...}
     """
     from histrategy.engine.faction_slot import (
         FACTION_DISPLAY_TO_ID,
+        FACTION_ID_TO_DISPLAY,
         LLM_NPC_FACTIONS,
         PLAYABLE_FACTIONS,
         create_ai_slot,
         create_open_slot,
     )
-    from histrategy.engine.game_room import GameRoom
+    from histrategy.engine.game_room import GameRoom, RoomPhase
 
     # 翻译显示名 → 内部 ID（caocao→cao, liubei→shu, sunquan→wu）
-    human_faction_ids = [FACTION_DISPLAY_TO_ID.get(f, f) for f in (human_faction_ids or PLAYABLE_FACTIONS)]
+    internal_ids = [FACTION_DISPLAY_TO_ID.get(f, f) for f in (human_faction_ids or PLAYABLE_FACTIONS)]
 
-    if not human_faction_ids:
-        human_faction_ids = ["cao", "shu", "wu"]
+    if not internal_ids:
+        internal_ids = ["cao", "shu", "wu"]
 
     room = GameRoom(
         host_user_id=host_user_id,
@@ -77,22 +79,38 @@ def create_room(
     _rooms[room.id] = room
     _players[room.id] = {}
 
-    # 人类势力 → OPEN（等待玩家通过 /mp?room=xxx&faction=yyy 进入）
-    for fid in human_faction_ids:
+    # 人类势力 → OPEN（等待玩家加入）
+    for fid in internal_ids:
         room.slots[fid] = create_open_slot(fid)
 
-    # 未指定的人类势力 → AI NPC（仅三大势力）
+    # 未指定的势力 → AI NPC
     for fid in LLM_NPC_FACTIONS:
         if fid not in room.slots:
             room.slots[fid] = create_ai_slot(fid)
 
-    # host 自动进入房间（host 也可以选势力玩）
+    # host 进入房间
     host_token = uuid.uuid4().hex
     _enter_player(room.id, host_user_id or ("host_" + uuid.uuid4().hex[:6]), "host", host_name or "房主", host_token)
+
+    # 立即初始化世界状态并开始游戏
+    _init_world_state(room)
+    room.phase = RoomPhase.WAITING
     _try_save(room)
 
-    logger.info(f"Room created: {room.id} by {host_user_id or 'anon'} (human factions: {human_faction_ids})")
-    return {"ok": True, "room_id": room.id, "host_token": host_token, "human_factions": human_faction_ids}
+    # AI NPC 马上开始生成决策
+    _trigger_npc_decisions(room)
+
+    # 返回显示名列表供前端展示
+    display_factions = [FACTION_ID_TO_DISPLAY.get(f, f) for f in internal_ids]
+
+    logger.info(f"Room created+started: {room.id} by {host_user_id or 'anon'} (humans: {display_factions})")
+    return {
+        "ok": True,
+        "room_id": room.id,
+        "host_token": host_token,
+        "phase": "waiting",
+        "human_factions": display_factions,
+    }
 
 
 def enter_room(
