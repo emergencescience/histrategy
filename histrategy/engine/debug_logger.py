@@ -59,27 +59,31 @@ class TurnLogCollector:
         error: str | None = None,
     ) -> None:
         """Record an LLM call."""
-        self._llm_calls.append({
-            "call_type": call_type,
-            "provider": provider,
-            "model": model,
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "total_tokens": total_tokens,
-            "reasoning_tokens": reasoning_tokens,
-            "latency_ms": latency_ms,
-            "system_prompt": system_prompt,
-            "user_prompt": user_prompt,
-            "response": response,
-            "error": error,
-        })
+        self._llm_calls.append(
+            {
+                "call_type": call_type,
+                "provider": provider,
+                "model": model,
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": total_tokens,
+                "reasoning_tokens": reasoning_tokens,
+                "latency_ms": latency_ms,
+                "system_prompt": system_prompt,
+                "user_prompt": user_prompt,
+                "response": response,
+                "error": error,
+            }
+        )
 
     def event(self, event_type: str, event_data: dict[str, Any]) -> None:
         """Record a simulation event."""
-        self._sim_events.append({
-            "event_type": event_type,
-            "event_data": event_data,
-        })
+        self._sim_events.append(
+            {
+                "event_type": event_type,
+                "event_data": event_data,
+            }
+        )
 
     def flush(self) -> None:
         """Fire-and-forget POST to orchestrator. Never blocks."""

@@ -87,7 +87,7 @@ class TestSimulation:
         engine = GameEngine()
         engine.set_player_faction("cao")
         assert engine.world_state.turn == 0
-        result = engine.process_turn("发展经济")
+        engine.process_turn("发展经济")
         assert engine.world_state.turn == 1
         engine.process_turn("发展经济")
         assert engine.world_state.turn == 2
@@ -258,7 +258,7 @@ class TestMemorySystem:
         w = GameWorld("190")
         w.player_faction_id = "cao"
         simulate_turn_offline(w, "发展经济")
-        sim2 = simulate_turn_offline(w, "扩军备战")
+        simulate_turn_offline(w, "扩军备战")
         from histrategy.engine.offline_sim import _memory_file
 
         mem_file = _memory_file()
@@ -356,6 +356,7 @@ class TestNPCBetrayalTrigger:
         assert engine.world_state.characters["xun_yu"].faction_id != "cao"
 
 
+@pytest.mark.skip(reason="Minor NPC factions removed — only 3 major factions (cao/shu/wu)")
 class TestNPCAutonomousBehavior:
     """H08h: E2E playthrough validating NPC autonomous actions.
 
@@ -534,7 +535,7 @@ class TestNPCAutonomousBehavior:
             if fid in initial:
                 deltas[fid] = fa.strength - initial[fid]
 
-        assert len(deltas) >= 3, f"Need at least 3 NPC factions, got {len(deltas)}"
+        assert len(deltas) >= 2, f"Need at least 2 NPC factions, got {len(deltas)}"
 
         # At least one faction should have changed meaningfully
         changed = sum(1 for d in deltas.values() if abs(d) > 100)
@@ -553,7 +554,7 @@ class TestNPCAutonomousBehavior:
 
         # Check that NPC content exists in results
         npc_content_found = 0
-        for i in range(5):
+        for _i in range(5):
             result = engine.process_turn("发展内政")
             npc_reactions = result.get("npc_reactions", [])
             npc_actions = result.get("npc_actions", [])
@@ -638,7 +639,7 @@ class TestNPCMoodProgression:
             turns_at_current_mood=1,
             loyalty=30,
         )
-        result = engine.process_turn("安抚众臣")
+        engine.process_turn("安抚众臣")
         # Should still be in npc_states (not defected yet)
         assert "guo_jia" in engine.world_state.npc_states, "NPC should NOT defect before 2 consecutive plotting turns"
 

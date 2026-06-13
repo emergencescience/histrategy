@@ -412,7 +412,7 @@ def _get_knowledge_intro(world: GameWorld, faction: Faction) -> str:
 
     try:
         return (
-            f"【{world.current_year}年 · {'春夏秋冬'[['spring', 'summer', 'autumn', 'winter'].index(world.current_season)]}季】\n"
+            f"【{world.current_year}年 · {'春夏秋冬'[['spring', 'summer', 'autumn', 'winter'].index(world.current_season)]}季】\n"  # noqa: E501
             + flavor.format(capital=capital_name, leader=leader_name, faction=faction.name, region=capital_name)
         )
     except (KeyError, ValueError):
@@ -616,7 +616,7 @@ def _generate_faction_dynamics(world: GameWorld, player: Faction) -> list[dict]:
         if random.random() < 0.5 or a_tendency == "hostile" or b_tendency == "hostile":
             events.append(
                 {
-                    "narrative": f"{a.name}（{TENDENCY_CN.get(a_tendency, a_tendency)}）与{b.name}（{TENDENCY_CN.get(b_tendency, b_tendency)}）因边境冲突爆发了局部战争！",
+                    "narrative": f"{a.name}（{TENDENCY_CN.get(a_tendency, a_tendency)}）与{b.name}（{TENDENCY_CN.get(b_tendency, b_tendency)}）因边境冲突爆发了局部战争！",  # noqa: E501
                     "effects": {"economy": -1, "morale": -1},
                     "npc_msg": f"🔥 {a.name} 与 {b.name} 正在交战中！",
                 }

@@ -69,7 +69,7 @@ class TestMultiplayerSession:
         session.start_game()
         try:
             session.add_player("p2", "Late")
-            assert False, "Should have raised ValueError"
+            raise AssertionError("Should have raised ValueError")
         except ValueError:
             pass
 
@@ -165,6 +165,6 @@ class TestMultiplayerSession:
 
         try:
             session.add_player("p7", "Overflow")
-            assert False, "Should have raised ValueError"
+            raise AssertionError("Should have raised ValueError")
         except ValueError:
             pass

@@ -238,7 +238,7 @@ class TestSabotageEngine:
 
     def test_probability_bounds(self):
         """Probabilities should always be between 0.01 and 0.80."""
-        ws = make_test_world()
+        make_test_world()
         for sab_type in (SabotageType.ASSASSINATE, SabotageType.BRIBE):
             for loy in range(0, 101, 25):
                 char = Character(id="test", name="Test", faction_id="shu", loyalty=loy, politics=50)

@@ -345,7 +345,11 @@ class TurnController:
             return territory.owner_id == cmd.faction_id
 
         if cmd.type in ("move", "attack", "defend"):
-            target = cmd.params.get("destination") or cmd.params.get("target_territory") or cmd.params.get("territory", "")
+            target = (
+                cmd.params.get("destination")
+                or cmd.params.get("target_territory")
+                or cmd.params.get("territory", "")
+            )
             return not (not target or target not in world_state.territories)
 
         if cmd.type == "tax":
@@ -356,7 +360,11 @@ class TurnController:
 
     def _execute_move(self, cmd: Command, world_state: WorldState) -> dict | None:
         faction_id = cmd.faction_id
-        target = cmd.params.get("destination") or cmd.params.get("target_territory") or cmd.params.get("territory", "")
+        target = (
+            cmd.params.get("destination")
+            or cmd.params.get("target_territory")
+            or cmd.params.get("territory", "")
+        )
 
         # For defend: check if already have army at target → no-op
         if cmd.type == "defend":
@@ -548,7 +556,11 @@ class TurnController:
     ) -> Army | None:
         """Find an army belonging to a faction at a specific territory (no creation)."""
         for army in world_state.armies.values():
-            if army.faction_id == faction_id and army.location == territory_id and army.total_troops > 0:
+            if (
+                army.faction_id == faction_id
+                and army.location == territory_id
+                and army.total_troops > 0
+            ):
                 return army
         return None
 

@@ -324,7 +324,7 @@ class TestCharacterLoyalty:
 class TestCharacterLife:
     def test_natural_death_at_death_year(self, char_engine):
         # guanyu death=220, current_year=220
-        died = char_engine.check_natural_death("guanyu", 220)
+        char_engine.check_natural_death("guanyu", 220)
         # 60% probability — run multiple times to verify it CAN return True
         results = [char_engine.check_natural_death("guanyu", 220) for _ in range(50)]
         assert any(results)
@@ -566,10 +566,10 @@ class TestUnrestAndFortification:
             climate_zone="central",
             fortification=50,
             unrest=10,
-            owner_id="cao"
+            owner_id="cao",
         )
         territories = {"test": t}
-        results = engine.process_season(
+        engine.process_season(
             territories,
             Season.AUTUMN,
             year=207,

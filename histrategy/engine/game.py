@@ -100,6 +100,17 @@ FACTION_CONFIGS = {
 }
 
 NPC_FACTION_CONFIGS = {
+    "cao": {
+        "name": "曹操",
+        "ruler": "caocao",
+        "capital": "xuchang",
+        "territories": ["xuchang", "luoyang", "yecheng", "changan"],
+        "strength": 80000,
+        "economy": 75,
+        "morale": 75,
+        "treasury": 20000,
+        "food": 15000,
+    },
     "liubiao": {
         "name": "刘表",
         "ruler": "liubiao",
@@ -143,6 +154,28 @@ NPC_FACTION_CONFIGS = {
         "morale": 75,
         "treasury": 6000,
         "food": 5000,
+    },
+    "shu": {
+        "name": "刘备",
+        "ruler": "liubei",
+        "capital": "xinye",
+        "territories": ["xinye"],
+        "strength": 8000,
+        "economy": 30,
+        "morale": 85,
+        "treasury": 3000,
+        "food": 3000,
+    },
+    "wu": {
+        "name": "孙权",
+        "ruler": "sunquan",
+        "capital": "jianye",
+        "territories": ["jianye", "wujun", "kuaiji", "lujiang"],
+        "strength": 50000,
+        "economy": 60,
+        "morale": 80,
+        "treasury": 12000,
+        "food": 10000,
     },
 }
 
@@ -193,23 +226,13 @@ def create_initial_world(player_faction_id: str) -> WorldState:
 
     for fid, fc in NPC_FACTION_CONFIGS.items():
         # Skip the NPC that matches the player's faction
-        skip = False
-        if (
-            player_faction_id == "cao"
-            and fid == "caocao"
-            or player_faction_id == "shu"
-            and fid == "liubei"
-            or player_faction_id == "wu"
-            and fid == "sunquan"
-        ):
-            skip = True
-
-        if not skip:
-            state.factions[fid] = FactionState(
-                id=fid,
-                **{k: v for k, v in fc.items() if k != "ruler"},
-                ruler_id=fc["ruler"],
-            )
+        if fid == player_faction_id:
+            continue
+        state.factions[fid] = FactionState(
+            id=fid,
+            **{k: v for k, v in fc.items() if k != "ruler"},
+            ruler_id=fc["ruler"],
+        )
 
     save_world(state)
     return state
@@ -343,13 +366,16 @@ class GameEngine:
                 intent_model = os.environ.get("HISTRATEGY_V3_INTENT_MODEL", "deepseek-v4-flash")
                 try:
                     from ..llm.adapter import LLMAdapter as _LLM
+
                     self._intent_llm = _LLM(model=intent_model)
                 except Exception:
                     self._intent_llm = self.llm
                 from ..parser.intent import IntentParser
+
                 self.intent_parser = IntentParser(self._intent_llm)
             else:
                 from ..parser.intent import IntentParser
+
                 self.intent_parser = IntentParser(self.llm)
 
             from ..parser.validator import CommandValidator
@@ -393,6 +419,7 @@ class GameEngine:
             v3_fast_model = os.environ.get("HISTRATEGY_V3_FAST_MODEL", "deepseek-chat")
             try:
                 from ..llm.adapter import LLMAdapter as _LLM
+
                 self._v3_llm = _LLM(
                     model=v3_fast_model,
                     api_key=self.llm.api_key if self.llm.api_key else None,
@@ -475,6 +502,7 @@ class GameEngine:
                 logger.addHandler(fh)
         except Exception as e:
             import sys
+
             print(f"[Warning] Failed to setup rules logging: {e}", file=sys.stderr)
 
     def _try_load_v2_save(self) -> V2WorldState | None:
@@ -705,13 +733,16 @@ class GameEngine:
                 intent_model = os.environ.get("HISTRATEGY_V3_INTENT_MODEL", "deepseek-v4-flash")
                 try:
                     from ..llm.adapter import LLMAdapter as _LLM2
+
                     engine._intent_llm = _LLM2(model=intent_model)
                 except Exception:
                     engine._intent_llm = llm
                 from ..parser.intent import IntentParser
+
                 engine.intent_parser = IntentParser(engine._intent_llm)
             else:
                 from ..parser.intent import IntentParser
+
                 engine.intent_parser = IntentParser(llm)
 
             from ..parser.validator import CommandValidator
@@ -734,6 +765,7 @@ class GameEngine:
 
                 v3_fast_model = os.environ.get("HISTRATEGY_V3_FAST_MODEL", "deepseek-chat")
                 from ..llm.adapter import LLMAdapter as _LLM
+
                 engine._v3_llm = _LLM(model=v3_fast_model)
 
                 engine.world_simulator = WorldSimulator(engine._v3_llm)
@@ -765,9 +797,9 @@ class GameEngine:
 
                 macro_model = os.environ.get("HISTRATEGY_MACRO_MODEL", "deepseek-chat")
                 try:
-                    macro_llm = __import__(
-                        "histrategy.llm.adapter", fromlist=["LLMAdapter"]
-                    ).LLMAdapter(model=macro_model)
+                    macro_llm = __import__("histrategy.llm.adapter", fromlist=["LLMAdapter"]).LLMAdapter(
+                        model=macro_model
+                    )
                 except Exception:
                     macro_llm = llm
 
@@ -1017,8 +1049,7 @@ class GameEngine:
             FIRST_TURN_SUGGESTIONS["cao"],
         )
         suggestions = [
-            s.split("】", 1)[0] + "】" + s.split("】", 1)[1].split("，")[0] + "等"
-            if "】" in s else s[:30]
+            s.split("】", 1)[0] + "】" + s.split("】", 1)[1].split("，")[0] + "等" if "】" in s else s[:30]
             for s in faction_suggestions
         ]
 
@@ -1081,6 +1112,7 @@ class GameEngine:
         if ws.turn_number <= 1:
             # ── First turn: hard-coded suggestions (no LLM needed) ──
             from histrategy.engine.game import FIRST_TURN_SUGGESTIONS
+
             suggestions = FIRST_TURN_SUGGESTIONS.get(
                 ws.player_faction_id,
                 FIRST_TURN_SUGGESTIONS["cao"],
@@ -1160,9 +1192,14 @@ class GameEngine:
         v2: IntentParser → CommandValidator → TurnController.execute_turn() →
             NarrativeEngine.generate_turn_narrative()
         v1: WorldSimEngine.simulate()
+        symmetric: GameRoom → DecisionBus → QuarterlyResolver (multi-faction)
         """
         if not self.game_started:
             return self._fallback_intro()
+
+        # ── Symmetric multi-faction path (HISTRATEGY_SYMMETRIC=1) ──
+        if os.environ.get("HISTRATEGY_SYMMETRIC") == "1":
+            return self.process_turn_symmetric(player_decision)
 
         if self._use_v2:
             if self._use_macro and self._macro_sim:
@@ -1178,6 +1215,7 @@ class GameEngine:
         self._debug_session_id = session_id
         self._debug_jwt = jwt_token
         import logging
+
         short_sid = session_id[:12] if len(session_id) > 12 else session_id
         logging.getLogger("histrategy").info(f"Debug context set: session={short_sid}...")
 
@@ -1462,12 +1500,15 @@ class GameEngine:
                 )
                 for prop in proposals:
                     apply_event_effects(ws, prop.effects.get("effects", {}))
-                    baseline_result.history_events.append({
-                        "event_id": prop.event_id, "title": prop.title,
-                        "outcome": prop.effects.get("outcome", "default"),
-                        "description": prop.effects.get("outcome_description", ""),
-                        "effects": prop.effects.get("effects", {}),
-                    })
+                    baseline_result.history_events.append(
+                        {
+                            "event_id": prop.event_id,
+                            "title": prop.title,
+                            "outcome": prop.effects.get("outcome", "default"),
+                            "description": prop.effects.get("outcome_description", ""),
+                            "effects": prop.effects.get("effects", {}),
+                        }
+                    )
             except Exception:
                 pass
 
@@ -1497,8 +1538,12 @@ class GameEngine:
             _v3_pre = v3_llm.total_all_tokens if v3_llm and hasattr(v3_llm, "total_all_tokens") else 0
 
             llm_delta = self.world_simulator.simulate(
-                ws, player_commands, player_decision,
-                baseline_result, turn_history, epoch_effects,
+                ws,
+                player_commands,
+                player_decision,
+                baseline_result,
+                turn_history,
+                epoch_effects,
                 pre_morale=pre_morale,
             )
 
@@ -1513,9 +1558,7 @@ class GameEngine:
         # Step 7: Apply validated delta
         state_summary: dict = {}
         if guardrail_result["accepted"] and guardrail_result["sanitized_delta"]:
-            state_summary = self.state_applier.apply(
-                guardrail_result["sanitized_delta"], ws
-            )
+            state_summary = self.state_applier.apply(guardrail_result["sanitized_delta"], ws)
 
         # Update baseline_result with LLM overrides for narrative generation
         baseline_result.player_decision = player_decision
@@ -1532,11 +1575,13 @@ class GameEngine:
             for me in sanitized.get("morale_events", []):
                 note = me.get("persistent_note", "")
                 if note:
-                    persistent_effects.append({
-                        "note": note,
-                        "turn": ws.turn_number,
-                        "faction": me.get("faction", ""),
-                    })
+                    persistent_effects.append(
+                        {
+                            "note": note,
+                            "turn": ws.turn_number,
+                            "faction": me.get("faction", ""),
+                        }
+                    )
 
         # Build key events list
         key_events = []
@@ -1560,7 +1605,10 @@ class GameEngine:
 
         if self.turn_memory and player_decision:
             self.turn_memory.record_turn(
-                room_id, ws.turn_number, current_year, season_cn,
+                room_id,
+                ws.turn_number,
+                current_year,
+                season_cn,
                 player_decision,
                 outcome_summary="; ".join(key_events) if key_events else "平和无事",
                 key_events=key_events,
@@ -1586,6 +1634,7 @@ class GameEngine:
                 _inject_v3_into_baseline(baseline_result, sanitized)
 
             import concurrent.futures
+
             with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
                 future_narrative = executor.submit(
                     self.narrative_engine.generate_turn_narrative,
@@ -1595,8 +1644,7 @@ class GameEngine:
                     world_state=ws,
                 )
                 future_suggestions = executor.submit(
-                    self.narrative_engine.generate_plan_suggestions,
-                    ws, ws.player_faction_id
+                    self.narrative_engine.generate_plan_suggestions, ws, ws.player_faction_id
                 )
 
                 try:
@@ -1646,8 +1694,12 @@ class GameEngine:
                     faction_obj = ws.factions.get(faction_id)
                     faction_name = faction_obj.name if faction_obj else faction_id
                     action_cn = {
-                        "attack": "进攻", "defend": "防守", "recruit": "募兵",
-                        "develop": "发展", "ally": "结盟", "strategic_retreat": "撤退",
+                        "attack": "进攻",
+                        "defend": "防守",
+                        "recruit": "募兵",
+                        "develop": "发展",
+                        "ally": "结盟",
+                        "strategic_retreat": "撤退",
                         "wait": "休整",
                     }.get(na.get("action", ""), na.get("action", ""))
                     reason = na.get("reasoning", "")
@@ -1706,8 +1758,7 @@ class GameEngine:
             }
 
         active_factions = [
-            fid for fid, f in ws.factions.items()
-            if f.is_active and getattr(f, "strength_actual", 0) > 0
+            fid for fid, f in ws.factions.items() if f.is_active and getattr(f, "strength_actual", 0) > 0
         ]
         if len(active_factions) == 1 and active_factions[0] == ws.player_faction_id:
             game_over = {
@@ -1720,10 +1771,8 @@ class GameEngine:
         # Log turn
         try:
             from ..engine.log_exporter import append_to_session_log
-            append_to_session_log(
-                ws.turn_number, current_year, season_cn,
-                player_decision, {}
-            )
+
+            append_to_session_log(ws.turn_number, current_year, season_cn, player_decision, {})
         except Exception:
             pass
 
@@ -1734,20 +1783,13 @@ class GameEngine:
             "aftermath": aftermath_text,
             "summary": aftermath_text,
             "bureaucracy": [
-                {"department": "军机处", "official": "参军",
-                 "action": f"执行{len(player_commands)}项军令"}
+                {"department": "军机处", "official": "参军", "action": f"执行{len(player_commands)}项军令"}
             ],
             "state_changes": state_summary,
             "new_choices": new_choices,
             "events_occurred": [],
-            "npc_actions": [
-                na.get("reasoning", "")
-                for na in npc_actions_list
-            ],
-            "seeds": [
-                {"title": "v3 推演", "description": s[:80]}
-                for s in narrative_seeds[:4]
-            ],
+            "npc_actions": [na.get("reasoning", "") for na in npc_actions_list],
+            "seeds": [{"title": "v3 推演", "description": s[:80]} for s in narrative_seeds[:4]],
             "npc_reactions": [],
             "game_over": game_over,
             "world_state": ws,
@@ -1764,7 +1806,7 @@ class GameEngine:
     def _normalize_seeds(self, raw_seeds: list) -> list[dict]:
         """Normalize narrative_seeds from LLM — strings → {title: str} dicts."""
         result = []
-        for s in (raw_seeds or []):
+        for s in raw_seeds or []:
             if isinstance(s, dict):
                 result.append(s)
             elif isinstance(s, str):
@@ -1781,20 +1823,26 @@ class GameEngine:
 
         # --- Debug logger: collect LLM calls & sim events for Postgres ---
         _debug_log = None
-        _session_id = getattr(self, '_debug_session_id', '')
+        _session_id = getattr(self, "_debug_session_id", "")
         if _session_id:
             from ..engine.debug_logger import TurnLogCollector
+
             _debug_log = TurnLogCollector(
-                _session_id, ws.turn_number + 1,
-                jwt_token=getattr(self, '_debug_jwt', ''),
+                _session_id,
+                ws.turn_number + 1,
+                jwt_token=getattr(self, "_debug_jwt", ""),
             )
-            _debug_log.event("turn_start", {
-                "turn": ws.turn_number + 1,
-                "year": ws.year,
-                "season": str(ws.season),
-                "player_decision": player_decision[:200],
-            })
+            _debug_log.event(
+                "turn_start",
+                {
+                    "turn": ws.turn_number + 1,
+                    "year": ws.year,
+                    "season": str(ws.season),
+                    "player_decision": player_decision[:200],
+                },
+            )
             import logging
+
             logging.getLogger("histrategy").info(
                 f"Debug log initialized for session={_session_id[:12]}... turn={ws.turn_number + 1}"
             )
@@ -1812,14 +1860,25 @@ class GameEngine:
         # Step 3: Deterministic quarterly baseline
         quarter = 0
         season_str = str(ws.season).lower()
-        for name, q in [("spring", 0), ("summer", 1), ("autumn", 2), ("winter", 3),
-                         ("春", 0), ("夏", 1), ("秋", 2), ("冬", 3)]:
+        for name, q in [
+            ("spring", 0),
+            ("summer", 1),
+            ("autumn", 2),
+            ("winter", 3),
+            ("春", 0),
+            ("夏", 1),
+            ("秋", 2),
+            ("冬", 3),
+        ]:
             if name in season_str:
                 quarter = q
                 break
 
         baseline = self._quarterly_engine.execute_quarter(
-            ws, policy_commands, ws.year, quarter,
+            ws,
+            policy_commands,
+            ws.year,
+            quarter,
         )
         baseline.player_decision = player_decision
 
@@ -1828,22 +1887,30 @@ class GameEngine:
         if self._black_swan and self.history_engine:
             try:
                 bs_proposals = self._black_swan.check_events(
-                    ws.year, ws.season, ws,
+                    ws.year,
+                    ws.season,
+                    ws,
                     deviation=ws.player_deviation,
                     history_engine=self.history_engine,
                 )
                 for prop in bs_proposals:
                     if prop.get("triggered"):
                         self._black_swan.inject_event(
-                            prop["event_id"], prop.get("effects", {}), ws,
+                            prop["event_id"],
+                            prop.get("effects", {}),
+                            ws,
                         )
                         if _debug_log:
-                            _debug_log.event("black_swan", {
-                                "event_id": prop["event_id"],
-                                "effects": prop.get("effects", {}),
-                            })
+                            _debug_log.event(
+                                "black_swan",
+                                {
+                                    "event_id": prop["event_id"],
+                                    "effects": prop.get("effects", {}),
+                                },
+                            )
             except Exception as e:
                 import logging
+
                 logging.getLogger("histrategy").warning(f"Black swan check/inject failed: {e}")
 
         # Step 5: LLM MacroPolicyEngine
@@ -1854,9 +1921,12 @@ class GameEngine:
             _pre = mlm.total_all_tokens if mlm and hasattr(mlm, "total_all_tokens") else 0
 
             llm_delta = self._macro_sim.simulate(
-                ws, policy_commands, player_decision,
-                baseline, bs_proposals,
-                turn_memory=getattr(self, '_turn_summaries', [])[-8:],  # last 8 quarters
+                ws,
+                policy_commands,
+                player_decision,
+                baseline,
+                bs_proposals,
+                turn_memory=getattr(self, "_turn_summaries", [])[-8:],  # last 8 quarters
             )
 
             if mlm and hasattr(mlm, "total_all_tokens"):
@@ -1908,11 +1978,7 @@ class GameEngine:
             for fid, f in list(ws.factions.items()):
                 if fid == ws.player_faction_id:
                     continue
-                if (
-                    getattr(f, "is_active", True)
-                    and getattr(f, "morale_actual", 50) < 15
-                    and len(f.territories) <= 1
-                ):
+                if getattr(f, "is_active", True) and getattr(f, "morale_actual", 50) < 15 and len(f.territories) <= 1:
                     f.is_active = False
                     # Transfer last territory to nearest neighbor
                     if f.territories:
@@ -2006,7 +2072,7 @@ class GameEngine:
             for d in diplo:
                 act = d.get("action", "")
                 if act:
-                    narrative_parts.append(f"**{d.get('faction','?')}**: {act}")
+                    narrative_parts.append(f"**{d.get('faction', '?')}**: {act}")
 
             polit = llm_delta.get("political_events", [])
             for p in polit:
@@ -2052,9 +2118,7 @@ class GameEngine:
         # Knowledge cards
         kcards = []
         if llm_delta:
-            kcards = self._knowledge_base.get_cards_for_events(
-                llm_delta.get("knowledge_cards", [])
-            )
+            kcards = self._knowledge_base.get_cards_for_events(llm_delta.get("knowledge_cards", []))
         ksummaries = []
         for kc in kcards[:3]:
             if isinstance(kc, dict):
@@ -2101,17 +2165,19 @@ class GameEngine:
         result = {
             "narrative": narrative_text,
             "aftermath": aftermath,
-            "bureaucracy": [{
-                "department": "尚书台", "official": "尚书令",
-                "action": f"执行{len(policy_commands)}项策令",
-            }],
+            "bureaucracy": [
+                {
+                    "department": "尚书台",
+                    "official": "尚书令",
+                    "action": f"执行{len(policy_commands)}项策令",
+                }
+            ],
             "state_changes": {
                 "food": baseline.resource_changes.get(ws.player_faction_id, {}).get("food_delta", 0),
                 "treasury": baseline.resource_changes.get(ws.player_faction_id, {}).get("tax_revenue", 0),
                 "morale": baseline.morale_delta.get(ws.player_faction_id, 0),
             },
-            "_usage": {"command_tokens": _sim_tokens, "plan_tokens": 0,
-                        "npc_tokens": 0, "sim_tokens": _sim_tokens},
+            "_usage": {"command_tokens": _sim_tokens, "plan_tokens": 0, "npc_tokens": 0, "sim_tokens": _sim_tokens},
             "seeds": self._normalize_seeds(llm_delta.get("narrative_seeds", []) if llm_delta else []),
             "npc_reactions": npc_reacts,
             "npc_actions": npc_acts,
@@ -2126,6 +2192,7 @@ class GameEngine:
         # Advance turn and season
         ws.turn_number += 1
         from histrategy_engine.world import Season as _Season
+
         _seasons = list(_Season)
         try:
             _idx = _seasons.index(ws.season)
@@ -2138,13 +2205,15 @@ class GameEngine:
         # ── Record turn summary for LLM context in future turns ──
         narrative_seeds = llm_delta.get("narrative_seeds", []) if llm_delta else []
         summary_text = "; ".join(narrative_seeds[:2]) if narrative_seeds else narrative_text[:200]
-        if not hasattr(self, '_turn_summaries'):
+        if not hasattr(self, "_turn_summaries"):
             self._turn_summaries = []
         season_val = ws.season.cn if hasattr(ws.season, "cn") else ws.season
-        self._turn_summaries.append({
-            "outcome_summary": f"[{ws.year}年{season_val}] {player_decision[:80]} → {summary_text[:150]}",
-            "turn": ws.turn_number,
-        })
+        self._turn_summaries.append(
+            {
+                "outcome_summary": f"[{ws.year}年{season_val}] {player_decision[:80]} → {summary_text[:150]}",
+                "turn": ws.turn_number,
+            }
+        )
         # Keep only last 8 turns to bound context growth
         if len(self._turn_summaries) > 8:
             self._turn_summaries = self._turn_summaries[-8:]
@@ -2155,6 +2224,161 @@ class GameEngine:
                 "llm_calls": _debug_log._llm_calls,
                 "sim_events": _debug_log._sim_events,
             }
+
+        self._save_v2()
+        return result
+
+    # ── Symmetric Multiplayer Path ───────────────────────────
+    # Bridges new GameRoom/FactionSlot/DecisionBus/QuarterlyResolver
+    # with the existing API response format. The single-player flow
+    # internally uses this symmetric architecture for true NPC autonomy.
+
+    def process_turn_symmetric(self, player_decision: str) -> dict:
+        """Process a turn using the symmetric multi-faction architecture.
+
+        Internally creates a GameRoom with 1 human + N AI slots,
+        each AI generates its own independent LLM decision,
+        then all decisions are resolved together in one quarter.
+        """
+        import uuid as _uuid
+
+        from ..engine.decision_bus import collect_all_decisions
+        from ..engine.game_room import GameRoom, RoomPhase
+        from ..engine.quarterly_resolver import QuarterlyResolver
+
+        ws = self.world_state_v2
+        faction_id = ws.player_faction_id
+
+        # ── Build GameRoom from engine state ──
+        room = GameRoom(
+            id=getattr(self, "_room_id", str(_uuid.uuid4())),
+            scenario="207",
+            year=ws.year,
+            season=ws.season.cn if hasattr(ws.season, "cn") else str(ws.season),
+            quarter_number=ws.turn_number,
+            phase=RoomPhase.WAITING,
+        )
+
+        # Add human slot
+        from ..engine.faction_slot import create_ai_slot, create_human_slot
+
+        room.slots[faction_id] = create_human_slot(faction_id, "player")
+
+        # Add AI slots for other active factions
+        for fid, f in ws.factions.items():
+            if fid == faction_id or not getattr(f, "is_active", True):
+                continue
+            room.slots[fid] = create_ai_slot(fid)
+
+        # Carry forward turn summaries
+        if hasattr(self, "_turn_summaries"):
+            room.turn_summaries = list(self._turn_summaries[-8:])
+
+        room.start_game()
+
+        # ── Submit human decision ──
+        human_slot = room.slots.get(faction_id)
+        if human_slot:
+            human_slot.submit_decision(player_decision)
+
+        # ── Collect all decisions (AI via parallel LLM) ──
+        llm = getattr(self.narrative_engine, "llm", None) if self.narrative_engine else None
+        if not llm and hasattr(self, "_macro_sim"):
+            llm = getattr(self._macro_sim, "llm", None)
+
+        decisions = collect_all_decisions(
+            room,
+            ws,
+            llm=llm,
+            turn_memory=room.turn_summaries,
+        )
+
+        # ── Resolve quarter ──
+        resolver = QuarterlyResolver(
+            intent_parser=getattr(self, "_macro_parser", None),
+            turn_controller=self.turn_controller,
+            history_engine=self.history_engine,
+            macro_policy_engine=getattr(self, "_macro_sim", None),
+            narrative_engine=self.narrative_engine,
+            black_swan_injector=getattr(self, "_black_swan", None),
+            guardrail_validator=getattr(self, "guardrail_validator", None),
+            state_applier=getattr(self, "state_applier", None),
+        )
+
+        quarterly = resolver.resolve(room, ws, decisions, llm=llm)
+
+        # ── Add turn summary ──
+        if quarterly.turn_summary:
+            if not hasattr(self, "_turn_summaries"):
+                self._turn_summaries = []
+            self._turn_summaries.append(quarterly.turn_summary)
+            if len(self._turn_summaries) > 8:
+                self._turn_summaries = self._turn_summaries[-8:]
+
+        # ── Collect NPC actions for response ──
+        npc_actions = []
+        for fid, dr in decisions.items():
+            if fid != faction_id:
+                faction = ws.factions.get(fid)
+                name = faction.name if faction else fid
+                npc_actions.append(f"{name}: {dr.decision_text[:80]}")
+
+        # ── Advance season/year ──
+        from histrategy_engine.world import Season as _Season
+
+        _seasons = list(_Season)
+        try:
+            _idx = _seasons.index(ws.season)
+            ws.season = _seasons[(_idx + 1) % len(_seasons)]
+            if ws.season == _seasons[0]:
+                ws.year += 1
+        except (ValueError, IndexError):
+            pass
+        ws.turn_number += 1
+
+        # ── Game over check ──
+        game_over = None
+        pf = ws.factions.get(faction_id)
+        if not pf or not pf.is_active:
+            game_over = True
+
+        # ── Build response in old format ──
+        narrative = quarterly.narratives.get(faction_id, "天下大势，波澜不惊。\n")
+
+        # Per-faction narratives summary
+        if len(quarterly.narratives) > 1:
+            other_narratives = []
+            for fid, narr in quarterly.narratives.items():
+                if fid != faction_id and narr:
+                    faction = ws.factions.get(fid)
+                    name = faction.name if faction else fid
+                    other_narratives.append(f"**{name}**: {narr[:120]}")
+            if other_narratives:
+                narrative += "\n\n---\n**天下动向**\n\n" + "\n\n".join(other_narratives[:3])
+
+        aftermath = "; ".join(npc_actions[:3]) if npc_actions else "天下平静。"
+
+        result = {
+            "narrative": narrative,
+            "aftermath": aftermath,
+            "bureaucracy": [
+                {
+                    "department": "尚书台",
+                    "official": "尚书令",
+                    "action": f"执行{len(decisions)}个势力策令",
+                }
+            ],
+            "state_changes": quarterly.state_changes.get(faction_id, {}),
+            "_usage": {"command_tokens": 0, "plan_tokens": 0, "npc_tokens": 0, "sim_tokens": 0},
+            "seeds": [],
+            "npc_reactions": [],
+            "npc_actions": npc_actions,
+            "events_occurred": [e.get("event_id", "") for e in quarterly.history_events],
+            "new_choices": [],
+            "game_over": game_over,
+            "world_state": ws,
+            "knowledge_cards": [],
+        }
 
         self._save_v2()
         return result
@@ -2462,29 +2686,35 @@ def _inject_v3_into_baseline(baseline_result, v3_delta: dict) -> None:
 
     # Add political events as character/diplomatic events
     for pe in v3_delta.get("political_events", []):
-        baseline_result.character_events.append({
-            "event": pe.get("type", "court_dispute"),
-            "description": pe.get("description", ""),
-            "faction": pe.get("faction", ""),
-        })
+        baseline_result.character_events.append(
+            {
+                "event": pe.get("type", "court_dispute"),
+                "description": pe.get("description", ""),
+                "faction": pe.get("faction", ""),
+            }
+        )
 
     # Add npc actions as diplomatic events
     for na in v3_delta.get("npc_actions", []):
-        baseline_result.diplomatic_events.append({
-            "faction": na.get("faction", ""),
-            "action": na.get("action", ""),
-            "target": na.get("target", ""),
-            "reason": na.get("reasoning", ""),
-        })
+        baseline_result.diplomatic_events.append(
+            {
+                "faction": na.get("faction", ""),
+                "action": na.get("action", ""),
+                "target": na.get("target", ""),
+                "reason": na.get("reasoning", ""),
+            }
+        )
 
     # Add morale events
     for me in v3_delta.get("morale_events", []):
-        baseline_result.character_events.append({
-            "event": "morale_change",
-            "faction": me.get("faction", ""),
-            "change": me.get("change", 0),
-            "reason": me.get("reason", ""),
-        })
+        baseline_result.character_events.append(
+            {
+                "event": "morale_change",
+                "faction": me.get("faction", ""),
+                "change": me.get("change", 0),
+                "reason": me.get("reason", ""),
+            }
+        )
 
 
 def _auto_mobilize_for_attack(commands: list, world_state) -> None:

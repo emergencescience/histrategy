@@ -5,6 +5,7 @@ Runs three turns of scenario 207 and exports faction states and LLM usage.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import time
 
@@ -50,10 +51,8 @@ def run_simulation_playthrough() -> None:
             return []
         new_logs = []
         for line in lines[start_lines_count:]:
-            try:
+            with contextlib.suppress(Exception):
                 new_logs.append(json.loads(line))
-            except Exception:
-                pass
         return new_logs
 
     def get_faction_details(ws: any) -> dict:
@@ -78,10 +77,7 @@ def run_simulation_playthrough() -> None:
     playthrough_log = []
 
     # Get V2 or V1 World State reference
-    if getattr(engine, "_use_v2", False):
-        ws = engine.world_state_v2
-    else:
-        ws = engine.world_state
+    ws = engine.world_state_v2 if getattr(engine, "_use_v2", False) else engine.world_state
 
     # Turn 0: Get Intro Scene and initial plans
     intro = engine.get_intro_scene()
@@ -122,10 +118,7 @@ def run_simulation_playthrough() -> None:
         # Get plan recommendations for the next turn
         plan_data = engine.get_plan_data()
 
-        if getattr(engine, "_use_v2", False):
-            current_ws = engine.world_state_v2
-        else:
-            current_ws = engine.world_state
+        current_ws = engine.world_state_v2 if getattr(engine, "_use_v2", False) else engine.world_state
 
         playthrough_log.append(
             {
@@ -147,7 +140,9 @@ def run_simulation_playthrough() -> None:
     md_lines = [
         "# 🎮 《三國志略》实战推演与数值仿真审查报告",
         "",
-        "本报告记录了一局由 V2 引擎（7-引擎数值后台 + LLM 叙事层）驱动的实战推演细节。报告中包含每回合的**完整 NPC 势力数值状态变化**以及**大模型交互的完整 Prompt 与 Response**。",
+        "本报告记录了一局由 V2 引擎（7-引擎数值后台 + LLM 叙事层）驱动的实战推演细节。"
+        "报告中包含每回合的**完整 NPC 势力数值状态变化**以及"
+        "**大模型交互的完整 Prompt 与 Response**。",
         "",
         "---",
         "",
@@ -181,7 +176,9 @@ def run_simulation_playthrough() -> None:
                 continue
             territories_str = ", ".join(f["territories"])
             md_lines.append(
-                f"| {f['name']} ({fid}) | {len(f['territories'])} | {territories_str} | {f['strength']:,} | {f['food']:,} | {f['treasury']:,} | {f['morale']} |"
+                f"| {f['name']} ({fid}) | {len(f['territories'])} | {territories_str}"
+                f" | {f['strength']:,} | {f['food']:,}"
+                f" | {f['treasury']:,} | {f['morale']} |"
             )
         md_lines.append("")
 

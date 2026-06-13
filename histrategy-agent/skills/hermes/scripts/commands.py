@@ -12,11 +12,11 @@ _CORE_PATH = Path(__file__).parent.parent.parent.parent / "src"
 if str(_CORE_PATH) not in sys.path:
     sys.path.insert(0, str(_CORE_PATH))
 
-from histrategy_agent.format_engine import FormatEngine
-from histrategy_agent.multiplayer import MultiplayerSession
-from histrategy_agent.session import GameSessionManager
+from histrategy_agent.format_engine import FormatEngine  # noqa: E402
+from histrategy_agent.multiplayer import MultiplayerSession  # noqa: E402
+from histrategy_agent.session import GameSessionManager  # noqa: E402
 
-from .session_manager import (
+from .session_manager import (  # noqa: E402
     FACTION_CHOICES,
     create_new_session,
     list_factions,
@@ -39,10 +39,7 @@ def is_command(text: str) -> bool:
     for prefix in COMMAND_PREFIXES:
         if text_lower.startswith(prefix):
             return True
-    for word in TRIGGER_WORDS:
-        if word in text_lower:
-            return True
-    return False
+    return any(word in text_lower for word in TRIGGER_WORDS)
 
 
 # ─── Command dispatch ──────────────────────────────────────

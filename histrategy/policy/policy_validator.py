@@ -15,18 +15,18 @@ def _normalize_faction_id(raw: str, ws) -> str:
     if not raw:
         return raw
     # Strip annotation: "刘表(liubiao)" → extract "liubiao"
-    if '(' in raw and raw.endswith(')'):
-        inner = raw[raw.rindex('(') + 1:-1]
+    if "(" in raw and raw.endswith(")"):
+        inner = raw[raw.rindex("(") + 1 : -1]
         if inner in ws.factions:
             return inner
-        base = raw[:raw.index('(')]
+        base = raw[: raw.index("(")]
         for fid, f in ws.factions.items():
-            if getattr(f, 'name', '') == base:
+            if getattr(f, "name", "") == base:
                 return fid
     if raw in ws.factions:
         return raw
     for fid, f in ws.factions.items():
-        if getattr(f, 'name', '') == raw:
+        if getattr(f, "name", "") == raw:
             return fid
     return raw
 
@@ -34,9 +34,7 @@ def _normalize_faction_id(raw: str, ws) -> str:
 class PolicyValidator:
     """Checks that policy commands are executable given current world state."""
 
-    def validate(
-        self, commands: list[PolicyCommand], world_state: WorldState
-    ) -> list[PolicyCommand]:
+    def validate(self, commands: list[PolicyCommand], world_state: WorldState) -> list[PolicyCommand]:
         """Validate and return all commands (invalid ones are tagged with notes)."""
         for cmd in commands:
             errors = self._check(cmd, world_state)
@@ -55,9 +53,8 @@ class PolicyValidator:
                 cmd.params["target"] = normalized  # Fix in-place
                 if normalized not in ws.factions:
                     errors.append(f"Target faction '{target}' does not exist")
-                elif cmd.type == "declare_war":
-                    if not getattr(ws.factions.get(normalized), "is_active", True):
-                        errors.append(f"Faction '{normalized}' already defeated")
+                elif cmd.type == "declare_war" and not getattr(ws.factions.get(normalized), "is_active", True):
+                    errors.append(f"Faction '{normalized}' already defeated")
 
         elif cmd.type == "appoint":
             char_id = cmd.params.get("character", "")

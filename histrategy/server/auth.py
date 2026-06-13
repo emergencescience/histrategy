@@ -47,6 +47,6 @@ def get_current_user_id(authorization: str | None = Header(default=None)) -> str
             raise HTTPException(status_code=401, detail="Token missing 'sub' claim")
         return str(user_id)
     except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
+        raise HTTPException(status_code=401, detail="Token expired") from None
     except jwt.InvalidTokenError as e:
-        raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
+        raise HTTPException(status_code=401, detail=f"Invalid token: {e}") from None

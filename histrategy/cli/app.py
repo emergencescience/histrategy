@@ -33,9 +33,9 @@ console = Console()
 ASCII_TITLE = r"""
   _   _ ___ ____ _____ ____    _  _____ _____ ______     __
  | | | |_ _/ ___|_   _|  _ \  / \|_   _| ____/ ___| \   / /
- | |_| || |\___ \ | | | |_) |/ _ \ | | |  _| | |  _ \ \_/ / 
- |  _  || | ___) || | |  _ < ___ \ | | | |___| |_| | \   /  
- |_| |_|___|____/ |_| |_| \_/_/   \_\_| |_____|____|  |_|   
+ | |_| || |\___ \ | | | |_) |/ _ \ | | |  _| | |  _ \ \_/ /
+ |  _  || | ___) || | |  _ < ___ \ | | | |___| |_| | \   /
+ |_| |_|___|____/ |_| |_| \_/_/   \_\_| |_____|____|  |_|
 """
 
 TEMPERAMENT_STYLES = {
@@ -61,11 +61,10 @@ def run_game(force_new: bool = False):
     # --- Provider detection ---
     provider_info = detect_provider()
     llm = None
-    game_master = None
 
     if provider_info["name"]:
         llm = LLMAdapter()
-        game_master = GameMaster(llm)
+        GameMaster(llm)
         console.print(
             Panel(
                 f"[bold green]✓ 检测到 {provider_info['name']} API[/] ({provider_info['model']})",

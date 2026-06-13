@@ -7,6 +7,7 @@ and a small set of allowed functions are available.
 
 from __future__ import annotations
 
+import logging
 import math
 from pathlib import Path
 
@@ -26,9 +27,6 @@ _ALLOWED_FUNCTIONS = {
 # Safe globals: __builtins__ is empty to prevent imports and dangerous ops
 _SAFE_GLOBALS = {"__builtins__": {}}
 _SAFE_GLOBALS.update(_ALLOWED_FUNCTIONS)
-
-
-import logging
 
 _logger = logging.getLogger("histrategy_engine.rules")
 
@@ -89,7 +87,7 @@ class RuleInterpreter:
         except (KeyError, TypeError, IndexError):
             if default is not None:
                 return default
-            raise KeyError(f"Constant not found: {key_path}")
+            raise KeyError(f"Constant not found: {key_path}") from None
 
     def evaluate(self, formula_key: str, variables: dict | None = None) -> float:
         """Evaluate a named formula with injected variables.
@@ -109,7 +107,7 @@ class RuleInterpreter:
         try:
             formula_str = _resolve_dotted_key(self._rules, formula_key)
         except (KeyError, TypeError):
-            raise KeyError(f"Formula not found: {formula_key}")
+            raise KeyError(f"Formula not found: {formula_key}") from None
 
         if not isinstance(formula_str, str):
             return float(formula_str)

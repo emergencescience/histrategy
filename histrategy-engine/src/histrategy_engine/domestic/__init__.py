@@ -11,7 +11,6 @@ via RuleInterpreter.
 from __future__ import annotations
 
 import hashlib
-import math
 import random
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -440,23 +439,37 @@ class DomesticEngine:
 
             # Calculate unrest and fortification changes
             food_ratio = min(1.0, max(0.0, food_prod / max(1.0, food_cons)))
-            unrest_delta = int(self._rules.evaluate(
-                "unrest.formula",
-                {
-                    "tax_rate": tax_rate,
-                    "food_ratio": food_ratio,
-                    "base_unrest_change": self._rules.get_constant("unrest.constants.base_unrest_change"),
-                    "tax_unrest_factor": self._rules.get_constant("unrest.constants.tax_unrest_factor"),
-                    "food_unrest_factor": self._rules.get_constant("unrest.constants.food_unrest_factor"),
-                }
-            ))
-            fort_delta = int(self._rules.evaluate(
-                "fortification.formula",
-                {
-                    "base_decay": self._rules.get_constant("fortification.constants.base_decay"),
-                    "maintenance": self._rules.get_constant("fortification.constants.maintenance"),
-                }
-            ))
+            unrest_delta = int(
+                self._rules.evaluate(
+                    "unrest.formula",
+                    {
+                        "tax_rate": tax_rate,
+                        "food_ratio": food_ratio,
+                        "base_unrest_change": self._rules.get_constant(
+                            "unrest.constants.base_unrest_change"
+                        ),
+                        "tax_unrest_factor": self._rules.get_constant(
+                            "unrest.constants.tax_unrest_factor"
+                        ),
+                        "food_unrest_factor": self._rules.get_constant(
+                            "unrest.constants.food_unrest_factor"
+                        ),
+                    },
+                )
+            )
+            fort_delta = int(
+                self._rules.evaluate(
+                    "fortification.formula",
+                    {
+                        "base_decay": self._rules.get_constant(
+                            "fortification.constants.base_decay"
+                        ),
+                        "maintenance": self._rules.get_constant(
+                            "fortification.constants.maintenance"
+                        ),
+                    },
+                )
+            )
 
             # Apply changes to territory
             territory.population = max(100, territory.population + pop_delta)

@@ -48,8 +48,12 @@ class TestResolveNames:
         text = "南征刘备，集结宛城5万步兵，进攻新野。防范孙权从庐江进攻下邳。"
         result = parser._resolve_names(text, "cao")
         bad_patterns = [
-            "shu(shu)", "wancheng(wancheng)", "xinye(xinye)",
-            "wu(wu)", "lujiang(lujiang)", "xiapi(xiapi)",
+            "shu(shu)",
+            "wancheng(wancheng)",
+            "xinye(xinye)",
+            "wu(wu)",
+            "lujiang(lujiang)",
+            "xiapi(xiapi)",
         ]
         for bad in bad_patterns:
             assert bad not in result, f"Double-nesting: {bad} found in {result}"
@@ -84,8 +88,8 @@ class TestResolveNames:
         text = "进攻刘备(shu)的新野，防范孙权"
         result = parser._resolve_names(text, "cao")
         assert "刘备(shu(shu))" not in result  # already resolved
-        assert "新野(xinye)" in result          # not yet resolved
-        assert "孙权(wu)" in result              # not yet resolved
+        assert "新野(xinye)" in result  # not yet resolved
+        assert "孙权(wu)" in result  # not yet resolved
 
 
 # ═══════════════════════════════════════════════════════════════

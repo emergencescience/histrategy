@@ -332,7 +332,6 @@ def world_state(simple_territories) -> WorldState:
 
 class TestUnitStats:
     def test_infantry_stats(self):
-        stats = MilitaryEngine().__dict__
         # Just verify UNIT_STATS exists and is accessible
         from histrategy_engine.military import UNIT_STATS
 
@@ -659,7 +658,7 @@ class TestBattle:
 
     def test_commander_bonus_affects_outcome(self, military_engine, map_engine, char_engine):
         # Without commander
-        attacker_no_cmd = Army(
+        Army(
             id="atk1",
             faction_id="cao",
             location="t1",
@@ -667,7 +666,7 @@ class TestBattle:
             morale=80,
             training=1.0,
         )
-        defender_no_cmd = Army(
+        Army(
             id="def1",
             faction_id="wu",
             location="t1",
@@ -1169,7 +1168,7 @@ class TestTurnBattleResolution:
             world_state, player_commands=[], year=208, turn_number=1
         )
         # No battles since same faction
-        battles = [b for b in result.battles]
+        battles = list(result.battles)
         assert len(battles) == 0
 
 
@@ -1405,7 +1404,9 @@ class TestTurnResultContext:
     def test_player_commands_preserved(self, turn_controller, world_state):
         """TurnResult should carry the parsed commands with notes."""
         cmds = [
-            Command(type="attack", params={"target_territory": "t2"}, faction_id="cao", notes="主力进攻"),
+            Command(
+                type="attack", params={"target_territory": "t2"}, faction_id="cao", notes="主力进攻"
+            ),  # noqa: E501
             Command(type="defend", params={"territory": "t1"}, faction_id="cao", notes="后方防守"),
         ]
         result = turn_controller.execute_turn(

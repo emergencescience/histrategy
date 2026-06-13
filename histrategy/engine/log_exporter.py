@@ -5,6 +5,7 @@ Supports community sharing and DevOps agent training.
 
 from __future__ import annotations
 
+import contextlib
 import json
 from datetime import datetime
 from pathlib import Path
@@ -20,10 +21,8 @@ def clear_session_log() -> None:
     """Clear or reset the current session log on new game start."""
     path = _session_log_file()
     if path.exists():
-        try:
+        with contextlib.suppress(OSError):
             path.unlink()
-        except OSError:
-            pass
 
 
 def append_to_session_log(

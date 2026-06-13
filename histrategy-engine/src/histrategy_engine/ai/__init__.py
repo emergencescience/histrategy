@@ -314,9 +314,14 @@ class DecisionEngine:
                 commands.append(self._make_develop_command(faction))
 
         # Cautious factions may add a second defensive command
-        if medium_threats and caution > 0.5 and len(commands) < 2:
-            if treasury_ok and faction.territories:
-                commands.append(self._make_recruit_command(faction))
+        if (
+            medium_threats
+            and caution > 0.5
+            and len(commands) < 2
+            and treasury_ok
+            and faction.territories
+        ):
+            commands.append(self._make_recruit_command(faction))
 
         return commands
 

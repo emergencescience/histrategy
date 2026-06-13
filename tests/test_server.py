@@ -69,7 +69,7 @@ class TestCreateGame:
         assert resp.status_code == 200
         data = resp.json()
         assert "game_id" in data
-        assert len(data["game_id"]) == 12
+        assert len(data["game_id"]) == 32  # full UUID v4 hex
         assert data["faction"] in ("shu", "liubei")
         assert "intro" in data
         assert "faction_status" in data

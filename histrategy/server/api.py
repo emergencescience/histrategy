@@ -122,7 +122,7 @@ def _get_or_create_engine(
     with contextlib.suppress(Exception):
         llm = LLMAdapter(provider=_llm_provider or None)
 
-    game_id = uuid.uuid4().hex[:12]
+    game_id = uuid.uuid4().hex  # full UUID v4
     engine = GameEngine(scenario=scenario, new_game=True, llm=llm)
     engine.set_player_faction(faction)
 
@@ -255,6 +255,18 @@ def _build_faction_status(engine) -> dict:
 # ─── FastAPI App ─────────────────────────────────────────────────
 
 
+def _safe_json_loads(value: str | None, default: Any = None) -> Any:
+    """Safely deserialize a JSON string, returning default on failure."""
+    if not value:
+        return default
+    try:
+        import json as _json
+
+        return _json.loads(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def create_app(llm_provider: str | None = None) -> Any:
     """Create and configure the FastAPI application."""
     global _llm_provider
@@ -309,6 +321,16 @@ def create_app(llm_provider: str | None = None) -> Any:
         allow_headers=["*"],
     )
 
+    # ── Database initialization ─────────────────────────
+    try:
+        from histrategy.db.connection import init_db
+
+        init_db()
+    except Exception as _db_err:
+        import logging as _logging
+
+        _logging.getLogger("histrategy").warning(f"DB init skipped: {_db_err}")
+
     # ─── Routes ──────────────────────────────────────────
 
     @app.get("/")
@@ -337,6 +359,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         import os as _os
 
         from fastapi.responses import FileResponse
+
         web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
         return FileResponse(_os.path.join(web_dir, "css", path))
 
@@ -346,6 +369,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         import os as _os
 
         from fastapi.responses import FileResponse
+
         web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
         return FileResponse(_os.path.join(web_dir, "js", path))
 
@@ -355,6 +379,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         import os as _os
 
         from fastapi.responses import FileResponse
+
         web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
         return FileResponse(_os.path.join(web_dir, "images", path))
 
@@ -529,7 +554,7 @@ def create_app(llm_provider: str | None = None) -> Any:
                 "restore_error": restore_error,
             }
 
-        game_id = uuid.uuid4().hex[:12]
+        game_id = uuid.uuid4().hex  # full UUID v4
         _games[game_id] = engine
 
         if req.session_id:
@@ -660,7 +685,8 @@ def create_app(llm_provider: str | None = None) -> Any:
                 try:
                     world_dict = engine.to_dict()
                     adapter.save_state(
-                        session_id, world_dict,
+                        session_id,
+                        world_dict,
                         status.get("turn", 1),
                         status.get("year", 207),
                         status.get("season", "春"),
@@ -697,23 +723,27 @@ def create_app(llm_provider: str | None = None) -> Any:
             }
             # Log to stdout (visible in railway logs)
             import json as _json
+
             print(f"[HISTRATEGY_LOG] {_json.dumps(log_entry, ensure_ascii=False)}", flush=True)
             # Also POST to orchestrator Postgres
             try:
                 _jwt = _game_meta.get(game_id, {}).get("jwt_token", "")
                 import httpx as _httpx
+
                 _orch_url = _os.environ.get("ORCHESTRATOR_URL", "https://api.emergence.science").rstrip("/")
                 _httpx.post(
                     f"{_orch_url}/games/histrategy/api/log/batch",
                     json={
                         "session_id": session_id,
                         "turn_number": status.get("turn", 1),
-                        "llm_calls": [{
-                            "call_type": "macro_simulate",
-                            "provider": "deepseek",
-                            "model": _os.environ.get("LLM_MODEL", "deepseek-v4-flash"),
-                            "total_tokens": _sim_tokens,
-                        }],
+                        "llm_calls": [
+                            {
+                                "call_type": "macro_simulate",
+                                "provider": "deepseek",
+                                "model": _os.environ.get("LLM_MODEL", "deepseek-v4-flash"),
+                                "total_tokens": _sim_tokens,
+                            }
+                        ],
                         "sim_events": [],
                     },
                     headers={"Authorization": f"Bearer {_jwt}"} if _jwt else {},
@@ -946,7 +976,8 @@ def create_app(llm_provider: str | None = None) -> Any:
             adapter = create_persistence_adapter(jwt_token or "")
             session_id = meta.get("session_id", game_id)
             adapter.save_state(
-                session_id, world_state,
+                session_id,
+                world_state,
                 status.get("turn", 1),
                 status.get("year", 207),
                 status.get("season", "春"),
@@ -954,6 +985,179 @@ def create_app(llm_provider: str | None = None) -> Any:
             return {"ok": True, "session_id": session_id}
         except Exception as e:
             return {"ok": False, "reason": f"Save failed: {e}"}
+
+    # ═══════════════════════════════════════════════════════════
+    # Multiplayer Room Endpoints (v2: room_player symmetric)
+    # ═══════════════════════════════════════════════════════════
+
+    from fastapi import Body
+
+    @app.post("/api/rooms")
+    def api_create_room(body: dict = Body(...)):
+        """创建房间。
+
+        新流程（推荐）: pre_assigned = {"caocao": "张三", "liubei": "李四"}
+        → Host 预分配势力，每个玩家获得专属链接。
+
+        旧流程: human_faction_ids = ["cao", "shu", "wu"]
+        → 势力设为 OPEN 等待玩家手动加入。
+        """
+        from histrategy.server.room_manager import create_room
+
+        pre_assigned = body.get("pre_assigned")
+        if pre_assigned:
+            result = create_room(
+                host_user_id=body.get("user_id", ""),
+                host_name=body.get("display_name", ""),
+                scenario=body.get("scenario", "207"),
+                pre_assigned=pre_assigned,
+            )
+        else:
+            human_faction_ids = body.get("human_faction_ids", ["cao", "shu", "wu"])
+            result = create_room(
+                host_user_id=body.get("user_id", ""),
+                host_name=body.get("display_name", ""),
+                scenario=body.get("scenario", "207"),
+                human_faction_ids=human_faction_ids,
+            )
+        return result
+
+    @app.post("/api/rooms/{room_id}/enter")
+    def api_enter_room(room_id: str, body: dict = Body(...)):
+        """进入房间。支持 player_token 验证（预分配模式）。"""
+        from histrategy.server.room_manager import enter_room
+
+        return enter_room(
+            room_id,
+            body.get("user_id", ""),
+            body.get("display_name", ""),
+            body.get("faction", ""),
+            body.get("player_token", ""),
+        )
+
+    @app.post("/api/rooms/{room_id}/pick")
+    def api_pick_faction(room_id: str, body: dict = Body(...)):
+        """选择势力。"""
+        from histrategy.server.room_manager import pick_faction
+
+        return pick_faction(
+            room_id,
+            body.get("user_id", ""),
+            body.get("faction_id", ""),
+        )
+
+    @app.post("/api/rooms/{room_id}/start")
+    def api_start_room(room_id: str, body: dict = Body(...)):
+        """host 开始游戏。"""
+        from histrategy.server.room_manager import start_game
+
+        return start_game(room_id, body.get("user_id", ""))
+
+    @app.post("/api/rooms/{room_id}/decide")
+    def api_submit_decision(room_id: str, body: dict = Body(...)):
+        """提交本季度决策。支持 player_token 解析。"""
+        from histrategy.server.room_manager import submit_decision
+
+        return submit_decision(
+            room_id,
+            body.get("faction_id", ""),
+            body.get("user_id", ""),
+            body.get("decision", ""),
+            body.get("player_token", ""),
+        )
+
+    @app.get("/api/rooms/{room_id}/status")
+    def api_room_status(room_id: str, faction_id: str = ""):
+        """获取房间状态。"""
+        from histrategy.server.room_manager import get_room_status
+
+        fid = faction_id if faction_id else None
+        return get_room_status(room_id, fid)
+
+    @app.get("/api/rooms/{room_id}/turns")
+    def api_room_turns(room_id: str):
+        """返回指定 room 的所有 quarter_turn 记录。"""
+        from histrategy.db.models import get_quarter_turns
+
+        raw_turns = get_quarter_turns(room_id, limit=10000)
+
+        turns = []
+        for row in raw_turns:
+            turn = {
+                "quarter_number": row["quarter_number"],
+                "year": row["year"],
+                "season": row["season"],
+                "faction_decisions": _safe_json_loads(row.get("faction_decisions")),
+                "narratives": _safe_json_loads(row.get("narratives")),
+                "state_changes": _safe_json_loads(row.get("state_changes")),
+                "token_usage": _safe_json_loads(row.get("token_usage")),
+            }
+            turns.append(turn)
+
+        # Return in ascending quarter_number order
+        turns.sort(key=lambda t: t["quarter_number"])
+
+        return {
+            "room_id": room_id,
+            "turns": turns,
+            "count": len(turns),
+        }
+
+    @app.get("/api/rooms/{room_id}/state")
+    def api_room_state(room_id: str):
+        """返回 game_state 和 policy_state，用于游戏恢复。"""
+        from fastapi.responses import JSONResponse
+
+        from histrategy.db.models import get_active_policies, get_latest_game_states
+        from histrategy.server.room_manager import _get_room
+
+        room = _get_room(room_id)
+        if not room:
+            return JSONResponse(status_code=404, content={"error": "房间不存在"})
+
+        quarter_number = room.quarter_number
+
+        raw_states = get_latest_game_states(room_id, quarter_number)
+
+        factions = []
+        for row in raw_states:
+            fid = row["faction_id"]
+            policies_list = get_active_policies(room_id, fid)
+            policies = {}
+            for p in policies_list:
+                policies[p["policy_name"]] = {
+                    "policy_type": p["policy_type"],
+                    "policy_level": p.get("policy_level", 1),
+                    "params": _safe_json_loads(p.get("params")),
+                    "status": p.get("status", "active"),
+                }
+
+            factions.append({
+                "faction_id": fid,
+                "population": row["population"],
+                "troops": row["troops"],
+                "food": row["food"],
+                "treasury": row["treasury"],
+                "morale": row["morale"],
+                "territories": _safe_json_loads(row.get("territories"), default=[]),
+                "policies": policies,
+                "is_active": bool(row.get("is_active", 1)),
+            })
+
+        return {
+            "room_id": room_id,
+            "quarter_number": quarter_number,
+            "factions": factions,
+        }
+
+    @app.get("/mp")
+    def serve_multiplayer_page():
+        import os as _os
+
+        from fastapi.responses import FileResponse
+
+        web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
+        return FileResponse(_os.path.join(web_dir, "mp.html"))
 
     return app
 

@@ -10,7 +10,7 @@ from __future__ import annotations
 import random
 from typing import TYPE_CHECKING
 
-from ..world import Character, FactionState
+from ..world import Character
 
 if TYPE_CHECKING:
     pass
@@ -52,9 +52,8 @@ class CharacterEngine:
         """
         best_politics = 0
         for char in self.get_by_faction(faction_id):
-            if char.location == territory_id and char.is_governor:
-                if char.politics > best_politics:
-                    best_politics = char.politics
+            if char.location == territory_id and char.is_governor and char.politics > best_politics:
+                best_politics = char.politics
         return 1.0 + best_politics / 200.0
 
     def get_commander_bonus(self, character_id: str) -> float:
@@ -103,19 +102,22 @@ class CharacterEngine:
         events = []
         # Simple model: loyalty < 20 has chance to defect each turn
         for char in self.get_by_faction(faction_id):
-            if char.loyalty < 20 and char.id != self._get_ruler_id(faction_id):
-                if random.random() < (20 - char.loyalty) / 100.0:
-                    # Find a neighboring faction to defect to
-                    # (simplified: just mark as defected, actual target resolved by caller)
-                    events.append(
-                        {
-                            "character_id": char.id,
-                            "character_name": char.name,
-                            "from_faction": faction_id,
-                            "loyalty": char.loyalty,
-                            "type": "defection",
-                        }
-                    )
+            if (
+                char.loyalty < 20
+                and char.id != self._get_ruler_id(faction_id)
+                and random.random() < (20 - char.loyalty) / 100.0
+            ):
+                # Find a neighboring faction to defect to
+                # (simplified: just mark as defected, actual target resolved by caller)
+                events.append(
+                    {
+                        "character_id": char.id,
+                        "character_name": char.name,
+                        "from_faction": faction_id,
+                        "loyalty": char.loyalty,
+                        "type": "defection",
+                    }
+                )
         return events
 
     def _get_ruler_id(self, faction_id: str) -> str:
@@ -220,7 +222,6 @@ class CharacterEngine:
         """
         best_charisma = 0
         for char in self.get_by_faction(faction_id):
-            if char.location == territory_id and char.is_governor:
-                if char.charisma > best_charisma:
-                    best_charisma = char.charisma
+            if char.location == territory_id and char.is_governor and char.charisma > best_charisma:
+                best_charisma = char.charisma
         return 1.0 + best_charisma / 200.0

@@ -15,10 +15,10 @@ from pathlib import Path
 _AGENT_DIR = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_AGENT_DIR / "src"))
 
-from histrategy_agent.format_engine import FormatEngine
-from histrategy_agent.im_adapters.feishu import FeishuAdapter
-from histrategy_agent.session import GameSessionManager
-from histrategy_agent.turn_processor import TurnProcessor
+from histrategy_agent.format_engine import FormatEngine  # noqa: E402
+from histrategy_agent.im_adapters.feishu import FeishuAdapter  # noqa: E402
+from histrategy_agent.session import GameSessionManager  # noqa: E402
+from histrategy_agent.turn_processor import TurnProcessor  # noqa: E402
 
 
 def _get_adapter(platform: str = "feishu"):

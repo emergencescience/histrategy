@@ -15,6 +15,15 @@ web = [
     "uvicorn>=0.30.0",
     "PyJWT>=2.8.0",
 ]
+db = [
+    "psycopg2-binary>=2.9",
+]
+all = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.30.0",
+    "PyJWT>=2.8.0",
+    "psycopg2-binary>=2.9",
+]
 
 [project.scripts]
 histrategy = "histrategy.__main__:main"

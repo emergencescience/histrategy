@@ -51,7 +51,7 @@ class TestAlignmentEngine:
         from collections import namedtuple
 
         Battle = namedtuple("Battle", "attacker_id defender_id location result attacker_casualties defender_casualties")
-        BattleResult = namedtuple("BattleResult", "value")
+        namedtuple("BattleResult", "value")
 
         return {
             "battles": [

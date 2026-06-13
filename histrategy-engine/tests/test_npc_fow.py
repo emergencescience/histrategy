@@ -37,9 +37,14 @@ def make_basic_world_3faction() -> WorldState:
     ws.season = Season.SUMMER
 
     cao = FactionState(
-        id="cao", name="曹操军", ruler_id="caocao",
-        capital="xuchang", territories=["xuchang", "wancheng"],
-        treasury=50000, food=30000, legitimacy=50,
+        id="cao",
+        name="曹操军",
+        ruler_id="caocao",
+        capital="xuchang",
+        territories=["xuchang", "wancheng"],
+        treasury=50000,
+        food=30000,
+        legitimacy=50,
     )
     cao.strength_actual = 150000
     cao.economy_actual = 80
@@ -48,9 +53,14 @@ def make_basic_world_3faction() -> WorldState:
     cao.caution = 0.3
 
     shu = FactionState(
-        id="shu", name="刘备军", ruler_id="liubei",
-        capital="xinye", territories=["xinye"],
-        treasury=3000, food=2000, legitimacy=40,
+        id="shu",
+        name="刘备军",
+        ruler_id="liubei",
+        capital="xinye",
+        territories=["xinye"],
+        treasury=3000,
+        food=2000,
+        legitimacy=40,
     )
     shu.strength_actual = 5000
     shu.economy_actual = 30
@@ -59,9 +69,14 @@ def make_basic_world_3faction() -> WorldState:
     shu.caution = 0.7
 
     wu = FactionState(
-        id="wu", name="孙权军", ruler_id="sunquan",
-        capital="jianye", territories=["jianye"],
-        treasury=20000, food=15000, legitimacy=60,
+        id="wu",
+        name="孙权军",
+        ruler_id="sunquan",
+        capital="jianye",
+        territories=["jianye"],
+        treasury=20000,
+        food=15000,
+        legitimacy=60,
     )
     wu.strength_actual = 60000
     wu.economy_actual = 70
@@ -73,26 +88,60 @@ def make_basic_world_3faction() -> WorldState:
     ws.player_faction_id = "shu"
 
     ws.territories = {
-        "xuchang": Territory(id="xuchang", name="许昌", owner_id="cao",
-                             population=200000, fertility=80, neighbors=["wancheng"]),
-        "wancheng": Territory(id="wancheng", name="宛城", owner_id="cao",
-                             population=80000, fertility=60, neighbors=["xuchang", "xinye"]),
-        "xinye": Territory(id="xinye", name="新野", owner_id="shu",
-                           population=30000, fertility=60, neighbors=["wancheng"]),
-        "jianye": Territory(id="jianye", name="建业", owner_id="wu",
-                           population=100000, fertility=70, neighbors=[]),
+        "xuchang": Territory(
+            id="xuchang",
+            name="许昌",
+            owner_id="cao",
+            population=200000,
+            fertility=80,
+            neighbors=["wancheng"],
+        ),
+        "wancheng": Territory(
+            id="wancheng",
+            name="宛城",
+            owner_id="cao",
+            population=80000,
+            fertility=60,
+            neighbors=["xuchang", "xinye"],
+        ),
+        "xinye": Territory(
+            id="xinye",
+            name="新野",
+            owner_id="shu",
+            population=30000,
+            fertility=60,
+            neighbors=["wancheng"],
+        ),
+        "jianye": Territory(
+            id="jianye", name="建业", owner_id="wu", population=100000, fertility=70, neighbors=[]
+        ),
     }
 
     ws.characters = {
-        "zhugeliang": Character(id="zhugeliang", name="诸葛亮", faction_id="shu",
-                                loyalty=95, leadership=92, politics=98, intelligence=100),
-        "caocao": Character(id="caocao", name="曹操", faction_id="cao",
-                           loyalty=100, leadership=98, politics=95, intelligence=96),
+        "zhugeliang": Character(
+            id="zhugeliang",
+            name="诸葛亮",
+            faction_id="shu",
+            loyalty=95,
+            leadership=92,
+            politics=98,
+            intelligence=100,
+        ),
+        "caocao": Character(
+            id="caocao",
+            name="曹操",
+            faction_id="cao",
+            loyalty=100,
+            leadership=98,
+            politics=95,
+            intelligence=96,
+        ),
     }
 
     ws.armies = {
-        "army_cao_1": Army(id="army_cao_1", faction_id="cao", location="wancheng",
-                          commander_id="caocao", morale=85),
+        "army_cao_1": Army(
+            id="army_cao_1", faction_id="cao", location="wancheng", commander_id="caocao", morale=85
+        ),
     }
     ws.armies["army_cao_1"].units["infantry"] = 20000
 
@@ -119,11 +168,14 @@ class FakeMapEngine:
 class FakeDomesticEngine:
     def __init__(self):
         from histrategy_engine.domestic import DomesticEngine
+
         # Delegate to real engine for calculation methods
         self._real = DomesticEngine()
+
         class FakeClimate:
             def roll_all(self, territories, season, year, turn):
                 return []
+
         self.climate = FakeClimate()
 
     def process_season(self, territories, season, year, turn, **kwargs):
@@ -179,8 +231,9 @@ class TestNPCPlannerFOW:
         perceived = planner._build_perceived_worldstate(local, ws, "wu")
 
         # Wu is not on the border with cao → should NOT see cao's army
-        cao_army_ids = [aid for aid in perceived.armies if
-                       perceived.armies[aid].faction_id == "cao"]
+        cao_army_ids = [
+            aid for aid in perceived.armies if perceived.armies[aid].faction_id == "cao"
+        ]
         assert len(cao_army_ids) == 0, "Wu should not see Cao's armies"
 
     def test_strategic_intent_fields(self):

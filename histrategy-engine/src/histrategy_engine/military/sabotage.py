@@ -12,7 +12,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..world import WorldState
+    from ..world import Character, WorldState
 
 
 class SabotageType(Enum):
@@ -174,7 +174,6 @@ class SabotageEngine:
                     effects.append(f"其麾下军队士气崩溃，减半至{army.morale}")
 
         elif sabotage_type == SabotageType.BRIBE:
-            old_faction = character.faction_id
             character.faction_id = initiator_faction_id
             character.loyalty = max(0, character.loyalty - 30)  # bribery erodes trust
             morale_penalty = 0.7

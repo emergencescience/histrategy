@@ -131,9 +131,13 @@ class MacroPolicyEngine:
             return {}
 
         context = self._build_context(
-            world_state, policy_commands, player_decision,
-            baseline, history_events or [],
-            turn_memory or [], epoch_memory or [],
+            world_state,
+            policy_commands,
+            player_decision,
+            baseline,
+            history_events or [],
+            turn_memory or [],
+            epoch_memory or [],
         )
 
         messages = [
@@ -146,7 +150,7 @@ class MacroPolicyEngine:
                 messages,
                 response_format={"type": "json_object"},
                 temperature=0.3,
-                max_tokens=4096,
+                max_tokens=8192,
                 metadata={
                     "category": "macro_sim",
                     "reason": "quarterly_simulation",
@@ -162,8 +166,14 @@ class MacroPolicyEngine:
     # ── Context Builder ────────────────────────────────────
 
     def _build_context(
-        self, ws, commands, decision, baseline,
-        history_events, turn_memory, epoch_memory,
+        self,
+        ws,
+        commands,
+        decision,
+        baseline,
+        history_events,
+        turn_memory,
+        epoch_memory,
     ) -> str:
         lines = []
 
@@ -196,8 +206,7 @@ class MacroPolicyEngine:
                 f"资金={f.treasury}, 粮草={f.food}, "
                 f"民心={getattr(f, 'morale_actual', 0)}, "
                 f"税率={getattr(f, 'tax_rate', 0.3):.0%}, "
-                f"领地={territories}"
-                + (f", 性格=agg{aggression:.1f} cau{caution:.1f}" if personality else "")
+                f"领地={territories}" + (f", 性格=agg{aggression:.1f} cau{caution:.1f}" if personality else "")
             )
         lines.append("")
 
@@ -206,10 +215,9 @@ class MacroPolicyEngine:
         PASSIVE_NPC_FACTIONS = {"liuzhang", "liubiao"}
         player_fid = ws.player_faction_id
         npc_factions = [
-            fid for fid in ws.factions
-            if fid != player_fid
-            and fid not in PASSIVE_NPC_FACTIONS
-            and getattr(ws.factions[fid], "is_active", True)
+            fid
+            for fid in ws.factions
+            if fid != player_fid and fid not in PASSIVE_NPC_FACTIONS and getattr(ws.factions[fid], "is_active", True)
         ]
         if npc_factions:
             lines.append("## ⚡ NPC自主决策（必须为每个活跃NPC做出至少一项独立行动）")
@@ -228,10 +236,7 @@ class MacroPolicyEngine:
             food = baseline.food_delta.get(fid, 0)
             morale = baseline.morale_delta.get(fid, 0)
             pop = baseline.population_delta.get(fid, 0)
-            lines.append(
-                f"- {fid} ({fname}): 税收+{tax:.0f}, 粮草{food:+.0f}, "
-                f"民心{morale:+d}, 人口{pop:+.0f}"
-            )
+            lines.append(f"- {fid} ({fname}): 税收+{tax:.0f}, 粮草{food:+.0f}, 民心{morale:+d}, 人口{pop:+.0f}")
         lines.append("")
 
         if history_events:
@@ -279,6 +284,7 @@ class MacroPolicyEngine:
         except json.JSONDecodeError:
             pass
         import re
+
         match = re.search(r"```(?:json)?\s*\n?({.*?})\n?\s*```", text, re.DOTALL)
         if match:
             return json.loads(match.group(1))

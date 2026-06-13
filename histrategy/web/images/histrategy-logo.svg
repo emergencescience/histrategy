@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Lacquer red background gradient -->
+    <radialGradient id="bg-grad" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="0%" stop-color="#4c1414" />
+      <stop offset="70%" stop-color="#2a0a0a" />
+      <stop offset="100%" stop-color="#120202" />
+    </radialGradient>
+
+    <!-- Warm gold gradient for borders, scroll ends, and highlights -->
+    <linearGradient id="gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D4AF37" />
+      <stop offset="25%" stop-color="#F3E5AB" />
+      <stop offset="50%" stop-color="#AA7C11" />
+      <stop offset="75%" stop-color="#F3E5AB" />
+      <stop offset="100%" stop-color="#AA7C11" />
+    </linearGradient>
+
+    <!-- Silk scroll gold-yellow background gradient -->
+    <linearGradient id="scroll-silk-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#B7950B" />
+      <stop offset="50%" stop-color="#D4AF37" />
+      <stop offset="100%" stop-color="#7D6608" />
+    </linearGradient>
+
+    <!-- Edict parchment background gradient -->
+    <linearGradient id="parchment-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FDFBF7" />
+      <stop offset="10%" stop-color="#F3E5AB" />
+      <stop offset="90%" stop-color="#FDFBF7" />
+      <stop offset="100%" stop-color="#E5D38A" />
+    </linearGradient>
+
+    <!-- Shadow filter for 3D depth -->
+    <filter id="drop-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#000000" flood-opacity="0.6" />
+    </filter>
+  </defs>
+
+  <!-- Circular background stamp -->
+  <circle cx="256" cy="256" r="240" fill="url(#bg-grad)" />
+
+  <!-- Outer gold boundary ring -->
+  <circle cx="256" cy="256" r="224" fill="none" stroke="url(#gold-grad)" stroke-width="10" filter="url(#drop-shadow)" />
+
+  <!-- Inner dashed decoration ring -->
+  <circle cx="256" cy="256" r="202" fill="none" stroke="url(#gold-grad)" stroke-width="2.5" stroke-dasharray="10 12" opacity="0.8" />
+
+  <!-- Main interactive design components -->
+  <g filter="url(#drop-shadow)">
+    <!-- Imperial Decree Scroll (圣旨 / 诏书) - Enlarged by 15% and rotated slightly (-15 deg) -->
+    <g transform="translate(256, 256) rotate(-15)">
+      <!-- Scroll Rods (Ends) -->
+      <g>
+        <!-- Left Rod Axis -->
+        <rect x="-156" y="-72" width="12" height="144" fill="url(#gold-grad)" rx="2" />
+        <!-- Left Top Knob -->
+        <circle cx="-150" cy="-78" r="9" fill="url(#gold-grad)" />
+        <rect x="-154" y="-78" width="9" height="6" fill="#120202" opacity="0.3" />
+        <!-- Left Bottom Knob -->
+        <circle cx="-150" cy="78" r="9" fill="url(#gold-grad)" />
+        <rect x="-154" y="72" width="9" height="6" fill="#120202" opacity="0.3" />
+
+        <!-- Right Rod Axis -->
+        <rect x="144" y="-72" width="12" height="144" fill="url(#gold-grad)" rx="2" />
+        <!-- Right Top Knob -->
+        <circle cx="150" cy="-78" r="9" fill="url(#gold-grad)" />
+        <rect x="146" y="-78" width="9" height="6" fill="#120202" opacity="0.3" />
+        <!-- Right Bottom Knob -->
+        <circle cx="150" cy="78" r="9" fill="url(#gold-grad)" />
+        <rect x="146" y="72" width="9" height="6" fill="#120202" opacity="0.3" />
+      </g>
+
+      <!-- Scroll Back/Brocade Frame -->
+      <rect x="-150" y="-64" width="300" height="128" fill="url(#scroll-silk-grad)" stroke="url(#gold-grad)" stroke-width="2" rx="3" />
+      <!-- Scroll Red Border Silk -->
+      <rect x="-145" y="-59" width="290" height="118" fill="none" stroke="#7B241C" stroke-width="3" opacity="0.9" />
+
+      <!-- Center Writing Parchment (Decree Body) -->
+      <rect x="-110" y="-51" width="220" height="102" fill="url(#parchment-grad)" rx="1" />
+      <rect x="-110" y="-51" width="220" height="102" fill="none" stroke="url(#scroll-silk-grad)" stroke-width="1.2" opacity="0.5" />
+
+      <!-- Vertical Classical Text Lines -->
+      <!-- Column 1 (Right) -->
+      <path d="M 70 -36 L 70 36" stroke="#1C2833" stroke-width="4" stroke-linecap="round" stroke-dasharray="4 8 8 5 7" opacity="0.85" />
+      <!-- Column 2 -->
+      <path d="M 35 -36 L 35 36" stroke="#1C2833" stroke-width="4" stroke-linecap="round" stroke-dasharray="8 5 6 7 5" opacity="0.85" />
+      <!-- Column 3 -->
+      <path d="M 0 -36 L 0 36" stroke="#1C2833" stroke-width="4" stroke-linecap="round" stroke-dasharray="5 8 5 9 4" opacity="0.85" />
+      <!-- Column 4 -->
+      <path d="M -35 -36 L -35 36" stroke="#1C2833" stroke-width="4" stroke-linecap="round" stroke-dasharray="7 6 9 5 6" opacity="0.85" />
+      
+      <!-- Imperial Red Seal Stamp (玉玺印章) -->
+      <g transform="translate(-82, 10)">
+        <rect x="0" y="0" width="26" height="26" fill="#900C3F" stroke="url(#gold-grad)" stroke-width="1" rx="2" />
+        <path d="M 5 5 L 21 5 M 5 13 L 21 13 M 5 21 L 21 21 M 13 5 L 13 21" stroke="url(#gold-grad)" stroke-width="1.2" opacity="0.8" />
+      </g>
+    </g>
+  </g>
+</svg>

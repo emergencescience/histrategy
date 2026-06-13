@@ -658,7 +658,7 @@ def build_world_state(
                 territories[tid].owner_id = fid
 
     # Assign character faction from roster
-    for cid, char in characters.items():
+    for _cid, char in characters.items():
         if char.faction_id and char.faction_id in factions:
             pass  # Already has correct faction_id
 

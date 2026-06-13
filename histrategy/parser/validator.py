@@ -40,7 +40,6 @@ class CommandValidator:
             Filtered list of valid Command objects. Invalid ones are discarded.
         """
         valid: list[Command] = []
-        seen_types: set[str] = set()
 
         for cmd in commands:
             if self._is_valid(cmd, world_state):
@@ -200,10 +199,7 @@ class CommandValidator:
             return False
 
         target_faction = world_state.factions.get(target)
-        if not target_faction or not target_faction.is_active:
-            return False
-
-        return True
+        return not (not target_faction or not target_faction.is_active)
 
     def _validate_target_faction(self, cmd: Command, world_state: WorldState) -> bool:
         """Validate commands that target a faction (spy, trade)."""

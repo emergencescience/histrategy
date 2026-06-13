@@ -100,21 +100,18 @@ def _apply_battle_override(bo: dict, ws) -> None:
             _reduce_army(army, loss)
 
     # Handle territory capture
-    if bo.get("territory_captured"):
-        if territory:
-            old_owner = territory.owner_id
-            # Find attacker ID from context
-            for army in ws.armies.values():
-                if army.location == location and army.total_troops > 0:
-                    territory.owner_id = army.faction_id
-                    # Update faction territories
-                    if old_owner and old_owner in ws.factions:
-                        if location in ws.factions[old_owner].territories:
-                            ws.factions[old_owner].territories.remove(location)
-                    if territory.owner_id in ws.factions:
-                        if location not in ws.factions[territory.owner_id].territories:
-                            ws.factions[territory.owner_id].territories.append(location)
-                    break
+    if bo.get("territory_captured") and territory:
+        old_owner = territory.owner_id
+        # Find attacker ID from context
+        for army in ws.armies.values():
+            if army.location == location and army.total_troops > 0:
+                territory.owner_id = army.faction_id
+                # Update faction territories
+                if old_owner and old_owner in ws.factions and location in ws.factions[old_owner].territories:
+                    ws.factions[old_owner].territories.remove(location)
+                if territory.owner_id in ws.factions and location not in ws.factions[territory.owner_id].territories:
+                    ws.factions[territory.owner_id].territories.append(location)
+                break
 
     # Handle captured characters
     for char_id in bo.get("captured_characters", []):

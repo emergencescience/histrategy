@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import uuid
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from ..world import Army, BattleResult, CombatResult, Season, TerrainType, Territory, UnitType
@@ -268,10 +268,7 @@ class MilitaryEngine:
         def_power *= map_engine.get_fortification_bonus(location)
 
         # Determine result
-        if def_power == 0:
-            ratio = float("inf")
-        else:
-            ratio = atk_power / def_power
+        ratio = float("inf") if def_power == 0 else atk_power / def_power
 
         if ratio > 2.0:
             result = BattleResult.DECISIVE_VICTORY

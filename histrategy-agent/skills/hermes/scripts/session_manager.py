@@ -12,7 +12,7 @@ _CORE_PATH = Path(__file__).parent.parent.parent.parent / "src"
 if str(_CORE_PATH) not in sys.path:
     sys.path.insert(0, str(_CORE_PATH))
 
-from histrategy_agent.session import GameSessionManager
+from histrategy_agent.session import GameSessionManager  # noqa: E402
 
 # ─── Faction selection helpers ─────────────────────────────
 

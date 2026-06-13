@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三國志略 · 多人对战</title>
+<style>
+:root {
+  --bg: #1a1a2e; --panel: #16213e; --border: #0f3460;
+  --gold: #d4a574; --text: #e0d6c2; --muted: #8a8a8a;
+  --cao: #4a90d9; --shu: #5cb85c; --wu: #d9534f;
+  --btn: #0f3460; --btn-hover: #1a5276;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:var(--bg); color:var(--text); font-family:"Noto Serif SC","SimSun",serif; min-height:100vh; }
+.mp-header { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px 0; }
+.mp-logo { height: 36px; width: auto; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4)); transition: transform 0.3s ease; }
+.mp-logo:hover { transform: scale(1.1) rotate(2deg); }
+h1 { font-size:1.4em; color:var(--gold); }
+h2 { font-size:1.1em; color:var(--gold); margin:12px 0 8px; }
+.container { max-width:800px; margin:0 auto; padding:16px; }
+.panel { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:16px; }
+input, button { font-family:inherit; font-size:0.95em; }
+input { width:100%; padding:10px; background:#1a1a2e; border:1px solid var(--border); color:var(--text); border-radius:6px; margin:6px 0; }
+.btn { display:inline-block; padding:10px 20px; background:var(--btn); color:var(--gold); border:1px solid var(--border); border-radius:6px; cursor:pointer; margin:4px; }
+.btn:hover { background:var(--btn-hover); }
+.btn.primary { background:#2d6a4f; font-size:1.05em; }
+.btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+/* 势力选择 toggle 按钮 */
+.faction-toggle { display:inline-block; padding:10px 20px; margin:4px; border-radius:6px; cursor:pointer;
+  background:transparent; font-size:0.95em; border:2px solid var(--border); color:var(--muted);
+  transition:all 0.2s; }
+.faction-toggle.cao { border-color:var(--cao); }
+.faction-toggle.shu { border-color:var(--shu); }
+.faction-toggle.wu  { border-color:var(--wu); }
+.faction-toggle.other { border-color:var(--muted); }
+.faction-toggle.on.cao { background:var(--cao); color:#fff; border-color:var(--cao); }
+.faction-toggle.on.shu { background:var(--shu); color:#fff; border-color:var(--shu); }
+.faction-toggle.on.wu  { background:var(--wu); color:#fff; border-color:var(--wu); }
+.faction-toggle.on.other { background:var(--gold); color:#1a1a2e; border-color:var(--gold); }
+
+/* 玩家进入链接 */
+.player-link { display:block; padding:8px 12px; margin:6px 0; background:rgba(255,255,255,0.05); border-radius:6px;
+  border-left:3px solid var(--gold); }
+.player-link code { color:var(--gold); font-size:0.9em; word-break:break-all; }
+.player-link .copy-btn { float:right; background:var(--btn); color:var(--text); border:none; padding:4px 10px;
+  border-radius:4px; cursor:pointer; font-size:0.8em; }
+.player-link .faction-tag { display:inline-block; padding:2px 8px; border-radius:3px; font-size:0.8em;
+  margin-right:8px; font-weight:bold; }
+.faction-tag.cao { background:var(--cao); color:#fff; }
+.faction-tag.shu { background:var(--shu); color:#fff; }
+.faction-tag.wu  { background:var(--wu); color:#fff; }
+
+/* 游戏界面 */
+.narrative-box { max-height:400px; overflow-y:auto; padding:12px; background:rgba(0,0,0,0.2); border-radius:6px; line-height:1.7; }
+#status-bar { text-align:center; padding:8px; font-size:0.9em; color:var(--muted); }
+.ready { color:#5cb85c; }
+.waiting { color:#d4a574; }
+.hidden { display:none; }
+.faction-badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:0.85em; margin:0 4px; }
+.faction-badge.cao { background:var(--cao); color:#fff; }
+.faction-badge.shu { background:var(--shu); color:#fff; }
+.faction-badge.wu  { background:var(--wu); color:#fff; }
+</style>
+</head>
+<body>
+<div class="container">
+<div class="mp-header">
+  <img src="/images/histrategy-logo-scroll.svg" alt="三國志略" class="mp-logo">
+  <h1>三國志略 · 多人对战</h1>
+</div>
+<div id="top-bar"></div>
+
+<!-- Screen 1: Create or Join -->
+<div id="home-panel" class="panel">
+  <h2>🏯 开始游戏</h2>
+  <p style="color:var(--muted); margin-bottom:16px">房主创建房间，其他人通过链接加入。不需要注册，不需要账号。</p>
+
+  <!-- Create Room -->
+  <h3>▸ 创建房间（房主）</h3>
+  <p style="font-size:0.85em; color:var(--muted)">选择由人类控制的势力：</p>
+  <div id="create-faction-toggles" style="margin:8px 0"></div>
+  <button class="btn primary" onclick="doCreateRoom()">创建房间</button>
+
+  <!-- Join Room -->
+  <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--border)">
+    <h3>▸ 加入房间（玩家）</h3>
+    <p style="font-size:0.85em; color:var(--muted)">粘贴房主分享的链接，或手动输入房间号和势力：</p>
+    <input id="join-room-id" placeholder="房间 ID（从链接中复制）">
+    <div style="display:flex; gap:8px; margin-top:8px">
+      <select id="join-faction" style="flex:1; padding:10px; background:#1a1a2e; border:1px solid var(--border); color:var(--text); border-radius:6px">
+        <option value="caocao">曹操军 (魏)</option>
+        <option value="liubei">刘备军 (蜀)</option>
+        <option value="sunquan">孙权军 (吴)</option>
+      </select>
+      <button class="btn primary" onclick="doJoinRoom()">进入</button>
+    </div>
+  </div>
+</div>
+
+<!-- Screen 2: Room created — show player links, game already started -->
+<div id="room-created-panel" class="panel hidden">
+  <h2>✅ 游戏已开始</h2>
+  <p style="color:var(--muted); margin-bottom:12px">AI NPC 已在运筹帷幄。把下面的链接发给其他玩家：</p>
+  <div id="player-links"></div>
+  <p style="color:var(--gold); text-align:center; margin-top:12px; font-size:0.9em">⚔ 玩家通过链接进入后即可传令，全员传令后自动推演下一季度</p>
+</div>
+
+<!-- Screen 3: Game -->
+<div id="game-panel" class="panel hidden">
+  <div style="display:flex; justify-content:space-between; align-items:center">
+    <div id="status-bar">⏳ 等待...</div>
+    <button class="btn" onclick="refreshGame()" style="font-size:0.85em">🔄 刷新</button>
+  </div>
+  <h2>📜 局势推演</h2>
+  <div id="narrative" class="narrative-box"></div>
+  <div id="npc-actions" style="margin-top:8px"></div>
+  <div style="margin-top:12px">
+    <input id="decision-input" placeholder="输入你的决策...">
+    <button class="btn primary" id="submit-btn" onclick="doDecide()">传令</button>
+  </div>
+</div>
+</div>
+
+<script>
+const API = '';
+let roomId = '';
+let myUserId = 'u_' + Math.random().toString(36).slice(2,10);
+let myFaction = '';
+let myRole = '';
+let pollTimer = null;
+
+// ── Utils ──────────────────────
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  return r.json();
+}
+function show(id) { document.getElementById(id).classList.remove('hidden'); }
+function hide(id) { document.getElementById(id).classList.add('hidden'); }
+function el(id) { return document.getElementById(id); }
+
+// Read room, faction & player_token from URL (for player joining via link)
+function parseURL() {
+  const p = new URLSearchParams(location.search);
+  return { room: p.get('room') || '', faction: p.get('faction') || '', player_token: p.get('player_token') || '' };
+}
+
+// ── Init ───────────────────────
+(function init() {
+  // Render faction toggles for room creation
+  const toggles = [
+    {id:'caocao', name:'曹操军 (魏)', css:'cao'},
+    {id:'liubei', name:'刘备军 (蜀)', css:'shu'},
+    {id:'sunquan',  name:'孙权军 (吴)', css:'wu'},
+  ];
+  const FACTION_NAMES = {caocao:'曹操军(魏)', liubei:'刘备军(蜀)', sunquan:'孙权军(吴)'};
+  const div = el('create-faction-toggles');
+  toggles.forEach(t => {
+    const btn = document.createElement('span');
+    btn.className = `faction-toggle ${t.css} ${(t.id==='caocao'||t.id==='liubei'||t.id==='sunquan')?'on':''}`;
+    btn.textContent = t.name;
+    btn.dataset.fid = t.id;
+    btn.onclick = function() { this.classList.toggle('on'); };
+    div.appendChild(btn);
+  });
+
+  // Auto-join if URL has room + faction
+  const { room, faction, player_token } = parseURL();
+  if (room && faction) {
+    el('join-room-id').value = room;
+    el('join-faction').value = faction;
+    doJoinRoom(player_token);
+  }
+})();
+
+// ── Create Room (game starts immediately) ──
+async function doCreateRoom() {
+  const toggles = document.querySelectorAll('.faction-toggle.on');
+  const humanFactions = Array.from(toggles).map(t => t.dataset.fid);
+  if (humanFactions.length < 1) { alert('至少选择一个人类势力'); return; }
+
+  const r = await api('POST', '/api/rooms', {
+    user_id: myUserId,
+    human_faction_ids: humanFactions,
+  });
+  if (!r.ok) { alert(r.error || '创建失败'); return; }
+
+  roomId = r.room_id;
+  myRole = 'host';
+
+  // Show player links — use server-returned links with player_token for multi-browser isolation
+  hide('home-panel');
+  show('room-created-panel');
+  el('top-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · 已开始`;
+
+  const linksDiv = el('player-links');
+  linksDiv.innerHTML = '';
+  const factionNames = {caocao:'曹操军(魏)', liubei:'刘备军(蜀)', sunquan:'孙权军(吴)'};
+
+  // 优先使用服务端返回的 player_links（含 player_token）
+  const playerLinks = r.player_links || [];
+  if (playerLinks.length > 0) {
+    playerLinks.forEach(link => {
+      const fid = link.faction;
+      const cssClass = ['caocao','liubei','sunquan'].includes(fid) ? fid : fid;
+      const div = document.createElement('div');
+      div.className = 'player-link';
+      div.innerHTML = `
+        <span class="faction-tag ${cssClass}">${factionNames[fid] || fid} — ${link.player_name || ''}</span>
+        <code>${link.url}</code>
+        <button class="copy-btn" onclick="copyLink(this, '${link.url}')">复制链接</button>`;
+      linksDiv.appendChild(div);
+    });
+  } else {
+    // 旧格式回退：自行构造 URL（无 player_token，兼容旧服务端）
+    humanFactions.forEach(fid => {
+      const url = `${location.origin}/mp?room=${roomId}&faction=${fid}`;
+      const div = document.createElement('div');
+      div.className = 'player-link';
+      div.innerHTML = `
+        <span class="faction-tag ${['caocao','liubei','sunquan'].includes(fid) ? fid : ''}">${factionNames[fid] || fid}</span>
+        <code>${url}</code>
+        <button class="copy-btn" onclick="copyLink(this, '${url}')">复制链接</button>`;
+      linksDiv.appendChild(div);
+    });
+  }
+
+  // Stay on link page — Host needs to share links before playing
+}
+
+// ── Join Room ───────────────────
+async function doJoinRoom(playerToken) {
+  const rid = el('join-room-id').value.trim();
+  const fid = el('join-faction').value;
+  if (!rid) { alert('请输入房间 ID'); return; }
+
+  const body = { user_id: myUserId, faction: fid };
+  if (playerToken) body.player_token = playerToken;
+  const r = await api('POST', `/api/rooms/${rid}/enter`, body);
+  if (!r.ok) { alert(r.error); return; }
+
+  roomId = rid;
+  myFaction = fid;
+  myRole = r.role || 'player';
+  myUserId = r.user_id || myUserId;
+
+  hide('home-panel');
+  el('top-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · 势力: <span class="faction-badge ${fid}">${fid}</span>`;
+
+  // Game is already started — go straight to game
+  hide('room-created-panel');
+  const status = await api('GET', `/api/rooms/${roomId}/status?faction_id=${myFaction}`);
+  startGameLoop(status);
+}
+
+// ── Copy Link ───────────────────
+function copyLink(btn, url) {
+  navigator.clipboard.writeText(url).then(() => {
+    btn.textContent = '已复制!';
+    setTimeout(() => btn.textContent = '复制链接', 2000);
+  });
+}
+
+// ── Game Loop (manual refresh) ──
+function startGameLoop(initialStatus) {
+  show('game-panel');
+  updateGameUI(initialStatus);
+}
+
+async function refreshGame() {
+  const s = await api('GET', `/api/rooms/${roomId}/status?faction_id=${myFaction}`);
+  updateGameUI(s);
+}
+
+function updateGameUI(s) {
+  if (!s.ok) return;
+  el('top-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · ${s.year||207}年${s.season||'春'} · 第${s.quarter||0}季`;
+
+  const phase = s.phase;
+  const submitted = s.submitted || [];
+  const pending = s.pending || [];
+
+  if (phase === 'waiting') {
+    if (submitted.includes(myFaction)) {
+      el('status-bar').innerHTML = `<span class="ready">✓ 已传令 · 等待: ${pending.join(', ') || '无'}</span>`;
+      el('submit-btn').disabled = true;
+    } else if (myFaction) {
+      el('status-bar').innerHTML = `<span class="waiting">⏳ 请传令 · 已传令: ${submitted.join(', ') || '无'}</span>`;
+      el('submit-btn').disabled = false;
+    } else {
+      el('status-bar').innerHTML = '<span class="waiting">👁 观战中...</span>';
+      el('submit-btn').disabled = true;
+    }
+  } else if (phase === 'resolving') {
+    el('status-bar').innerHTML = '<span class="waiting">⚙ 季度推演中...</span>';
+    el('submit-btn').disabled = true;
+  }
+
+  if (s.narrative) {
+    el('narrative').innerHTML = s.narrative.replace(/\n/g, '<br>');
+  }
+  if (s.npc_actions && s.npc_actions.length > 0) {
+    el('npc-actions').innerHTML = '<b>天下动向:</b><br>' + s.npc_actions.map(a => '· ' + a).join('<br>');
+  }
+}
+
+// ── Submit Decision ─────────────
+async function doDecide() {
+  const decision = el('decision-input').value.trim();
+  if (!decision || !myFaction) return;
+  el('submit-btn').disabled = true;
+  const r = await api('POST', `/api/rooms/${roomId}/decide`, {
+    faction_id: myFaction, user_id: myUserId, decision: decision
+  });
+  if (r.ok) {
+    el('decision-input').value = '';
+    setTimeout(refreshGame, 500);  // refresh after submit
+  } else {
+    alert(r.error);
+    el('submit-btn').disabled = false;
+  }
+}
+</script>
+</body>
+</html>

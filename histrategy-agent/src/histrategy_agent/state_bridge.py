@@ -156,10 +156,7 @@ class StateBridge:
             return {"success": False, "result": None, "message": "请指定移动目标"}
 
         # Respect explicit army_id, otherwise find best
-        if army_id:
-            army = self._find_army(faction_id, army_id)
-        else:
-            army = self._find_best_army_for_target(faction_id, target)
+        army = self._find_army(faction_id, army_id) if army_id else self._find_best_army_for_target(faction_id, target)
         if not army:
             return {"success": False, "result": None, "message": "没有找到可移动的军队"}
 
@@ -174,7 +171,7 @@ class StateBridge:
 
     def _execute_attack(self, faction_id: str, params: dict) -> dict:
         target = params.get("target", "")
-        army_id = params.get("army_id", "")
+        params.get("army_id", "")
 
         if not target:
             return {"success": False, "result": None, "message": "请指定攻击目标"}

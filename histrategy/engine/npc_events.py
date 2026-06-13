@@ -71,7 +71,7 @@ def process_npc_drastic_events(state: WorldState) -> dict:
                 player_changes["treasury"] -= lost_gold
                 player_changes["morale"] -= 10
 
-                evt_msg = f"【叛逃变故】谋臣 {char_name} 怨恨积重难返，率兵卒 {lost_troops} 人，携资金 {lost_gold} 卷，出奔投效了 {target_name}！"
+                evt_msg = f"【叛逃变故】谋臣 {char_name} 怨恨积重难返，率兵卒 {lost_troops} 人，携资金 {lost_gold} 卷，出奔投效了 {target_name}！"  # noqa: E501
                 events_occurred.append(evt_msg)
                 npc_reactions.append(f"{char_name} 携军资投奔 {target_name}，引起三军震动。")
             else:
@@ -86,7 +86,7 @@ def process_npc_drastic_events(state: WorldState) -> dict:
                 player_changes["strength"] -= lost_troops
                 player_changes["morale"] -= 5
 
-                evt_msg = f"【挂印而去】谋臣 {char_name} 留书一封，挂印弃官而去，不知所踪。部分士卒 {lost_troops} 人随其解甲归田。"
+                evt_msg = f"【挂印而去】谋臣 {char_name} 留书一封，挂印弃官而去，不知所踪。部分士卒 {lost_troops} 人随其解甲归田。"  # noqa: E501
                 events_occurred.append(evt_msg)
                 npc_reactions.append(f"{char_name} 弃官而去，主公帐下痛失一员英才。")
 

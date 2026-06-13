@@ -354,7 +354,9 @@ def _game_loop(engine: GameEngine):
             # === WAIT FOR DECISION ===
             _emit(
                 "DECISION",
-                "你的战略决策：\n(自由输入 — 如同真实军师一般下达命令)\n输入 `plan` 重开议事 | `state` 查看状态 | `exit` 退出",
+                "你的战略决策：\n"
+                "(自由输入 — 如同真实军师一般下达命令)\n"
+                "输入 `plan` 重开议事 | `state` 查看状态 | `exit` 退出",
             )
 
             try:

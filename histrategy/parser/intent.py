@@ -227,9 +227,8 @@ class IntentParser:
                 # Extract source territory if another territory is mentioned
                 mentioned = []
                 for name, tid in TERRITORY_NAME_MAP.items():
-                    if len(name) > 1 and name in text:
-                        if tid not in mentioned:
-                            mentioned.append(tid)
+                    if len(name) > 1 and name in text and tid not in mentioned:
+                        mentioned.append(tid)
                 if len(mentioned) > 1:
                     for tid in mentioned:
                         if tid != target:
@@ -259,9 +258,8 @@ class IntentParser:
                 # Extract source territory if another territory is mentioned
                 mentioned = []
                 for name, tid in TERRITORY_NAME_MAP.items():
-                    if len(name) > 1 and name in text:
-                        if tid not in mentioned:
-                            mentioned.append(tid)
+                    if len(name) > 1 and name in text and tid not in mentioned:
+                        mentioned.append(tid)
                 if len(mentioned) > 1:
                     for tid in mentioned:
                         if tid != dest:

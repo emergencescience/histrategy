@@ -796,9 +796,7 @@ class TestLLMContext:
         events = rag.retrieve(208, deviation=0.0, max_events=5)
         context = rag.build_llm_context(events)
         # At least one event should have participants listed
-        found = any(
-            "参与人物" in ctx_line for ctx_line in context.split("\n") if "参与人物" in ctx_line
-        )
+        any("参与人物" in ctx_line for ctx_line in context.split("\n") if "参与人物" in ctx_line)
         # Actually check "参与" list
         assert "参与人物" in context
 
@@ -831,7 +829,7 @@ class TestHistoryRAGIntegration:
         for year in range(207, 224):
             season = Season.WINTER
             proposals = hist_engine.check_events(year, season, world_state, deviation=0.0)
-            rag_events = rag.retrieve(year, deviation=0.0, max_events=3)
+            rag.retrieve(year, deviation=0.0, max_events=3)
 
             for p in proposals:
                 log.append(f"{year}: {p.title}")
