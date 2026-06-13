@@ -100,8 +100,9 @@ CREATE TABLE IF NOT EXISTS room_player (
     id              TEXT PRIMARY KEY,
     room_id         TEXT NOT NULL REFERENCES game_room(id),
     user_id         TEXT NOT NULL,
-    role            TEXT DEFAULT 'player',       -- host | player | spectator
+    role            TEXT DEFAULT 'player',
     display_name    TEXT DEFAULT '',
+    player_token    TEXT DEFAULT '',
     joined_at       TEXT DEFAULT (datetime('now')),
     UNIQUE(room_id, user_id)
 );

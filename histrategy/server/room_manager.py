@@ -213,7 +213,9 @@ def enter_room(
 
     # 新玩家
     role = "player"
-    player_token = uuid.uuid4().hex
+    # 保留调用者传入的 player_token（预分配模式），否则生成新的
+    if not player_token:
+        player_token = uuid.uuid4().hex
     _enter_player(room_id, user_id, role, display_name or ("玩家_" + user_id[-4:]), player_token)
 
     result = {
@@ -510,6 +512,8 @@ def _get_room(room_id: str) -> GameRoom | None:
         room = load_room(room_id)
         if room:
             _rooms[room_id] = room
+            # 从 DB 恢复玩家注册（支持服务器重启后重新连接）
+            _restore_players_from_db(room_id)
             # 从 DB 恢复的房间如果处于 WAITING 阶段且有 AI NPC，
             # 需要立即触发 NPC 决策生成（from_dict 会清空 pending_decision）
             if room.phase.value == "waiting" and any(s.is_ai() and s.is_active for s in room.slots.values()):
@@ -529,19 +533,60 @@ def _enter_player(room_id: str, user_id: str, role: str, display_name: str, play
         "display_name": display_name,
         "player_token": player_token,
     }
-    _save_player_to_db(room_id, user_id, role, display_name)
+    _save_player_to_db(room_id, user_id, role, display_name, player_token)
 
 
-def _save_player_to_db(room_id: str, user_id: str, role: str, display_name: str):
+def _save_player_to_db(room_id: str, user_id: str, role: str, display_name: str, player_token: str = ""):
     try:
         from histrategy.db.connection import execute_write
 
         pid = f"{room_id}_{user_id}"
-        execute_write(
-            """INSERT OR REPLACE INTO room_player (id, room_id, user_id, role, display_name)
-            VALUES (?, ?, ?, ?, ?)""",
-            (pid, room_id, user_id, role, display_name),
-        )
+        # 尝试写入 player_token（H13o 新增列），如果列不存在则回退
+        try:
+            execute_write(
+                """INSERT OR REPLACE INTO room_player (id, room_id, user_id, role, display_name, player_token)
+                VALUES (?, ?, ?, ?, ?, ?)""",
+                (pid, room_id, user_id, role, display_name, player_token),
+            )
+        except Exception:
+            # player_token 列可能还不存在（迁移未运行），回退到 5 列版本
+            execute_write(
+                """INSERT OR REPLACE INTO room_player (id, room_id, user_id, role, display_name)
+                VALUES (?, ?, ?, ?, ?)""",
+                (pid, room_id, user_id, role, display_name),
+            )
+    except Exception:
+        pass
+
+
+def _restore_players_from_db(room_id: str):
+    """从 room_player 表恢复玩家注册信息到内存（服务器重启后）。"""
+    try:
+        from histrategy.db.connection import execute
+
+        # 先尝试读取包含 player_token 列（H13o+），失败则回退
+        try:
+            rows = execute(
+                "SELECT user_id, role, display_name, player_token FROM room_player WHERE room_id = ?",
+                (room_id,),
+            )
+        except Exception:
+            rows = execute(
+                "SELECT user_id, role, display_name FROM room_player WHERE room_id = ?",
+                (room_id,),
+            )
+        if rows:
+            if room_id not in _players:
+                _players[room_id] = {}
+            for row in rows:
+                uid = row["user_id"]
+                if uid not in _players[room_id]:
+                    _players[room_id][uid] = {
+                        "role": row["role"],
+                        "display_name": row["display_name"] or "",
+                        "player_token": row.get("player_token", "") or "",
+                    }
+            logger.info(f"Restored {len(rows)} players for room {room_id} from DB")
     except Exception:
         pass
 

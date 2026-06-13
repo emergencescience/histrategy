@@ -97,10 +97,21 @@ def init_db():
         schema = _load_schema()
         if _IS_SQLITE:
             conn.executescript(schema)
+            # 迁移：为现有数据库添加 player_token 列（H13o）
+            try:
+                conn.execute("ALTER TABLE room_player ADD COLUMN player_token TEXT DEFAULT ''")
+                conn.commit()
+            except Exception:
+                pass  # 列已存在（SQLite 不支持 IF NOT EXISTS for ALTER TABLE）
         else:
             # PostgreSQL: execute statements individually
             with conn.cursor() as cur:
                 cur.execute(schema)
+                try:
+                    cur.execute("ALTER TABLE room_player ADD COLUMN IF NOT EXISTS player_token TEXT DEFAULT ''")
+                    conn.commit()
+                except Exception:
+                    pass
         conn.commit()
         _SCHEMA_LOADED = True
         logger.info("Database schema initialized (type=%s)", "sqlite" if _IS_SQLITE else "postgres")
@@ -282,6 +293,7 @@ CREATE TABLE IF NOT EXISTS room_player (
     user_id         TEXT NOT NULL,
     role            TEXT DEFAULT 'player',
     display_name    TEXT DEFAULT '',
+    player_token    TEXT DEFAULT '',
     joined_at       TEXT DEFAULT (datetime('now')),
     UNIQUE(room_id, user_id)
 );
