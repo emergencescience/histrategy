@@ -1010,6 +1010,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             room_id,
             body.get("user_id", ""),
             body.get("display_name", ""),
+            body.get("faction", ""),
         )
 
     @app.post("/api/rooms/{room_id}/pick")

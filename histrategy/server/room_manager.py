@@ -525,12 +525,8 @@ def _resolve_and_advance(room: GameRoom):
     if engine_mode == EngineMode.V1:
         result = _resolve_v1(room, ws, decisions, llm)
     else:
-        # V2/V3 使用现有 QuarterlyResolver
-        from histrategy.engine.quarterly_resolver import QuarterlyResolver
-
-        resolver = QuarterlyResolver(
-            turn_controller=getattr(room, "_turn_controller", None),
-        )
+        # V2/V3: 使用完整初始化的 QuarterlyResolver
+        result = _resolve_v3(room, ws, decisions, llm)
         result = resolver.resolve(room, ws, decisions, llm=llm)
 
     room._last_narratives = result.narratives
@@ -596,6 +592,36 @@ def _resolve_v1(room, ws, decisions, llm):
         state_changes={},
         turn_summary={"quarter": room.quarter_number, "engine": "v1"},
     )
+
+
+def _resolve_v3(room, ws, decisions, llm):
+    """V3 引擎：完整初始化的 QuarterlyResolver。"""
+
+    from histrategy.engine.quarterly_resolver import QuarterlyResolver
+
+    # 创建临时 GameEngine 来获取所有子引擎
+    try:
+        from histrategy.engine.game import GameEngine
+        engine = GameEngine(scenario=room.scenario, new_game=False, llm=llm)
+        # 将 room 的 world_state 注入
+        engine.world_state_v2 = ws
+        engine._use_v2 = True
+    except Exception as e:
+        logger.warning(f"GameEngine init failed: {e}, using bare QuarterlyResolver")
+        resolver = QuarterlyResolver()
+        return resolver.resolve(room, ws, decisions, llm=llm)
+
+    resolver = QuarterlyResolver(
+        intent_parser=getattr(engine, "_macro_parser", None),
+        turn_controller=getattr(engine, "turn_controller", None),
+        history_engine=getattr(engine, "history_engine", None),
+        macro_policy_engine=getattr(engine, "_macro_sim", None),
+        narrative_engine=getattr(engine, "narrative_engine", None),
+        black_swan_injector=getattr(engine, "_black_swan", None),
+        guardrail_validator=getattr(engine, "guardrail_validator", None),
+        state_applier=getattr(engine, "state_applier", None),
+    )
+    return resolver.resolve(room, ws, decisions, llm=llm)
 
 
 def _get_llm():
