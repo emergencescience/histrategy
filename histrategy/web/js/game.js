@@ -154,10 +154,22 @@ const Game = {
     const ws = result.world_state;
     if (!ws || !ws.player_faction_id) return;
     
+    let seasonVal = ws.season_cn || ws.season || '?';
+    if (typeof seasonVal === 'object' && seasonVal !== null) {
+      seasonVal = seasonVal.cn || seasonVal.name || '?';
+    }
+    const seasonMap = {
+      'SPRING': '春', 'SUMMER': '夏', 'AUTUMN': '秋', 'WINTER': '冬',
+      'spring': '春', 'summer': '夏', 'autumn': '秋', 'winter': '冬'
+    };
+    if (seasonMap[seasonVal]) {
+      seasonVal = seasonMap[seasonVal];
+    }
+
     const pf = ws.factions && ws.factions[ws.player_faction_id];
     const status = {
       year: ws.year || 207,
-      season: ws.season_cn || ws.season || '?',
+      season: seasonVal,
       treasury: pf ? pf.treasury : 0,
       food: pf ? pf.food : 0,
       morale: pf ? (pf.morale_actual || 0) : 0,

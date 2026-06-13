@@ -8,27 +8,25 @@ Covers:
 - BlackSwanInjector (integration)
 """
 
-import json
-import math
 import pytest
 
-from histrategy.policy.policy_types import (
-    PolicyCommand,
-    POLICY_COMMAND_TYPES,
-    validate_policy_params,
+from histrategy.engine.knowledge_layer import (
+    BUILTIN_CARDS,
+    KnowledgeBase,
+    KnowledgeCard,
 )
-from histrategy.policy.policy_parser import PolicyParser
-from histrategy.policy.policy_validator import PolicyValidator
 from histrategy.engine.quarterly_engine import (
+    EconomyParams,
     QuarterlyEngine,
     QuarterResult,
-    EconomyParams,
 )
-from histrategy.engine.knowledge_layer import (
-    KnowledgeCard,
-    KnowledgeBase,
-    BUILTIN_CARDS,
+from histrategy.policy.policy_parser import PolicyParser
+from histrategy.policy.policy_types import (
+    POLICY_COMMAND_TYPES,
+    PolicyCommand,
+    validate_policy_params,
 )
+from histrategy.policy.policy_validator import PolicyValidator
 
 # ─── Fixtures ──────────────────────────────────────────────────
 
@@ -37,8 +35,12 @@ from histrategy.engine.knowledge_layer import (
 def world_state():
     """Create a minimal WorldState for testing."""
     from histrategy_engine.world import (
-        WorldState, FactionState, Territory,
-        Character, Army, Season,
+        Army,
+        Character,
+        FactionState,
+        Season,
+        Territory,
+        WorldState,
     )
 
     ws = WorldState(

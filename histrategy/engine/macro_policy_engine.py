@@ -7,7 +7,7 @@ historical events: battle results, diplomatic reactions, black swan
 events, and narrative seeds.
 
 Input: WorldState + PolicyCommands + deterministic QuarterResult
-Output: Structured delta with battle outcomes, morale events, 
+Output: Structured delta with battle outcomes, morale events,
         political events, NPC actions, butterfly effects,
         knowledge cards, and narrative seeds.
 """
@@ -22,8 +22,8 @@ from histrategy.llm.prompt_loader import load_prompt
 if TYPE_CHECKING:
     from histrategy_engine.world import WorldState
 
-    from histrategy.llm.adapter import LLMAdapter
     from histrategy.engine.quarterly_engine import QuarterResult
+    from histrategy.llm.adapter import LLMAdapter
 
 MACRO_SIM_SYSTEM = load_prompt(
     "macro_simulator.md",

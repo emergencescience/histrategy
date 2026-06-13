@@ -11,6 +11,7 @@ Falls back to v1 when histrategy-engine is not importable.
 
 from __future__ import annotations
 
+import contextlib
 import os
 from typing import TYPE_CHECKING
 
@@ -408,12 +409,12 @@ class GameEngine:
         # ── macro: quarterly policy engine ──
         self._turn_summaries: list[dict] = []  # recent turn summaries for LLM context
         if self._use_macro and self.llm and self.llm.is_available:
-            from ..policy.policy_parser import PolicyParser
-            from ..policy.policy_validator import PolicyValidator
-            from ..engine.quarterly_engine import QuarterlyEngine
-            from ..engine.macro_policy_engine import MacroPolicyEngine
             from ..engine.black_swan import BlackSwanInjector
             from ..engine.knowledge_layer import KnowledgeBase
+            from ..engine.macro_policy_engine import MacroPolicyEngine
+            from ..engine.quarterly_engine import QuarterlyEngine
+            from ..policy.policy_parser import PolicyParser
+            from ..policy.policy_validator import PolicyValidator
 
             # PolicyParser uses the default LLM
             self._macro_parser = PolicyParser(self.llm)
@@ -755,16 +756,18 @@ class GameEngine:
         engine._knowledge_base = None
         if engine._use_macro and llm and llm.is_available:
             try:
-                from ..policy.policy_parser import PolicyParser
-                from ..policy.policy_validator import PolicyValidator
-                from ..engine.quarterly_engine import QuarterlyEngine
-                from ..engine.macro_policy_engine import MacroPolicyEngine
                 from ..engine.black_swan import BlackSwanInjector
                 from ..engine.knowledge_layer import KnowledgeBase
+                from ..engine.macro_policy_engine import MacroPolicyEngine
+                from ..engine.quarterly_engine import QuarterlyEngine
+                from ..policy.policy_parser import PolicyParser
+                from ..policy.policy_validator import PolicyValidator
 
                 macro_model = os.environ.get("HISTRATEGY_MACRO_MODEL", "deepseek-chat")
                 try:
-                    macro_llm = __import__("histrategy.llm.adapter", fromlist=["LLMAdapter"]).LLMAdapter(model=macro_model)
+                    macro_llm = __import__(
+                        "histrategy.llm.adapter", fromlist=["LLMAdapter"]
+                    ).LLMAdapter(model=macro_model)
                 except Exception:
                     macro_llm = llm
 
@@ -1175,7 +1178,8 @@ class GameEngine:
         self._debug_session_id = session_id
         self._debug_jwt = jwt_token
         import logging
-        logging.getLogger("histrategy").info(f"Debug context set: session={session_id[:12] if len(session_id)>12 else session_id}...")
+        short_sid = session_id[:12] if len(session_id) > 12 else session_id
+        logging.getLogger("histrategy").info(f"Debug context set: session={short_sid}...")
 
     def _process_turn_v2(self, player_decision: str) -> dict:
         """v2 turn processing pipeline."""
@@ -1490,10 +1494,7 @@ class GameEngine:
         if self.world_simulator and self.world_simulator.llm_available:
             # Track v3 LLM tokens for usage reporting
             v3_llm = getattr(self.world_simulator, "llm", None)
-            if v3_llm and hasattr(v3_llm, "total_all_tokens"):
-                _v3_pre = v3_llm.total_all_tokens
-            else:
-                _v3_pre = 0
+            _v3_pre = v3_llm.total_all_tokens if v3_llm and hasattr(v3_llm, "total_all_tokens") else 0
 
             llm_delta = self.world_simulator.simulate(
                 ws, player_commands, player_decision,
@@ -1622,10 +1623,13 @@ class GameEngine:
             ]
             # Resource summary
             if player:
-                food_delta = player.food - state_snapshot.get("food", player.food)
-                treasury_delta = player.treasury - state_snapshot.get("treasury", player.treasury)
-                header_lines.append(f"**{player.name}** | 兵力{player.strength_actual:,} | "
-                                    f"资金{player.treasury:,} | 粮草{player.food:,} | 民心{getattr(player, 'morale_actual', '?')}")
+                player.food - state_snapshot.get("food", player.food)
+                player.treasury - state_snapshot.get("treasury", player.treasury)
+                header_lines.append(
+                    f"**{player.name}** | 兵力{player.strength_actual:,} | "
+                    f"资金{player.treasury:,} | 粮草{player.food:,} | "
+                    f"民心{getattr(player, 'morale_actual', '?')}"
+                )
                 header_lines.append("")
 
             # v3 narrative seeds as the main body
@@ -1791,7 +1795,9 @@ class GameEngine:
                 "player_decision": player_decision[:200],
             })
             import logging
-            logging.getLogger("histrategy").info(f"Debug log initialized for session={_session_id[:12]}... turn={ws.turn_number+1}")
+            logging.getLogger("histrategy").info(
+                f"Debug log initialized for session={_session_id[:12]}... turn={ws.turn_number + 1}"
+            )
 
         # Step 1: Parse player policy
         policy_commands = []
@@ -1895,43 +1901,51 @@ class GameEngine:
                             absorbed = int(old_faction.strength_actual * 0.2 / max(len(old_faction.territories), 1))
                             if absorbed > 0:
                                 old_faction.strength_actual -= absorbed
-                                ws.factions[att].strength_actual = getattr(ws.factions[att], "strength_actual", 0) + absorbed
+                                ws.factions[att].strength_actual = (
+                                    getattr(ws.factions[att], "strength_actual", 0) + absorbed
+                                )
             # Auto-surrender: factions with morale < 15 and ≤ 1 territory
             for fid, f in list(ws.factions.items()):
                 if fid == ws.player_faction_id:
                     continue
-                if getattr(f, "is_active", True) and getattr(f, "morale_actual", 50) < 15:
-                    if len(f.territories) <= 1:
-                        f.is_active = False
-                        # Transfer last territory to nearest neighbor
-                        if f.territories:
-                            last_t = f.territories[0]
-                            neighbors = getattr(ws.territories[last_t], "neighbors", [])
-                            for nid in neighbors:
-                                if nid in ws.territories:
-                                    n_owner = ws.territories[nid].owner_id
-                                    if n_owner in ws.factions and getattr(ws.factions[n_owner], "is_active", True):
-                                        ws.territories[last_t].owner_id = n_owner
-                                        if last_t not in ws.factions[n_owner].territories:
-                                            ws.factions[n_owner].territories.append(last_t)
-                                        break
+                if (
+                    getattr(f, "is_active", True)
+                    and getattr(f, "morale_actual", 50) < 15
+                    and len(f.territories) <= 1
+                ):
+                    f.is_active = False
+                    # Transfer last territory to nearest neighbor
+                    if f.territories:
+                        last_t = f.territories[0]
+                        neighbors = getattr(ws.territories[last_t], "neighbors", [])
+                        for nid in neighbors:
+                            if nid in ws.territories:
+                                n_owner = ws.territories[nid].owner_id
+                                if n_owner in ws.factions and getattr(ws.factions[n_owner], "is_active", True):
+                                    ws.territories[last_t].owner_id = n_owner
+                                    if last_t not in ws.factions[n_owner].territories:
+                                        ws.factions[n_owner].territories.append(last_t)
+                                    break
             for br in llm_delta.get("battle_results", []):
                 if not br.get("territory_captured") and br.get("defender_faction"):
                     # Handle "defeated" factions — mark inactive
                     def_raw = br.get("defender_faction", "") or br.get("defender", "")
                     def_id = faction_id_map.get(def_raw, def_raw)
-                    if def_id in ws.factions and def_id != ws.player_faction_id:
-                        if br.get("result") in ("attack_win", "rout") or br.get("is_total_defeat"):
-                            ws.factions[def_id].is_active = False
-                            # Transfer remaining territories to victor
-                            att_raw = br.get("attacker", "")
-                            att = faction_id_map.get(att_raw, att_raw)
-                            if att in ws.factions:
-                                for t_loc in list(ws.factions[def_id].territories):
-                                    ws.territories[t_loc].owner_id = att
-                                    ws.factions[def_id].territories.remove(t_loc)
-                                    if t_loc not in ws.factions[att].territories:
-                                        ws.factions[att].territories.append(t_loc)
+                    if (
+                        def_id in ws.factions
+                        and def_id != ws.player_faction_id
+                        and (br.get("result") in ("attack_win", "rout") or br.get("is_total_defeat"))
+                    ):
+                        ws.factions[def_id].is_active = False
+                        # Transfer remaining territories to victor
+                        att_raw = br.get("attacker", "")
+                        att = faction_id_map.get(att_raw, att_raw)
+                        if att in ws.factions:
+                            for t_loc in list(ws.factions[def_id].territories):
+                                ws.territories[t_loc].owner_id = att
+                                ws.factions[def_id].territories.remove(t_loc)
+                                if t_loc not in ws.factions[att].territories:
+                                    ws.factions[att].territories.append(t_loc)
 
         # Step 6.5: Apply NPC faction independent actions
         if llm_delta:
@@ -2017,10 +2031,8 @@ class GameEngine:
                 FIRST_TURN_SUGGESTIONS["cao"],
             )
         elif self.narrative_engine and self.narrative_engine.is_available:
-            try:
+            with contextlib.suppress(Exception):
                 new_choices = self.narrative_engine.generate_plan_suggestions(ws, ws.player_faction_id)
-            except Exception:
-                pass
 
         # Step 8: Aftermath (from actual faction state, not stale baseline)
         pf = ws.factions.get(ws.player_faction_id)
@@ -2128,8 +2140,9 @@ class GameEngine:
         summary_text = "; ".join(narrative_seeds[:2]) if narrative_seeds else narrative_text[:200]
         if not hasattr(self, '_turn_summaries'):
             self._turn_summaries = []
+        season_val = ws.season.cn if hasattr(ws.season, "cn") else ws.season
         self._turn_summaries.append({
-            "outcome_summary": f"[{ws.year}年{ws.season.cn if hasattr(ws.season, 'cn') else ws.season}] {player_decision[:80]} → {summary_text[:150]}",
+            "outcome_summary": f"[{ws.year}年{season_val}] {player_decision[:80]} → {summary_text[:150]}",
             "turn": ws.turn_number,
         })
         # Keep only last 8 turns to bound context growth
@@ -2264,7 +2277,11 @@ class GameEngine:
                 "factions": faction_data,
                 "player_decision": getattr(self, "_last_player_decision", ""),
                 "player_commands": [
-                    {"type": getattr(c, "type", ""), "params": getattr(c, "params", {}), "notes": getattr(c, "notes", "")}
+                    {
+                        "type": getattr(c, "type", ""),
+                        "params": getattr(c, "params", {}),
+                        "notes": getattr(c, "notes", ""),
+                    }
                     for c in getattr(self, "_last_player_commands", [])
                 ],
             }

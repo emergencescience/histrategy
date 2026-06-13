@@ -39,7 +39,7 @@ class KnowledgeCard:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "KnowledgeCard":
+    def from_dict(cls, data: dict) -> KnowledgeCard:
         return cls(
             topic=data.get("topic", ""),
             trigger_event=data.get("trigger_event", ""),
