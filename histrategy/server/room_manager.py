@@ -730,23 +730,36 @@ def _resolve_v3(room, ws, decisions, llm):
 
     from histrategy.engine.quarterly_resolver import QuarterlyResolver
 
+    # ── 先捕获旧状态（用于 turn_delta 计算）──
+    old_state = {}
+    for fid in ws.factions:
+        faction = ws.factions[fid]
+        old_state[fid] = {
+            "population": getattr(faction, "population", 0),
+            "troops": getattr(faction, "strength_actual", 0),
+            "food": faction.food,
+            "treasury": faction.treasury,
+            "morale": getattr(faction, "morale_actual", 50),
+        }
+
     # 创建临时 GameEngine 来获取所有子引擎
     try:
         import os
-        os.environ.setdefault("HISTRATEGY_MACRO", "1")  # 确保 MacroPolicyEngine 初始化
+        os.environ.setdefault("HISTRATEGY_MACRO", "1")
         from histrategy.engine.game import GameEngine
         engine = GameEngine(scenario=room.scenario, new_game=True, llm=llm)
-        # 将 room 的 world_state 注入（覆盖新创建的世界）
         engine.world_state_v2 = ws
         engine._use_v2 = True
-        # 设定玩家 faction（任意一个人类 faction 即可，QuarterlyResolver 需要）
         for slot in room.human_slots():
             engine.set_player_faction(slot.faction_id)
             break
     except Exception as e:
         logger.warning(f"GameEngine init failed: {e}, using bare QuarterlyResolver")
         resolver = QuarterlyResolver()
-        return resolver.resolve(room, ws, decisions, llm=llm)
+        result = resolver.resolve(room, ws, decisions, llm=llm)
+        # Still save state to DB
+        _save_v3_state_to_db(room, ws, decisions, result, old_state)
+        return result
 
     resolver = QuarterlyResolver(
         intent_parser=getattr(engine, "_macro_parser", None),
@@ -758,7 +771,69 @@ def _resolve_v3(room, ws, decisions, llm):
         guardrail_validator=getattr(engine, "guardrail_validator", None),
         state_applier=getattr(engine, "state_applier", None),
     )
-    return resolver.resolve(room, ws, decisions, llm=llm)
+    result = resolver.resolve(room, ws, decisions, llm=llm)
+    _save_v3_state_to_db(room, ws, decisions, result, old_state)
+    return result
+
+
+def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
+    """将 V3 仿真结果写入 game_state + turn_delta 表。"""
+    try:
+        from histrategy.db.models import save_game_state, save_turn_delta
+
+        for fid, faction in ws.factions.items():
+            if not faction.is_active:
+                continue
+
+            # 城池列表
+            territories_list = []
+            for tid in faction.territories:
+                t = ws.territories.get(tid)
+                territories_list.append(
+                    {"id": tid, "name": t.name if t else tid}
+                )
+
+            # 写入 game_state
+            save_game_state(
+                room_id=room.id,
+                quarter_number=room.quarter_number,
+                faction_id=fid,
+                population=getattr(faction, "population", 0),
+                troops=getattr(faction, "strength_actual", 0),
+                food=faction.food,
+                treasury=faction.treasury,
+                morale=getattr(faction, "morale_actual", 50),
+                territories=territories_list,
+                policies=getattr(faction, "policies", {}),
+                is_active=faction.is_active,
+            )
+
+            # 写入 turn_delta（五项）
+            if fid not in old_state:
+                continue
+            old = old_state[fid]
+            delta_map = [
+                ("population", old.get("population", 0), getattr(faction, "population", 0)),
+                ("troops", old.get("troops", 0), getattr(faction, "strength_actual", 0)),
+                ("food", old.get("food", 0), faction.food),
+                ("treasury", old.get("treasury", 0), faction.treasury),
+                ("morale", old.get("morale", 50), getattr(faction, "morale_actual", 50)),
+            ]
+            for delta_type, old_val, new_val in delta_map:
+                if old_val == new_val:
+                    continue
+                save_turn_delta(
+                    room_id=room.id,
+                    quarter_number=room.quarter_number,
+                    faction_id=fid,
+                    delta_type=delta_type,
+                    old_value=old_val,
+                    new_value=new_val,
+                    reason="V3 hybrid simulation",
+                    source="llm",
+                )
+    except Exception as e:
+        logger.warning(f"V3 DB save failed (non-fatal): {e}")
 
 
 def _get_llm():
