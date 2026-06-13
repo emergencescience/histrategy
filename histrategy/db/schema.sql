@@ -17,8 +17,8 @@ CREATE TABLE IF NOT EXISTS game_room (
     slots           TEXT,                      -- JSON: [FactionSlot, ...]
     decision_timeout INTEGER DEFAULT 300,
     turn_summaries  TEXT DEFAULT '[]',         -- JSON: 回合摘要数组
-    created_at      TEXT DEFAULT (datetime('now')),
-    updated_at      TEXT DEFAULT (datetime('now'))
+    created_at      TEXT DEFAULT '',
+    updated_at      TEXT DEFAULT ''
 );
 
 -- ═══════════════════════════════════════════════════════════
@@ -35,8 +35,8 @@ CREATE TABLE IF NOT EXISTS faction_slot (
     pending_decision TEXT,                         -- 本季度已提交决策
     pending_commands TEXT,                         -- JSON: 结构化命令
     is_active       INTEGER DEFAULT 1,
-    created_at      TEXT DEFAULT (datetime('now')),
-    updated_at      TEXT DEFAULT (datetime('now')),
+    created_at      TEXT DEFAULT '',
+    updated_at      TEXT DEFAULT '',
     UNIQUE(room_id, faction_id)
 );
 
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS quarter_turn (
     narratives       TEXT,                     -- JSON: {faction_id: narrative_text}
     state_changes    TEXT,                     -- JSON: {faction_id: {strength, treasury, ...}}
     token_usage      TEXT,                     -- JSON: {call_type: tokens}
-    created_at       TEXT DEFAULT (datetime('now'))
+    created_at       TEXT DEFAULT ''
 );
 
 -- ═══════════════════════════════════════════════════════════
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS llm_call_log (
     user_prompt     TEXT,                      -- 用户 prompt（不含 system prompt 全文）
     response        TEXT,                      -- LLM 响应
     error           TEXT,
-    created_at      TEXT DEFAULT (datetime('now'))
+    created_at      TEXT DEFAULT ''
 );
 
 -- ═══════════════════════════════════════════════════════════
@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS simulation_event_log (
     quarter_number  INTEGER DEFAULT 0,
     event_type      TEXT NOT NULL,              -- black_swan | baseline | policy_cmd | state_mutation
     event_data      TEXT,                      -- JSON
-    created_at      TEXT DEFAULT (datetime('now'))
+    created_at      TEXT DEFAULT ''
 );
 
 -- ═══════════════════════════════════════════════════════════
@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS room_player (
     role            TEXT DEFAULT 'player',
     display_name    TEXT DEFAULT '',
     player_token    TEXT DEFAULT '',
-    joined_at       TEXT DEFAULT (datetime('now')),
+    joined_at       TEXT DEFAULT '',
     UNIQUE(room_id, user_id)
 );
 
@@ -132,7 +132,7 @@ CREATE TABLE IF NOT EXISTS game_state (
     -- 非数值状态（政策/科技树 — JSON blob）
     policies        TEXT DEFAULT '{}',
     is_active       INTEGER DEFAULT 1,
-    created_at      TEXT DEFAULT (datetime('now')),
+    created_at      TEXT DEFAULT '',
     UNIQUE(room_id, quarter_number, faction_id)
 );
 
@@ -150,7 +150,7 @@ CREATE TABLE IF NOT EXISTS turn_delta (
     delta           REAL,
     reason          TEXT,           -- 变化原因（如 "屯田制+5%", "战争伤亡-2000"）
     source          TEXT DEFAULT 'deterministic',  -- 'deterministic' | 'llm' | 'black_swan'
-    created_at      TEXT DEFAULT (datetime('now'))
+    created_at      TEXT DEFAULT ''
 );
 
 -- ═══════════════════════════════════════════════════════════
@@ -166,7 +166,7 @@ CREATE TABLE IF NOT EXISTS policy_state (
     policy_level    INTEGER DEFAULT 1,
     params          TEXT DEFAULT '{}',
     status          TEXT DEFAULT 'active',
-    activated_at    TEXT DEFAULT (datetime('now')),
+    activated_at    TEXT DEFAULT '',
     revoked_at      TEXT,
     UNIQUE(room_id, faction_id, policy_name, status)
 );

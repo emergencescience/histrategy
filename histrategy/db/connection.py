@@ -223,8 +223,8 @@ CREATE TABLE IF NOT EXISTS game_room (
     slots           TEXT,
     decision_timeout INTEGER DEFAULT 300,
     turn_summaries  TEXT DEFAULT '[]',
-    created_at      TEXT DEFAULT (datetime('now')),
-    updated_at      TEXT DEFAULT (datetime('now'))
+    created_at      TEXT DEFAULT '',
+    updated_at      TEXT DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS faction_slot (
@@ -238,8 +238,8 @@ CREATE TABLE IF NOT EXISTS faction_slot (
     pending_decision TEXT,
     pending_commands TEXT,
     is_active       INTEGER DEFAULT 1,
-    created_at      TEXT DEFAULT (datetime('now')),
-    updated_at      TEXT DEFAULT (datetime('now')),
+    created_at      TEXT DEFAULT '',
+    updated_at      TEXT DEFAULT '',
     UNIQUE(room_id, faction_id)
 );
 
@@ -255,7 +255,7 @@ CREATE TABLE IF NOT EXISTS quarter_turn (
     narratives       TEXT,
     state_changes    TEXT,
     token_usage      TEXT,
-    created_at       TEXT DEFAULT (datetime('now'))
+    created_at       TEXT DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS llm_call_log (
@@ -275,7 +275,7 @@ CREATE TABLE IF NOT EXISTS llm_call_log (
     user_prompt     TEXT,
     response        TEXT,
     error           TEXT,
-    created_at      TEXT DEFAULT (datetime('now'))
+    created_at      TEXT DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS simulation_event_log (
@@ -284,7 +284,7 @@ CREATE TABLE IF NOT EXISTS simulation_event_log (
     quarter_number  INTEGER DEFAULT 0,
     event_type      TEXT NOT NULL,
     event_data      TEXT,
-    created_at      TEXT DEFAULT (datetime('now'))
+    created_at      TEXT DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS room_player (
@@ -294,7 +294,7 @@ CREATE TABLE IF NOT EXISTS room_player (
     role            TEXT DEFAULT 'player',
     display_name    TEXT DEFAULT '',
     player_token    TEXT DEFAULT '',
-    joined_at       TEXT DEFAULT (datetime('now')),
+    joined_at       TEXT DEFAULT '',
     UNIQUE(room_id, user_id)
 );
 
@@ -317,7 +317,7 @@ CREATE TABLE IF NOT EXISTS game_state (
     policies        TEXT DEFAULT '{}',
     -- 额外元数据
     is_active       INTEGER DEFAULT 1,
-    created_at      TEXT DEFAULT (datetime('now')),
+    created_at      TEXT DEFAULT '',
     UNIQUE(room_id, quarter_number, faction_id)
 );
 
@@ -333,7 +333,7 @@ CREATE TABLE IF NOT EXISTS turn_delta (
     delta           REAL,
     reason          TEXT,           -- 变化原因（如 "屯田制+5%", "战争伤亡-2000", "征税+1500"）
     source          TEXT DEFAULT 'deterministic',  -- 'deterministic' | 'llm' | 'black_swan'
-    created_at      TEXT DEFAULT (datetime('now'))
+    created_at      TEXT DEFAULT ''
 );
 
 -- 策略/科技状态表：存储每个势力的政策法令和科技树进展
@@ -348,7 +348,7 @@ CREATE TABLE IF NOT EXISTS policy_state (
     policy_level    INTEGER DEFAULT 1, -- 政策等级（科技树层级）
     params          TEXT DEFAULT '{}', -- 政策参数（JSON）
     status          TEXT DEFAULT 'active', -- 'active' | 'revoked' | 'expired'
-    activated_at    TEXT DEFAULT (datetime('now')),
+    activated_at    TEXT DEFAULT '',
     revoked_at      TEXT,
     UNIQUE(room_id, faction_id, policy_name, status)
 );
