@@ -100,6 +100,17 @@ FACTION_CONFIGS = {
 }
 
 NPC_FACTION_CONFIGS = {
+    "cao": {
+        "name": "曹操",
+        "ruler": "caocao",
+        "capital": "xuchang",
+        "territories": ["xuchang", "luoyang", "yecheng", "changan"],
+        "strength": 80000,
+        "economy": 75,
+        "morale": 75,
+        "treasury": 20000,
+        "food": 15000,
+    },
     "liubiao": {
         "name": "刘表",
         "ruler": "liubiao",
@@ -143,6 +154,28 @@ NPC_FACTION_CONFIGS = {
         "morale": 75,
         "treasury": 6000,
         "food": 5000,
+    },
+    "shu": {
+        "name": "刘备",
+        "ruler": "liubei",
+        "capital": "xinye",
+        "territories": ["xinye"],
+        "strength": 8000,
+        "economy": 30,
+        "morale": 85,
+        "treasury": 3000,
+        "food": 3000,
+    },
+    "wu": {
+        "name": "孙权",
+        "ruler": "sunquan",
+        "capital": "jianye",
+        "territories": ["jianye", "wujun", "kuaiji", "lujiang"],
+        "strength": 50000,
+        "economy": 60,
+        "morale": 80,
+        "treasury": 12000,
+        "food": 10000,
     },
 }
 
@@ -193,23 +226,13 @@ def create_initial_world(player_faction_id: str) -> WorldState:
 
     for fid, fc in NPC_FACTION_CONFIGS.items():
         # Skip the NPC that matches the player's faction
-        skip = False
-        if (
-            player_faction_id == "cao"
-            and fid == "caocao"
-            or player_faction_id == "shu"
-            and fid == "liubei"
-            or player_faction_id == "wu"
-            and fid == "sunquan"
-        ):
-            skip = True
-
-        if not skip:
-            state.factions[fid] = FactionState(
-                id=fid,
-                **{k: v for k, v in fc.items() if k != "ruler"},
-                ruler_id=fc["ruler"],
-            )
+        if fid == player_faction_id:
+            continue
+        state.factions[fid] = FactionState(
+            id=fid,
+            **{k: v for k, v in fc.items() if k != "ruler"},
+            ruler_id=fc["ruler"],
+        )
 
     save_world(state)
     return state
