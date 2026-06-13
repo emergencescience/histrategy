@@ -24,6 +24,7 @@ def _find_free_port() -> int:
 def _start_server_thread(host: str, port: int, data_dir: str, api_key: str):
     """Start the histrategy server in a daemon thread (same process)."""
     os.environ["DEEPSEEK_API_KEY"] = api_key
+    os.environ["LLM_MODEL"] = "deepseek-v4-flash"  # fast model for tests
     os.environ["HISTRATEGY_DATA_DIR"] = data_dir
     os.environ["HISTRATEGY_ENGINE"] = "v1"
 
