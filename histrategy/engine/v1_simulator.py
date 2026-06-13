@@ -280,7 +280,13 @@ def save_v1_state_to_db(
     try:
         from histrategy.db.models import save_game_state, save_policy_state, save_turn_delta
 
-        for fid, data in v1_result.get("factions", {}).items():
+        factions_data = v1_result.get("factions", {})
+        logger.info(
+            "save_v1_state_to_db: room=%s q=%d factions_in_result=%d keys=%s",
+            room_id, quarter_number, len(factions_data), list(factions_data.keys())[:10],
+        )
+
+        for fid, data in factions_data.items():
             faction = ws.factions.get(fid)
             if not faction:
                 continue
