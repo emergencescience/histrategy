@@ -315,8 +315,19 @@ def submit_decision(room_id: str, faction_id: str, user_id: str, decision: str) 
     if not room:
         return {"ok": False, "error": "房间不存在"}
 
+    # 自动修复：如果 room 有 world_state 但 phase 还是 lobby，说明 create 时的保存没生效
+    from histrategy.engine.game_room import RoomPhase
+    if room.phase == RoomPhase.LOBBY and room.world_state is not None:
+        logger.warning(f"Room {room_id} has world_state but phase=lobby — auto-advancing to WAITING")
+        room.phase = RoomPhase.WAITING
+        _try_save(room)
+
     if room.phase.value != "waiting":
         return {"ok": False, "error": f"当前阶段 {room.phase.value} 不能提交决策"}
+
+    # 翻译显示名 → 内部 ID
+    from histrategy.engine.faction_slot import FACTION_DISPLAY_TO_ID
+    faction_id = FACTION_DISPLAY_TO_ID.get(faction_id, faction_id)
 
     if faction_id not in room.slots:
         return {"ok": False, "error": f"势力 {faction_id} 不存在"}

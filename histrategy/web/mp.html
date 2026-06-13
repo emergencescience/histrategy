@@ -109,7 +109,10 @@ input { width:100%; padding:10px; background:#1a1a2e; border:1px solid var(--bor
 
 <!-- Screen 3: Game -->
 <div id="game-panel" class="panel hidden">
-  <div id="status-bar">⏳ 等待...</div>
+  <div style="display:flex; justify-content:space-between; align-items:center">
+    <div id="status-bar">⏳ 等待...</div>
+    <button class="btn" onclick="refreshGame()" style="font-size:0.85em">🔄 刷新</button>
+  </div>
   <h2>📜 局势推演</h2>
   <div id="narrative" class="narrative-box"></div>
   <div id="npc-actions" style="margin-top:8px"></div>
@@ -208,8 +211,7 @@ async function doCreateRoom() {
     linksDiv.appendChild(div);
   });
 
-  // Poll game status (game already in WAITING phase)
-  pollGameStatus();
+  // Stay on link page — Host needs to share links before playing
 }
 
 // ── Join Room ───────────────────
@@ -233,6 +235,7 @@ async function doJoinRoom() {
   el('top-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · 势力: <span class="faction-badge ${fid}">${fid}</span>`;
 
   // Game is already started — go straight to game
+  hide('room-created-panel');
   const status = await api('GET', `/api/rooms/${roomId}/status?faction_id=${myFaction}`);
   startGameLoop(status);
 }
@@ -245,28 +248,15 @@ function copyLink(btn, url) {
   });
 }
 
-// ── Poll Game Status ────────────
-function pollGameStatus() {
-  clearTimeout(pollTimer);
-  pollTimer = setTimeout(async () => {
-    const s = await api('GET', `/api/rooms/${roomId}/status`);
-    if (s.phase === 'waiting' || s.phase === 'resolving') {
-      hide('room-created-panel');
-      startGameLoop(s);
-      return;
-    }
-    pollGameStatus();
-  }, 2000);
-}
-
-// ── Game Loop ───────────────────
+// ── Game Loop (manual refresh) ──
 function startGameLoop(initialStatus) {
   show('game-panel');
   updateGameUI(initialStatus);
-  pollTimer = setInterval(async () => {
-    const s = await api('GET', `/api/rooms/${roomId}/status?faction_id=${myFaction}`);
-    updateGameUI(s);
-  }, 2000);
+}
+
+async function refreshGame() {
+  const s = await api('GET', `/api/rooms/${roomId}/status?faction_id=${myFaction}`);
+  updateGameUI(s);
 }
 
 function updateGameUI(s) {
@@ -311,6 +301,7 @@ async function doDecide() {
   });
   if (r.ok) {
     el('decision-input').value = '';
+    setTimeout(refreshGame, 500);  // refresh after submit
   } else {
     alert(r.error);
     el('submit-btn').disabled = false;
