@@ -45,35 +45,69 @@ def create_room(
     host_name: str = "",
     scenario: str = "207",
     faction_ids: list[str] | None = None,
+    slots: dict[str, str] | None = None,
 ) -> dict:
-    """创建一个新房间。host 不自动选势力。
+    """创建一个新房间。
+
+    两种模式：
+    1. faction_ids (旧): 指定可选势力列表，玩家进入后自己选
+    2. slots (新): Host 预分配 {faction_id: user_id}，玩家无需选势力
 
     Returns:
-        {"ok": True, "room_id": str}
+        {"ok": True, "room_id": str, ["host_token": str], ["player_tokens": {user_id: token}]}
     """
     from histrategy.engine.game_room import GameRoom
-    from histrategy.engine.faction_slot import create_open_slot
+    from histrategy.engine.faction_slot import create_open_slot, create_human_slot
 
-    if faction_ids is None:
+    if faction_ids is None and slots is None:
         faction_ids = ["cao", "shu", "wu"]
 
     room = GameRoom(
         host_user_id=host_user_id,
         scenario=scenario,
     )
-    for fid in faction_ids:
-        room.slots[fid] = create_open_slot(fid)
-
     _rooms[room.id] = room
     _players[room.id] = {}
 
-    # host 自动进入房间，生成 player_token
-    host_token = uuid.uuid4().hex
-    _enter_player(room.id, host_user_id, "host", host_name, host_token)
+    player_tokens: dict[str, str] = {}
+
+    if slots:
+        # 新模式：Host 预分配势力给玩家
+        for faction_id, user_id in slots.items():
+            room.slots[faction_id] = create_human_slot(faction_id, user_id)
+            token = uuid.uuid4().hex
+            player_tokens[user_id] = token
+            _enter_player(room.id, user_id, "player", user_id, token)
+            logger.info(f"Room {room.id}: pre-assigned {user_id} → {faction_id}")
+
+        # 未分配的势力 → AI NPC
+        from histrategy.engine.faction_slot import create_ai_slot, LLM_NPC_FACTIONS, HEURISTIC_NPC_FACTIONS
+        all_factions = set(LLM_NPC_FACTIONS) | set(HEURISTIC_NPC_FACTIONS)
+        for fid in all_factions:
+            if fid not in room.slots:
+                room.slots[fid] = create_ai_slot(fid)
+    else:
+        # 旧模式：开放势力等待玩家选择
+        for fid in (faction_ids or []):
+            room.slots[fid] = create_open_slot(fid)
+
+    # host 自动进入房间（如果 host 不在 slots 中）
+    if host_user_id and host_user_id not in _players[room.id]:
+        host_token = uuid.uuid4().hex
+        _enter_player(room.id, host_user_id, "host", host_name, host_token)
+        player_tokens["host"] = host_token
+    elif host_user_id:
+        # host 也在 slots 里（自己也是玩家），升级到 host 角色
+        _players[room.id][host_user_id]["role"] = "host"
+        player_tokens["host"] = _players[room.id][host_user_id].get("player_token", "")
+
     _try_save(room)
 
-    logger.info(f"Room created: {room.id} by {host_user_id or 'anon'}")
-    return {"ok": True, "room_id": room.id, "host_token": host_token}
+    logger.info(f"Room created: {room.id} by {host_user_id or 'anon'} (mode={'preassigned' if slots else 'open'})")
+    result = {"ok": True, "room_id": room.id}
+    if player_tokens:
+        result["player_tokens"] = player_tokens
+    return result
 
 
 def enter_room(
@@ -101,21 +135,31 @@ def enter_room(
             "role": p["role"], "room": _room_summary(room),
         }
 
-    # 新玩家：默认 player 角色
+    # 新玩家
     role = "player"
 
+    # 检查是否有预分配的势力（Host 预分配模式）
+    preassigned_faction = None
+    for fid, s in room.slots.items():
+        if s.is_human() and s.occupant_id == user_id:
+            preassigned_faction = fid
+            break
+
     # 生成 player_token 用于同浏览器多 tab 隔离
-    # 这个 token 独立于 JWT——两个 Chrome tab 使用不同的 token，
-    # 即使 JWT 相同也能区分不同玩家
     player_token = uuid.uuid4().hex
 
     _enter_player(room_id, user_id, role, display_name, player_token)
-    return {
+
+    result = {
         "ok": True,
         "role": role,
         "player_token": player_token,
         "room": _room_summary(room),
     }
+    if preassigned_faction:
+        result["faction"] = preassigned_faction
+        result["auto_assigned"] = True
+    return result
 
 
 def kick_player(room_id: str, host_user_id: str, target_user_id: str) -> dict:

@@ -982,14 +982,23 @@ def create_app(llm_provider: str | None = None) -> Any:
 
     @app.post("/api/rooms")
     def api_create_room(body: dict = Body(...)):
-        """创建房间。host 不自动选势力。"""
+        """创建房间。
+
+        两种模式：
+        - slots (预分配): {"cao": "player1", "shu": "player2"} — Host提前指定谁玩谁
+        - faction_ids (开放): ["cao", "shu", "wu"] — 玩家进入后自己选
+        """
         from histrategy.server.room_manager import create_room
+
+        slots = body.get("slots")
+        faction_ids = body.get("faction_ids")
 
         result = create_room(
             host_user_id=body.get("user_id", ""),
             host_name=body.get("display_name", ""),
             scenario=body.get("scenario", "207"),
-            faction_ids=body.get("faction_ids", ["cao", "shu", "wu"]),
+            faction_ids=faction_ids,
+            slots=slots,
         )
         return result
 
