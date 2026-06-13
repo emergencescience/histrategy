@@ -55,7 +55,13 @@ def create_room(
         {"ok": True, "room_id": str}
     """
     from histrategy.engine.game_room import GameRoom
-    from histrategy.engine.faction_slot import create_open_slot, create_ai_slot, LLM_NPC_FACTIONS, HEURISTIC_NPC_FACTIONS
+    from histrategy.engine.faction_slot import (
+        create_open_slot, create_ai_slot, LLM_NPC_FACTIONS,
+        FACTION_DISPLAY_TO_ID, PLAYABLE_FACTIONS,
+    )
+
+    # 翻译显示名 → 内部 ID（caocao→cao, liubei→shu, sunquan→wu）
+    human_faction_ids = [FACTION_DISPLAY_TO_ID.get(f, f) for f in (human_faction_ids or PLAYABLE_FACTIONS)]
 
     if not human_faction_ids:
         human_faction_ids = ["cao", "shu", "wu"]
@@ -71,9 +77,8 @@ def create_room(
     for fid in human_faction_ids:
         room.slots[fid] = create_open_slot(fid)
 
-    # 未指定的人类势力 → AI NPC
-    all_factions = set(LLM_NPC_FACTIONS) | set(HEURISTIC_NPC_FACTIONS)
-    for fid in all_factions:
+    # 未指定的人类势力 → AI NPC（仅三大势力）
+    for fid in LLM_NPC_FACTIONS:
         if fid not in room.slots:
             room.slots[fid] = create_ai_slot(fid)
 
@@ -110,6 +115,11 @@ def enter_room(
     # 自动生成 user_id（不需要人类维护 user 表）
     if not user_id:
         user_id = "u_" + uuid.uuid4().hex[:8]
+
+    # 翻译显示名 → 内部 ID
+    if faction:
+        from histrategy.engine.faction_slot import FACTION_DISPLAY_TO_ID
+        faction = FACTION_DISPLAY_TO_ID.get(faction, faction)
 
     # 如果指定了 faction，自动占据该势力（如果 slot 存在且 open）
     if faction and faction in room.slots:
@@ -313,9 +323,11 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
     if not room:
         return {"ok": False, "error": "房间不存在"}
 
+    from histrategy.engine.faction_slot import FACTION_ID_TO_DISPLAY
+
     room_players = _players.get(room_id, {})
-    submitted = [fid for fid, s in room.slots.items() if s.is_active and s.has_submitted()]
-    pending = [fid for fid, s in room.slots.items() if s.is_active and not s.has_submitted()]
+    submitted = [FACTION_ID_TO_DISPLAY.get(fid, fid) for fid, s in room.slots.items() if s.is_active and s.has_submitted()]
+    pending = [FACTION_ID_TO_DISPLAY.get(fid, fid) for fid, s in room.slots.items() if s.is_active and not s.has_submitted()]
 
     status = {
         "ok": True,
@@ -330,8 +342,9 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
             for uid, p in room_players.items()
         },
         "slots": {
-            fid: {
-                "faction_id": fid,
+            FACTION_ID_TO_DISPLAY.get(fid, fid): {
+                "faction_id": FACTION_ID_TO_DISPLAY.get(fid, fid),
+                "internal_id": fid,
                 "occupant_type": s.occupant_type.value,
                 "occupant_id": s.occupant_id,
                 "has_submitted": s.has_submitted(),

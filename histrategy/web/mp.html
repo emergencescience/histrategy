@@ -84,9 +84,9 @@ input { width:100%; padding:10px; background:#1a1a2e; border:1px solid var(--bor
     <input id="join-room-id" placeholder="房间 ID（从链接中复制）">
     <div style="display:flex; gap:8px; margin-top:8px">
       <select id="join-faction" style="flex:1; padding:10px; background:#1a1a2e; border:1px solid var(--border); color:var(--text); border-radius:6px">
-        <option value="cao">曹操 (魏)</option>
-        <option value="shu">刘备 (蜀)</option>
-        <option value="wu">孙权 (吴)</option>
+        <option value="caocao">曹操军 (魏)</option>
+        <option value="liubei">刘备军 (蜀)</option>
+        <option value="sunquan">孙权军 (吴)</option>
       </select>
       <button class="btn primary" onclick="doJoinRoom()">进入</button>
     </div>
@@ -146,12 +146,11 @@ function parseURL() {
 (function init() {
   // Render faction toggles for room creation
   const toggles = [
-    {id:'cao', name:'曹操 (魏)', css:'cao'},
-    {id:'shu', name:'刘备 (蜀)', css:'shu'},
-    {id:'wu',  name:'孙权 (吴)', css:'wu'},
-    {id:'liubiao', name:'刘表 (荆州)', css:'other'},
-    {id:'liuzhang', name:'刘璋 (益州)', css:'other'},
+    {id:'caocao', name:'曹操军 (魏)', css:'cao'},
+    {id:'liubei', name:'刘备军 (蜀)', css:'shu'},
+    {id:'sunquan',  name:'孙权军 (吴)', css:'wu'},
   ];
+  const FACTION_NAMES = {caocao:'曹操军(魏)', liubei:'刘备军(蜀)', sunquan:'孙权军(吴)'};
   const div = el('create-faction-toggles');
   toggles.forEach(t => {
     const btn = document.createElement('span');
@@ -194,8 +193,7 @@ async function doCreateRoom() {
 
   const linksDiv = el('player-links');
   linksDiv.innerHTML = '';
-  const factionNames = {cao:'曹操(魏)', shu:'刘备(蜀)', wu:'孙权(吴)',
-    liubiao:'刘表(荆州)', liuzhang:'刘璋(益州)', zhanglu:'张鲁(汉中)', machao:'马超(西凉)'};
+  const factionNames = {caocao:'曹操军(魏)', liubei:'刘备军(蜀)', sunquan:'孙权军(吴)'};
 
   humanFactions.forEach(fid => {
     const url = `${location.origin}/mp?room=${roomId}&faction=${fid}`;

@@ -28,11 +28,23 @@ class OccupantType(Enum):
     OPEN = "open"
 
 
-# 使用LLM独立决策的主要NPC（必须活跃参与天下争霸的势力）
-LLM_NPC_FACTIONS = {"cao", "shu", "wu"}
+# ── 势力 ID 映射 ────────────────────────────────────
+# 用户界面使用全名（caocao/liubei/sunquan），内部引擎使用短ID（cao/shu/wu）
+# 这是 histrategy_engine pip 包使用的 faction ID，不能改
+FACTION_DISPLAY_TO_ID: dict[str, str] = {
+    "caocao": "cao",
+    "liubei": "shu",
+    "sunquan": "wu",
+}
+FACTION_ID_TO_DISPLAY: dict[str, str] = {v: k for k, v in FACTION_DISPLAY_TO_ID.items()}
 
-# 使用启发式规则的次要NPC（边缘势力，不需要LLM决策）
-HEURISTIC_NPC_FACTIONS = {"liubiao", "liuzhang", "zhanglu", "machao"}
+# 三大势力（cao/shu/wu 作为内部 ID，caocao/liubei/sunquan 作为显示名）
+# 只有这三大势力使用 LLM 独立决策
+LLM_NPC_FACTIONS = {"cao", "shu", "wu"}
+LLM_NPC_DISPLAY = {"caocao", "liubei", "sunquan"}
+
+# 用户可见的势力列表（全名）
+PLAYABLE_FACTIONS = ["caocao", "liubei", "sunquan"]
 
 
 @dataclass

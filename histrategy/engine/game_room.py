@@ -19,7 +19,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 from .faction_slot import (
-    HEURISTIC_NPC_FACTIONS,
+    FACTION_DISPLAY_TO_ID,
     LLM_NPC_FACTIONS,
     FactionSlot,
     create_ai_slot,
@@ -95,8 +95,8 @@ class GameRoom:
         return [s for s in self.slots.values() if s.is_ai() and s.faction_id in LLM_NPC_FACTIONS]
 
     def minor_ai_slots(self) -> list[FactionSlot]:
-        """次要 NPC 势力 —— 使用启发式规则。"""
-        return [s for s in self.slots.values() if s.is_ai() and s.faction_id in HEURISTIC_NPC_FACTIONS]
+        """所有 AI NPC 都是主要势力（不再区分主次）。"""
+        return []
 
     def active_slots(self) -> list[FactionSlot]:
         """所有活跃槽位（无论人类/AI）。"""
@@ -204,10 +204,6 @@ def create_single_player_room(
         if fid != faction_id:
             room.slots[fid] = create_ai_slot(fid)
 
-    # 次要势力 → AI NPC（启发式）
-    for fid in HEURISTIC_NPC_FACTIONS:
-        room.slots[fid] = create_ai_slot(fid)
-
     room.phase = RoomPhase.WAITING
     return room
 
@@ -227,9 +223,8 @@ def create_multi_player_room(
     for fid in faction_ids:
         room.slots[fid] = create_open_slot(fid)
 
-    # 未指定势力 → AI NPC
-    all_factions = set(LLM_NPC_FACTIONS) | set(HEURISTIC_NPC_FACTIONS)
-    for fid in all_factions:
+    # 未指定势力 → AI NPC（仅三大势力）
+    for fid in LLM_NPC_FACTIONS:
         if fid not in room.slots:
             room.slots[fid] = create_ai_slot(fid)
 

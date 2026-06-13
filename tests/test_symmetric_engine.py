@@ -9,7 +9,6 @@ import pytest
 from histrategy.db import init_db, load_room, save_quarter_turn, save_room
 from histrategy.engine.decision_bus import DecisionResult
 from histrategy.engine.faction_slot import (
-    HEURISTIC_NPC_FACTIONS,
     FactionSlot,
     OccupantType,
     create_ai_slot,
@@ -90,17 +89,17 @@ class TestGameRoom:
     def test_create_single_player_room(self):
         room = create_single_player_room("cao", "test-user")
         assert room.phase == RoomPhase.WAITING
-        assert len(room.slots) == 7  # 1 player + 2 major AI + 4 minor AI
+        assert len(room.slots) == 3  # 3 major factions (no minor NPCs)
         assert len(room.human_slots()) == 1
-        assert len(room.ai_slots()) == 6
+        assert len(room.ai_slots()) == 2
         assert len(room.major_ai_slots()) == 2  # wu, shu
-        assert len(room.minor_ai_slots()) == 4  # liubiao, liuzhang, zhanglu, machao
+        assert len(room.minor_ai_slots()) == 0  # no minor factions
 
     def test_create_multi_player_room(self):
         room = create_multi_player_room("host-1", ["cao", "shu"])
         assert room.phase == RoomPhase.LOBBY
         assert room.host_user_id == "host-1"
-        assert len(room.slots) == 7
+        assert len(room.slots) == 3
         # cao and shu are OPEN, rest are AI
         assert room.slots["cao"].is_open()
         assert room.slots["shu"].is_open()
@@ -119,11 +118,11 @@ class TestGameRoom:
     def test_pending_slots(self):
         room = create_single_player_room("cao", "test-user")
         pending = room.pending_slots()
-        assert len(pending) == 7  # none submitted yet
+        assert len(pending) == 3  # 3 factions
 
         room.slots["cao"].submit_decision("test")
         pending = room.pending_slots()
-        assert len(pending) == 6
+        assert len(pending) == 2
         assert "cao" not in pending
 
     def test_advance_quarter(self):
@@ -148,9 +147,8 @@ class TestGameRoom:
 
     def test_active_slots(self):
         room = create_single_player_room("cao", "test-user")
-        assert len(room.active_slots()) == 7
-        room.slots["machao"].is_active = False
-        assert len(room.active_slots()) == 6
+        assert len(room.active_slots()) == 3
+        assert len(room.active_slots()) == 3
 
     def test_has_human_player(self):
         room = create_single_player_room("cao", "test-user")
@@ -259,7 +257,7 @@ class TestDBPersistence:
         assert loaded is not None
         assert loaded.id == room.id
         assert loaded.quarter_number == 3
-        assert len(loaded.slots) == 7
+        assert len(loaded.slots) == 3
         assert loaded.turn_summaries == [{"summary": "test quarter"}]
         assert loaded.slots["shu"].is_human()
         assert loaded.slots["cao"].is_ai()
@@ -346,10 +344,6 @@ class TestSymmetricEngineIntegration:
                     "cao": MockFaction("曹操"),
                     "wu": MockFaction("孙权", strength=30000),
                     "shu": MockFaction("刘备", strength=5000, treasury=2000),
-                    "liubiao": MockFaction("刘表", strength=15000),
-                    "liuzhang": MockFaction("刘璋", strength=10000),
-                    "zhanglu": MockFaction("张鲁", strength=8000),
-                    "machao": MockFaction("马超", strength=12000),
                 }
                 self.territories = {
                     "test_city": MockTerritory("cao"),
@@ -392,16 +386,17 @@ class TestSymmetricEngineIntegration:
         """Test multiplayer room with open slots waiting for players."""
         room = create_multi_player_room("host-user", ["cao", "shu", "wu"])
         assert room.phase == RoomPhase.LOBBY
-        assert len(room.slots) == 7
+        assert len(room.slots) == 3
 
         # Major factions should be OPEN
         assert room.slots["cao"].is_open()
         assert room.slots["shu"].is_open()
         assert room.slots["wu"].is_open()
 
-        # Minor factions should be AI
-        for fid in HEURISTIC_NPC_FACTIONS:
-            assert room.slots[fid].is_ai()
+        # No minor factions — all non-human are major AI NPCs
+        assert room.slots["cao"].is_open() or room.slots["cao"].is_human()
+        assert room.slots["shu"].is_open() or room.slots["shu"].is_human()
+        assert room.slots["wu"].is_open() or room.slots["wu"].is_human()
 
         # Start game
         room.start_game()
@@ -414,4 +409,4 @@ class TestSymmetricEngineIntegration:
         assert room.slots["shu"].is_human()
         assert len(room.human_slots()) == 2
         # After replacing cao/shu: 2 human + 1 open (wu) + 4 minor AI = 7
-        assert len(room.ai_slots()) == 4  # only minor factions are AI
+        assert len(room.ai_slots()) == 0  # no minor factions
