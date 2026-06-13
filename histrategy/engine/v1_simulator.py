@@ -59,6 +59,11 @@ def _build_context(
             f"- 民心: {getattr(faction, 'morale_actual', 50)}\n"
             f"- 税率: {int(faction.tax_rate * 100)}%\n"
         )
+        # 当前生效的政策
+        policies = getattr(faction, "policies", {})
+        if policies:
+            policy_lines = [f"- 政策: {json.dumps(policies, ensure_ascii=False)}"]
+            parts.append("\n".join(policy_lines))
 
     # 2. 各势力决策
     parts.append("\n## 本季度决策\n")
@@ -264,17 +269,23 @@ def save_v1_state_to_db(
     quarter_number: int,
     ws: WorldState,
     v1_result: dict,
+    old_state: dict | None = None,
 ):
-    """将 V1 仿真结果写入数据库（game_state + turn_delta）。"""
+    """将 V1 仿真结果写入数据库（game_state + turn_delta + policy_state）。
+
+    Args:
+        old_state: 仿真前的状态快照 {fid: {population, troops, food, treasury, morale}}
+                   用于计算 turn_delta。若为 None 则跳过 delta 写入。
+    """
     try:
-        from histrategy.db.models import save_game_state, save_turn_delta
+        from histrategy.db.models import save_game_state, save_policy_state, save_turn_delta
 
         for fid, data in v1_result.get("factions", {}).items():
             faction = ws.factions.get(fid)
             if not faction:
                 continue
 
-            # 保存完整状态快照
+            # ── 保存完整状态快照 (game_state) ──
             save_game_state(
                 room_id=room_id,
                 quarter_number=quarter_number,
@@ -289,17 +300,45 @@ def save_v1_state_to_db(
                 is_active=data.get("is_active", True),
             )
 
-            # 保存增量（与上一季度对比）
-            # 简化版：记录当前值作为增量
-            save_turn_delta(
-                room_id=room_id,
-                quarter_number=quarter_number,
-                faction_id=fid,
-                delta_type="food",
-                old_value=faction.food,
-                new_value=data.get("food", 0),
-                reason="V1 LLM simulation",
-                source="llm",
-            )
+            # ── 保存五项增量 (turn_delta) ──
+            if old_state and fid in old_state:
+                old = old_state[fid]
+                delta_map = [
+                    ("population", old.get("population", 0), data.get("population", 0)),
+                    ("troops", old.get("troops", 0), data.get("troops", 0)),
+                    ("food", old.get("food", 0), data.get("food", 0)),
+                    ("treasury", old.get("treasury", 0), data.get("treasury", 0)),
+                    ("morale", old.get("morale", 50), data.get("morale", 50)),
+                ]
+                for delta_type, old_val, new_val in delta_map:
+                    if old_val == new_val:
+                        continue  # 跳过无变化项
+                    save_turn_delta(
+                        room_id=room_id,
+                        quarter_number=quarter_number,
+                        faction_id=fid,
+                        delta_type=delta_type,
+                        old_value=old_val,
+                        new_value=new_val,
+                        reason="V1 LLM simulation",
+                        source="llm",
+                    )
+
+            # ── 保存政策变更 (policy_state) ──
+            policies = data.get("policies", {})
+            if policies:
+                for policy_name, policy_info in policies.items():
+                    if isinstance(policy_info, dict):
+                        save_policy_state(
+                            room_id=room_id,
+                            quarter_number=quarter_number,
+                            faction_id=fid,
+                            policy_type=policy_info.get("type", "law"),
+                            policy_name=policy_name,
+                            policy_level=policy_info.get("level", 1),
+                            params=policy_info.get("params", {}),
+                            status=policy_info.get("status", "active"),
+                        )
+
     except Exception as e:
         logger.warning(f"V1 DB save failed (non-fatal): {e}")

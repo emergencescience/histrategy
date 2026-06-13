@@ -9,9 +9,9 @@
 ## 输入格式
 
 你会收到：
-1. 当前世界状态（所有势力的城池、兵力、粮草、库金、民心）
+1. 当前世界状态（所有势力的城池、兵力、粮草、库金、民心、当前政策）
 2. 各势力本季度的决策指令（自然语言，来自人类玩家或AI NPC）
-3. 当前生效的政策和科技树状态
+3. 历史摘要（最近几轮的推演结果）
 
 ## 输出格式
 
@@ -19,7 +19,7 @@
 
 ```json
 {
-  "narrative": "建安十二年春，曹操采纳荀彧建议...",  // 本季叙事（半文言，200-400字）
+  "narrative": "建安十二年春，曹操采纳荀彧建议...",  
   "factions": {
     "cao": {
       "population": 520000,
@@ -32,17 +32,28 @@
         {"id": "luoyang", "name": "洛阳", "population": 80000, "development": 60}
       ],
       "policies": {
-        "屯田制": {"level": 2, "effect": "food × 1.1"},
-        "九品中正制": {"level": 1, "effect": "+2 morale/quarter"}
+        "屯田制": {"type": "economic", "level": 2, "params": {"food_bonus": 0.1}, "status": "active"},
+        "九品中正制": {"type": "law", "level": 1, "params": {"morale_bonus": 2}, "status": "active"}
       },
       "is_active": true
     },
-    "shu": { ... },
+    "shu": {
+      "population": 20200,
+      "troops": 5000,
+      "food": 4500,
+      "treasury": 3500,
+      "morale": 75,
+      "territories": [
+        {"id": "xinye", "name": "新野", "population": 15000, "development": 40}
+      ],
+      "policies": {},
+      "is_active": true
+    },
     "wu": { ... }
   },
   "events": [
     "曹操采纳荀彧建议，在许昌大规模推行屯田制，粮食产量显著提升。",
-    "刘备三顾茅庐，诸葛亮出山辅佐。",
+    "刘备三顾茅庐，诸葛亮出山辅佐，提出'隆中对'。",
     "孙权采纳鲁肃'榻上策'，确立'竟长江所极'的战略。"
   ],
   "battles": [
@@ -57,6 +68,22 @@
 }
 ```
 
+### policies 字段说明
+
+每个势力必须输出 `policies` 对象。根据决策内容（如"屯田"、"科举"、"盐铁专营"）建立相应政策。格式：
+- `type`: 政策类型 — "economic"（经济）| "military"（军事）| "law"（法律）| "diplomacy"（外交）| "tech"（科技）
+- `level`: 政策等级（1=初行，2=深化，3=大成）
+- `params`: 政策参数（数值效果）
+- `status`: "active"（生效中）| "revoked"（已废止）
+
+常见政策示例：
+- 屯田制：{"type": "economic", "level": 1, "params": {"food_bonus": 0.1}, "status": "active"}
+- 盐铁专营：{"type": "economic", "level": 1, "params": {"treasury_bonus": 500}, "status": "active"}
+- 科举制：{"type": "law", "level": 1, "params": {"morale_bonus": 3}, "status": "active"}
+- 募兵制：{"type": "military", "level": 1, "params": {"recruit_bonus": 0.15}, "status": "active"}
+
+初始回合（Q1）如无旧政策，根据各势力初始决策建立初始政策。policies 可以为空对象 `{}`。
+
 ## 推演规则
 
 1. **兵力变化**: 根据决策中的招募/战争伤亡/逃兵，合理增减。每季度自然损耗 3-5%。
@@ -65,7 +92,8 @@
 4. **城池易手**: 战争胜方占领败方城池。攻城方需 >2:1 兵力优势才可能成功。
 5. **NPC 自主行为**: NPC 不是玩家的陪衬。它们有自己的战略目标，可能主动进攻、结盟、背刺。
 6. **蝴蝶效应**: 小决策可能引发连锁反应。降低税率 → 人口流入 → 税收基数增大。
-7. **历史逻辑优先**: 如果你的推演与"三国演义"逻辑冲突，优先遵循历史军事逻辑。
+7. **政策建立**: 根据决策内容，自动建立或升级相应政策。政策的数值效果应反映在 population/troops/food/treasury/morale 中。
+8. **历史逻辑优先**: 如果你的推演与"三国演义"逻辑冲突，优先遵循历史军事逻辑。
 
 ## 边界约束
 

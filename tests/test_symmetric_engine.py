@@ -540,17 +540,17 @@ class TestPreAssignedFlow:
 
     def test_create_room_pre_assigned(self):
         """create_room with pre_assigned should create HUMAN slots with tokens."""
-        from histrategy.engine.game_room import GameRoom, RoomPhase
+        # Simulate the pre-assigned path of create_room without world_state init or NPC trigger
+        import uuid
+
         from histrategy.engine.faction_slot import (
             FACTION_DISPLAY_TO_ID,
             FACTION_ID_TO_DISPLAY,
             LLM_NPC_FACTIONS,
-            create_human_slot,
             create_ai_slot,
+            create_human_slot,
         )
-
-        # Simulate the pre-assigned path of create_room without world_state init or NPC trigger
-        import uuid
+        from histrategy.engine.game_room import GameRoom
         pre_assigned = {"caocao": "张三", "liubei": "李四"}
         internal_map = {}
         for display_fid, player_name in pre_assigned.items():
@@ -596,9 +596,9 @@ class TestPreAssignedFlow:
 
     def test_enter_room_with_player_token(self):
         """A pre-assigned player can enter using their token."""
-        from histrategy.server.room_manager import _rooms, _players, enter_room
+        from histrategy.engine.faction_slot import LLM_NPC_FACTIONS, create_ai_slot, create_human_slot
         from histrategy.engine.game_room import GameRoom, RoomPhase
-        from histrategy.engine.faction_slot import create_human_slot, create_ai_slot, LLM_NPC_FACTIONS
+        from histrategy.server.room_manager import _players, _rooms, enter_room
 
         _rooms.clear()
         _players.clear()
@@ -630,9 +630,9 @@ class TestPreAssignedFlow:
 
     def test_enter_room_wrong_player_blocked(self):
         """A player without token cannot take over a pre-assigned HUMAN slot."""
-        from histrategy.server.room_manager import _rooms, _players, enter_room
+        from histrategy.engine.faction_slot import LLM_NPC_FACTIONS, create_ai_slot, create_human_slot
         from histrategy.engine.game_room import GameRoom, RoomPhase
-        from histrategy.engine.faction_slot import create_human_slot, create_ai_slot, LLM_NPC_FACTIONS
+        from histrategy.server.room_manager import _players, _rooms, enter_room
 
         _rooms.clear()
         _players.clear()
@@ -662,15 +662,16 @@ class TestPreAssignedFlow:
 
     def test_player_token_matching_and_reconnect(self):
         """Player token matching works correctly for reconnection."""
-        from histrategy.server.room_manager import _rooms, _players, enter_room
+        from histrategy.server.room_manager import _players, _rooms, enter_room
 
         _rooms.clear()
         _players.clear()
 
         # Manually set up a room with a pre-assigned HUMAN slot
         import uuid
+
+        from histrategy.engine.faction_slot import LLM_NPC_FACTIONS, create_ai_slot, create_human_slot
         from histrategy.engine.game_room import GameRoom, RoomPhase
-        from histrategy.engine.faction_slot import create_human_slot, create_ai_slot, LLM_NPC_FACTIONS
 
         room = GameRoom(host_user_id="host-1", scenario="207")
         room.phase = RoomPhase.WAITING

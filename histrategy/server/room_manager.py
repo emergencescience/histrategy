@@ -687,11 +687,25 @@ def _resolve_v1(room, ws, decisions, llm):
 
     v1_result = simulator.simulate(ws, fd, room.turn_summaries)
 
-    # 将 V1 结果应用到 WorldState
-    _apply_v1_state_to_world(ws, v1_result.get("factions", {}))
+    # ── 先捕获旧状态（用于 turn_delta 计算）──
+    old_state = {}
+    v1_factions = v1_result.get("factions", {})
+    for fid in v1_factions:
+        faction = ws.factions.get(fid)
+        if faction:
+            old_state[fid] = {
+                "population": getattr(faction, "population", 0),
+                "troops": getattr(faction, "strength_actual", 0),
+                "food": faction.food,
+                "treasury": faction.treasury,
+                "morale": getattr(faction, "morale_actual", 50),
+            }
 
-    # 写入 DB
-    save_v1_state_to_db(room.id, room.quarter_number, ws, v1_result)
+    # 将 V1 结果应用到 WorldState
+    _apply_v1_state_to_world(ws, v1_factions)
+
+    # 写入 DB（传入旧状态以计算 delta）
+    save_v1_state_to_db(room.id, room.quarter_number, ws, v1_result, old_state=old_state)
 
     # 构建兼容 result 对象
     @dataclass
