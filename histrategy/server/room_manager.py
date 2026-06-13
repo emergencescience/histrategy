@@ -206,6 +206,7 @@ def enter_room(
             "ok": True,
             "already_in": True,
             "user_id": user_id,
+            "player_token": p.get("player_token", ""),
             "role": p["role"],
             "faction": faction,
             "room": _room_summary(room),
