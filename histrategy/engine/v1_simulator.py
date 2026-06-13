@@ -57,7 +57,7 @@ def _build_context(
             f"- 粮草: {faction.food}\n"
             f"- 库金: {faction.treasury}\n"
             f"- 民心: {getattr(faction, 'morale_actual', 50)}\n"
-            f"- 税率: {int(faction.tax_rate * 100)}%\n"
+            f"- 税率: {int(getattr(faction, 'tax_rate', 0.3) * 100)}%\n"
         )
         # 当前生效的政策
         policies = getattr(faction, "policies", {})
