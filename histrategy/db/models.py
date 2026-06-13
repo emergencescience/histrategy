@@ -7,7 +7,6 @@ JSON fields are serialized/deserialized via json.dumps/loads.
 
 from __future__ import annotations
 
-import logging
 import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
@@ -331,8 +330,6 @@ def save_game_state(
     state_id = str(uuid.uuid4())
 
     # Cross-DB upsert: SQLite uses INSERT OR REPLACE, PostgreSQL uses ON CONFLICT
-    logger = logging.getLogger("histrategy.db")
-    logger.warning("save_game_state: fid=%s q=%d is_sqlite=%s", faction_id, quarter_number, _IS_SQLITE)
     if _IS_SQLITE:
         execute_write(
             """INSERT OR REPLACE INTO game_state

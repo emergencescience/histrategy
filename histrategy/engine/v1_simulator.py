@@ -280,21 +280,12 @@ def save_v1_state_to_db(
     try:
         from histrategy.db.models import save_game_state, save_policy_state, save_turn_delta
 
-        factions_data = v1_result.get("factions", {})
-        logger.warning(
-            "save_v1_state_to_db: room=%s q=%d factions_in_result=%d keys=%s ws_factions=%s",
-            room_id, quarter_number, len(factions_data), list(factions_data.keys())[:10],
-            list(ws.factions.keys())[:10],
-        )
-
-        for fid, data in factions_data.items():
+        for fid, data in v1_result.get("factions", {}).items():
             faction = ws.factions.get(fid)
             if not faction:
-                logger.warning("save_v1_state_to_db: SKIP fid=%s - not in ws.factions", fid)
                 continue
 
             # ── 保存完整状态快照 (game_state) ──
-            logger.warning("V1 save_game_state: fid=%s troops=%s food=%s", fid, data.get("troops"), data.get("food"))
             save_game_state(
                 room_id=room_id,
                 quarter_number=quarter_number,
@@ -308,7 +299,6 @@ def save_v1_state_to_db(
                 policies=data.get("policies", {}),
                 is_active=data.get("is_active", True),
             )
-            logger.warning("V1 save_game_state DONE: fid=%s", fid)
 
             # ── 保存五项增量 (turn_delta) ──
             if old_state and fid in old_state:
@@ -351,4 +341,4 @@ def save_v1_state_to_db(
                         )
 
     except Exception as e:
-        logger.warning(f"V1 DB save failed (non-fatal): {e}", exc_info=True)
+        logger.warning(f"V1 DB save failed (non-fatal): {e}")
