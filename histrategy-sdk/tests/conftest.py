@@ -82,8 +82,8 @@ def histrategy_server():
         f"test-{uuid.uuid4().hex[:8]}",
     )
 
-    # Use multiprocessing for full isolation
-    ctx = multiprocessing.get_context("spawn")
+    # Use fork for proper env inheritance (spawn doesn't share os.environ)
+    ctx = multiprocessing.get_context("fork")
     ready = ctx.Event()
 
     proc = ctx.Process(
