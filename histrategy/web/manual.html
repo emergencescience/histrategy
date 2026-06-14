@@ -68,8 +68,9 @@ blockquote{background:var(--bg-panel);border-left:3px solid var(--gold);padding:
   </div>
 </div>
 
-<div class="nav">
+  <div class="nav">
   <a href="#quickstart">快速开始</a>
+  <a href="#numbers">数值说明</a>
   <a href="#commands">命令参考</a>
   <a href="#example">实战案例</a>
   <a href="#faq">常见问题</a>
@@ -79,6 +80,56 @@ blockquote{background:var(--bg-panel);border-left:3px solid var(--gold);padding:
   <p><strong>你是一条短信就能改写三国的君主。</strong></p>
   <p>输入自然语言描述你的战略意图——「集结宛城5万步兵，春季行军进攻刘备仅有5000兵的新野」——系统用 <strong>确定性仿真引擎</strong> 计算粮草消耗、行军速度、战斗结果，再用 <strong>文言叙事</strong> 告诉你这一季发生了什么。</p>
   <p>没有菜单、没有按钮、没有血条。你说的每句话，就是这个世界的物理定律。</p>
+</div>
+
+<h2 id="numbers">⚖️ 折算数值说明</h2>
+
+<div class="hero">
+  <p><strong>本游戏的兵力、粮草、资金均为「折算抽象单位」，而非史实精确数字。</strong></p>
+</div>
+
+<p>三國志略的数值系统设计目标不是还原历史人口普查数据，而是<strong>让你直观比较各势力的相对强弱</strong>。请以游戏逻辑理解以下数值：</p>
+
+<table>
+<tr><th>数值</th><th>游戏含义</th><th>用途</th></tr>
+<tr>
+  <td><strong>兵力</strong></td>
+  <td>等效战力单位，非人头数</td>
+  <td>横向比较两军强弱。曹操 15 万 vs 刘备 5 千 = 曹操 30 倍优势，一目了然。</td>
+</tr>
+<tr>
+  <td><strong>人口</strong></td>
+  <td>抽象民生基数，非户籍统计</td>
+  <td>作为税收、征兵、粮食消耗的「分母」。人口多 → 税收多 → 征兵上限高。</td>
+</tr>
+<tr>
+  <td><strong>粮草</strong></td>
+  <td>等效粮草单位，非实际石数</td>
+  <td>军队每季消耗粮草。耗尽 → 减员 + 民变。冬季消耗 ×1.5。</td>
+</tr>
+<tr>
+  <td><strong>库金</strong></td>
+  <td>等效资金单位，非实际两数</td>
+  <td>征兵、建设、外交行动的花费。征兵 5000 花费约 1000 金。</td>
+</tr>
+<tr>
+  <td><strong>民心</strong></td>
+  <td>0–100 抽象评分</td>
+  <td>影响征兵效率、税收容忍度、民变风险。高税率（>30%）每季 -3~-5。</td>
+</tr>
+</table>
+
+<h3>为什么不用史实数字？</h3>
+
+<ul>
+  <li><strong>史实争议</strong>：赤壁之战曹操兵力是 20 万还是 80 万，学界争论至今。我们选择不站队。</li>
+  <li><strong>游戏平衡</strong>：刘备据一城，若按史实 207 年新野人口约 2 万，征兵上限仅 ~600，无法玩。</li>
+  <li><strong>文明/全战传统</strong>：《文明》系列的锤子/瓶子、《全战》的金币，从来不是史实值。玩家需要的是<strong>可比性</strong>而非<strong>精确性</strong>。</li>
+  <li><strong>LLM 友好</strong>：LLM 对 4–5 位数的简单整数推理准确率远高于 7 位数（孙权江东 200 万 → LLM 输出「十八万三千」）。</li>
+</ul>
+
+<div class="tip">
+  <strong>怎么读数值：</strong> 不看绝对值，看比例和趋势。曹操兵力是刘备的 30 倍 → 很危险。我方粮草连续 3 季下降 → 必须开源节流。这比纠结「新野到底该有 2 万还是 1.5 万人口」有用得多。
 </div>
 
 <h2 id="quickstart">快速开始：你的前 3 回合</h2>
