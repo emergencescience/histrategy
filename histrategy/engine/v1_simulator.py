@@ -106,23 +106,27 @@ class V1Simulator:
         ws: WorldState,
         faction_decisions: dict[str, dict],
         turn_memory: list[dict] | None = None,
+        room_id: str = "",
+        quarter_number: int = 0,
     ) -> dict:
-        """执行 V1 仿真 — 单次 LLM 调用完成所有状态推演。
+        """Execute V1 simulation — single LLM call handles all state evolution.
 
         Args:
-            ws: 当前世界状态
+            ws: Current world state
             faction_decisions: {faction_id: {decision: str, commands: list}}
-            turn_memory: 回合记忆（最近几轮摘要）
+            turn_memory: Turn memory (recent round summaries)
+            room_id: Game room ID for DB logging
+            quarter_number: Current quarter for DB logging
 
         Returns:
             {
-                "narrative": str,       # 本季叙事
-                "factions": dict,       # 新状态 {faction_id: {...}}
-                "events": list[str],    # 事件列表
-                "battles": list[dict],  # 战役结果
-                "diplomacy": list[dict], # 外交变化
-                "knowledge_cards": list[dict], # 知识卡片
-                "token_usage": dict,    # token 消耗统计
+                "narrative": str,
+                "factions": dict,
+                "events": list[str],
+                "battles": list[dict],
+                "diplomacy": list[dict],
+                "knowledge_cards": list[dict],
+                "token_usage": dict,
             }
         """
         if not self.is_available:
@@ -140,7 +144,11 @@ class V1Simulator:
                 messages,
                 temperature=0.7,
                 max_tokens=16384,
-                metadata={"category": "v1_simulate"},
+                metadata={
+                    "category": "v1_simulate",
+                    "room_id": room_id,
+                    "quarter_number": quarter_number,
+                },
             )
             result = self._parse_response(response)
             result["token_usage"] = {
@@ -148,10 +156,50 @@ class V1Simulator:
                 "completion_tokens": len(response) // 3,
                 "total_tokens": (len(context) + len(response)) // 3,
             }
+
+            # ── Log simulation events to DB (H14b) ──
+            if room_id and quarter_number:
+                self._log_sim_events_to_db(room_id, quarter_number, result)
+
             return result
         except Exception as e:
             logger.error(f"V1 simulation failed: {e}")
             return self._fallback(ws, faction_decisions)
+
+    @staticmethod
+    def _log_sim_events_to_db(room_id: str, quarter_number: int, result: dict) -> None:
+        """Log simulation events (battles, diplomacy, events) to the DB."""
+        try:
+            from histrategy.db.models import log_sim_event
+
+            # Log events (black swans, natural disasters, etc.)
+            for event_text in result.get("events", []):
+                log_sim_event(
+                    room_id=room_id,
+                    quarter_number=quarter_number,
+                    event_type="black_swan" if "灾" in event_text or "祸" in event_text or "变" in event_text else "state_mutation",
+                    event_data={"description": event_text},
+                )
+
+            # Log battles
+            for battle in result.get("battles", []):
+                log_sim_event(
+                    room_id=room_id,
+                    quarter_number=quarter_number,
+                    event_type="baseline",
+                    event_data={"type": "battle", "info": battle},
+                )
+
+            # Log diplomacy
+            for dip in result.get("diplomacy", []):
+                log_sim_event(
+                    room_id=room_id,
+                    quarter_number=quarter_number,
+                    event_type="baseline",
+                    event_data={"type": "diplomacy", "info": dip},
+                )
+        except Exception as e:
+            logger.warning(f"Failed to log sim events to DB: {e}")
 
     def _parse_response(self, response: str) -> dict:
         """解析 LLM 输出的 JSON。"""

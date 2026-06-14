@@ -344,7 +344,7 @@ class LLMAdapter:
         stats: dict,
         metadata: dict | None = None,
     ) -> None:
-        import json
+        import json as _json
         from datetime import datetime
         from pathlib import Path
 
@@ -382,7 +382,7 @@ class LLMAdapter:
             if metadata:
                 jsonl_entry["metadata"] = metadata
             with open(jsonl_path, "a", encoding="utf-8") as f:
-                f.write(json.dumps(jsonl_entry, ensure_ascii=False) + "\n")
+                f.write(_json.dumps(jsonl_entry, ensure_ascii=False) + "\n")
 
             # 2. Write to readable .log file
             log_path = log_dir / "llm_usage.log"
@@ -450,10 +450,79 @@ class LLMAdapter:
             with open(log_path, "a", encoding="utf-8") as f:
                 f.writelines(log_entry)
 
+            # 3. Write to database llm_call_log (H14b)
+            self._log_llm_call_to_db(
+                messages, content, stats, latency, metadata, error=None
+            )
+
         except Exception as e:
             import sys
 
             print(f"[Warning] Failed to write LLM log: {e}", file=sys.stderr)
+
+    @staticmethod
+    def _log_llm_call_to_db(
+        messages: list[dict],
+        response_content: str,
+        stats: dict,
+        latency: float,
+        metadata: dict | None = None,
+        error: str | None = None,
+    ) -> None:
+        """Write a single LLM call to the database llm_call_log table."""
+        try:
+            from histrategy.db.models import log_llm_call
+
+            meta = metadata or {}
+            room_id = meta.get("room_id", "unknown")
+            quarter_number = meta.get("quarter_number", 0)
+            call_type = meta.get("category", "unknown")
+            faction_id = meta.get("faction_id")
+            system_prompt_type = meta.get("system_prompt_type")
+
+            # Derive system_prompt_type from messages if not in metadata
+            if not system_prompt_type:
+                for msg in messages:
+                    if msg.get("role") == "system":
+                        system_content = msg.get("content", "")
+                        # Check known prompts
+                        for name, template in KNOWN_PROMPTS.items():
+                            if system_content.strip() == template.strip():
+                                system_prompt_type = name
+                                break
+                        if not system_prompt_type:
+                            system_prompt_type = "custom"
+                        break
+
+            # Build user_prompt: concatenate user/assistant messages
+            user_prompt_parts = []
+            for msg in messages:
+                if msg.get("role") != "system":
+                    user_prompt_parts.append(
+                        f"[{msg['role']}]: {msg.get('content', '')}"
+                    )
+            user_prompt = "\n".join(user_prompt_parts) if user_prompt_parts else None
+
+            log_llm_call(
+                room_id=room_id,
+                quarter_number=quarter_number,
+                call_type=call_type,
+                provider=stats.get("provider", "unknown"),
+                model=stats.get("model", "unknown"),
+                prompt_tokens=stats.get("prompt_tokens", 0),
+                completion_tokens=stats.get("completion_tokens", 0),
+                total_tokens=stats.get("total_tokens", 0),
+                reasoning_tokens=stats.get("reasoning_tokens"),
+                latency_ms=int(latency * 1000),
+                system_prompt_type=system_prompt_type,
+                user_prompt=user_prompt,
+                response=response_content,
+                error=error,
+                faction_id=faction_id,
+            )
+        except Exception as e:
+            import sys
+            print(f"[Warning] Failed to write LLM call to DB: {e}", file=sys.stderr)
 
     def _record_error_and_log(
         self,
@@ -591,6 +660,23 @@ class LLMAdapter:
 
             with open(log_path, "a", encoding="utf-8") as f:
                 f.writelines(log_entry)
+
+            # 3. Write to database llm_call_log (H14b) — error case
+            LLMAdapter._log_llm_call_to_db(
+                messages,
+                response_content=response_body if response_body else "",
+                stats={
+                    "provider": self.provider_name,
+                    "model": self.model,
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "total_tokens": 0,
+                    "reasoning_tokens": 0,
+                },
+                latency=latency,
+                metadata=metadata,
+                error=str(exception),
+            )
 
         except Exception as e:
             import sys

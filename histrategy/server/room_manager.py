@@ -685,7 +685,8 @@ def _resolve_v1(room, ws, decisions, llm):
     for fid, dr in decisions.items():
         fd[fid] = {"decision": dr.decision_text, "commands": dr.commands}
 
-    v1_result = simulator.simulate(ws, fd, room.turn_summaries)
+    v1_result = simulator.simulate(ws, fd, room.turn_summaries,
+                                   room_id=room.id, quarter_number=room.quarter_number + 1)
 
     # ── 先捕获旧状态（用于 turn_delta 计算）──
     old_state = {}
