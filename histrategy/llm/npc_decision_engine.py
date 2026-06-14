@@ -226,8 +226,9 @@ class NPCDecisionEngine:
         lines: list[str] = []
 
         # 时间
-        season_cn = ws.season.cn if hasattr(ws.season, "cn") else str(ws.season)
-        lines.append(f"## 当前时间\n{ws.year}年{season_cn} | 第{ws.turn_number}季度\n")
+        season_cn = getattr(ws, "current_season_cn", str(getattr(ws, "season_index", "?")))
+        turn = getattr(ws, "turn", 0)
+        lines.append(f"## 当前时间\n{ws.year}年{season_cn} | 第{turn}季度\n")
 
         # 自身状态
         lines.append("## 你的势力")
