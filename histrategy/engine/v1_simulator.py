@@ -151,11 +151,23 @@ class V1Simulator:
                 },
             )
             result = self._parse_response(response)
-            result["token_usage"] = {
-                "prompt_tokens": len(context) // 3,  # rough estimate
-                "completion_tokens": len(response) // 3,
-                "total_tokens": (len(context) + len(response)) // 3,
-            }
+            # If JSON parsing failed (V1 解析失败), use heuristic fallback
+            # instead of returning empty factions with zero stats
+            if not result.get("factions") and "V1 解析失败" in str(result.get("narrative", "")):
+                logger.warning(f"V1 parse failed (len={len(response)}), falling back to heuristic")
+                result = self._fallback(ws, faction_decisions)
+                # Preserve token usage from the failed attempt
+                result["token_usage"] = {
+                    "prompt_tokens": len(context) // 3,
+                    "completion_tokens": len(response) // 3,
+                    "total_tokens": (len(context) + len(response)) // 3,
+                }
+            else:
+                result["token_usage"] = {
+                    "prompt_tokens": len(context) // 3,  # rough estimate
+                    "completion_tokens": len(response) // 3,
+                    "total_tokens": (len(context) + len(response)) // 3,
+                }
 
             # ── Log simulation events to DB (H14b) ──
             if room_id:

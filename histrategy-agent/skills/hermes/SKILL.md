@@ -11,7 +11,7 @@ metadata:
     tags: [gaming, strategy, three-kingdoms, multiplayer, history, feishu]
     related_skills: []
     category: gaming
-    requires: histrategy-sdk>=0.2.0
+    requires: histrategy-agent>=0.1.0
     slash_commands:
       - /histrategy
       - /三国

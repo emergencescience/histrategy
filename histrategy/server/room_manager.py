@@ -730,6 +730,13 @@ def _resolve_and_advance(room: GameRoom):
 
     _advance_season(ws)
     room.advance_quarter()
+
+    # 同步 WorldState 的 year/season 到 room（否则网页永远显示初始值）
+    if hasattr(ws, "year"):
+        room.year = ws.year
+    if hasattr(ws, "season"):
+        room.season = ws.season.value if hasattr(ws.season, "value") else str(ws.season)
+
     room.world_state = ws
 
     # 下个季度 NPC 立即下命令
@@ -813,7 +820,7 @@ def _resolve_v1(room, ws, decisions, llm):
     return V1Result(
         narratives=narratives,
         state_changes={},
-        turn_summary={"quarter": room.quarter_number, "engine": "v1"},
+        turn_summary={"quarter": room.quarter_number + 1, "engine": "v1"},
     )
 
 
