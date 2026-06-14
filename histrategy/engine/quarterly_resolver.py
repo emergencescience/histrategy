@@ -212,7 +212,7 @@ class QuarterlyResolver:
                 ws,
                 all_commands,
                 year=ws.year,
-                turn_number=ws.turn_number,
+                turn_number=ws.turn,
             )
 
         # 回退：按 faction 逐个执行
@@ -222,7 +222,7 @@ class QuarterlyResolver:
                     ws,
                     player_commands=commands,
                     year=ws.year,
-                    turn_number=ws.turn_number,
+                    turn_number=ws.turn,
                 )
             except Exception as e:
                 logger.warning(f"Baseline execution failed for {faction_id}: {e}")
@@ -378,7 +378,7 @@ def _build_turn_summary(
     results: QuarterlyResult,
 ) -> dict:
     """构建回合摘要（用于后续 LLM 上下文）。"""
-    season_cn = ws.season.cn if hasattr(ws.season, "cn") else str(ws.season)
+    season_cn = ws.current_season_cn
     decision_summaries = []
     for fid, decision in all_decisions.items():
         short = decision[:60] + "..." if len(decision) > 60 else decision
@@ -392,7 +392,7 @@ def _build_turn_summary(
 
     return {
         "outcome_summary": (f"[{ws.year}年{season_cn}] " + " | ".join(decision_summaries[:3]) + f" → {events_str}"),
-        "turn": ws.turn_number,
+        "turn": ws.turn,
         "year": ws.year,
         "season": season_cn,
     }

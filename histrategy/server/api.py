@@ -1074,7 +1074,6 @@ def create_app(llm_provider: str | None = None) -> Any:
         return submit_decision(
             room_id,
             body.get("faction_id", ""),
-            body.get("user_id", ""),
             body.get("decision", ""),
         )
 

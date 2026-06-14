@@ -126,6 +126,7 @@ def create_room(
     _init_world_state(room)
     room.phase = RoomPhase.WAITING
     _try_save(room)
+    _save_initial_state_to_db(room)  # 写入 game_state (quarter=0) — MUST be after _try_save (FK to game_room)
 
     # AI NPC 马上开始生成决策
     _trigger_npc_decisions(room)
@@ -344,18 +345,18 @@ def start_game(room_id: str, user_id: str) -> dict:
 # ── Decision & Status ───────────────────────────────
 
 
-def submit_decision(room_id: str, faction_id: str, user_id: str, decision: str) -> dict:
+def submit_decision(room_id: str, faction_id: str, decision: str) -> dict:
     """提交本季度决策。全员提交后自动 resolve。
 
     histrategy 是内部服务，auth 由 orchestrator 代理层处理。
-    人类玩家通过 faction_id 识别。
+    身份由 faction_id 识别（不再需要 user_id）。
     """
     room = _get_room(room_id)
     if not room:
         return {"ok": False, "error": "房间不存在"}
 
-    if not user_id:
-        return {"ok": False, "error": "缺少 user_id"}
+    if not faction_id:
+        return {"ok": False, "error": "缺少 faction_id"}
 
     # 自动修复：如果 room 有 world_state 但 phase 还是 lobby
     from histrategy.engine.game_room import RoomPhase
@@ -585,6 +586,47 @@ def _init_world_state(room: GameRoom):
     humans = [s for s in room.slots.values() if s.is_human()]
     player_faction = humans[0].faction_id if humans else "cao"
     room.world_state = create_initial_world(player_faction)
+
+
+def _save_initial_state_to_db(room: GameRoom):
+    """写入所有势力的初始状态到 game_state 表 (quarter=0)。"""
+    from histrategy.db.models import save_game_state
+
+    ws = room.world_state
+    if ws is None:
+        return
+    try:
+        for fid, faction in ws.factions.items():
+            territories = []
+            for t in getattr(faction, "territories", []) or []:
+                territories.append({
+                    "id": getattr(t, "id", ""),
+                    "name": getattr(t, "name", ""),
+                    "population": getattr(t, "population", 0),
+                    "development": getattr(t, "development", 50),
+                })
+            policies = {}
+            for p in getattr(faction, "policies", []) or []:
+                policies[getattr(p, "name", "unknown")] = {
+                    "level": getattr(p, "level", 1),
+                    "effect": getattr(p, "effect", ""),
+                }
+            save_game_state(
+                room_id=room.id,
+                quarter_number=0,
+                faction_id=fid,
+                population=getattr(faction, "population", 0),
+                troops=getattr(faction, "strength_actual", 0) or getattr(faction, "troops", 0),
+                food=getattr(faction, "food", 0),
+                treasury=getattr(faction, "treasury", 0),
+                morale=getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50),
+                territories=territories,
+                policies=policies,
+                is_active=getattr(faction, "is_active", True),
+            )
+        logger.info(f"Saved initial state: {len(ws.factions)} factions → game_state (Q0, room={room.id})")
+    except Exception as e:
+        logger.warning(f"Failed to save initial state for room {room.id}: {e}")
 
 
 def _resolve_and_advance(room: GameRoom):
