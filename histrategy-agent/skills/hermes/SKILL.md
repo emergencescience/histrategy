@@ -11,7 +11,7 @@ metadata:
     tags: [gaming, strategy, three-kingdoms, multiplayer, history, feishu]
     related_skills: []
     category: gaming
-    requires: histrategy-agent>=0.1.0
+    requires: histrategy-agent>=0.1.0,histrategy-sdk>=0.2.0
     slash_commands:
       - /histrategy
       - /三国
@@ -24,6 +24,23 @@ metadata:
 - 用户发送 `/histrategy`、`/三国`、`/sanguo`
 - 用户在飞书/Telegram 中提及「三国志略」、「三国游戏」
 - 用户在当前会话中已有活跃游戏存档
+
+## 安装
+
+```bash
+pip install histrategy-agent histrategy-sdk
+```
+
+- `histrategy-agent` — Agent 集成层（`TurnProcessor`, `StateBridge`, IM 适配器）
+- `histrategy-sdk` — 游戏 SDK（`Room`, `MultiplayerRoom`）
+- `histrategy-engine` — 作为依赖自动安装
+
+配置 LLM API Key:
+
+```bash
+export DEEPSEEK_API_KEY="sk-..."  # 推荐
+# 或 OPENAI_API_KEY / TONGYI_API_KEY
+```
 
 ## Quick Start
 - `/histrategy new [faction]` — 开始单人游戏，可选指定势力
