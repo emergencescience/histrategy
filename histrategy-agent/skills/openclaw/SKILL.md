@@ -18,7 +18,7 @@ metadata:
     category: gaming
     min_version: "1.0.0"
     clawhub_id: histrategy
-    requires: histrategy-agent>=0.1.0
+    requires: histrategy-agent>=0.1.0,histrategy-sdk>=0.2.0
   tags: [gaming, strategy, three-kingdoms, multiplayer, history, feishu]
 ---
 
@@ -26,6 +26,16 @@ metadata:
 
 ## Trigger
 When a user sends `/histrategy`, `/三国`, `/sanguo`, or any message containing 「三国志略」「三国」in a chat where this skill is active.
+
+## Installation
+
+```bash
+pip install histrategy-agent histrategy-sdk
+```
+
+- `histrategy-agent` — Agent integration layer (`TurnProcessor`, `StateBridge`, IM adapters)
+- `histrategy-sdk` — Game SDK (`Room`, `MultiplayerRoom`)
+- `histrategy-engine` — Auto-installed as a dependency
 
 ## Quick Start
 - `/histrategy new [faction]` — Start single-player game (optionally specify faction)
