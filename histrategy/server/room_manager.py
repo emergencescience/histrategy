@@ -616,14 +616,24 @@ def _init_world_state(room: GameRoom):
 
 
 def _save_initial_state_to_db(room: GameRoom):
-    """写入所有势力的初始状态到 game_state 表 (quarter=0)。"""
+    """写入三大势力的初始状态到 game_state 表 (quarter=0)。"""
     from histrategy.db.models import save_game_state
+    from histrategy.engine.faction_slot import LLM_NPC_FACTIONS
 
     ws = room.world_state
     if ws is None:
         return
     try:
-        for fid, faction in ws.factions.items():
+        # 只追踪玩家势力 + LLM NPC 势力（cao/shu/wu）
+        tracked = set(LLM_NPC_FACTIONS)
+        for s in room.slots.values():
+            if s.is_human():
+                tracked.add(s.faction_id)
+
+        for fid in tracked:
+            faction = ws.factions.get(fid)
+            if not faction:
+                continue
             territories = []
             for t in getattr(faction, "territories", []) or []:
                 territories.append({
@@ -638,20 +648,30 @@ def _save_initial_state_to_db(room: GameRoom):
                     "level": getattr(p, "level", 1),
                     "effect": getattr(p, "effect", ""),
                 }
+            # FactionState uses 'strength' not 'strength_actual' at creation time
+            troops = (getattr(faction, "strength_actual", 0)
+                      or getattr(faction, "strength", 0)
+                      or getattr(faction, "troops", 0))
+            # Compute population from territory sum if faction.population is 0
+            pop = getattr(faction, "population", 0)
+            if pop == 0 and territories:
+                pop = sum(t.get("population", 0) for t in territories)
+
             save_game_state(
                 room_id=room.id,
                 quarter_number=0,
                 faction_id=fid,
-                population=getattr(faction, "population", 0),
-                troops=getattr(faction, "strength_actual", 0) or getattr(faction, "troops", 0),
+                population=pop,
+                troops=troops,
                 food=getattr(faction, "food", 0),
                 treasury=getattr(faction, "treasury", 0),
-                morale=getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50),
+                morale=(getattr(faction, "morale_actual", 50)
+                        or getattr(faction, "morale", 50)),
                 territories=territories,
                 policies=policies,
                 is_active=getattr(faction, "is_active", True),
             )
-        logger.info(f"Saved initial state: {len(ws.factions)} factions → game_state (Q0, room={room.id})")
+        logger.info(f"Saved initial state: {len(tracked)} factions → game_state (Q0, room={room.id})")
     except Exception as e:
         logger.warning(f"Failed to save initial state for room {room.id}: {e}")
 
@@ -768,7 +788,7 @@ def _resolve_v1(room, ws, decisions, llm):
     faction_narratives = v1_result.get("faction_narratives", {})
     global_narrative = v1_result.get("narrative", "")
     factions_data = v1_result.get("factions", {})
-    
+
     for fid in decisions:
         # Use per-faction narrative if available and non-empty
         fn = faction_narratives.get(fid, "")

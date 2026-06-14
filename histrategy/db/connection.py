@@ -97,12 +97,13 @@ def init_db():
         schema = _load_schema()
         if _IS_SQLITE:
             conn.executescript(schema)
-            # 迁移：为现有数据库添加 player_token 列（H13o）
+            # ── Migrations (H14i) ──
+            # Drop deprecated room_player table
             try:
-                conn.execute("ALTER TABLE room_player ADD COLUMN player_token TEXT DEFAULT ''")
+                conn.execute("DROP TABLE IF EXISTS room_player")
                 conn.commit()
             except Exception:
-                pass  # 列已存在（SQLite 不支持 IF NOT EXISTS for ALTER TABLE）
+                pass
         else:
             # PostgreSQL: execute statements individually (psycopg2 doesn't support multi-statement)
             with conn.cursor() as cur:
@@ -114,11 +115,22 @@ def init_db():
                         except Exception as _stmt_err:
                             logger.warning("Schema statement skipped: %s", str(_stmt_err)[:100])
                 conn.commit()
+                # ── Migrations (H14i) ──
+                # Drop deprecated room_player table
                 try:
-                    cur.execute("ALTER TABLE room_player ADD COLUMN IF NOT EXISTS player_token TEXT DEFAULT ''")
+                    cur.execute("DROP TABLE IF EXISTS room_player")
                     conn.commit()
                 except Exception:
-                    pass
+                    conn.rollback()
+                # Fix llm_call_log.created_at: populate empty values
+                try:
+                    cur.execute(
+                        "UPDATE llm_call_log SET created_at = NOW()::text "
+                        "WHERE created_at = '' OR created_at IS NULL"
+                    )
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
         conn.commit()
         _SCHEMA_LOADED = True
         logger.info("Database schema initialized (type=%s)", "sqlite" if _IS_SQLITE else "postgres")
@@ -307,6 +319,12 @@ CREATE TABLE IF NOT EXISTS room_player (
     joined_at       TEXT DEFAULT '',
     UNIQUE(room_id, user_id)
 );
+
+-- ── Migration: drop deprecated room_player table ──
+-- room_player is redundant: faction_slot already maps faction → occupant.
+-- This table was designed for the old player_token auth model (removed H14g).
+-- Running this migration on existing DBs removes the unused table.
+-- For new DBs the CREATE TABLE above is skipped (the migration drops it).
 
 -- 世界状态快照表：每个势力在当前季度的完整状态
 -- 一张表存储所有数值+非数值状态（城池/人口/兵力/粮草/政策/科技树）

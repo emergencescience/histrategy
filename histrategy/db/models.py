@@ -272,8 +272,8 @@ def log_llm_call(
             (id, room_id, quarter_number, call_type, faction_id,
              provider, model, prompt_tokens, completion_tokens,
              total_tokens, reasoning_tokens, latency_ms,
-             system_prompt_type, user_prompt, response, error)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+             system_prompt_type, user_prompt, response, error, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             log_id,
             room_id,
@@ -291,6 +291,7 @@ def log_llm_call(
             user_prompt,
             response,
             error,
+            datetime.utcnow().isoformat(),
         ),
     )
     return log_id
