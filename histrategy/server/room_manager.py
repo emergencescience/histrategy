@@ -765,8 +765,10 @@ def _resolve_v1(room, ws, decisions, llm):
         turn_summary: dict | None
 
     narratives = {}
+    faction_narratives = v1_result.get("faction_narratives", {})
     for fid in decisions:
-        narratives[fid] = v1_result.get("narrative", "")
+        # Use per-faction narrative if available, otherwise fall back to global narrative
+        narratives[fid] = faction_narratives.get(fid) or v1_result.get("narrative", "")
 
     return V1Result(
         narratives=narratives,

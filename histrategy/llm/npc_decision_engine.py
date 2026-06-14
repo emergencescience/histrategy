@@ -15,10 +15,13 @@ NPCDecisionEngine — 为一个 NPC faction 生成独立季度决策。
 from __future__ import annotations
 
 import json
+import logging
 from typing import TYPE_CHECKING
 
 from histrategy.engine.faction_slot import LLM_NPC_FACTIONS, FactionSlot
 from histrategy.llm.prompt_loader import load_prompt
+
+logger = logging.getLogger("histrategy.npc")
 
 if TYPE_CHECKING:
     from histrategy_engine.world import WorldState
@@ -64,6 +67,8 @@ class NPCDecisionEngine:
         faction_id: str,
         turn_memory: list[dict] | None = None,
         slot: FactionSlot | None = None,
+        room_id: str = "",
+        quarter_number: int = 0,
     ) -> tuple[str, list]:
         """生成 NPC 的本季度决策。
 
@@ -97,9 +102,12 @@ class NPCDecisionEngine:
                 faction,
                 turn_memory or [],
                 slot,
+                room_id,
+                quarter_number,
             )
-        except Exception:
+        except Exception as e:
             # LLM 失败时回退到启发式
+            logger.warning(f"NPCDecisionEngine LLM failed for {faction_id}, falling back to heuristic: {e}")
             return self._generate_heuristic(world_state, faction_id)
 
     def _generate_llm(
@@ -109,6 +117,8 @@ class NPCDecisionEngine:
         faction,
         turn_memory: list[dict],
         slot: FactionSlot | None,
+        room_id: str = "",
+        quarter_number: int = 0,
     ) -> tuple[str, list]:
         """LLM 生成决策。"""
         context = self._build_context(ws, faction_id, faction, turn_memory)
@@ -139,6 +149,21 @@ class NPCDecisionEngine:
 
         # 标准化命令
         commands = self._normalize_commands(raw_commands, faction_id)
+
+        # ── Log to DB ──
+        if room_id and quarter_number:
+            try:
+                from histrategy.db.models import log_llm_call
+                log_llm_call(
+                    room_id=room_id,
+                    quarter_number=quarter_number,
+                    call_type="npc_decision",
+                    faction_id=faction_id,
+                    provider=getattr(self.llm, "provider", "") if self.llm else "",
+                    model=getattr(self.llm, "model", "") if self.llm else "",
+                )
+            except Exception:
+                pass
 
         return decision, commands
 
