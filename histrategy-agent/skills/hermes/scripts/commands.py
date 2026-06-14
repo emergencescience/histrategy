@@ -23,8 +23,9 @@ from .session_manager import (  # noqa: E402
     load_or_create_session,
 )
 
-# Multiplayer sessions: keyed by chat_id
-MULTIPLAYER_SESSIONS: dict[str, MultiplayerSession] = {}
+# Multiplayer sessions: loaded from file, NOT in-memory dict.
+# The old MULTIPLAYER_SESSIONS dict was wiped on every context reset.
+# Now we use MultiplayerSession.load() / save() for per-chat persistence.
 
 
 # ─── Command detection ─────────────────────────────────────
@@ -129,12 +130,11 @@ def handle_command(text: str, platform: str, chat_id: str, user_id: str, user_na
 
     # /histrategy join (multiplayer)
     if subcommand.startswith("join"):
-        if chat_id not in MULTIPLAYER_SESSIONS:
+        mp = MultiplayerSession.load(chat_id)
+        if mp is None:
             # Create new multiplayer session with this user as host
             mp = MultiplayerSession(session_id=chat_id, host_user_id=user_id)
-            MULTIPLAYER_SESSIONS[chat_id] = mp
 
-        mp = MULTIPLAYER_SESSIONS[chat_id]
         try:
             mp.add_player(user_id, user_name)
         except ValueError as e:
@@ -144,6 +144,9 @@ def handle_command(text: str, platform: str, chat_id: str, user_id: str, user_na
                 "content_type": "markdown",
             }
 
+        # Auto-save after mutation
+        mp._save_to_file()
+
         return {
             "platform": platform,
             "content": mp.get_status_message(),
@@ -152,7 +155,7 @@ def handle_command(text: str, platform: str, chat_id: str, user_id: str, user_na
 
     # /histrategy start (multiplayer)
     if subcommand.startswith("start"):
-        mp = MULTIPLAYER_SESSIONS.get(chat_id)
+        mp = MultiplayerSession.load(chat_id)
         if not mp:
             return {
                 "platform": platform,
@@ -166,6 +169,7 @@ def handle_command(text: str, platform: str, chat_id: str, user_id: str, user_na
                 "content_type": "markdown",
             }
         mp.start_game()
+        mp._save_to_file()
         return {
             "platform": platform,
             "content": mp.get_status_message(),
@@ -174,7 +178,7 @@ def handle_command(text: str, platform: str, chat_id: str, user_id: str, user_na
 
     # /histrategy players (multiplayer)
     if subcommand.startswith("players") or subcommand.startswith("player"):
-        mp = MULTIPLAYER_SESSIONS.get(chat_id)
+        mp = MultiplayerSession.load(chat_id)
         if not mp:
             return {
                 "platform": platform,
