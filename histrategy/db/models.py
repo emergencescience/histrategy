@@ -134,7 +134,7 @@ def _save_faction_slots(room: GameRoom):
 
 
 def load_room(room_id: str) -> GameRoom | None:
-    """Load a GameRoom from the database.
+    """Load a GameRoom from the database, including world_state.
 
     Returns None if room not found.
     """
@@ -164,6 +164,22 @@ def load_room(room_id: str) -> GameRoom | None:
         turn_summaries=turn_summaries,
     )
     room.slots = slots
+
+    # Restore world_state from DB (survives server restart)
+    ws_data = json_loads(row.get("world_state"))
+    if ws_data:
+        try:
+            from histrategy.state.world_state import WorldState as WS
+
+            ws = WS()
+            # Map season string → season_index (to_dict uses "spring", from_dict expects int)
+            _SEASON_MAP = {"spring": 0, "summer": 1, "autumn": 2, "winter": 3}
+            if "season" in ws_data and "season_index" not in ws_data:
+                ws_data["season_index"] = _SEASON_MAP.get(ws_data["season"], 0)
+            ws.from_dict(ws_data)
+            room.world_state = ws
+        except Exception:
+            pass  # Graceful degradation — room loads without world state if corrupt
 
     return room
 

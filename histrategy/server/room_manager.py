@@ -30,6 +30,9 @@ _players: dict[str, dict[str, dict]] = {}
 
 
 def _try_save(room: GameRoom, ws_dict: dict | None = None):
+    """Persist room to DB. Auto-extracts world_state dict if not provided."""
+    if ws_dict is None and room.world_state is not None and hasattr(room.world_state, "to_dict"):
+        ws_dict = room.world_state.to_dict()
     try:
         from histrategy.db.models import save_room
 
