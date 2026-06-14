@@ -151,7 +151,7 @@ class NPCDecisionEngine:
         commands = self._normalize_commands(raw_commands, faction_id)
 
         # ── Log to DB ──
-        if room_id and quarter_number:
+        if room_id:
             try:
                 from histrategy.db.models import log_llm_call
                 log_llm_call(
@@ -236,7 +236,7 @@ class NPCDecisionEngine:
         lines.append(f"君主: {faction.ruler_id}")
         lines.append(f"兵力: {getattr(faction, 'strength_actual', 0):,}")
         lines.append(f"资金: {faction.treasury:,} | 粮草: {faction.food:,}")
-        lines.append(f"民心: {getattr(faction, 'morale_actual', 50)} | 税率: {faction.tax_rate:.0%}")
+        lines.append(f"民心: {getattr(faction, 'morale_actual', 50)} | 税率: {int(getattr(faction, 'tax_rate', 0.3) * 100)}%")
         territories = list(faction.territories) if faction.territories else []
         lines.append(f"领地: {territories}")
         lines.append("")
@@ -268,8 +268,8 @@ class NPCDecisionEngine:
         for fid, f in ws.factions.items():
             if fid == faction_id or not getattr(f, "is_active", True):
                 continue
-            est_str = getattr(f, "strength_estimated", 0)
-            morale_est = getattr(f, "morale_estimated", 50)
+            est_str = getattr(f, "strength_actual", 0)
+            morale_est = getattr(f, "morale_actual", 50)
             territories = list(f.territories) if f.territories else []
             lines.append(f"- {f.name} ({fid}): 兵力≈{est_str:,}, 民心≈{morale_est}, 领地={territories}")
         lines.append("")

@@ -766,9 +766,29 @@ def _resolve_v1(room, ws, decisions, llm):
 
     narratives = {}
     faction_narratives = v1_result.get("faction_narratives", {})
+    global_narrative = v1_result.get("narrative", "")
+    factions_data = v1_result.get("factions", {})
+    
     for fid in decisions:
-        # Use per-faction narrative if available, otherwise fall back to global narrative
-        narratives[fid] = faction_narratives.get(fid) or v1_result.get("narrative", "")
+        # Use per-faction narrative if available and non-empty
+        fn = faction_narratives.get(fid, "")
+        if fn and fn.strip():
+            narratives[fid] = fn
+        else:
+            # Fallback: generate a basic per-faction summary from state data
+            fd = factions_data.get(fid, {})
+            fname = {"cao": "曹操", "shu": "刘备", "wu": "孙权"}.get(fid, fid)
+            troops = fd.get("troops", 0)
+            food = fd.get("food", 0)
+            territories = fd.get("territories", [])
+            territory_names = [t["name"] if isinstance(t, dict) else str(t) for t in territories]
+            territory_str = "、".join(territory_names[:3]) if territory_names else "无领地"
+            narratives[fid] = (
+                f"{global_narrative}\n\n"
+                f"【{fname}方纪】是季，{fname}拥兵{troops:,}，积粟{food:,}斛，"
+                f"据{territory_str}。" if global_narrative else
+                f"【{fname}】是季，{fname}拥兵{troops:,}，积粟{food:,}斛，据{territory_str}。"
+            )
 
     return V1Result(
         narratives=narratives,
