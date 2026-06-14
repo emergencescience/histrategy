@@ -1161,6 +1161,31 @@ def create_app(llm_provider: str | None = None) -> Any:
             "factions": factions,
         }
 
+    @app.get("/api/single-player/{game_id}/status")
+    def api_sp_status(game_id: str):
+        """单人模式 — 获取游戏状态。"""
+        from histrategy.server.single_player import status
+
+        return status(game_id)
+
+    @app.post("/api/single-player/{game_id}/command")
+    def api_sp_command(game_id: str, body: dict = Body(...)):
+        """单人模式 — 执行命令（阻塞等待 LLM 推演完成）。"""
+        from histrategy.server.single_player import command
+
+        return command(game_id, body.get("decision", ""))
+
+    @app.post("/api/single-player/start")
+    def api_sp_start(body: dict = Body(...)):
+        """单人模式 — 开始新游戏。"""
+        from histrategy.server.single_player import start
+
+        return start(
+            faction=body.get("faction", "shu"),
+            scenario=body.get("scenario", "207"),
+            language_style=body.get("language_style", "vernacular"),
+        )
+
     @app.get("/mp")
     def serve_multiplayer_page():
         import os as _os
