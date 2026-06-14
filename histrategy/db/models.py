@@ -556,6 +556,16 @@ def get_active_policies(room_id: str, faction_id: str) -> list[dict]:
     )
 
 
+def get_policies_by_quarter(room_id: str, quarter_number: int) -> list[dict]:
+    """Get all policies for all factions at a specific quarter."""
+    return execute(
+        """SELECT * FROM policy_state
+        WHERE room_id = ? AND quarter_number = ?
+        ORDER BY faction_id, policy_name""",
+        (room_id, quarter_number),
+    )
+
+
 def revoke_policy(room_id: str, faction_id: str, policy_name: str) -> bool:
     """Revoke a policy. Returns True if any row was updated."""
     from datetime import datetime, timezone

@@ -1108,21 +1108,55 @@ def create_app(llm_provider: str | None = None) -> Any:
 
     @app.get("/api/rooms/{room_id}/turns")
     def api_room_turns(room_id: str):
-        """返回指定 room 的所有 quarter_turn 记录。"""
-        from histrategy.db.models import get_quarter_turns
+        """Return all quarter_turn records with turn_deltas and policy_state per quarter."""
+        from histrategy.db.models import get_policies_by_quarter, get_quarter_turns, get_turn_deltas
 
         raw_turns = get_quarter_turns(room_id, limit=10000)
 
         turns = []
         for row in raw_turns:
+            qn = row["quarter_number"]
+
+            # Fetch turn deltas for this quarter
+            raw_deltas = get_turn_deltas(room_id, qn)
+            deltas = {}
+            for d in raw_deltas:
+                fid = d["faction_id"]
+                if fid not in deltas:
+                    deltas[fid] = []
+                deltas[fid].append({
+                    "delta_type": d["delta_type"],
+                    "old_value": d["old_value"],
+                    "new_value": d["new_value"],
+                    "delta": d["delta"],
+                    "reason": d.get("reason", ""),
+                    "source": d.get("source", ""),
+                })
+
+            # Fetch policies for this quarter
+            raw_policies = get_policies_by_quarter(room_id, qn)
+            policies = {}
+            for p in raw_policies:
+                fid = p["faction_id"]
+                if fid not in policies:
+                    policies[fid] = {}
+                policies[fid][p["policy_name"]] = {
+                    "policy_type": p["policy_type"],
+                    "policy_level": p.get("policy_level", 1),
+                    "params": _safe_json_loads(p.get("params")),
+                    "status": p.get("status", "active"),
+                }
+
             turn = {
-                "quarter_number": row["quarter_number"],
+                "quarter_number": qn,
                 "year": row["year"],
                 "season": row["season"],
                 "faction_decisions": _safe_json_loads(row.get("faction_decisions")),
                 "narratives": _safe_json_loads(row.get("narratives")),
                 "state_changes": _safe_json_loads(row.get("state_changes")),
                 "token_usage": _safe_json_loads(row.get("token_usage")),
+                "turn_deltas": deltas,
+                "policies": policies,
             }
             turns.append(turn)
 
