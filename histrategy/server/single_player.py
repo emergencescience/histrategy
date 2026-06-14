@@ -258,11 +258,11 @@ def _build_faction_status(room: GameRoom, faction_id: str) -> dict:
     return {
         "name": getattr(faction, "name", faction_id),
         "faction_id": faction_id,
-        "strength": getattr(faction, "strength_actual", 0) or 0,
+        "strength": getattr(faction, "strength", 0) or getattr(faction, "strength_actual", 0) or 0,
         "food": int(getattr(faction, "food", 0) or 0),
         "treasury": int(getattr(faction, "treasury", 0) or 0),
         "territories": territories,
-        "morale": getattr(faction, "morale_actual", 50) or 50,
+        "morale": getattr(faction, "morale", 50) or getattr(faction, "morale_actual", 50) or 50,
         "is_active": getattr(faction, "is_active", True),
         "year": room.year,
         "season": room.season,
