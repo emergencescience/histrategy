@@ -20,7 +20,7 @@ class TestGameSessionManager:
             assert session.player_faction_id == "shu"
             assert session.turn_number == 1
             assert session.world_state.year == 207
-            assert session.world_state.season == Season.WINTER
+            assert session.world_state.season == Season.SPRING
             assert not session.is_multiplayer
             assert "shu" in session.world_state.factions
             assert "cao" in session.world_state.factions
@@ -190,7 +190,7 @@ class TestSerializationHelpers:
             d = _to_dict(session.world_state)
             restored = _from_dict(WorldState, d)
             assert restored.year == 207
-            assert restored.season == Season.WINTER
+            assert restored.season == Season.SPRING
             assert "shu" in restored.factions
             assert "cao" in restored.factions
             assert len(restored.territories) == len(session.world_state.territories)

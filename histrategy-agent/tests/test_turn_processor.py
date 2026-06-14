@@ -197,20 +197,20 @@ class TestTurnProcessing:
             session = mgr.get_or_create("feishu", "chat_season", "shu", "207")
             from histrategy_engine import Season
 
-            assert session.world_state.season == Season.WINTER
+            assert session.world_state.season == Season.SPRING
 
             tp = TurnProcessor()
-            # Turn 1 → 2: season advances to SPRING (every 2 turns)
-            tp.process(session, "查看天下大势")
-            assert session.world_state.season == Season.SPRING
-
-            # Turn 2 → 3: season stays SPRING
-            tp.process(session, "查看天下大势")
-            assert session.world_state.season == Season.SPRING
-
-            # Turn 3 → 4: season advances to SUMMER
+            # Turn 1 → 2: season advances to SUMMER (every 2 turns)
             tp.process(session, "查看天下大势")
             assert session.world_state.season == Season.SUMMER
+
+            # Turn 2 → 3: season stays SUMMER
+            tp.process(session, "查看天下大势")
+            assert session.world_state.season == Season.SUMMER
+
+            # Turn 3 → 4: season advances to AUTUMN
+            tp.process(session, "查看天下大势")
+            assert session.world_state.season == Season.AUTUMN
 
     def test_year_advances_after_four_seasons(self):
         with tempfile.TemporaryDirectory() as tmp:
