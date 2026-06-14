@@ -233,11 +233,11 @@ class NPCDecisionEngine:
         # 自身状态
         lines.append("## 你的势力")
         lines.append(f"势力: {faction.name} ({faction_id})")
-        lines.append(f"君主: {faction.ruler_id}")
+        lines.append(f"君主: {getattr(faction, 'ruler_id', '')}")
         lines.append(f"兵力: {getattr(faction, 'strength_actual', 0):,}")
-        lines.append(f"资金: {faction.treasury:,} | 粮草: {faction.food:,}")
+        lines.append(f"资金: {getattr(faction, 'treasury', 0):,} | 粮草: {getattr(faction, 'food', 0):,}")
         lines.append(f"民心: {getattr(faction, 'morale_actual', 50)} | 税率: {int(getattr(faction, 'tax_rate', 0.3) * 100)}%")
-        territories = list(faction.territories) if faction.territories else []
+        territories = list(getattr(faction, 'territories', []))
         lines.append(f"领地: {territories}")
         lines.append("")
 
@@ -252,9 +252,10 @@ class NPCDecisionEngine:
         lines.append("")
 
         # 外交关系
-        if faction.relations:
+        relations = getattr(faction, "relations", {})
+        if relations:
             lines.append("## 外交关系")
-            for target_id, rel in faction.relations.items():
+            for target_id, rel in relations.items():
                 if target_id == faction_id:
                     continue
                 target = ws.factions.get(target_id)
@@ -270,8 +271,8 @@ class NPCDecisionEngine:
                 continue
             est_str = getattr(f, "strength_actual", 0)
             morale_est = getattr(f, "morale_actual", 50)
-            territories = list(f.territories) if f.territories else []
-            lines.append(f"- {f.name} ({fid}): 兵力≈{est_str:,}, 民心≈{morale_est}, 领地={territories}")
+            territories = list(getattr(f, "territories", []))
+            lines.append(f"- {getattr(f, 'name', fid)} ({fid}): 兵力≈{est_str:,}, 民心≈{morale_est}, 领地={territories}")
         lines.append("")
 
         # 历史记忆
