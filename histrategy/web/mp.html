@@ -63,6 +63,12 @@ textarea { resize:vertical; min-height:60px; }
 .faction-badge.cao { background:var(--cao); color:#fff; }
 .faction-badge.shu { background:var(--shu); color:#fff; }
 .faction-badge.wu  { background:var(--wu); color:#fff; }
+
+/* Turn history blocks */
+.turn-block { margin-bottom: 12px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 6px; border-left: 3px solid var(--border); }
+.turn-header { font-size: 0.85em; color: var(--gold); margin-bottom: 6px; font-weight: bold; }
+.turn-narrative { line-height: 1.7; margin-bottom: 6px; }
+.turn-npc { font-size: 0.85em; color: var(--muted); margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border); }
 </style>
 </head>
 <body>
@@ -300,11 +306,31 @@ function updateGameUI(s) {
     el('submit-btn').disabled = true;
   }
 
-  if (s.narrative) {
-    el('narrative').innerHTML = s.narrative.replace(/\n/g, '<br>');
-  }
-  if (s.npc_actions && s.npc_actions.length > 0) {
-    el('npc-actions').innerHTML = '<b>天下动向:</b><br>' + s.npc_actions.map(a => '· ' + a).join('<br>');
+  // ── Render turn history ──
+  const turns = s.turns || [];
+  if (turns.length > 0) {
+    let html = '';
+    for (const t of turns) {
+      const factionNarrative = t.narratives[myFaction] || '';
+      html += `<div class="turn-block">`;
+      html += `<div class="turn-header">📜 第${t.quarter||'?'}季 · ${t.year||'?'}年${t.season||'?'}</div>`;
+      if (factionNarrative) {
+        html += `<div class="turn-narrative">${factionNarrative.replace(/\n/g, '<br>')}</div>`;
+      }
+      if (t.npc_actions && t.npc_actions.length > 0) {
+        html += `<div class="turn-npc"><b>天下动向:</b><br>${t.npc_actions.map(a => '· ' + a).join('<br>')}</div>`;
+      }
+      html += `</div>`;
+    }
+    el('narrative').innerHTML = html || '<p style="color:var(--muted)">等待第一回合...</p>';
+  } else {
+    // Fallback: single narrative (backward compat)
+    if (s.narrative) {
+      el('narrative').innerHTML = s.narrative.replace(/\n/g, '<br>');
+    }
+    if (s.npc_actions && s.npc_actions.length > 0) {
+      el('npc-actions').innerHTML = '<b>天下动向:</b><br>' + s.npc_actions.map(a => '· ' + a).join('<br>');
+    }
   }
 }
 

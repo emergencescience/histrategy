@@ -461,6 +461,33 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
         status["narrative"] = narratives.get(faction_id, "")
         status["npc_actions"] = getattr(room, "_last_npc_actions", [])
 
+    # ── Return turn history for new-tab replay ──
+    history = getattr(room, "_narrative_history", [])
+    if not history:
+        # Fallback: load from quarter_turn DB table (survives server restart)
+        try:
+            import json as _json
+
+            from histrategy.db.models import get_quarter_turns
+
+            db_turns = get_quarter_turns(room.id, limit=20)
+            for row in reversed(db_turns):
+                narratives_raw = row.get("narratives")
+                narratives = _json.loads(narratives_raw) if isinstance(narratives_raw, str) else (narratives_raw or {})
+                history.append({
+                    "quarter": row["quarter_number"],
+                    "year": row.get("year", 207),
+                    "season": row.get("season", "春"),
+                    "narratives": narratives,
+                    "npc_actions": [],  # NPC actions not in quarter_turn table
+                })
+            # Cache for subsequent calls
+            room._narrative_history = history
+        except Exception:
+            pass
+    if history:
+        status["turns"] = history
+
     return status
 
 
@@ -661,6 +688,20 @@ def _resolve_and_advance(room: GameRoom):
             name = faction.name if faction else fid
             npc_actions.append(f"{name}: {dr.decision_text[:80]}")
     room._last_npc_actions = npc_actions
+
+    # ── Accumulate narrative history for turn replay ──
+    if not hasattr(room, "_narrative_history"):
+        room._narrative_history = []
+    room._narrative_history.append({
+        "quarter": room.quarter_number + 1,  # upcoming quarter number
+        "year": room.year,
+        "season": room.season,
+        "narratives": dict(result.narratives),
+        "npc_actions": list(npc_actions),
+    })
+    # Keep last 20 turns in memory
+    if len(room._narrative_history) > 20:
+        room._narrative_history = room._narrative_history[-20:]
 
     if result.turn_summary:
         room.turn_summaries.append(result.turn_summary)
