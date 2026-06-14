@@ -142,10 +142,10 @@ function show(id) { document.getElementById(id).classList.remove('hidden'); }
 function hide(id) { document.getElementById(id).classList.add('hidden'); }
 function el(id) { return document.getElementById(id); }
 
-// Read room, faction & player_token from URL (for player joining via link)
+// Read room, faction from URL (for player joining via link)
 function parseURL() {
   const p = new URLSearchParams(location.search);
-  return { room: p.get('room') || '', faction: p.get('faction') || '', player_token: p.get('player_token') || '' };
+  return { room: p.get('room') || '', faction: p.get('faction') || '' };
 }
 
 // ── Init ───────────────────────
@@ -168,11 +168,11 @@ function parseURL() {
   });
 
   // Auto-join if URL has room + faction
-  const { room, faction, player_token } = parseURL();
+  const { room, faction } = parseURL();
   if (room && faction) {
     el('join-room-id').value = room;
     el('join-faction').value = faction;
-    doJoinRoom(player_token);
+    doJoinRoom();
   }
 })();
 
@@ -191,7 +191,7 @@ async function doCreateRoom() {
   roomId = r.room_id;
   myRole = 'host';
 
-  // Show player links — use server-returned links with player_token for multi-browser isolation
+  // Show player links — use server-returned links
   hide('home-panel');
   show('room-created-panel');
   el('top-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · 已开始`;
@@ -232,13 +232,12 @@ async function doCreateRoom() {
 }
 
 // ── Join Room ───────────────────
-async function doJoinRoom(playerToken) {
+async function doJoinRoom() {
   const rid = el('join-room-id').value.trim();
   const fid = el('join-faction').value;
   if (!rid) { alert('请输入房间 ID'); return; }
 
   const body = { user_id: myUserId, faction: fid };
-  if (playerToken) body.player_token = playerToken;
   const r = await api('POST', `/api/rooms/${rid}/enter`, body);
   if (!r.ok) { alert(r.error); return; }
 

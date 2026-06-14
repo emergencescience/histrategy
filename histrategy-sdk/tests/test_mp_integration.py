@@ -6,12 +6,8 @@ and DEEPSEEK_API_KEY set in environment.
 
 from __future__ import annotations
 
-import time
-
 import pytest
-
 from histrategy_sdk import MultiplayerRoom, ServerClient
-
 
 # ── ServerClient tests ──────────────────────────────────
 
@@ -219,7 +215,7 @@ class TestMultiplayerRoom:
         assert "slots" in status
         assert "pending" in status
         # cao should be pending (hasn't submitted yet)
-        assert any("caocao" in s or "cao" == s for s in status.get("pending", [])) or \
+        assert any("caocao" in s or s == "cao" for s in status.get("pending", [])) or \
             status["phase"] == "resolving"
 
 

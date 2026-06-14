@@ -430,7 +430,8 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         # DB type detection
         try:
-            from histrategy.db.connection import _IS_SQLITE as _sqlite_flag, DATABASE_URL as _db_url
+            from histrategy.db.connection import _IS_SQLITE as _sqlite_flag
+            from histrategy.db.connection import DATABASE_URL as _db_url
             db_type = "sqlite" if _sqlite_flag else "postgres"
             db_host = _db_url.split("@")[-1].split("/")[0] if "@" in _db_url else "local"
         except Exception:
@@ -1037,7 +1038,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
     @app.post("/api/rooms/{room_id}/enter")
     def api_enter_room(room_id: str, body: dict = Body(...)):
-        """进入房间。支持 player_token 验证（预分配模式）。"""
+        """进入房间。histrategy 是内部服务，auth 由 orchestrator 代理层处理。"""
         from histrategy.server.room_manager import enter_room
 
         return enter_room(
@@ -1045,7 +1046,6 @@ def create_app(llm_provider: str | None = None) -> Any:
             body.get("user_id", ""),
             body.get("display_name", ""),
             body.get("faction", ""),
-            body.get("player_token", ""),
         )
 
     @app.post("/api/rooms/{room_id}/pick")
@@ -1068,7 +1068,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
     @app.post("/api/rooms/{room_id}/decide")
     def api_submit_decision(room_id: str, body: dict = Body(...)):
-        """提交本季度决策。支持 player_token 解析。"""
+        """提交本季度决策。"""
         from histrategy.server.room_manager import submit_decision
 
         return submit_decision(
@@ -1076,7 +1076,6 @@ def create_app(llm_provider: str | None = None) -> Any:
             body.get("faction_id", ""),
             body.get("user_id", ""),
             body.get("decision", ""),
-            body.get("player_token", ""),
         )
 
     @app.get("/api/rooms/{room_id}/status")

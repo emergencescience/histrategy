@@ -31,8 +31,9 @@ def _start_server_thread(host: str, port: int, data_dir: str, api_key: str):
     import logging
     logging.basicConfig(level=logging.INFO)
 
-    from histrategy.server.api import create_app
     import uvicorn
+
+    from histrategy.server.api import create_app
 
     app = create_app(llm_provider="deepseek")
     uvicorn.run(app, host=host, port=port, log_level="warning")

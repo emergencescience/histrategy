@@ -51,13 +51,13 @@ def create_room(
     """创建房间并立即开始游戏。
 
     Host 预分配势力（推荐）：pre_assigned = {"caocao": "张三", "liubei": "李四"}
-    → 每个玩家获得专属链接 /mp?room=xxx&faction=caocao&player_token=<token>
+    → 每个玩家获得专属链接 /mp?room=xxx&faction=caocao
     → 未分配的势力自动变 AI NPC
 
     兼容旧 API：human_faction_ids = ["caocao", "liubei"] → 设为 OPEN 等待加入
 
     Returns:
-        {"ok": True, "room_id": str, "player_links": [{faction, token, url}], ...}
+        {"ok": True, "room_id": str, "player_links": [{faction, url}], ...}
     """
     from histrategy.engine.faction_slot import (
         FACTION_DISPLAY_TO_ID,
@@ -95,22 +95,19 @@ def create_room(
     player_links = []
     for fid in internal_ids:
         if internal_map:
-            # 预分配：直接设为 HUMAN，生成专属 token
+            # 预分配：直接设为 HUMAN，occupant_id = faction_id（内部服务，无需 token）
             from histrategy.engine.faction_slot import create_human_slot
-            player_user_id = "u_" + uuid.uuid4().hex
-            player_token = uuid.uuid4().hex
-            slot = create_human_slot(fid, player_user_id)
+            slot = create_human_slot(fid, fid)
             room.slots[fid] = slot
             player_name = internal_map[fid]
             display_fid = FACTION_ID_TO_DISPLAY.get(fid, fid)
             player_links.append({
                 "faction": display_fid,
                 "player_name": player_name,
-                "player_token": player_token,
-                "url": f"/mp?room={room.id}&faction={display_fid}&player_token={player_token}",
+                "url": f"/mp?room={room.id}&faction={display_fid}",
             })
             # 注册玩家
-            _enter_player(room.id, player_user_id, "player", player_name, player_token)
+            _enter_player(room.id, fid, "player", player_name)
         else:
             room.slots[fid] = create_open_slot(fid)
 
@@ -120,8 +117,7 @@ def create_room(
             room.slots[fid] = create_ai_slot(fid)
 
     # host 进入房间
-    host_token = uuid.uuid4().hex
-    _enter_player(room.id, host_user_id or ("host_" + uuid.uuid4().hex[:6]), "host", host_name or "房主", host_token)
+    _enter_player(room.id, host_user_id or ("host_" + uuid.uuid4().hex[:6]), "host", host_name or "房主")
 
     # 立即初始化世界状态并开始游戏
     _init_world_state(room)
@@ -138,7 +134,6 @@ def create_room(
     result = {
         "ok": True,
         "room_id": room.id,
-        "host_token": host_token,
         "phase": "waiting",
         "human_factions": display_factions,
     }
@@ -152,12 +147,11 @@ def enter_room(
     user_id: str = "",
     display_name: str = "",
     faction: str = "",
-    player_token: str = "",
 ) -> dict:
     """进入房间。
 
-    简化模式：玩家访问 /mp?room=xxx&faction=cao&player_token=xxx 即可自动进入。
-    player_token 是 Host 创建房间时分配的凭证，防止同浏览器 session 混淆。
+    简化模式：玩家访问 /mp?room=xxx&faction=cao 即可自动进入。
+    histrategy 是内部服务，auth 由 orchestrator 代理层处理。
 
     Returns:
         {"ok": True, "faction": str, ...} 或 error
@@ -169,35 +163,32 @@ def enter_room(
     if room_id not in _players:
         _players[room_id] = {}
 
-    # 自动生成 user_id（不需要人类维护 user 表）
-    if not user_id:
-        # 如果提供了 player_token，尝试查找已有玩家
-        if player_token and room_id in _players:
-            for uid, pdata in _players[room_id].items():
-                if pdata.get("player_token") == player_token:
-                    user_id = uid
-                    break
-        if not user_id:
-            user_id = "u_" + uuid.uuid4().hex  # full UUID v4 for uniqueness
-
     # 翻译显示名 → 内部 ID
     if faction:
         from histrategy.engine.faction_slot import FACTION_DISPLAY_TO_ID
 
         faction = FACTION_DISPLAY_TO_ID.get(faction, faction)
 
+    # 自动生成 user_id（内部服务，不需要维护 user 表）
+    if not user_id:
+        user_id = faction if faction else ("u_" + uuid.uuid4().hex)
+
     # 如果指定了 faction，自动占据该势力（如果 slot 存在且 open）
     if faction and faction in room.slots:
         slot = room.slots[faction]
         if slot.is_open():
-            # 自动占据势力
+            # 自动占据势力（occupant_id = faction_id）
             from histrategy.engine.faction_slot import create_human_slot
 
-            room.slots[faction] = create_human_slot(faction, user_id)
+            room.slots[faction] = create_human_slot(faction, faction)
             logger.info(f"Player {user_id} auto-claimed {faction} in room {room_id}")
             _try_save(room)
-        elif slot.is_human() and slot.occupant_id != user_id:
-            return {"ok": False, "error": f"势力 {faction} 已被其他人占据"}
+        elif slot.is_human():
+            # 已有人类占据，使用 faction_id 识别
+            if slot.occupant_id != faction:
+                return {"ok": False, "error": f"势力 {faction} 已被其他人占据"}
+        else:
+            return {"ok": False, "error": f"势力 {faction} 由AI控制"}
 
     # 如果已在房间里，返回当前状态
     if user_id in _players[room_id]:
@@ -206,7 +197,6 @@ def enter_room(
             "ok": True,
             "already_in": True,
             "user_id": user_id,
-            "player_token": p.get("player_token", ""),
             "role": p["role"],
             "faction": faction,
             "room": _room_summary(room),
@@ -215,17 +205,13 @@ def enter_room(
 
     # 新玩家
     role = "player"
-    # 保留调用者传入的 player_token（预分配模式），否则生成新的
-    if not player_token:
-        player_token = uuid.uuid4().hex
-    _enter_player(room_id, user_id, role, display_name or ("玩家_" + user_id[-4:]), player_token)
+    _enter_player(room_id, user_id, role, display_name or ("玩家_" + user_id[-4:]))
 
     result = {
         "ok": True,
         "role": role,
         "user_id": user_id,
         "faction": faction,
-        "player_token": player_token,
         "room": _room_summary(room),
     }
     return result
@@ -355,24 +341,18 @@ def start_game(room_id: str, user_id: str) -> dict:
 # ── Decision & Status ───────────────────────────────
 
 
-def submit_decision(room_id: str, faction_id: str, user_id: str, decision: str, player_token: str = "") -> dict:
+def submit_decision(room_id: str, faction_id: str, user_id: str, decision: str) -> dict:
     """提交本季度决策。全员提交后自动 resolve。
 
-    如果提供了 player_token，优先用它解析 user_id（预分配模式）。
+    histrategy 是内部服务，auth 由 orchestrator 代理层处理。
+    人类玩家通过 faction_id 识别。
     """
     room = _get_room(room_id)
     if not room:
         return {"ok": False, "error": "房间不存在"}
 
-    # player_token 解析（预分配模式：前端可能不知道 user_id）
-    if player_token and room_id in _players:
-        for uid, pdata in _players[room_id].items():
-            if pdata.get("player_token") == player_token:
-                user_id = uid
-                break
-
     if not user_id:
-        return {"ok": False, "error": "缺少 user_id 或 player_token"}
+        return {"ok": False, "error": "缺少 user_id"}
 
     # 自动修复：如果 room 有 world_state 但 phase 还是 lobby
     from histrategy.engine.game_room import RoomPhase
@@ -396,7 +376,7 @@ def submit_decision(room_id: str, faction_id: str, user_id: str, decision: str, 
         return {"ok": False, "error": f"势力 {faction_id} 已灭亡"}
     if not slot.is_human():
         return {"ok": False, "error": f"势力 {faction_id} 由AI控制"}
-    if slot.occupant_id and slot.occupant_id != user_id:
+    if slot.occupant_id and slot.occupant_id != faction_id:
         return {"ok": False, "error": f"你不是势力 {faction_id} 的控制者"}
 
     slot.submit_decision(decision)
@@ -540,36 +520,26 @@ def _get_room(room_id: str) -> GameRoom | None:
     return None
 
 
-def _enter_player(room_id: str, user_id: str, role: str, display_name: str, player_token: str = ""):
+def _enter_player(room_id: str, user_id: str, role: str, display_name: str):
     if room_id not in _players:
         _players[room_id] = {}
     _players[room_id][user_id] = {
         "role": role,
         "display_name": display_name,
-        "player_token": player_token,
     }
-    _save_player_to_db(room_id, user_id, role, display_name, player_token)
+    _save_player_to_db(room_id, user_id, role, display_name)
 
 
-def _save_player_to_db(room_id: str, user_id: str, role: str, display_name: str, player_token: str = ""):
+def _save_player_to_db(room_id: str, user_id: str, role: str, display_name: str):
     try:
         from histrategy.db.connection import execute_write
 
         pid = f"{room_id}_{user_id}"
-        # 尝试写入 player_token（H13o 新增列），如果列不存在则回退
-        try:
-            execute_write(
-                """INSERT OR REPLACE INTO room_player (id, room_id, user_id, role, display_name, player_token)
-                VALUES (?, ?, ?, ?, ?, ?)""",
-                (pid, room_id, user_id, role, display_name, player_token),
-            )
-        except Exception:
-            # player_token 列可能还不存在（迁移未运行），回退到 5 列版本
-            execute_write(
-                """INSERT OR REPLACE INTO room_player (id, room_id, user_id, role, display_name)
-                VALUES (?, ?, ?, ?, ?)""",
-                (pid, room_id, user_id, role, display_name),
-            )
+        execute_write(
+            """INSERT OR REPLACE INTO room_player (id, room_id, user_id, role, display_name)
+            VALUES (?, ?, ?, ?, ?)""",
+            (pid, room_id, user_id, role, display_name),
+        )
     except Exception:
         pass
 
@@ -579,17 +549,10 @@ def _restore_players_from_db(room_id: str):
     try:
         from histrategy.db.connection import execute
 
-        # 先尝试读取包含 player_token 列（H13o+），失败则回退
-        try:
-            rows = execute(
-                "SELECT user_id, role, display_name, player_token FROM room_player WHERE room_id = ?",
-                (room_id,),
-            )
-        except Exception:
-            rows = execute(
-                "SELECT user_id, role, display_name FROM room_player WHERE room_id = ?",
-                (room_id,),
-            )
+        rows = execute(
+            "SELECT user_id, role, display_name FROM room_player WHERE room_id = ?",
+            (room_id,),
+        )
         if rows:
             if room_id not in _players:
                 _players[room_id] = {}
@@ -599,7 +562,6 @@ def _restore_players_from_db(room_id: str):
                     _players[room_id][uid] = {
                         "role": row["role"],
                         "display_name": row["display_name"] or "",
-                        "player_token": row.get("player_token", "") or "",
                     }
             logger.info(f"Restored {len(rows)} players for room {room_id} from DB")
     except Exception:
