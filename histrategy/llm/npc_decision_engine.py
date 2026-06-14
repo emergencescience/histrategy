@@ -159,7 +159,7 @@ class NPCDecisionEngine:
                     quarter_number=quarter_number,
                     call_type="npc_decision",
                     faction_id=faction_id,
-                    provider=getattr(self.llm, "provider", "") if self.llm else "",
+                    provider=getattr(self.llm, "provider_name", "") if self.llm else "",
                     model=getattr(self.llm, "model", "") if self.llm else "",
                 )
             except Exception:
