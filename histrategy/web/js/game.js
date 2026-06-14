@@ -18,11 +18,68 @@ const Game = {
       console.warn('Health check failed:', e);
     }
 
+    // ── Check for resume from URL ──
+    const params = new URLSearchParams(location.search);
+    const resumeId = params.get('game_id');
+    if (resumeId) {
+      await this.resumeGame(resumeId);
+      return;
+    }
+
     // Show faction select
     UI.showFactionSelect(async (faction) => {
       this.faction = faction;
       await this.startNewGame();
     });
+  },
+
+  async resumeGame(gameId) {
+    try {
+      UI.toast('正在恢复游戏...');
+      const data = await API.getGame(gameId);
+      this.gameId = gameId;
+      this.faction = data.faction_status?.faction_id || '';
+
+      UI.showGameView();
+      this._bindEvents();
+
+      // Render past turns
+      const turns = data.turns || [];
+      if (turns.length > 0) {
+        for (const t of turns) {
+          UI.appendNarrative(
+            `<span class="turn-marker">▸ 第 ${t.turn} 回合 — ${t.year}年${t.season}</span>`,
+            'turn-marker'
+          );
+          if (t.player_decision) {
+            UI.appendNarrative(`<b>君令:</b> ${t.player_decision}`, 'diplo');
+          }
+          if (t.narrative) {
+            UI.appendNarrative(t.narrative);
+          }
+          if (t.aftermath) {
+            UI.appendNarrative(t.aftermath);
+          }
+          if (t.npc_actions && t.npc_actions.length) {
+            UI.appendNarrative(`<b>天下动向:</b><br>${t.npc_actions.map(a => '· '+a).join('<br>')}`, 'diplo');
+          }
+        }
+      }
+
+      // Update stats
+      if (data.faction_status) {
+        UI.updateStats(data.faction_status);
+      }
+
+      UI.toast('游戏已恢复！当前第 ' + (data.faction_status?.turn || '?') + ' 回合');
+    } catch(e) {
+      UI.toast('恢复游戏失败: ' + e.message, true);
+      // Fall back to new game
+      UI.showFactionSelect(async (faction) => {
+        this.faction = faction;
+        await this.startNewGame();
+      });
+    }
   },
 
   async startNewGame() {

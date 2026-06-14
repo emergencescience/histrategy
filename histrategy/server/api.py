@@ -99,6 +99,8 @@ class RestoreGameRequest(BaseModel):
 _games: dict[str, Any] = {}
 # Game metadata: {game_id: {"session_id": str, "jwt_token": str}}
 _game_meta: dict[str, dict] = {}
+# Turn narrative history: {game_id: [{turn, year, season, narrative, npc_actions}]}
+_game_turns: dict[str, list[dict]] = {}
 _llm_provider: str | None = None  # Set by run_server / create_app
 
 
@@ -599,7 +601,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
     @app.get("/api/games/{game_id}")
     def get_game(game_id: str):
-        """Get current game state."""
+        """Get current game state including turn history."""
         engine = _get_engine(game_id)
         if not engine:
             from fastapi.responses import JSONResponse
@@ -607,9 +609,11 @@ def create_app(llm_provider: str | None = None) -> Any:
             return JSONResponse(status_code=404, content={"error": "Game not found"})
 
         status = _build_faction_status(engine)
+        turns = _game_turns.get(game_id, [])
         return {
             "game_id": game_id,
             "faction_status": status,
+            "turns": turns,
         }
 
     @app.post("/api/games/{game_id}/plan")
@@ -664,6 +668,23 @@ def create_app(llm_provider: str | None = None) -> Any:
             result = engine.process_turn(req.decision)
 
         status = _build_faction_status(engine)
+
+        # ── Accumulate turn narrative history for resume/replay ──
+        if game_id not in _game_turns:
+            _game_turns[game_id] = []
+        _game_turns[game_id].append({
+            "turn": status.get("turn", 1),
+            "year": status.get("year", 207),
+            "season": status.get("season", "春"),
+            "narrative": result.get("narrative", ""),
+            "aftermath": result.get("aftermath", ""),
+            "npc_actions": result.get("npc_actions", result.get("npc_reactions", [])),
+            "events_occurred": _format_character_events(result.get("events_occurred", [])),
+            "player_decision": req.decision,
+        })
+        # Keep last 30 turns max
+        if len(_game_turns[game_id]) > 30:
+            _game_turns[game_id] = _game_turns[game_id][-30:]
 
         # Extract new suggestions from result
         new_suggestions = result.get("new_choices", [])
