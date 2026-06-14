@@ -20,8 +20,9 @@ h1 { font-size:1.4em; color:var(--gold); }
 h2 { font-size:1.1em; color:var(--gold); margin:12px 0 8px; }
 .container { max-width:800px; margin:0 auto; padding:16px; }
 .panel { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:16px; }
-input, button { font-family:inherit; font-size:0.95em; }
-input { width:100%; padding:10px; background:#1a1a2e; border:1px solid var(--border); color:var(--text); border-radius:6px; margin:6px 0; }
+input, textarea, button { font-family:inherit; font-size:0.95em; }
+input, textarea { width:100%; padding:10px; background:#1a1a2e; border:1px solid var(--border); color:var(--text); border-radius:6px; margin:6px 0; }
+textarea { resize:vertical; min-height:60px; }
 .btn { display:inline-block; padding:10px 20px; background:var(--btn); color:var(--gold); border:1px solid var(--border); border-radius:6px; cursor:pointer; margin:4px; }
 .btn:hover { background:var(--btn-hover); }
 .btn.primary { background:#2d6a4f; font-size:1.05em; }
@@ -117,7 +118,7 @@ input { width:100%; padding:10px; background:#1a1a2e; border:1px solid var(--bor
   <div id="narrative" class="narrative-box"></div>
   <div id="npc-actions" style="margin-top:8px"></div>
   <div style="margin-top:12px">
-    <input id="decision-input" placeholder="输入你的决策...">
+    <textarea id="decision-input" rows="3" placeholder="输入你的决策..."></textarea>
     <button class="btn primary" id="submit-btn" onclick="doDecide()">传令</button>
   </div>
 </div>
