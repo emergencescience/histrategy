@@ -49,10 +49,18 @@ def _build_context(
         territories_str = (
             "、".join([ws.territories[tid].name for tid in faction.territories if tid in ws.territories]) or "无领地"
         )
+        # Compute total population from territories (H15e fix: FactionState has no population field)
+        computed_population = getattr(faction, 'population', 0)
+        if not computed_population:
+            computed_population = sum(
+                ws.territories[tid].population
+                for tid in faction.territories
+                if tid in ws.territories
+            )
         parts.append(
             f"### {faction.name} ({fid})\n"
             f"- 城池: {territories_str}\n"
-            f"- 人口: {getattr(faction, 'population', '?')}\n"
+            f"- 人口: {computed_population}\n"
             f"- 兵力: {getattr(faction, 'strength_actual', 0)}\n"
             f"- 粮草: {faction.food}\n"
             f"- 库金: {faction.treasury}\n"
