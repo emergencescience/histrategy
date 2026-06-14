@@ -7,10 +7,13 @@ controlling different factions in the same game world.
 
 from __future__ import annotations
 
+import json
+import os
 import random
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
+from pathlib import Path
 
 
 class GamePhase(Enum):
@@ -34,6 +37,25 @@ class PlayerSlot:
             self.display_name = self.user_id
         if not self.joined_at:
             self.joined_at = datetime.now(timezone.utc).isoformat()
+
+    def to_dict(self) -> dict:
+        return {
+            "user_id": self.user_id,
+            "faction_id": self.faction_id,
+            "display_name": self.display_name,
+            "is_spectator": self.is_spectator,
+            "joined_at": self.joined_at,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "PlayerSlot":
+        return cls(
+            user_id=data["user_id"],
+            faction_id=data["faction_id"],
+            display_name=data.get("display_name", ""),
+            is_spectator=data.get("is_spectator", False),
+            joined_at=data.get("joined_at", ""),
+        )
 
 
 @dataclass
@@ -72,6 +94,7 @@ class MultiplayerSession:
             display_name=display_name or user_id,
         )
         self.players[user_id] = slot
+        self._save_to_file()
         return slot
 
     def remove_player(self, user_id: str) -> bool:
@@ -82,6 +105,7 @@ class MultiplayerSession:
             del self.players[user_id]
             if user_id in self.turn_order:
                 self.turn_order.remove(user_id)
+            self._save_to_file()
             return True
         return False
 
@@ -96,6 +120,7 @@ class MultiplayerSession:
         random.shuffle(self.turn_order)
         self.current_turn_index = 0
         self.game_phase = GamePhase.PLAYING
+        self._save_to_file()
 
     def get_current_player(self) -> PlayerSlot | None:
         """Who should act this turn?"""
@@ -125,6 +150,67 @@ class MultiplayerSession:
     def end_game(self) -> None:
         """End the game."""
         self.game_phase = GamePhase.FINISHED
+        self._save_to_file()
+
+    # ─── Persistence ──────────────────────────────────────
+
+    def _file_path(self) -> Path:
+        """Filesystem path for this session's save file."""
+        data_dir = os.environ.get("HISTRATEGY_DATA_DIR", os.path.expanduser("~/.histrategy"))
+        sessions_dir = Path(data_dir) / "sessions" / "multiplayer"
+        sessions_dir.mkdir(parents=True, exist_ok=True)
+        return sessions_dir / f"{self.session_id}.json"
+
+    def to_dict(self) -> dict:
+        return {
+            "session_id": self.session_id,
+            "host_user_id": self.host_user_id,
+            "players": {uid: slot.to_dict() for uid, slot in self.players.items()},
+            "turn_order": list(self.turn_order),
+            "current_turn_index": self.current_turn_index,
+            "game_phase": self.game_phase.value,
+            "max_players": self.max_players,
+        }
+
+    def save(self, file_path: str | Path | None = None) -> None:
+        """Persist this session to disk (JSON)."""
+        path = Path(file_path) if file_path else self._file_path()
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(self.to_dict(), f, ensure_ascii=False, indent=2)
+
+    def _save_to_file(self) -> None:
+        """Auto-save after state mutation. Suppresses errors so game continues if disk is full."""
+        try:
+            self.save()
+        except OSError:
+            pass
+
+    @classmethod
+    def load(cls, session_id: str) -> "MultiplayerSession | None":
+        """Load a session from disk. Returns None if not found."""
+        data_dir = os.environ.get("HISTRATEGY_DATA_DIR", os.path.expanduser("~/.histrategy"))
+        path = Path(data_dir) / "sessions" / "multiplayer" / f"{session_id}.json"
+        if not path.exists():
+            return None
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        return cls.from_dict(data)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "MultiplayerSession":
+        session = cls(
+            session_id=data["session_id"],
+            host_user_id=data["host_user_id"],
+            max_players=data.get("max_players", 7),
+        )
+        session.players = {
+            uid: PlayerSlot.from_dict(slot_data)
+            for uid, slot_data in data.get("players", {}).items()
+        }
+        session.turn_order = list(data.get("turn_order", []))
+        session.current_turn_index = data.get("current_turn_index", 0)
+        session.game_phase = GamePhase(data.get("game_phase", "lobby"))
+        return session
 
     def get_status_message(self) -> str:
         """Render multiplayer status for the group chat."""

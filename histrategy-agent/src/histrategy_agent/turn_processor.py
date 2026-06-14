@@ -12,6 +12,7 @@ When LLM is unavailable, falls back to keyword parsing and template narratives.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from histrategy_engine import Command, Season, WorldState
 
@@ -89,22 +90,51 @@ SUGGESTIONS_SYSTEM = """你是《三國志略》的军师。根据当前天下�
 
 
 class TurnProcessor:
-    """Processes one turn end-to-end."""
+    """Processes one turn end-to-end.
 
-    def __init__(self):
+    Supports two processing modes:
+    - Room mode (preferred): delegates to histrategy-sdk Room.play() which
+      uses the full GameEngine pipeline (IntentParser -> CommandValidator ->
+      TurnController -> NarrativeEngine). This aligns with the main engine interface.
+    - Bridge mode (fallback): uses StateBridge directly with in-process engines.
+      Used when the SDK/GameEngine is not available (standalone agent).
+    """
+
+    def __init__(self, room: "Any | None" = None):
+        """Initialize TurnProcessor.
+
+        Args:
+            room: Optional histrategy-sdk Room instance. When provided, process()
+                  delegates to room.play() instead of using StateBridge.
+        """
         self._llm = get_llm()
+        self._room = room
+        self._has_room = room is not None and self._try_room_available(room)
+
+    @staticmethod
+    def _try_room_available(room: "Any") -> bool:
+        """Verify the Room instance can actually play turns."""
+        try:
+            return hasattr(room, "play") and callable(room.play)
+        except Exception:
+            return False
 
     @property
     def _has_llm(self) -> bool:
         return self._llm.is_available
 
-    # ─── Main pipeline ─────────────────────────────────
+    # --- Main pipeline ---------------------------------
 
     def process(self, session: GameSession, player_input: str) -> TurnResult:
+        # Route through Room.play() when available (aligns with main engine)
+        if self._has_room:
+            return self._process_via_room(session, player_input)
+
+        # Fallback: direct engine processing via StateBridge
         bridge = StateBridge(session.world_state)
         faction_id = session.player_faction_id
 
-        # 1. Parse intent (LLM → keyword fallback)
+        # 1. Parse intent (LLM -> keyword fallback)
         intent = self._parse_intent(player_input, faction_id)
 
         # Ensure target is in params for actions that need it
@@ -173,7 +203,60 @@ class TurnProcessor:
             raw_world_state=session.world_state,
         )
 
-    # ─── Intent parsing ────────────────────────────────
+    # --- Room.play() integration ------------------------
+
+    def _process_via_room(self, session: GameSession, player_input: str) -> TurnResult:
+        """Process a turn via histrategy-sdk Room.play().
+
+        This is the preferred path that aligns with the main GameEngine interface.
+        It delegates all logic (intent parsing, validation, turn execution, NPC
+        behavior, narrative generation) to the SDK's Room and its DirectEngine.
+        """
+        room = self._room
+        if room is None:
+            # Safety: shouldn't happen since _has_room guards this
+            self._has_room = False
+            return self.process(session, player_input)
+
+        try:
+            # Room.play() reads from disk, executes, and writes back.
+            sdk_result = room.play(player_input)
+        except Exception:
+            # Fall back to the bridge approach if Room fails
+            self._has_room = False
+            return self.process(session, player_input)
+
+        # Map Room.play() result to our TurnResult
+        narrative = sdk_result.get("narrative", "") if isinstance(sdk_result, dict) else ""
+        suggestions = sdk_result.get("suggestions", []) if isinstance(sdk_result, dict) else []
+        events = sdk_result.get("events", []) if isinstance(sdk_result, dict) else []
+
+        # Advance session turn number (Room.play() doesn't modify our session object)
+        session.turn_number += 1
+        session.world_state.turn_number = session.turn_number
+        seasons = list(Season)
+        current_idx = seasons.index(session.world_state.season)
+        if session.turn_number % 2 == 0:
+            next_idx = (current_idx + 1) % 4
+            session.world_state.season = seasons[next_idx]
+            if next_idx == 0:
+                session.world_state.year += 1
+
+        # Build world snapshot from session state
+        from .state_bridge import StateBridge
+        bridge = StateBridge(session.world_state)
+        world_snapshot = bridge.get_world_snapshot(session.player_faction_id)
+
+        return TurnResult(
+            narrative=narrative,
+            world_snapshot=world_snapshot,
+            suggestions=suggestions,
+            events=events,
+            map_ascii="",
+            raw_world_state=session.world_state,
+        )
+
+    # --- Intent parsing --------------------------------
 
     def _parse_intent(self, text: str, faction_id: str) -> dict:
         """Parse intent: LLM first, keyword fallback."""

@@ -153,7 +153,7 @@ class TestStateBridgeCommands:
         result = self.bridge.execute_command(Command(type="info", params={}, faction_id="cao"))
         assert result["success"] is True
         snapshot = result["result"]
-        assert snapshot["territory_count"] == 6  # Cao has 6 territories
+        assert snapshot["territory_count"] == 9  # Cao has 9 territories in canonical loader
         assert "许昌" in [t["name"] for t in snapshot["territories"]]
 
     def test_advance_npc_factions_returns_actions(self):
