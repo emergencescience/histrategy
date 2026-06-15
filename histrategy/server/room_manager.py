@@ -62,25 +62,50 @@ def create_room(
     Returns:
         {"ok": True, "room_id": str, "player_links": [{faction, url}], ...}
     """
+    from histrategy.engine.game_room import GameRoom, RoomPhase
     from histrategy.engine.faction_slot import (
-        FACTION_DISPLAY_TO_ID,
-        LLM_NPC_FACTIONS,
-        PLAYABLE_FACTIONS,
         create_ai_slot,
         create_open_slot,
     )
-    from histrategy.engine.game_room import GameRoom, RoomPhase
+
+    # ── Build scenario-aware faction mapping ──
+    use_fallback = scenario in ("", "207", "three-kingdoms")
+    if use_fallback:
+        from histrategy.engine.faction_slot import (
+            FACTION_DISPLAY_TO_ID,
+            LLM_NPC_FACTIONS,
+            PLAYABLE_FACTIONS,
+        )
+        faction_display_to_id: dict[str, str] = FACTION_DISPLAY_TO_ID
+        fallback_npc_factions: list[str] = list(LLM_NPC_FACTIONS)
+        playable_display_ids: list[str] = list(PLAYABLE_FACTIONS)
+    else:
+        from histrategy.engine.scenario_loader import ScenarioLoader
+        loader = ScenarioLoader(scenario)
+        all_factions = loader.load_factions()
+        # Build display_name → internal_id mapping (e.g. "屋大维" → "octavian")
+        faction_display_to_id = {
+            f["display_name"]: fid
+            for fid, f in all_factions.items()
+            if not f.get("npc_only", False)
+        }
+        # Also map internal_id → itself (for pre_assigned in internal format)
+        for fid in all_factions:
+            if fid not in faction_display_to_id:
+                faction_display_to_id[fid] = fid
+        playable_display_ids = list(faction_display_to_id.keys())
+        fallback_npc_factions = list(faction_display_to_id.values())
 
     # 翻译显示名 → 内部 ID（caocao→cao, liubei→shu, sunquan→wu）
     if pre_assigned:
         # 新流程：Host 预分配势力到具体玩家
         internal_map = {}
         for display_fid, player_name in pre_assigned.items():
-            internal_fid = FACTION_DISPLAY_TO_ID.get(display_fid, display_fid)
+            internal_fid = faction_display_to_id.get(display_fid, display_fid)
             internal_map[internal_fid] = player_name
         internal_ids = list(internal_map.keys())
     else:
-        internal_ids = [FACTION_DISPLAY_TO_ID.get(f, f) for f in (human_faction_ids or PLAYABLE_FACTIONS)]
+        internal_ids = [faction_display_to_id.get(f, f) for f in (human_faction_ids or playable_display_ids)]
         internal_map = None
 
     if not internal_ids:
@@ -116,17 +141,19 @@ def create_room(
 
     # 未指定的势力 → AI NPC（从场景数据动态获取，只加载可扮演势力）
     try:
-        from histrategy.engine.scenario_loader import ScenarioLoader
-
-        loader = ScenarioLoader(room.scenario)
-        all_factions = loader.load_factions()
-        # 只加载非 npc_only 的势力作为 AI NPC 槽位
-        scenario_faction_ids = {fid for fid, f in all_factions.items() if not f.get("npc_only", False)}
+        if not use_fallback:
+            # Already loaded all_factions above — reuse
+            scenario_faction_ids = {fid for fid, f in all_factions.items() if not f.get("npc_only", False)}
+        else:
+            from histrategy.engine.scenario_loader import ScenarioLoader
+            loader = ScenarioLoader(room.scenario)
+            all_factions = loader.load_factions()
+            scenario_faction_ids = {fid for fid, f in all_factions.items() if not f.get("npc_only", False)}
         # Major NPCs: all playable scenario factions not assigned to humans
         npc_factions = list(scenario_faction_ids - set(internal_ids))
     except Exception:
         # Fallback to hardcoded defaults
-        npc_factions = list(LLM_NPC_FACTIONS)
+        npc_factions = fallback_npc_factions
 
     for fid in npc_factions:
         if fid not in room.slots:
