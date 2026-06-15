@@ -1,8 +1,15 @@
 # histrategy 重构计划：消除冗余 + 引擎统一 + 多场景复用
 
-> **状态**: 草案，等待 Claude Sonnet 审阅
-> **日期**: 2026-06-15（更新：新增《凯撒余烬》场景 + 跨文明发现）
-> **作者**: Prometheus (Hermes Agent)
+> **状态**: 审阅更新版 — Claude Sonnet 4.6
+> **日期**: 2026-06-15（原草案: Prometheus/Hermes Agent；审阅: Claude Sonnet 4.6）
+
+---
+
+> **[审阅总评]** 重构方向完全正确，优先级排列合理。但有 3 个重要 Gap 需要在执行前明确：
+>
+> 1. **`ScenarioLoader` 尚未实现**（文档以为 ✅，实际是 `loader.py` 中的函数，且 `load_territories()` 硬编码三国数据）
+> 2. **`_init_v2` 和 `from_dict` 有大量重复代码**（约 200 行）——精简 `game.py` 的关键是先提取 `_build_engine_stack()` 辅助函数
+> 3. **Phase 1 的删除顺序需要反转**：`offline_sim_engine.py` 和 `resilient_sim_engine.py` 被 `game.py:898-903` 引用（v2 路径的 fallback），不能作为"无调用方"直接删除
 
 ---
 
@@ -13,7 +20,7 @@
 ```
 histrategy/state/world_state.py        (391行) ← CLI/v1 使用，自成一派
 histrategy/engine/world.py             (348行) ← offline_sim 使用，GameWorld
-histrategy-engine/.../world/           (新)    ← pip 包，正确实现
+histrategy-engine/.../world/           (pip包) ← 正确实现，唯一应该保留的
 ```
 
 三个 `WorldState` / `FactionState` 类**互不兼容**，各有各的字段名和序列化格式。`game.py:2866` 行中有大量桥接代码在做类型转换。
@@ -31,17 +38,46 @@ histrategy-engine/.../world/           (新)    ← pip 包，正确实现
 
 **关键发现**：`game.py` 中的 v2 路径已经通过 `TYPE_CHECKING` 导入 `histrategy-engine`，但 v1/fallback 路径仍用旧引擎。这导致同一文件维护两套逻辑。
 
-### 1.3 可消除的冗余统计
+### 1.3 `game.py` 结构性问题（新增发现）
 
-| 文件 | 行数 | 替代方案 | 阻断 |
-|---|---|---|---|
-| `state/world_state.py` | 391 | `histrategy-engine` WorldState | 旧 CLI 仍依赖 |
-| `engine/world.py` | 348 | 同上 | offline_sim 引用 |
-| `engine/offline_sim.py` | 1029 | DomesticEngine + MilitaryEngine | 需要迁移所有调用方 |
-| `engine/offline_sim_engine.py` | 139 | 同上 | |
-| `engine/resilient_sim_engine.py` | 73 | 同上 | |
-| `engine/v1_simulator.py` | 416 | MacroPolicyEngine (v3) | v1 还在生产使用 |
-| **合计** | **~2,396 行** | **26%** | |
+> **[审阅意见]** 读 `game.py` 发现两个高优先级问题：
+>
+> **问题 A：`_init_v2` 和 `from_dict` 几乎完全重复**。两个方法各自独立地初始化 7 个引擎、NPC Planner、narrative engine、intent parser、v3 stack、macro stack——大约 200 行代码完全重复。这是导致 `game.py` 膨胀到 2,866 行的主要原因之一。
+>
+> ```python
+> # 当前：重复了两次
+> def _init_v2(self, ...):
+>     self.map_engine = MapEngine()          # ↓ 第1次
+>     self.char_engine = CharacterEngine()   #
+>     ...（约100行）
+>
+> @classmethod
+> def from_dict(cls, data, llm=None):
+>     engine.map_engine = MapEngine()        # ↓ 第2次（完全相同）
+>     engine.char_engine = CharacterEngine() #
+>     ...（约100行）
+>
+> # 应该改为：
+> def _build_engine_stack(self, llm):        # ← 提取为辅助函数
+>     self.map_engine = MapEngine()
+>     ...
+> ```
+>
+> **问题 B：`FACTION_CONFIGS` 和 `NPC_FACTION_CONFIGS` 完全相同**（约 40 行），且与 `histrategy-knowledge/` 的 JSON 数据重复。重构后这些应该完全删除，由 ScenarioLoader 读取 JSON。
+
+### 1.4 可消除的冗余统计（更新）
+
+| 文件 | 行数 | 替代方案 | 阻断 | 实际调用方 |
+|---|---|---|---|---|
+| `state/world_state.py` | 391 | `histrategy-engine` WorldState | 旧 CLI 仍依赖 | CLI, v1_simulator |
+| `engine/world.py` | 348 | 同上 | offline_sim 引用 | offline_sim.py |
+| `engine/offline_sim.py` | 1029 | DomesticEngine + MilitaryEngine | 需要迁移所有调用方 | offline_sim_engine.py |
+| `engine/offline_sim_engine.py` | 139 | 同上 | ⚠️ game.py:898-903 引用 | game.py v2 fallback |
+| `engine/resilient_sim_engine.py` | 73 | 同上 | ⚠️ game.py:898 引用 | game.py v2 fallback |
+| `engine/v1_simulator.py` | 416 | MacroPolicyEngine (v3) | room_manager 仍调用 | room_manager.py:758 |
+| `game.py` 重复代码 | ~200 | `_build_engine_stack()` 辅助函数 | 无 | — |
+| `FACTION_CONFIGS` dict | ~40 | ScenarioLoader + JSON | 无 | game.py:66-142 |
+| **合计** | **~2,636 行** | **~28%** | — |
 
 ---
 
@@ -55,190 +91,217 @@ histrategy（主仓库）
 ├── histrategy-engine/     ← 唯一确定性引擎（pip 包）
 │   ├── world/              WorldState, FactionState, Territory, Army
 │   ├── domestic/           粮食、人口增长、税收
-│   ├── military/           征兵、战斗结算、兵种
+│   ├── military/           征兵、战斗结算、兵种（含 naval_power 扩展点）
 │   ├── character/          武将忠诚度
-│   ├── governance/         合法性、政策系统
+│   ├── governance/         合法性、政治影响力（caesar/shanhe 需要）
 │   ├── ai/                 NPC 决策、战争迷雾
 │   ├── history/            历史事件 RAG
 │   ├── turn/               回合控制器
 │   └── rules/              YAML 规则解释器
 │
 ├── histrategy-sdk/         ← 人类玩家 SDK（pip 包）
-│   └── Room, ServerClient, MultiplayerRoom
+│   └── Room (SQLite), ServerClient, DirectEngine
 │
 ├── histrategy-agent/       ← Agent 集成（pip 包）
 │   └── TurnProcessor, StateBridge, FormatEngine, IM adapters
 │
-├── histrategy/             ← 场景层 + CLI + Server
-│   ├── scenarios/            ← 场景数据 + loader（与引擎解耦）
-│   │   ├── three-kingdoms/   三国 207-280
-│   │   ├── caesar/           罗马内战 44-30 BC
-│   │   └── shanhe-dingge/    明末清初 1644-1662
-│   ├── llm/                 LLM prompt + adapter（场景感知）
-│   ├── server/              FastAPI 服务
-│   └── cli/                 CLI 入口
+├── histrategy/             ← 场景层 + CLI + Server（精简后）
+│   ├── engine/
+│   │   ├── game.py           ← 精简到 ~800 行（删除 v1/重复代码）
+│   │   ├── loader.py         ← 重构为 ScenarioLoader 类
+│   │   └── macro_policy_engine.py  ← 保留（v3 模式使用）
+│   ├── llm/                  LLM prompt + adapter（场景感知）
+│   ├── server/               FastAPI 服务
+│   └── cli/                  CLI 入口
 │
-└── histrategy-knowledge/    ← 知识库（只读 JSON）
+├── scenarios/              ← 场景数据包（纯 JSON/TOML/Markdown，无 Python）
+│   ├── three-kingdoms/
+│   ├── caesar/             ← 4 势力版本
+│   └── shanhe-dingge/
+│
+└── histrategy-knowledge/   ← 历史知识库（只读 JSON，逐步迁移到 scenarios/）
 ```
 
-### 2.2 删除清单
+### 2.2 删除清单（调整后的顺序）
 
-**Phase 1: 安全删除（无调用方）**
-- [ ] `histrategy/engine/offline_sim_engine.py` — 确认无 import 后删除
-- [ ] `histrategy/engine/resilient_sim_engine.py` — 同上
+> **[审阅意见]** 原计划 P1.1「确认 offline_sim_engine.py 无调用方后删除」不准确。`game.py:898-903` 确实调用了它们（v2 路径的 offline fallback）。正确顺序：
 
-**Phase 2: 迁移后删除**
-- [ ] `histrategy/state/world_state.py` → 所有调用方改为 `from histrategy_engine.world import WorldState`
-- [ ] `histrategy/engine/world.py` → 同上
-- [ ] `histrategy/engine/offline_sim.py` → 改为调用 `DomesticEngine` + `MilitaryEngine`
+**Pre-Phase: 代码去重（无风险，最先做）**
+- [ ] 提取 `game.py._build_engine_stack()` 辅助函数，合并 `_init_v2` 和 `from_dict` 的重复代码（~200行→~50行）
+- [ ] 删除 `FACTION_CONFIGS` 和 `NPC_FACTION_CONFIGS`（由 ScenarioLoader 接管）
+- [ ] 合并 `load_territories()` 的硬编码数据到 `scenarios/three-kingdoms/knowledge/territories.json`
 
-**Phase 3: v1 废弃后删除**
-- [ ] `histrategy/engine/v1_simulator.py` → V3 MacroPolicyEngine 稳定后删除
+**Phase 1: WorldState 统一**
+- [ ] P1.1 迁移 `state/world_state.py` 调用方 → `histrategy-engine` WorldState（CLI, v1_simulator, game.py）
+- [ ] P1.2 迁移 `engine/world.py` → 同上（offline_sim 引用）
+- [ ] P1.3 迁移 `offline_sim.py` 规则仿真 → DomesticEngine + MilitaryEngine（game.py fallback）
+- [ ] P1.4 删除 `offline_sim_engine.py` + `resilient_sim_engine.py`（P1.3 完成后的调用方消失）
+
+**Phase 2: v1 退役**
+- [ ] P2.1 确认 v3 MacroPolicyEngine 稳定，所有活跃房间迁移
+- [ ] P2.2 删除 `engine/v1_simulator.py`（room_manager 调用方同步更新）
+- [ ] P2.3 删除 `state/world_state.py`（P1.1 完成后）
 
 ---
 
-## 三、同仓库多场景策略（替代独立 repo 方案）
+## 三、同仓库多场景策略
 
-### 3.1 架构决策变更
+### 3.1 架构决策（已确认）
 
-> **⚠️ 2026-06-15 更新**: 原计划《山河鼎革》独立 repo → 改为全部场景在 histrategy 仓库内作为 `scenarios/` 子目录。
+> ✅ **2026-06-15 最终决策**: 所有场景在 histrategy 仓库内作为 `scenarios/` 子目录，不新建独立 repo。
 
-**变更理由**：
-1. 场景包（`scenarios/{id}/`）已经证明了完全的数据-引擎分离。knowledge JSON + TOML 配置 + prompt 模板 = 完整场景，不需要独立 repo。
-2. 独立 repo 会制造版本漂移——场景 A 依赖 engine v0.3，场景 B 依赖 engine v0.4，协调升级成本高。
-3. 跨文明场景（三国 vs 罗马）在同仓库内可以激励引擎抽象层的成熟——如果一个抽象层在两个完全不同的时代都能工作，它就是真正场景无关的。
-4. 运维简化：一个 Railway 服务托管所有场景，API 路由 `/api/scenarios/{id}/...` 统一。
+**理由**：
+1. 场景包是纯数据（JSON + TOML + prompts + rules），不需要独立 Python 代码仓
+2. 独立 repo 会制造版本漂移——协调升级成本高
+3. 跨文明场景（三国 vs 罗马）在同仓库激励引擎抽象层成熟
+4. 运维简化：一个 Railway 服务托管所有场景，API 路由 `/api/scenarios/{id}/...` 统一
 
 ### 3.2 当前场景矩阵
 
 | 场景 ID | 名称 | 时代 | 状态 | 势力数 | 特殊机制 |
 |---------|------|------|------|--------|----------|
-| `three-kingdoms` | 《三國志略》 | 207-280 东汉末 | **生产** | 8 | 陆战为主、三国鼎立 |
-| `caesar` | 《凯撒余烬》 | 44-30 BC 罗马内战 | **骨架** | 8 | 海战体系、宣传战、元老院政治 |
-| `shanhe-dingge` | 《山河鼎革》 | 1644-1662 明末 | **骨架** | TBD | 多民族势力、火炮火器 |
+| `three-kingdoms` | 《三國志略》 | 207-280 | **生产** | 4 | 陆战为主 |
+| `caesar` | 《凯撒余烬》 | 44-30 BC | **骨架** | **4**（修正） | 海战/宣传战/元老院 |
+| `shanhe-dingge` | 《山河鼎革》 | 1644-1662 | **骨架** | 4 | 火炮/多族/正统衰减 |
 
-### 3.3 复用分析
+### 3.3 ScenarioLoader 设计（修订）
 
-每个场景需要编写的内容（占总量 ~35-45%）：
+> **[审阅意见]** 原文档说 ScenarioLoader「已实现（H16c, 345行）」，但代码中不存在这个类。实际是 `loader.py` 中的函数集合。重构时应实现以下接口：
+
+```python
+# histrategy/engine/scenario_loader.py（新文件）
+class ScenarioLoader:
+    def __init__(self, scenario_id: str, scenarios_root: Path | None = None):
+        self.scenario_id = scenario_id
+        self._root = scenarios_root or _find_scenarios_root()
+
+    def load_toml(self) -> dict:
+        """读取 scenarios/{id}/scenario.toml"""
+
+    def load_factions(self) -> dict[str, FactionState]:
+        """读取 scenarios/{id}/knowledge/factions.json → FactionState"""
+
+    def load_territories(self) -> dict[str, Territory]:
+        """读取 scenarios/{id}/knowledge/territories.json → Territory（不再硬编码）"""
+
+    def load_characters(self) -> dict[str, Character]:
+        """读取 scenarios/{id}/knowledge/characters.json → Character"""
+
+    def load_events(self) -> list[dict]:
+        """读取 scenarios/{id}/knowledge/events.json"""
+
+    def load_prompt(self, name: str = "system") -> str:
+        """读取 scenarios/{id}/prompts/{name}.md"""
+
+    def load_rules(self) -> list[Path]:
+        """返回 scenarios/{id}/rules/*.yaml 路径列表"""
+
+    def build_world_state(self, player_faction_id: str) -> WorldState:
+        """组装完整 WorldState（替代 loader.py:build_world_state()）"""
 ```
-scenarios/{id}/
-├── scenario.toml         ← 100行配置
-├── knowledge/
-│   ├── factions.json     ← 势力定义
-│   ├── characters.json   ← 角色（含 traits）
-│   ├── events.json       ← 历史事件链（18-25个）
-│   ├── initial_state.json← 起始状态
-│   ├── territories.json  ← 领土地图
-│   ├── regions.json      ← 地理区域
-│   ├── timeline.json     ← 历史时间线
-│   ├── roster.json       ← 势力-角色映射
-│   ├── arc_goals.json    ← 剧情弧线
-│   └── schema.json       ← 场景自定义字段schema
-├── prompts/              ← LLM system prompt（场景特有叙事风格）
-├── rules/                ← YAML 政策规则（场景特有机制）
-├── web/                  ← SVG地图 + CSS主题
-└── cli/                  ← CLI入口/品牌
-```
-
-引擎核心（`histrategy-engine/`）**完全复用，0% 场景代码**。
-
-### 3.4 场景参数化框架
-
-`ScenarioLoader` 已实现（H16c, `histrategy/engine/scenario_loader.py`, 345行），支持：
-- `scenario.toml` 元数据解析
-- knowledge JSON 自动加载和校验
-- BC 年份支持（负数年份 → 显示「公元前X年」）
-- 场景自定义字段在 factions 上扩展（如 `legions`, `ships`, `government`）
-- 默认值回退机制（新字段不破坏旧场景）
 
 ---
 
 ## 四、持久化架构决策
 
-### 4.1 SDK+SQLite reload > HTTP server
+### 4.1 SDK+SQLite > 文件锁 > HTTP server
 
-| 维度 | SDK + SQLite reload | HTTP server 模式 |
-|---|---|---|
-| OpenClaw 重启 | ✅ 从 DB 加载，零丢失 | ❌ 内存状态丢（除非也加 DB） |
-| 运维成本 | ✅ 无端口/进程 | ❌ Railway 服务 + 端口管理 |
-| 多人并发 | ⚠️ SQLite WAL 串行写 | ✅ 天然并发 |
-| 调试 | ⚠️ 无 /docs | ✅ Swagger UI |
-| LLM 延迟 | ✅ 60-90s 可容忍 | 同左 |
+| 维度 | SDK + SQLite WAL | 文件锁（旧方案） | HTTP server |
+|---|---|---|---|
+| OpenClaw 重启 | ✅ 事务保证，零丢失 | ⚠️ crash 可能半写 | ❌ 内存状态丢（除非也加 DB） |
+| 运维成本 | ✅ 无端口/进程 | ✅ 无端口/进程 | ❌ Railway 服务 + 端口管理 |
+| 多人并发 | ✅ `BEGIN EXCLUSIVE` 排他锁 | ⚠️ advisory lock 不可靠 | ✅ 天然并发 |
+| 调试 | ⚠️ 无 /docs | ⚠️ 同左 | ✅ Swagger UI |
+| 崩溃恢复 | ✅ 自动回滚 | ❌ 需要手动修复 JSON | ✅ 事务保证 |
 
-**结论**：OpenClaw + Feishu 场景 → SDK 模式。多人 Web UI → 每次请求从 SQLite reload。
+**结论**：OpenClaw + Feishu 场景 → SDK+SQLite 模式。多人 Web UI → 每次请求从 SQLite/PostgreSQL reload。
 
-### 4.2 /mp UI 持久化
+### 4.2 /mp UI 持久化（技术债务）
 
-当前 `mp.html` 走 server API。改造为：
+当前 `room_manager.py` 有内存 `_rooms: dict[str, GameRoom]` 缓存，需要改造：
 
+```python
+# 目标：每次 HTTP 请求从 SQLite reload
+async def handle_decision(room_id: str, decision: str):
+    async with room_manager.load_room(room_id) as room:  # 从 DB 加载
+        result = await room.execute(decision)
+        await room.save()  # 写回 DB
+        return result
+    # 离开 context manager 后 room 对象销毁，无内存缓存
 ```
-每个 HTTP 请求:
-  GET /api/rooms/{id}/status
-  → room_manager 从 SQLite 加载 GameRoom
-  → 返回当前状态
-  → 不依赖内存中的 dict
-
-POST /api/rooms/{id}/decide
-  → 加载 GameRoom
-  → 执行决策
-  → 保存回 SQLite
-  → 返回结果
-```
-
-`room_manager.py` 已部分实现（`GameRoom.save()`/`load()`），需要完成迁移：去掉内存 dict 缓存，改为每次都从 DB 读。
 
 ---
 
-## 五、执行计划
+## 五、执行计划（已修订）
 
-### Phase 1: 引擎瘦身（本周）
+### Pre-Phase: 代码去重（无风险，1-2天）
+
+| # | 任务 | 预计删除/简化 |
+|---|---|---|
+| P0.1 | 提取 `game.py._build_engine_stack()` 合并 `_init_v2`/`from_dict` | ~200行 |
+| P0.2 | 删除 `FACTION_CONFIGS`/`NPC_FACTION_CONFIGS` dict | ~80行 |
+| P0.3 | 新建 `scenarios/three-kingdoms/knowledge/territories.json`，删除 `load_territories()` 硬编码 | ~300行 |
+
+**目标**: `game.py` 从 2,866 → 约 2,400 行（无破坏性变更）
+
+### Phase 1: WorldState 统一（本周，高风险，需全量测试）
 
 | # | 任务 | 影响范围 | 预计删除 |
 |---|---|---|---|
-| P1.1 | 确认 `offline_sim_engine.py` + `resilient_sim_engine.py` 无调用 | grep 全仓库 | ~210行 |
-| P1.2 | 迁移 `state/world_state.py` 调用方 → `histrategy-engine` WorldState | CLI, v1_simulator, game.py | ~391行 |
-| P1.3 | 迁移 `engine/world.py` → `histrategy-engine` WorldState | offline_sim | ~348行 |
-| P1.4 | 迁移 `offline_sim.py` 规则模拟 → `DomesticEngine` + `MilitaryEngine` | game.py fallback | ~1029行 |
-| P1.5 | 删除 `v1_simulator.py`（待 V3 稳定） | game.py v1 路径 | ~416行 |
+| P1.1 | 迁移 `state/world_state.py` → `histrategy_engine.world` | CLI, v1_simulator, game.py | ~391行 |
+| P1.2 | 迁移 `engine/world.py` → 同上 | offline_sim | ~348行 |
+| P1.3 | 迁移 `offline_sim.py` → DomesticEngine + MilitaryEngine | game.py fallback | ~1029行 |
+| P1.4 | 删除 `offline_sim_engine.py` + `resilient_sim_engine.py` | — | ~212行 |
 
-**Phase 1 目标**: 删除 ~2,400 行冗余，`game.py` 从 2,866 行精简到 ~800 行。
+**Phase 1 目标**: 删除 ~1,980 行，`game.py` 精简到约 ~800 行。
 
-### Phase 2: 场景充实
-
-| # | 任务 |
-|---|---|
-| P2.1 | 《凯撒余烬》prompt 模板编写（罗马史诗叙事风格） |
-| P2.2 | 《凯撒余烬》policy rules YAML（海战、宣传战、元老院机制） |
-| P2.3 | 《山河鼎革》knowledge 数据充实 + prompt 模板 |
-| P2.4 | ScenarioLoader 增强：BC 年份渲染、schema 校验、自定义字段回退 |
-
-### Phase 3: 前端多场景支持
+### Phase 2: ScenarioLoader 升级（场景无关，低风险）
 
 | # | 任务 |
 |---|---|
-| P3.1 | `/mp` UI 支持 `?scenario=caesar` 等场景参数 |
-| P3.2 | 每个场景独立 SVG 地图 + CSS 主题 |
-| P3.3 | 场景选择器 UI（游戏大厅） |
+| P2.1 | 实现 `ScenarioLoader` 类（`histrategy/engine/scenario_loader.py`） |
+| P2.2 | `GameEngine.__init__` 改为 `ScenarioLoader(scenario_id).build_world_state()` |
+| P2.3 | 删除 `loader.py` 的旧函数接口（保留 `resolve_knowledge_path()` 作为路径辅助） |
+| P2.4 | `scenarios/caesar/knowledge/factions.json` 精简为 4 势力 |
+
+### Phase 3: 场景内容充实
+
+| # | 任务 |
+|---|---|
+| P3.1 | 《凯撒余烬》prompts/system.md（罗马史诗叙事风格） |
+| P3.2 | 《凯撒余烬》rules/naval.yaml + rules/propaganda.yaml |
+| P3.3 | 《山河鼎革》knowledge 数据充实（4 势力 + 历史事件链） |
 
 ### Phase 4: 持久化完善
 
 | # | 任务 |
 |---|---|
-| P4.1 | /mp UI 改为每次请求从 SQLite reload |
-| P4.2 | 去掉 room_manager 中的内存 dict 缓存 |
-| P4.3 | Server 重启后状态恢复验证 |
+| P4.1 | `room_manager.py` 去掉内存 dict 缓存，改为每次请求从 SQLite reload |
+| P4.2 | 完成 `GameRoom.save()`/`load()` 的全字段序列化 |
+| P4.3 | Server 重启后状态恢复验证（E2E 测试） |
+
+### Phase 5: 前端多场景 + 引擎扩展
+
+| # | 任务 |
+|---|---|
+| P5.1 | `/mp` UI 支持 `?scenario=caesar` 等场景参数 |
+| P5.2 | 引擎核心添加 `naval_power` 维度（亚克兴海战） |
+| P5.3 | 引擎核心添加 `political_influence` + `propaganda` 维度 |
+| P5.4 | BC 年份渲染支持 |
 
 ---
 
-## 六、风险与注意事项
+## 六、风险与注意事项（已更新）
 
-1. **V1 还在生产使用** — `HISTRATEGY_ENGINE=v1` 是当前 d4a512fb 房间的引擎。删除 v1 之前必须确保 V3 稳定且所有活跃房间迁移完成。
+1. **V1 还在生产使用** — `room_manager.py:758` 仍调用 `V1Simulator`。删除 `v1_simulator.py` 之前必须确保 V3 稳定且 `room_manager` 已切换。
 
-2. **WorldState 序列化兼容** — 旧 `state/world_state.py` 的 JSON 格式与新 `histrategy-engine` 不同。迁移时需要写转换脚本处理已有存档。
+2. **WorldState 序列化兼容** — 旧 `state/world_state.py` 的 JSON 格式与新 `histrategy-engine` 不同。迁移时需要写转换脚本处理已有存档（`world_v2.json` 格式不受影响，只有旧 CLI 存档受影响）。
 
-3. **测试覆盖** — 每个 Phase 完成后运行全量 `pytest tests/ -q`。Phase 1 涉及引擎替换，需要特别关注 E2E 测试。
+3. **`load_territories()` 硬编码** — 这是目前最隐蔽的 bug：`loader.py` 忽略 `knowledge_path` 参数，直接返回硬编码三国城市数据。新场景如果依赖这个函数会静默地得到错误地图。修复必须在 Phase 2 的 ScenarioLoader 升级中处理。
 
-4. **场景优先级** — 用户已指示暂停《山河鼎革》，先完成《凯撒余烬》的场景骨架（✅ 已完成）和 prompt/rules 填充。
+4. **测试覆盖** — 每个 Phase 完成后运行全量 `pytest tests/ -q`。Phase 1 涉及引擎替换，需要特别关注 E2E 测试。
+
+5. **场景优先级** — 《凯撒余烬》先于《山河鼎革》（海战/宣传战系统可复用，减少重复工作）。
 
 ---
 
@@ -247,72 +310,47 @@ POST /api/rooms/{id}/decide
 | 决策 | 选择 | 理由 |
 |---|---|---|
 | 引擎统一 | `histrategy-engine` 为唯一引擎 | 消除维护两套代码的成本 |
-| 场景分离 | `histrategy/scenarios/{id}/` 独立目录 | 三国/罗马/明清 场景数据隔离，便于新场景开发 |
-| 持久化 | SDK + SQLite reload 优先 | OpenClaw 无服务模式最佳适配 |
-| 多场景部署 | 同仓库 monorepo | 避免版本漂移，统一 API 路由，跨文明场景激励引擎抽象 |
+| 场景分离 | `histrategy/scenarios/{id}/` 独立目录 | 纯数据分离，便于新场景开发 |
+| 持久化 | SDK + SQLite WAL | 比文件锁更健壮，无需常驻服务器 |
+| 多场景部署 | 同仓库 monorepo | 避免版本漂移，统一 API，跨文明激励引擎抽象 |
+| caesar 势力数 | **4 个**（非 8 个） | 与三国一致，降低复杂度，Hermes scaffold 需修正 |
 | v1 保留 | 渐进式删除，V3 稳定后再删 | 避免生产中断 |
+| game.py 精简方式 | 先提取 `_build_engine_stack()` | 无破坏性变更，立即可做 |
 
 ---
 
 ## 八、《凯撒余烬》跨文明场景设计发现
 
-> **2026-06-15 新增** — 创建罗马内战场景过程中发现的关键设计洞察。
+> 2026-06-15 新增 — 创建罗马内战场景过程中发现的关键设计洞察。
 
 ### 8.1 三国 vs 罗马：引擎抽象的压力测试
 
-将公元前44年的罗马内战映射到为三国设计的引擎上，是一次天然的抽象层压力测试：
-
 | 维度 | 三国 (207 AD) | 罗马 (44 BC) | 引擎抽象建议 |
 |------|--------------|-------------|-------------|
-| 冲突结构 | 三角均势（曹/刘/孙） | 两极对抗（屋大维/安东尼）+ 第三方摇摆 | 支持 N 方任意格局，不预设三方 |
-| 军事核心 | 陆战、骑兵、攻城 | **海战为主**（亚克兴海战）、军团制 | 添加 `naval_power` 维度和海战结算 |
-| 政治维度 | 合法性强弱（挟天子） | **元老院政治、宣传战、公民投票** | 添加 `political_influence` 和 `propaganda` 维度 |
+| 冲突结构 | 三角均势（曹/刘/孙） | 两极对抗（屋大维/安东尼）+ 第三方 | 支持 N 方任意格局 |
+| 军事核心 | 陆战、骑兵、攻城 | **海战为主**（亚克兴）、军团制 | 添加 `naval_power` 维度 |
+| 政治维度 | 合法性强弱（挟天子） | **元老院政治、宣传战** | 添加 `political_influence` |
 | 经济基础 | 农业税、屯田 | 埃及粮仓、海上贸易封锁 | 添加 `trade_blockade` 机制 |
-| 外部威胁 | 南蛮、山越 | **帕提亚帝国**（独立外部势力） | 支持 `external_threat` 势力类型 |
-| 角色关系 | 君臣、父子、结义 | **情人、养子、政治联姻** | 关系系统支持更复杂的动态联盟 |
-| 时间单位 | 季度/年 | 季度/年（BC 需要负数年） | 支持负数年份渲染 |
+| 外部威胁 | 南蛮、山越 | **帕提亚帝国** | 支持 `external_threat` 势力类型 |
+| 关系系统 | 君臣、父子、结义 | **情人、养子、政治联姻** | 关系系统支持复杂动态联盟 |
 
-### 8.2 发现的引擎缺口
+### 8.2 引擎缺口（需在 Phase 5 填补）
 
-1. **海军体系缺失**：三国的赤壁之战虽然是水战，但引擎中没有 `ships` 字段和海战结算公式。《凯撒余烬》的核心战役（瑙洛库斯、亚克兴）都是海战——这迫使引擎必须支持海军。
-
-2. **宣传/政治资本系统**：罗马内战中的「公敌宣告」「亚历山大里亚赠礼」「遗嘱公布」都是非军事行为，但对战争结果有决定性影响。三国中「挟天子以令诸侯」是类似概念，但未被建模为独立系统。
-
-3. **两极对抗 + 第三方的博弈模式**：三国预设了三方均势，但罗马内战本质是 1v1（屋大维 vs 安东尼），克利奥帕特拉、塞克斯图斯、雷必达都是被卷进去的第三方。引擎需要支持非对称的多方博弈。
-
-4. **客户端王国模式**：希律、各东方王国在罗马与帕提亚之间摇摆——这是三国中不存在的「附庸国」概念。
+1. **海军体系缺失**：三国引擎中没有 `ships` 字段和海战结算公式，《凯撒余烬》核心战役（瑙洛库斯、亚克兴）都是海战
+2. **宣传/政治资本**：罗马内战中「公敌宣告」「亚历山大里亚赠礼」等非军事行为对战争结果有决定性影响
+3. **两极对抗格局**：引擎预设多方均势，但罗马内战本质是 1v1（屋大维 vs 安东尼），需要支持非对称博弈
 
 ### 8.3 场景自定义字段策略
 
-`scenarios/caesar/knowledge/factions.json` 引入了三国场景不存在的字段：
-- `legions`: 军团数量（罗马制）
-- `ships`: 战舰数量
-- `government`: 政府类型（heir/consul/republic/pharaoh/triumvir/senate/renegade/empire）
-
-策略：**引擎核心只认通用字段（strength/food/treasury/morale），场景自定义字段通过 `schema.json` 声明，由场景特定的 rules YAML 解释。ScenarioLoader 加载时自动合并，引擎运行时只传递到 rules 层。**
+**引擎核心只认通用字段**（strength/food/treasury/morale），场景自定义字段通过 `schema.json` 声明，由场景特定的 rules YAML 解释。`ScenarioLoader` 加载时自动合并，引擎运行时只传递到 rules 层。
 
 ### 8.4 叙事风格的差异化
 
 | 场景 | 语言 | 叙事基调 | 参考作品 |
-|------|------|---------|---------|
+|------|------|---------|---------| 
 | 三国 | zh-CN，文白相间 | 史诗谋略、群雄逐鹿 | 《三国演义》《大军师司马懿》 |
 | 凯撒余烬 | zh-CN，史诗叙事 | 阴谋野心、帝国命运 | HBO《罗马》《奥古斯都》 |
 | 山河鼎革 | zh-CN，文白相间 | 末世挣扎、多族冲突 | 《南明史》《康熙王朝》 |
-
-每个场景的 LLM system prompt 独立编写在 `prompts/system.md`。
-
----
-
-## 九、讨论邀请
-
-这份重构计划覆盖了引擎、场景、持久化三个维度的改进，并新增了跨文明场景设计洞察。欢迎 Claude Sonnet 审阅以下关键问题：
-
-1. **WorldState 统一**：是否需要保留 v1 兼容的序列化格式，还是直接 breaking change？
-2. **海军体系**：《凯撒余烬》要求的海战结算，应该在引擎核心实现（供所有场景使用）还是作为场景 rule YAML？（个人倾向：引擎核心添加 generic naval framework，具体结算公式在 rule YAML）
-3. **跨文明引擎压力测试**：8.1 中发现的三国 vs 罗马差异，是否需要在 Phase 1（引擎瘦身）之前先做引擎抽象层设计？
-4. **v1 退役时间表**：生产环境的 d4a512fb 房间还在用 v1，如何处理迁移？
-5. **场景优先级**：《凯撒余烬》和《山河鼎革》哪个先填充 prompt + rules 达到可玩状态？
-6. **BC 年份支持**：ScenarioLoader 的负数年渲染方案是否合理？
 
 ---
 

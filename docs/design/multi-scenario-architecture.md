@@ -1,18 +1,31 @@
 # 多场景同仓库架构设计
 
 > **更新**: 2026-06-15 — 新增《凯撒余烬 Ashes of Caesar》场景，场景矩阵扩充至 3 个。
+> **审阅**: Claude Sonnet 4.6 (2026-06-15) — 补充了 `ScenarioLoader` 实现现状、势力数量校正、知识库路径问题。
 
 ## 概述
 
 histrategy 仓库同时托管多个策略游戏场景。引擎核心（GameRoom、WorldState、LLM Adapter、DB、Policy Engine）保持场景无关；各场景通过独立的 knowledge、prompts、rules 和 UI 包注入差异。
 
+> **[审阅意见]** 文档中提到的 `ScenarioLoader`（H16c ✅）在代码中**尚未以类的形式实现**。实际上 `histrategy/engine/loader.py` 中有 `load_scenario()` 函数和 `build_world_state()` 函数，功能上等价，但不是文档描述的 `ScenarioLoader` 类。重构时应将其重命名并升级为类，统一接口。
+
 ## 目标场景
 
-| 场景 ID | 名称 | 时代 | 起始年 | 状态 |
-|---------|------|------|--------|------|
-| `three-kingdoms` | 《三國志略》 | 东汉末年至三国 | 207 | **生产** |
-| `caesar` | 《凯撒余烬 Ashes of Caesar》 | 罗马共和国末期 | 44 BC | **骨架** |
-| `shanhe-dingge` | 《山河鼎革》 | 明末清初 | 1644 | **骨架** |
+| 场景 ID | 名称 | 时代 | 起始年 | 状态 | 势力数 |
+|---------|------|------|--------|------|--------|
+| `three-kingdoms` | 《三國志略》 | 东汉末年至三国 | 207 | **生产** | 4（可扮演：3） |
+| `caesar` | 《凯撒余烬 Ashes of Caesar》 | 罗马共和国末期 | 44 BC | **骨架** | **4**（见注） |
+| `shanhe-dingge` | 《山河鼎革》 | 明末清初 | 1644 | **骨架** | 4（南明/清/大顺/郑氏） |
+
+> **[审阅意见 - 势力数量]** `scenarios/caesar/` Hermes Agent scaffold 了 8 个势力（原文档也写了 8 个），但这对游戏设计来说过于复杂，且与三国（4 势力）不一致。
+>
+> **建议 caesar 场景采用 4 势力**：
+> - **屋大维**（Octavian）— 继承者，罗马西部
+> - **安东尼**（Antony）+ 克利奥帕特拉 — 东方联盟（合并为一势力）
+> - **塞克斯图斯**（Sextus Pompeius）— 海上力量，控制西西里
+> - **雷必达**（Lepidus）— 三巨头成员，北非
+>
+> 其余人物（布鲁图斯已在腓立比战死，帕提亚为外部威胁非可扮演势力）作为事件触发器或 NPC 而非独立势力。
 
 ## 目录结构
 
@@ -20,41 +33,50 @@ histrategy 仓库同时托管多个策略游戏场景。引擎核心（GameRoom�
 histrategy/
 ├── histrategy-engine/          # 场景无关的引擎核心
 │   └── src/histrategy_engine/
-│       ├── core/               # GameRoom, FactionSlot, WorldState
-│       ├── db/                 # DB models, connection, migrations
-│       ├── llm/                # adapter, game_master, npc_decision
-│       ├── policy/             # policy_types, parser, validator
-│       ├── parser/             # intent parser
-│       └── server/             # REST API (FastAPI)
+│       ├── world/              # GameRoom, FactionState, WorldState
+│       ├── domestic/           # 经济/粮食/税收
+│       ├── military/           # 军事/兵种
+│       ├── character/          # 武将/忠诚度
+│       ├── governance/         # 合法性/政治影响力  ← 新增
+│       ├── ai/                 # NPC AI
+│       ├── turn/               # 回合控制器
+│       └── rules/              # YAML 规则解释器
 │
-├── scenarios/                  # ★ 场景包（新增）
+├── scenarios/                  # ★ 场景包（纯数据，无 Python 代码）
 │   ├── three-kingdoms/
 │   │   ├── scenario.toml       # 场景元数据
-│   │   ├── knowledge/         # characters, factions, regions, events
-│   │   ├── prompts/           # LLM prompt templates
-│   │   ├── rules/             # YAML policy rules
-│   │   ├── web/               # UI assets (SVG map, CSS, JS)
-│   │   └── cli/               # CLI branding/entry
+│   │   ├── knowledge/          # characters, factions, regions, events
+│   │   ├── prompts/            # LLM prompt templates
+│   │   ├── rules/              # YAML policy rules
+│   │   ├── web/                # UI assets (SVG map, CSS, JS)
+│   │   └── cli/                # CLI branding/entry
+│   │
+│   ├── caesar/                 # ★ 罗马内战（4 势力）
+│   │   ├── scenario.toml
+│   │   ├── knowledge/
+│   │   │   ├── factions.json   ← 4 势力（删减 Hermes scaffold 的 8 势力）
+│   │   │   ├── characters.json
+│   │   │   ├── events.json
+│   │   │   ├── initial_state.json
+│   │   │   ├── territories.json
+│   │   │   └── arc_goals.json
+│   │   ├── prompts/
+│   │   └── rules/
 │   │
 │   └── shanhe-dingge/
 │       ├── scenario.toml
 │       ├── knowledge/
 │       ├── prompts/
-│       ├── rules/
-│       ├── web/
-│       └── cli/
-│
-│   └── caesar/                  # ★ 新增：罗马内战
-│       ├── scenario.toml
-│       ├── knowledge/
-│       ├── prompts/
-│       ├── rules/
-│       ├── web/
-│       └── cli/
+│       └── rules/
 │
 ├── histrategy-sdk/             # Client SDK（场景无关）
 ├── histrategy-agent/           # 飞书/OpenClaw 适配（场景无关）
-└── histrategy/                 # 历史代码 → 逐步迁移到 engine + scenarios
+└── histrategy/                 # 场景层 + CLI + Server
+    ├── engine/
+    │   ├── loader.py           # ScenarioLoader（函数式，待重构为类）
+    │   └── game.py             # GameEngine（v1/v2/v3 路径，待精简）
+    ├── server/api.py
+    └── llm/
 ```
 
 ## 场景包规范
@@ -93,22 +115,42 @@ color_scheme = "three-kingdoms"
 map_svg = "web/map.svg"
 ```
 
-### 场景加载流程
+> **[审阅意见]** `scenario.toml` 格式合理，但缺少两个字段：
+> - `[engine].year_direction = "positive" | "negative"`（支持 BC 年份倒数）
+> - `[factions].npc_only = ["lepidus"]`（标记不可扮演的 NPC 势力）
 
+### 场景加载流程（实际 vs 文档）
+
+**文档描述（理想）**：
 ```
 CLI: histrategy --scenario three-kingdoms
   │
   ▼
-ScenarioLoader(scenario_id)
-  │
+ScenarioLoader(scenario_id)   ← 类尚未实现
   ├─ 读取 scenarios/{id}/scenario.toml
-  ├─ 加载 knowledge/factions.json   → WorldState.factions
-  ├─ 加载 knowledge/regions.json    → WorldState.territories
-  ├─ 加载 knowledge/characters.json → roster
-  ├─ 加载 prompts/*.md              → LLM prompt templates
-  ├─ 加载 rules/*.yaml              → PolicyEngine rules
-  └─ 加载 web/*                     → UI assets
+  ├─ 加载 knowledge/factions.json
+  ├─ 加载 knowledge/regions.json
+  ├─ 加载 knowledge/characters.json
+  ├─ 加载 prompts/*.md
+  ├─ 加载 rules/*.yaml
+  └─ 加载 web/*
 ```
+
+**实际实现（当前代码）**：
+```
+CLI → GameEngine.__init__(scenario="207")
+  │
+  ▼
+loader.build_world_state(faction_id, scenario_id, knowledge_path)
+  ├─ load_territories()  ← 硬编码三国数据！知识库路径未使用
+  ├─ load_characters()   ← 读取 histrategy-knowledge/characters/207_roster.json
+  ├─ load_scenario()     ← 读取 histrategy-knowledge/scenarios/{id}.json
+  └─ 返回 WorldState
+```
+
+> **关键 Gap**：`scenarios/` 目录和 `histrategy-knowledge/` 目录**并行存在**，`loader.py` 只读取后者。新场景数据在 `scenarios/caesar/knowledge/` 下，但 `load_territories()` 完全忽略它，返回硬编码的三国城市数据。
+>
+> **重构必须解决**：`ScenarioLoader` 类需要根据 `scenario_id` 从 `scenarios/{id}/knowledge/` 读取正确的数据，并且 `load_territories()` 必须摆脱三国硬编码。
 
 ## 共享引擎核心（场景无关）
 
@@ -116,59 +158,55 @@ ScenarioLoader(scenario_id)
 
 | 组件 | 路径 | 说明 |
 |------|------|------|
-| GameRoom | `engine/core/game_room.py` | 房间状态机，所有场景通用 |
-| FactionSlot | `engine/core/faction_slot.py` | 势力槽位，场景通过 faction_id 区分 |
-| WorldState | `engine/core/world_state.py` | 世界状态，`from_dict/to_dict` 序列化 |
-| DB Schema | `db/schema.sql` | game_room.scenario 字段区分场景 |
-| LLMAdapter | `llm/adapter.py` | LLM 调用，system prompt 来自场景 |
-| PolicyEngine | `policy/` | 政策评估，规则来自场景 rules/ |
-| REST API | `server/api.py` | API 路由，场景作为参数 |
-| RoomManager | `server/room_manager.py` | 房间管理，场景无关 |
+| WorldState | `engine/world/world_state.py` | 世界状态，`from_dict/to_dict` 序列化 |
+| FactionState | `engine/world/faction_state.py` | 势力状态，场景通过 faction_id 区分 |
+| TurnController | `engine/turn/` | 回合控制，所有场景通用 |
+| DomesticEngine | `engine/domestic/` | 经济/粮草，参数化 |
+| MilitaryEngine | `engine/military/` | 军事/兵种，支持 naval_power 扩展 |
+| LLMAdapter | `histrategy/llm/adapter.py` | LLM 调用，system prompt 来自场景 |
+| REST API | `histrategy/server/api.py` | API 路由，场景作为参数 |
 
 ## 场景差异注入点
 
 | 差异维度 | three-kingdoms | caesar | shanhe-dingge | 注入方式 |
 |----------|----------------|--------|---------------|----------|
-| 势力定义 | 曹操/刘备/孙权/袁绍/刘表... | 屋大维/安东尼/布鲁图斯/克利奥帕特拉/塞克斯图斯... | TBD | knowledge/factions.json |
-| 地域地图 | 东汉十三州 + 城池 | 罗马行省 + 地中海岛屿 | TBD | knowledge/regions.json |
-| 角色 | 20+ 历史武将 | 15 历史人物（含 traits） | TBD | knowledge/characters.json |
-| 历史事件 | 讨董→官渡→赤壁→三国 | 恺撒遇刺→腓立比→亚克兴→帝国 | TBD | knowledge/events.json |
-| 剧情弧线 | 8 个 arc_goals | 8 个 arc_goals（含海战弧线） | TBD | knowledge/arc_goals.json |
-| System Prompt | 三国演义文白体 | 罗马史诗叙事 | TBD | prompts/system.md |
-| 政策规则 | 屯田/科举/盐铁等 | 海战/宣传战/元老院政治 | TBD | rules/*.yaml |
-| UI 地图 | 东汉 SVG 地图 | 罗马地中海 SVG 地图 | TBD | web/map.svg |
-| CLI 品牌 | 三國志略 TUI | 凯撒余烬 TUI | TBD | cli/app.py |
-| 特殊字段 | — | legions, ships, government | — | scenario.toml + schema.json |
+| 势力定义 | 曹/刘/孙/刘表 | 屋大维/安东尼/塞克斯图斯/雷必达 | 南明/清/大顺/郑氏 | knowledge/factions.json |
+| 地域地图 | 东汉十三州 + 城池 | 罗马行省 + 地中海 | 明清版图 | knowledge/territories.json |
+| 角色 | 20+ 历史武将 | 15 历史人物 | TBD | knowledge/characters.json |
+| 历史事件 | 讨董→赤壁→三国 | 恺撒遇刺→腓立比→亚克兴 | 甲申→江南→永历 | knowledge/events.json |
+| System Prompt | 三国演义文白体 | 罗马史诗叙事 | 末世多族史诗 | prompts/system.md |
+| 政策规则 | 屯田/科举/盐铁 | 海战/宣传战/元老院 | 火炮/多族/正统衰减 | rules/*.yaml |
+| 特殊字段 | — | legions, ships, government | artillery, legitimacy_decay | schema.json + rules |
 
-## 迁移计划
+## 迁移计划（已更新）
 
-### Phase 1: 建立框架（H16c ✅）
+### Phase 1: 引擎瘦身（**当前优先**）
 
-1. ✅ 创建 `scenarios/` 顶层目录
-2. ✅ 创建 `scenarios/three-kingdoms/scenario.toml` + knowledge
-3. ✅ 创建 `scenarios/shanhe-dingge/` 骨架
-4. ✅ 实现 `ScenarioLoader` 类
-5. ✅ 更新 `GameRoom` 使用 `ScenarioLoader`
+1. 删除 `offline_sim_engine.py` + `resilient_sim_engine.py`（确认 game.py:898-903 是唯一调用方后删除）
+2. 迁移 `state/world_state.py` → `histrategy_engine.world.WorldState`
+3. 迁移 `engine/world.py` → 同上
+4. 精简 `game.py` 从 2,866 行到 ~800 行
 
-### Phase 2: 场景充实（进行中）
+### Phase 2: ScenarioLoader 升级（**紧随其后**）
 
-1. ✅ 创建 `scenarios/caesar/` 罗马内战场景（scenario.toml + 10 knowledge JSON）
-2. 充实 `caesar/prompts/` LLM system prompt
-3. 充实 `caesar/rules/` 海战/宣传战 YAML
-4. 充实 `shanhe-dingge/` knowledge 数据
+1. 将 `loader.py` 的函数式接口重构为 `ScenarioLoader` 类
+2. 使 `load_territories()` 从 `scenarios/{id}/knowledge/territories.json` 读取，**不再硬编码三国数据**
+3. 实现 `scenarios/caesar/` 和 `scenarios/shanhe-dingge/` 的完整知识库加载
+4. `scenario.toml` 解析（目前仅读取 `histrategy-knowledge/scenarios/*.json`）
 
-### Phase 3: 引擎解耦（后续）
+### Phase 3: 场景内容充实
 
-1. 将 `histrategy/` 下场景无关代码提取到 `histrategy-engine/`
-2. 清理 `histrategy/` 目录，仅保留场景包
-3. 实现 `histrategy --scenario <id>` CLI 路由
+1. 《凯撒余烬》prompts/system.md（罗马史诗叙事风格）
+2. 《凯撒余烬》rules/naval.yaml + rules/propaganda.yaml
+3. 《凯撒余烬》factions.json 精简为 4 势力
+4. 《山河鼎革》knowledge 数据充实
 
-### Phase 4: 前端多场景 + 引擎增强
+### Phase 4: 前端多场景 + 持久化完善
 
 1. `/mp` UI 场景选择器
-2. 引擎核心添加 naval framework
-3. 引擎核心添加 political_influence dimension
-4. BC 年份渲染支持
+2. 引擎核心添加 `naval_power` framework（凯撒海战需求）
+3. 引擎核心添加 `political_influence` dimension（凯撒宣传战 + 山河鼎革正统性）
+4. BC 年份渲染支持（负数年份显示「公元前X年」）
 
 ## 向后兼容
 
@@ -179,37 +217,20 @@ ScenarioLoader(scenario_id)
 
 ## 目录对比：Before vs After
 
-```                                              
+```
 BEFORE:                              AFTER:
 histrategy/knowledge/data/           scenarios/three-kingdoms/knowledge/
   factions.json                        factions.json
   characters.json                      characters.json
-  regions.json                         regions.json
-  events.json                          events.json
-  arc_goals.json                       arc_goals.json
 histrategy-knowledge/                scenarios/three-kingdoms/knowledge/
-  characters/207_roster.json            roster.json
-  geography/territories.json            territories.json
-  timeline/207-223.json                 timeline.json
+  characters/207_roster.json            roster.json (unified)
+  geography/territories.json            territories.json (not hardcoded)
   scenarios/207_liubei.json             initial_state.json
-                                      scenarios/three-kingdoms/
-                                        scenario.toml          ★ NEW
-                                        prompts/               ★ NEW
-                                        rules/                 ★ NEW
-                                      scenarios/shanhe-dingge/  ★ NEW
-                                        scenario.toml
-                                        knowledge/
-                                        prompts/
-                                        rules/
-                                      scenarios/caesar/         ★ NEW
-                                        scenario.toml
-                                        knowledge/
-                                          factions.json     (8罗马势力)
-                                          characters.json   (15历史人物)
-                                          events.json       (18历史事件)
-                                          initial_state.json(44BC起点)
-                                          timeline.json     (26时间线)
-                                          arc_goals.json    (8剧情弧线)
-                                        prompts/
-                                        rules/
+
+loader.py:                           ScenarioLoader(scenario_id):
+  load_territories()  ← hardcoded      load_territories()  ← from scenarios/{id}/
+  load_scenario("207")                 load_from_toml("scenario.toml")
+
+scenarios/caesar/knowledge/          scenarios/caesar/knowledge/
+  factions.json (8势力)   ← 错误        factions.json (4势力)   ← 修正
 ```
