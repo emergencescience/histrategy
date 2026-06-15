@@ -1,0 +1,35 @@
+{
+  "octavian": [
+    "octavian",
+    "agrippa",
+    "maecenas",
+    "octavia"
+  ],
+  "antony": [
+    "antony",
+    "fulvia"
+  ],
+  "brutus": [
+    "brutus",
+    "cassius"
+  ],
+  "cleopatra": [
+    "cleopatra",
+    "caesarion"
+  ],
+  "sextus_pompey": [
+    "sextus_pompeius"
+  ],
+  "lepidus": [
+    "lepidus"
+  ],
+  "senate": [
+    "cicero"
+  ],
+  "parthia": [
+    "orodes_iv"
+  ],
+  "client_kings": [
+    "herod"
+  ]
+}

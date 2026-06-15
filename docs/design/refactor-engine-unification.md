@@ -1,7 +1,7 @@
 # histrategy 重构计划：消除冗余 + 引擎统一 + 多场景复用
 
-> **状态**: 草案，等待 Claude Opus 审阅
-> **日期**: 2026-06-14
+> **状态**: 草案，等待 Claude Sonnet 审阅
+> **日期**: 2026-06-15（更新：新增《凯撒余烬》场景 + 跨文明发现）
 > **作者**: Prometheus (Hermes Agent)
 
 ---
@@ -70,12 +70,10 @@ histrategy（主仓库）
 │   └── TurnProcessor, StateBridge, FormatEngine, IM adapters
 │
 ├── histrategy/             ← 场景层 + CLI + Server
-│   ├── scenario/            ← 新建：场景数据 + loader（与引擎解耦）
-│   │   ├── 207/
-│   │   │   ├── loader.py   207 年三国剧本
-│   │   │   ├── events.py   历史事件链
-│   │   │   └── data/       势力/地图/角色 JSON
-│   │   └── 1644/            ← 未来：《山河鼎革》
+│   ├── scenarios/            ← 场景数据 + loader（与引擎解耦）
+│   │   ├── three-kingdoms/   三国 207-280
+│   │   ├── caesar/           罗马内战 44-30 BC
+│   │   └── shanhe-dingge/    明末清初 1644-1662
 │   ├── llm/                 LLM prompt + adapter（场景感知）
 │   ├── server/              FastAPI 服务
 │   └── cli/                 CLI 入口
@@ -99,72 +97,59 @@ histrategy（主仓库）
 
 ---
 
-## 三、《山河鼎革》1644-1662：新 repo 复用策略
+## 三、同仓库多场景策略（替代独立 repo 方案）
 
-### 3.1 复用分析
+### 3.1 架构决策变更
 
+> **⚠️ 2026-06-15 更新**: 原计划《山河鼎革》独立 repo → 改为全部场景在 histrategy 仓库内作为 `scenarios/` 子目录。
+
+**变更理由**：
+1. 场景包（`scenarios/{id}/`）已经证明了完全的数据-引擎分离。knowledge JSON + TOML 配置 + prompt 模板 = 完整场景，不需要独立 repo。
+2. 独立 repo 会制造版本漂移——场景 A 依赖 engine v0.3，场景 B 依赖 engine v0.4，协调升级成本高。
+3. 跨文明场景（三国 vs 罗马）在同仓库内可以激励引擎抽象层的成熟——如果一个抽象层在两个完全不同的时代都能工作，它就是真正场景无关的。
+4. 运维简化：一个 Railway 服务托管所有场景，API 路由 `/api/scenarios/{id}/...` 统一。
+
+### 3.2 当前场景矩阵
+
+| 场景 ID | 名称 | 时代 | 状态 | 势力数 | 特殊机制 |
+|---------|------|------|------|--------|----------|
+| `three-kingdoms` | 《三國志略》 | 207-280 东汉末 | **生产** | 8 | 陆战为主、三国鼎立 |
+| `caesar` | 《凯撒余烬》 | 44-30 BC 罗马内战 | **骨架** | 8 | 海战体系、宣传战、元老院政治 |
+| `shanhe-dingge` | 《山河鼎革》 | 1644-1662 明末 | **骨架** | TBD | 多民族势力、火炮火器 |
+
+### 3.3 复用分析
+
+每个场景需要编写的内容（占总量 ~35-45%）：
 ```
-《山河鼎革》代码组成:
-┌──────────────────────────────────────────┐
-│ histrategy-engine   (pip install)  ~90%  │  确定性引擎完全复用
-│ histrategy-agent    (pip install)  ~85%  │  IM 适配器 + session 管理
-│ histrategy-sdk      (pip install)  ~20%  │  Room 模式可参考
-├──────────────────────────────────────────┤
-│ 新写:                                     │
-│   scenario/1644/loader.py              │  势力初始化（南明/满清/大顺/郑成功）
-│   scenario/1644/events.py              │  1644-1662 历史事件链
-│   llm/prompts/                         │  明末清初叙事 prompt
-│   web/                                 │  前端 UI（势力/地图不同）
-└──────────────────────────────────────────┘
-
-总体复用率: 55-65%
-```
-
-### 3.2 建议 repo 结构
-
-```
-emergencescience/shanhedinge/
-├── pyproject.toml          depends: histrategy-engine>=0.2.0
-├── shanhedinge/
-│   ├── scenario/
-│   │   └── loader.py        加载 1644 场景
-│   ├── llm/
-│   │   └── prompts/         明末叙事 prompt
-│   ├── server/              FastAPI（复用 histrategy server 模式）
-│   └── cli/                 CLI 入口
-├── data/
-│   └── 1644_reference.md   势力初始数据
-└── web/                     前端（/mp UI）
-```
-
-### 3.3 场景参数化关键
-
-将 `histrategy/engine/loader.py` (783行) 重构为**场景无关的 loader 框架** + 场景特有的 YAML/JSON 数据：
-
-```yaml
-# data/1644_reference.yaml
-scenario:
-  name: "山河鼎革"
-  start_year: 1644
-  end_year: 1662
-  season: "春"
-  factions:
-    - id: nanming
-      name: "南明"
-      ruler: "弘光帝"
-      territories: ["nanjing", "yangzhou", ...]
-      initial:
-        troops: 80000
-        food: 50000
-        treasury: 40000
-        morale: 55
-    - id: manqing
-      name: "满清"
-      ruler: "顺治帝"
-      ...
+scenarios/{id}/
+├── scenario.toml         ← 100行配置
+├── knowledge/
+│   ├── factions.json     ← 势力定义
+│   ├── characters.json   ← 角色（含 traits）
+│   ├── events.json       ← 历史事件链（18-25个）
+│   ├── initial_state.json← 起始状态
+│   ├── territories.json  ← 领土地图
+│   ├── regions.json      ← 地理区域
+│   ├── timeline.json     ← 历史时间线
+│   ├── roster.json       ← 势力-角色映射
+│   ├── arc_goals.json    ← 剧情弧线
+│   └── schema.json       ← 场景自定义字段schema
+├── prompts/              ← LLM system prompt（场景特有叙事风格）
+├── rules/                ← YAML 政策规则（场景特有机制）
+├── web/                  ← SVG地图 + CSS主题
+└── cli/                  ← CLI入口/品牌
 ```
 
-这样 loader.py 从 ~800 行精简到 ~200 行，场景数据完全外部化。
+引擎核心（`histrategy-engine/`）**完全复用，0% 场景代码**。
+
+### 3.4 场景参数化框架
+
+`ScenarioLoader` 已实现（H16c, `histrategy/engine/scenario_loader.py`, 345行），支持：
+- `scenario.toml` 元数据解析
+- knowledge JSON 自动加载和校验
+- BC 年份支持（负数年份 → 显示「公元前X年」）
+- 场景自定义字段在 factions 上扩展（如 `legions`, `ships`, `government`）
+- 默认值回退机制（新字段不破坏旧场景）
 
 ---
 
@@ -218,22 +203,22 @@ POST /api/rooms/{id}/decide
 
 **Phase 1 目标**: 删除 ~2,400 行冗余，`game.py` 从 2,866 行精简到 ~800 行。
 
-### Phase 2: 场景参数化（下周）
+### Phase 2: 场景充实
 
 | # | 任务 |
 |---|---|
-| P2.1 | 将 `loader.py` 重构为场景无关框架 |
-| P2.2 | 207 三国数据外部化到 `scenario/207/data/` |
-| P2.3 | 1644 场景数据创建（为《山河鼎革》准备） |
+| P2.1 | 《凯撒余烬》prompt 模板编写（罗马史诗叙事风格） |
+| P2.2 | 《凯撒余烬》policy rules YAML（海战、宣传战、元老院机制） |
+| P2.3 | 《山河鼎革》knowledge 数据充实 + prompt 模板 |
+| P2.4 | ScenarioLoader 增强：BC 年份渲染、schema 校验、自定义字段回退 |
 
-### Phase 3: 《山河鼎革》新 repo
+### Phase 3: 前端多场景支持
 
 | # | 任务 |
 |---|---|
-| P3.1 | 创建 `emergencescience/shanhedinge` repo |
-| P3.2 | 依赖 `histrategy-engine` + 场景 loader |
-| P3.3 | 1644 历史事件链 + LLM prompt |
-| P3.4 | Feishu bot 集成 |
+| P3.1 | `/mp` UI 支持 `?scenario=caesar` 等场景参数 |
+| P3.2 | 每个场景独立 SVG 地图 + CSS 主题 |
+| P3.3 | 场景选择器 UI（游戏大厅） |
 
 ### Phase 4: 持久化完善
 
@@ -253,7 +238,7 @@ POST /api/rooms/{id}/decide
 
 3. **测试覆盖** — 每个 Phase 完成后运行全量 `pytest tests/ -q`。Phase 1 涉及引擎替换，需要特别关注 E2E 测试。
 
-4. **《山河鼎革》不急于动手** — 先完成 Phase 1+2（引擎统一+场景参数化），《山河鼎革》自然水到渠成。不要在冗余代码上建新场景。
+4. **场景优先级** — 用户已指示暂停《山河鼎革》，先完成《凯撒余烬》的场景骨架（✅ 已完成）和 prompt/rules 填充。
 
 ---
 
@@ -262,21 +247,72 @@ POST /api/rooms/{id}/decide
 | 决策 | 选择 | 理由 |
 |---|---|---|
 | 引擎统一 | `histrategy-engine` 为唯一引擎 | 消除维护两套代码的成本 |
-| 场景分离 | `histrategy/scenario/{year}/` 独立目录 | 三国/明清 场景数据隔离，便于新场景开发 |
+| 场景分离 | `histrategy/scenarios/{id}/` 独立目录 | 三国/罗马/明清 场景数据隔离，便于新场景开发 |
 | 持久化 | SDK + SQLite reload 优先 | OpenClaw 无服务模式最佳适配 |
-| 《山河鼎革》 | 新 repo，依赖 engine pip 包 | 代码复用最大化，独立发布周期 |
+| 多场景部署 | 同仓库 monorepo | 避免版本漂移，统一 API 路由，跨文明场景激励引擎抽象 |
 | v1 保留 | 渐进式删除，V3 稳定后再删 | 避免生产中断 |
 
 ---
 
-## 八、讨论邀请
+## 八、《凯撒余烬》跨文明场景设计发现
 
-这份重构计划覆盖了引擎、SDK、场景、持久化四个维度的改进。欢迎 Claude Opus 审阅以下关键问题：
+> **2026-06-15 新增** — 创建罗马内战场景过程中发现的关键设计洞察。
+
+### 8.1 三国 vs 罗马：引擎抽象的压力测试
+
+将公元前44年的罗马内战映射到为三国设计的引擎上，是一次天然的抽象层压力测试：
+
+| 维度 | 三国 (207 AD) | 罗马 (44 BC) | 引擎抽象建议 |
+|------|--------------|-------------|-------------|
+| 冲突结构 | 三角均势（曹/刘/孙） | 两极对抗（屋大维/安东尼）+ 第三方摇摆 | 支持 N 方任意格局，不预设三方 |
+| 军事核心 | 陆战、骑兵、攻城 | **海战为主**（亚克兴海战）、军团制 | 添加 `naval_power` 维度和海战结算 |
+| 政治维度 | 合法性强弱（挟天子） | **元老院政治、宣传战、公民投票** | 添加 `political_influence` 和 `propaganda` 维度 |
+| 经济基础 | 农业税、屯田 | 埃及粮仓、海上贸易封锁 | 添加 `trade_blockade` 机制 |
+| 外部威胁 | 南蛮、山越 | **帕提亚帝国**（独立外部势力） | 支持 `external_threat` 势力类型 |
+| 角色关系 | 君臣、父子、结义 | **情人、养子、政治联姻** | 关系系统支持更复杂的动态联盟 |
+| 时间单位 | 季度/年 | 季度/年（BC 需要负数年） | 支持负数年份渲染 |
+
+### 8.2 发现的引擎缺口
+
+1. **海军体系缺失**：三国的赤壁之战虽然是水战，但引擎中没有 `ships` 字段和海战结算公式。《凯撒余烬》的核心战役（瑙洛库斯、亚克兴）都是海战——这迫使引擎必须支持海军。
+
+2. **宣传/政治资本系统**：罗马内战中的「公敌宣告」「亚历山大里亚赠礼」「遗嘱公布」都是非军事行为，但对战争结果有决定性影响。三国中「挟天子以令诸侯」是类似概念，但未被建模为独立系统。
+
+3. **两极对抗 + 第三方的博弈模式**：三国预设了三方均势，但罗马内战本质是 1v1（屋大维 vs 安东尼），克利奥帕特拉、塞克斯图斯、雷必达都是被卷进去的第三方。引擎需要支持非对称的多方博弈。
+
+4. **客户端王国模式**：希律、各东方王国在罗马与帕提亚之间摇摆——这是三国中不存在的「附庸国」概念。
+
+### 8.3 场景自定义字段策略
+
+`scenarios/caesar/knowledge/factions.json` 引入了三国场景不存在的字段：
+- `legions`: 军团数量（罗马制）
+- `ships`: 战舰数量
+- `government`: 政府类型（heir/consul/republic/pharaoh/triumvir/senate/renegade/empire）
+
+策略：**引擎核心只认通用字段（strength/food/treasury/morale），场景自定义字段通过 `schema.json` 声明，由场景特定的 rules YAML 解释。ScenarioLoader 加载时自动合并，引擎运行时只传递到 rules 层。**
+
+### 8.4 叙事风格的差异化
+
+| 场景 | 语言 | 叙事基调 | 参考作品 |
+|------|------|---------|---------|
+| 三国 | zh-CN，文白相间 | 史诗谋略、群雄逐鹿 | 《三国演义》《大军师司马懿》 |
+| 凯撒余烬 | zh-CN，史诗叙事 | 阴谋野心、帝国命运 | HBO《罗马》《奥古斯都》 |
+| 山河鼎革 | zh-CN，文白相间 | 末世挣扎、多族冲突 | 《南明史》《康熙王朝》 |
+
+每个场景的 LLM system prompt 独立编写在 `prompts/system.md`。
+
+---
+
+## 九、讨论邀请
+
+这份重构计划覆盖了引擎、场景、持久化三个维度的改进，并新增了跨文明场景设计洞察。欢迎 Claude Sonnet 审阅以下关键问题：
 
 1. **WorldState 统一**：是否需要保留 v1 兼容的序列化格式，还是直接 breaking change？
-2. **场景参数化**：YAML/JSON 数据文件 vs Python loader 脚本，哪个更适合贡献者？
-3. **v1 退役时间表**：生产环境的 d4a512fb 房间还在用 v1，如何处理迁移？
-4. **《山河鼎革》**：在 histrategy 内建 `scenario/1644/` 快速原型，还是直接新 repo？
+2. **海军体系**：《凯撒余烬》要求的海战结算，应该在引擎核心实现（供所有场景使用）还是作为场景 rule YAML？（个人倾向：引擎核心添加 generic naval framework，具体结算公式在 rule YAML）
+3. **跨文明引擎压力测试**：8.1 中发现的三国 vs 罗马差异，是否需要在 Phase 1（引擎瘦身）之前先做引擎抽象层设计？
+4. **v1 退役时间表**：生产环境的 d4a512fb 房间还在用 v1，如何处理迁移？
+5. **场景优先级**：《凯撒余烬》和《山河鼎革》哪个先填充 prompt + rules 达到可玩状态？
+6. **BC 年份支持**：ScenarioLoader 的负数年渲染方案是否合理？
 
 ---
 

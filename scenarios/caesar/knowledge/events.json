@@ -1,0 +1,211 @@
+[
+  {
+    "year": -43,
+    "season": "spring",
+    "title": "恺撒遇刺",
+    "description": "三月十五日，布鲁图斯、卡西乌斯等元老在庞培剧院刺杀恺撒。罗马陷入混乱，安东尼控制局势。",
+    "trigger": "game_start",
+    "effects": {
+      "caesar_dead": true,
+      "rome_in_chaos": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -43,
+    "season": "spring",
+    "title": "屋大维抵达罗马",
+    "description": "恺撒的养子屋大维从希腊返回，宣布接受恺撒的遗嘱，要求继承权。",
+    "trigger": "time_-43_spring",
+    "effects": {
+      "octavian_in_rome": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -43,
+    "season": "summer",
+    "title": "安东尼围攻穆提纳",
+    "description": "安东尼进攻山南高卢总督布鲁图斯（Decimus Brutus），元老院派屋大维与执政官讨伐安东尼。",
+    "trigger": "antony_vs_senate",
+    "effects": {
+      "mutina_war": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -43,
+    "season": "autumn",
+    "title": "后三头同盟成立",
+    "description": "屋大维、安东尼、雷必达结成「后三头同盟」（Second Triumvirate），以法律形式瓜分罗马世界。",
+    "trigger": "octavian_antony_truce",
+    "effects": {
+      "triumvirate_formed": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -43,
+    "season": "winter",
+    "title": "公敌宣告",
+    "description": "三巨头发布「公敌宣告」（Proscription），处决西塞罗等300元老和2000骑士，没收财产充军费。",
+    "trigger": "triumvirate_formed",
+    "effects": {
+      "proscriptions": true,
+      "cicero_dead": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -42,
+    "season": "autumn",
+    "title": "腓立比战役",
+    "description": "屋大维和安东尼在腓立比击败布鲁图斯和卡西乌斯。两位解放者自杀，共和派武装被彻底消灭。",
+    "trigger": "time_-42_autumn",
+    "effects": {
+      "brutus_cassius_dead": true,
+      "republic_ended": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -41,
+    "season": "winter",
+    "title": "佩鲁西亚战争",
+    "description": "安东尼之弟卢基乌斯和妻子富尔维娅在意大利反对屋大维的土地分配。屋大维围困佩鲁西亚，安东尼家族败。",
+    "trigger": "triumvir_tension",
+    "effects": {
+      "perusine_war": true,
+      "fulvia_exiled": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -40,
+    "season": "autumn",
+    "title": "布林迪西条约",
+    "description": "屋大维与安东尼在布林迪西达成协议：安东尼娶屋大维之姊屋大维娅，罗马世界一分为二——屋大维掌西方，安东尼掌东方。",
+    "trigger": "octavian_antony_negotiate",
+    "effects": {
+      "empire_divided": true,
+      "octavia_married": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -38,
+    "season": "spring",
+    "title": "对塞克斯图斯·庞培战争",
+    "description": "屋大维与阿格里帕发动对西西里的海战，试图打破塞克斯图斯的粮食封锁。",
+    "trigger": "time_-38_spring",
+    "effects": {
+      "sicilian_war": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -36,
+    "season": "summer",
+    "title": "瑙洛库斯海战",
+    "description": "阿格里帕在西西里附近的瑙洛库斯海战中大败塞克斯图斯·庞培的舰队。庞培逃往东方后被处决。",
+    "trigger": "sicilian_war_progress",
+    "effects": {
+      "sextus_defeated": true,
+      "grain_supply_restored": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -36,
+    "season": "autumn",
+    "title": "雷必达被废黜",
+    "description": "雷必达试图夺取西西里，被屋大维剥夺三头头衔。雷必达被迫退隐，保留大祭司职位。",
+    "trigger": "lepidus_ambition",
+    "effects": {
+      "lepidus_sidelined": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -36,
+    "season": "summer",
+    "title": "安东尼帕提亚远征",
+    "description": "安东尼发动对帕提亚的大规模远征，但在亚美尼亚山区遭遇惨败，损失超过两万士兵。",
+    "trigger": "antony_parthia_campaign",
+    "effects": {
+      "parthian_disaster": true,
+      "antony_weakened": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -34,
+    "season": "autumn",
+    "title": "亚历山大里亚赠礼",
+    "description": "安东尼在亚历山大里亚举行凯旋式，将罗马东部行省赠予克利奥帕特拉及其子女。屋大维以此作为宣传武器。",
+    "trigger": "antony_cleopatra_alliance",
+    "effects": {
+      "donations_of_alexandria": true,
+      "roman_outrage": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -32,
+    "season": "spring",
+    "title": "屋大维宣战",
+    "description": "屋大维在元老院公布安东尼的遗嘱——安东尼要求葬在亚历山大里亚。屋大维向克利奥帕特拉（而非安东尼）宣战。",
+    "trigger": "octavian_prepares_war",
+    "effects": {
+      "final_war_declared": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -31,
+    "season": "summer",
+    "title": "亚克兴海战",
+    "description": "屋大维的舰队在阿格里帕指挥下，在希腊亚克兴角击败安东尼和克利奥帕特拉的联合舰队。安东尼的陆军随后投降。",
+    "trigger": "time_-31_summer",
+    "effects": {
+      "actium_battle": true,
+      "antony_fleet_destroyed": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -30,
+    "season": "spring",
+    "title": "安东尼之死",
+    "description": "屋大维进军亚历山大里亚，安东尼在误信克利奥帕特拉已死后自刎。",
+    "trigger": "octavian_invades_egypt",
+    "effects": {
+      "antony_dead": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -30,
+    "season": "summer",
+    "title": "克利奥帕特拉之死",
+    "description": "克利奥帕特拉在与屋大维谈判失败后，以毒蛇自杀。埃及成为罗马行省。",
+    "trigger": "cleopatra_captured",
+    "effects": {
+      "cleopatra_dead": true,
+      "egypt_annexed": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -30,
+    "season": "autumn",
+    "title": "罗马和平",
+    "description": "屋大维成为罗马世界的唯一主人。元老院授予他「奥古斯都」称号。罗马共和国正式终结，帝国时代开始。",
+    "trigger": "octavian_sole_ruler",
+    "effects": {
+      "pax_romana_begins": true,
+      "republic_to_empire": true
+    },
+    "is_historical": true
+  }
+]

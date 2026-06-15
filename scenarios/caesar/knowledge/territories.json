@@ -1,0 +1,199 @@
+[
+  {
+    "id": "roma",
+    "name": "罗马",
+    "region": "latium",
+    "terrain": "urban",
+    "base_population": 500000,
+    "base_development": 80,
+    "strategic_value": 10,
+    "has_port": true,
+    "has_senate": true,
+    "is_capital": true
+  },
+  {
+    "id": "cisalpine_gaul",
+    "name": "山南高卢",
+    "region": "cisalpine_gaul",
+    "terrain": "plains",
+    "base_population": 200000,
+    "base_development": 45,
+    "strategic_value": 6,
+    "has_port": false,
+    "recruitment_bonus": 10
+  },
+  {
+    "id": "transalpine_gaul",
+    "name": "山北高卢",
+    "region": "transalpine_gaul",
+    "terrain": "plains",
+    "base_population": 300000,
+    "base_development": 35,
+    "strategic_value": 5,
+    "has_port": true,
+    "recruitment_bonus": 5
+  },
+  {
+    "id": "macedonia",
+    "name": "马其顿",
+    "region": "macedonia",
+    "terrain": "mountain",
+    "base_population": 150000,
+    "base_development": 40,
+    "strategic_value": 7,
+    "has_port": true,
+    "gold_mines": true
+  },
+  {
+    "id": "graecia",
+    "name": "希腊",
+    "region": "graecia",
+    "terrain": "hills",
+    "base_population": 150000,
+    "base_development": 50,
+    "strategic_value": 5,
+    "has_port": true,
+    "culture_bonus": 15
+  },
+  {
+    "id": "syria",
+    "name": "叙利亚",
+    "region": "syria",
+    "terrain": "desert",
+    "base_population": 250000,
+    "base_development": 50,
+    "strategic_value": 8,
+    "has_port": true,
+    "trade_bonus": 15,
+    "parthia_border": true
+  },
+  {
+    "id": "aegyptus",
+    "name": "埃及",
+    "region": "aegyptus",
+    "terrain": "river_valley",
+    "base_population": 400000,
+    "base_development": 65,
+    "strategic_value": 9,
+    "has_port": true,
+    "grain_bonus": 30,
+    "wonder": "pharos"
+  },
+  {
+    "id": "cyrenaica",
+    "name": "昔兰尼加",
+    "region": "cyrenaica",
+    "terrain": "desert",
+    "base_population": 80000,
+    "base_development": 30,
+    "strategic_value": 3,
+    "has_port": true
+  },
+  {
+    "id": "cyprus",
+    "name": "塞浦路斯",
+    "region": "cyprus",
+    "terrain": "hills",
+    "base_population": 60000,
+    "base_development": 35,
+    "strategic_value": 5,
+    "has_port": true,
+    "copper_mines": true
+  },
+  {
+    "id": "sicilia",
+    "name": "西西里",
+    "region": "sicilia",
+    "terrain": "hills",
+    "base_population": 200000,
+    "base_development": 50,
+    "strategic_value": 8,
+    "has_port": true,
+    "grain_bonus": 15,
+    "naval_chokepoint": true
+  },
+  {
+    "id": "sardinia",
+    "name": "撒丁尼亚",
+    "region": "sardinia",
+    "terrain": "hills",
+    "base_population": 60000,
+    "base_development": 25,
+    "strategic_value": 3,
+    "has_port": true
+  },
+  {
+    "id": "hispania_citerior",
+    "name": "近西班牙",
+    "region": "hispania_citerior",
+    "terrain": "plains",
+    "base_population": 180000,
+    "base_development": 40,
+    "strategic_value": 6,
+    "has_port": true,
+    "silver_mines": true
+  },
+  {
+    "id": "narbonensis",
+    "name": "纳尔旁高卢",
+    "region": "narbonensis",
+    "terrain": "plains",
+    "base_population": 120000,
+    "base_development": 50,
+    "strategic_value": 5,
+    "has_port": true
+  },
+  {
+    "id": "asia",
+    "name": "亚细亚",
+    "region": "asia",
+    "terrain": "hills",
+    "base_population": 350000,
+    "base_development": 55,
+    "strategic_value": 8,
+    "has_port": true,
+    "trade_bonus": 20
+  },
+  {
+    "id": "africa",
+    "name": "阿非利加",
+    "region": "africa",
+    "terrain": "plains",
+    "base_population": 200000,
+    "base_development": 45,
+    "strategic_value": 6,
+    "has_port": true,
+    "grain_bonus": 15
+  },
+  {
+    "id": "illyria",
+    "name": "伊利里亚",
+    "region": "illyria",
+    "terrain": "mountain",
+    "base_population": 80000,
+    "base_development": 30,
+    "strategic_value": 4,
+    "has_port": true
+  },
+  {
+    "id": "bithynia",
+    "name": "比提尼亚",
+    "region": "bithynia",
+    "terrain": "hills",
+    "base_population": 120000,
+    "base_development": 35,
+    "strategic_value": 5,
+    "has_port": true
+  },
+  {
+    "id": "mesopotamia",
+    "name": "美索不达米亚",
+    "region": "mesopotamia",
+    "terrain": "river_valley",
+    "base_population": 300000,
+    "base_development": 55,
+    "strategic_value": 8,
+    "has_port": false,
+    "parthia_heartland": true
+  }
+]

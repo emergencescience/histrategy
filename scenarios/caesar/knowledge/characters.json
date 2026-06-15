@@ -1,0 +1,300 @@
+[
+  {
+    "id": "octavian",
+    "name": "盖乌斯·屋大维",
+    "name_cn": "屋大维",
+    "birth": -62,
+    "death": 14,
+    "faction": "octavian",
+    "role": "ruler",
+    "traits": [
+      "cunning",
+      "patient",
+      "ruthless",
+      "strategic"
+    ],
+    "martial": 60,
+    "intellect": 90,
+    "politics": 95,
+    "charisma": 70,
+    "description": "恺撒的甥孙和养子。18岁，体弱多病但意志如钢。最致命的武器不是剑，而是耐心和政治天才。"
+  },
+  {
+    "id": "antony",
+    "name": "马库斯·安东尼",
+    "name_cn": "安东尼",
+    "birth": -82,
+    "death": -30,
+    "faction": "antony",
+    "role": "ruler",
+    "traits": [
+      "brave",
+      "charismatic",
+      "impulsive",
+      "hedonistic"
+    ],
+    "martial": 88,
+    "intellect": 55,
+    "politics": 50,
+    "charisma": 90,
+    "description": "恺撒的副将和多年战友。战场上无可匹敌的勇士，政治上却总是输给耐心。"
+  },
+  {
+    "id": "brutus",
+    "name": "马库斯·布鲁图斯",
+    "name_cn": "布鲁图斯",
+    "birth": -84,
+    "death": -42,
+    "faction": "brutus",
+    "role": "ruler",
+    "traits": [
+      "honorable",
+      "idealistic",
+      "stoic",
+      "naive"
+    ],
+    "martial": 60,
+    "intellect": 80,
+    "politics": 45,
+    "charisma": 65,
+    "description": "共和国自由的最后守护者。刺杀恺撒是为了理想而非权力，但理想无法阻挡军团。"
+  },
+  {
+    "id": "cassius",
+    "name": "盖乌斯·卡西乌斯",
+    "name_cn": "卡西乌斯",
+    "birth": -85,
+    "death": -42,
+    "faction": "brutus",
+    "role": "general",
+    "traits": [
+      "cunning",
+      "pragmatic",
+      "experienced",
+      "bitter"
+    ],
+    "martial": 80,
+    "intellect": 75,
+    "politics": 60,
+    "charisma": 50,
+    "description": "刺杀阴谋的真正策划者。比布鲁图斯更现实，更危险，但无法摆脱命运。"
+  },
+  {
+    "id": "cleopatra",
+    "name": "克利奥帕特拉七世",
+    "name_cn": "克利奥帕特拉",
+    "birth": -68,
+    "death": -30,
+    "faction": "cleopatra",
+    "role": "ruler",
+    "traits": [
+      "intelligent",
+      "seductive",
+      "ambitious",
+      "pragmatic"
+    ],
+    "martial": 35,
+    "intellect": 92,
+    "politics": 88,
+    "charisma": 98,
+    "description": "埃及最后一位伟大的法老。会说九种语言，比她的罗马对手们更聪明——但这还不够。"
+  },
+  {
+    "id": "sextus_pompeius",
+    "name": "塞克斯图斯·庞培",
+    "name_cn": "塞克斯图斯",
+    "birth": -66,
+    "death": -35,
+    "faction": "sextus_pompey",
+    "role": "ruler",
+    "traits": [
+      "daring",
+      "survivor",
+      "pirate",
+      "resentful"
+    ],
+    "martial": 70,
+    "intellect": 60,
+    "politics": 40,
+    "charisma": 55,
+    "description": "庞培大帝仅存的儿子。从西班牙残部到海上霸主，复仇是他唯一的燃料。"
+  },
+  {
+    "id": "lepidus",
+    "name": "马库斯·雷必达",
+    "name_cn": "雷必达",
+    "birth": -88,
+    "death": -12,
+    "faction": "lepidus",
+    "role": "ruler",
+    "traits": [
+      "cautious",
+      "loyal",
+      "mediocre",
+      "survivor"
+    ],
+    "martial": 50,
+    "intellect": 45,
+    "politics": 55,
+    "charisma": 35,
+    "description": "三巨头中的老三。军事能力平平，政治野心有限——因此活得比另两人都久。"
+  },
+  {
+    "id": "cicero",
+    "name": "马库斯·西塞罗",
+    "name_cn": "西塞罗",
+    "birth": -105,
+    "death": -43,
+    "faction": "senate",
+    "role": "ruler",
+    "traits": [
+      "eloquent",
+      "principled",
+      "vain",
+      "indecisive"
+    ],
+    "martial": 10,
+    "intellect": 95,
+    "politics": 85,
+    "charisma": 80,
+    "description": "共和国最伟大的演说家。能说服任何人却无法拯救共和国。言辞不能阻挡刀剑。"
+  },
+  {
+    "id": "agrippa",
+    "name": "马库斯·阿格里帕",
+    "name_cn": "阿格里帕",
+    "birth": -62,
+    "death": -12,
+    "faction": "octavian",
+    "role": "general",
+    "traits": [
+      "loyal",
+      "brilliant",
+      "humble",
+      "engineer"
+    ],
+    "martial": 95,
+    "intellect": 85,
+    "politics": 60,
+    "charisma": 65,
+    "description": "屋大维的童年好友和最杰出的将军。从未输过一场战役，却始终甘居幕后。亚克兴海战的总设计师。"
+  },
+  {
+    "id": "maecenas",
+    "name": "盖乌斯·梅塞纳斯",
+    "name_cn": "梅塞纳斯",
+    "birth": -69,
+    "death": -8,
+    "faction": "octavian",
+    "role": "advisor",
+    "traits": [
+      "diplomatic",
+      "cultured",
+      "loyal",
+      "effeminate"
+    ],
+    "martial": 5,
+    "intellect": 80,
+    "politics": 90,
+    "charisma": 75,
+    "description": "屋大维的外交家和宣传大师。在屋大维打仗时，他负责让罗马城保持忠诚。"
+  },
+  {
+    "id": "octavia",
+    "name": "屋大维娅",
+    "name_cn": "屋大维娅",
+    "birth": -68,
+    "death": -11,
+    "faction": "octavian",
+    "role": "diplomat",
+    "traits": [
+      "loyal",
+      "virtuous",
+      "tragic",
+      "dutiful"
+    ],
+    "martial": 5,
+    "intellect": 65,
+    "politics": 70,
+    "charisma": 80,
+    "description": "屋大维的姐姐。嫁给安东尼以维系同盟，成为罗马最著名的悲情妻子。"
+  },
+  {
+    "id": "fulvia",
+    "name": "富尔维娅",
+    "name_cn": "富尔维娅",
+    "birth": -82,
+    "death": -40,
+    "faction": "antony",
+    "role": "advisor",
+    "traits": [
+      "ambitious",
+      "fierce",
+      "political",
+      "masculine"
+    ],
+    "martial": 20,
+    "intellect": 70,
+    "politics": 80,
+    "charisma": 55,
+    "description": "安东尼的悍妻。在丈夫缺席时以铁腕统治意大利，发动佩鲁西亚战争对抗屋大维。"
+  },
+  {
+    "id": "caesarion",
+    "name": "托勒密十五世·恺撒里昂",
+    "name_cn": "恺撒里昂",
+    "birth": -46,
+    "death": -30,
+    "faction": "cleopatra",
+    "role": "heir",
+    "traits": [
+      "young",
+      "royal",
+      "vulnerable"
+    ],
+    "martial": 10,
+    "intellect": 40,
+    "politics": 20,
+    "charisma": 40,
+    "description": "恺撒与克利奥帕特拉之子。他的存在本身就是对屋大维继承权的挑战——这注定了他的命运。"
+  },
+  {
+    "id": "orodes_iv",
+    "name": "奥罗德斯四世",
+    "name_cn": "奥罗德斯",
+    "birth": -90,
+    "death": -37,
+    "faction": "parthia",
+    "role": "ruler",
+    "traits": [
+      "cunning",
+      "patient",
+      "opportunistic"
+    ],
+    "martial": 50,
+    "intellect": 70,
+    "politics": 75,
+    "charisma": 55,
+    "description": "帕提亚万王之王。曾在卡莱消灭克拉苏的七个军团，等待罗马人再次犯错。"
+  },
+  {
+    "id": "herod",
+    "name": "希律大帝",
+    "name_cn": "希律",
+    "birth": -72,
+    "death": -4,
+    "faction": "client_kings",
+    "role": "ruler",
+    "traits": [
+      "survivor",
+      "ambitious",
+      "ruthless",
+      "builder"
+    ],
+    "martial": 55,
+    "intellect": 70,
+    "politics": 85,
+    "charisma": 60,
+    "description": "犹太的王。在罗马内战中反复转换阵营，永远站在胜利者一边。"
+  }
+]

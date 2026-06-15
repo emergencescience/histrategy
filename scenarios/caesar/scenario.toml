@@ -1,0 +1,60 @@
+# 凯撒余烬 Ashes of Caesar — Scenario Configuration
+# histrategy/scenarios/caesar/scenario.toml
+#
+# 公元前44年-前30年罗马内战
+# Caesar assassinated → Liberators' War → Second Triumvirate → Actium → Empire
+
+[meta]
+id = "caesar"
+name = "凯撒余烬"
+name_en = "Ashes of Caesar"
+era = "罗马共和国末期 (44 BC - 30 BC)"
+start_year = -43                    # 公元前44年，用负数表示BC
+start_season = "春"
+end_year = -29                      # 公元前30年
+description = """
+恺撒被刺，罗马共和国在血与火中走向终结。
+屋大维、安东尼、布鲁图斯——恺撒的继承者们将在内战中决定帝国的命运。
+从元老院的阴谋到亚克兴的海战，十五年的权力角逐，罗马世界花落谁家？
+"""
+
+[engine]
+default_version = "v3"
+quarter_per_year = 4
+quarters = ["春", "夏", "秋", "冬"]
+turn_timeout_human = 300
+turn_timeout_ai = 120
+max_quarters = 60                    # 15年 × 4季
+
+[factions]
+available = ["octavian", "antony", "brutus", "cleopatra"]
+major_npc = ["octavian", "antony", "brutus", "cleopatra", "sextus_pompey", "lepidus"]
+minor_npc = ["senate", "parthia", "client_kings"]
+default_player_faction = "octavian"
+
+[display]
+icon = "🏛️"
+color_scheme = "roman"
+map_svg = "web/map.svg"
+language = "zh-CN"
+style = "史诗叙事"
+
+[knowledge]
+factions_file = "factions.json"
+characters_file = "characters.json"
+regions_file = "regions.json"
+events_file = "events.json"
+arc_goals_file = "arc_goals.json"
+roster_file = "roster.json"
+territories_file = "territories.json"
+timeline_file = "timeline.json"
+initial_state_file = "initial_state.json"
+
+[llm]
+# LLM 配置覆盖（可选，默认使用环境变量）
+# model = "deepseek-v4-pro"
+# max_tokens = 16384
+# temperature = 0.8
+
+[db]
+scenario_id_column = "scenario"

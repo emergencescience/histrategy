@@ -1,0 +1,202 @@
+[
+  {
+    "id": "latium",
+    "name": "拉丁姆",
+    "name_la": "Latium",
+    "importance": 10,
+    "terrain": "plains",
+    "climate": "mediterranean",
+    "has_port": true,
+    "description": "罗马城所在地，共和国的神圣心脏"
+  },
+  {
+    "id": "cisalpine_gaul",
+    "name": "山南高卢",
+    "name_la": "Gallia Cisalpina",
+    "importance": 7,
+    "terrain": "plains",
+    "climate": "continental",
+    "has_port": false,
+    "description": "波河流域，通往意大利北部的门户"
+  },
+  {
+    "id": "transalpine_gaul",
+    "name": "山北高卢",
+    "name_la": "Gallia Transalpina",
+    "importance": 6,
+    "terrain": "plains",
+    "climate": "continental",
+    "has_port": true,
+    "description": "恺撒征服的高卢腹地，新罗马化的行省"
+  },
+  {
+    "id": "macedonia",
+    "name": "马其顿",
+    "name_la": "Macedonia",
+    "importance": 7,
+    "terrain": "mountain",
+    "climate": "mediterranean",
+    "has_port": true,
+    "description": "亚历山大的故土，通往东方的陆路要道，腓立比战场所在"
+  },
+  {
+    "id": "graecia",
+    "name": "希腊",
+    "name_la": "Graecia",
+    "importance": 6,
+    "terrain": "hills",
+    "climate": "mediterranean",
+    "has_port": true,
+    "description": "雅典、科林斯——西方文明的摇篮，如今只是罗马的附庸"
+  },
+  {
+    "id": "syria",
+    "name": "叙利亚",
+    "name_la": "Syria",
+    "importance": 7,
+    "terrain": "desert",
+    "climate": "arid",
+    "has_port": true,
+    "description": "安条克——东方最富的行省，帕提亚的邻居和永远的威胁"
+  },
+  {
+    "id": "aegyptus",
+    "name": "埃及",
+    "name_la": "Aegyptus",
+    "importance": 9,
+    "terrain": "river_valley",
+    "climate": "arid",
+    "has_port": true,
+    "description": "尼罗河的赠礼，地中海世界的粮仓，克利奥帕特拉的王国"
+  },
+  {
+    "id": "sicilia",
+    "name": "西西里",
+    "name_la": "Sicilia",
+    "importance": 8,
+    "terrain": "hills",
+    "climate": "mediterranean",
+    "has_port": true,
+    "description": "地中海中心的岛屿，罗马的粮道咽喉，塞克斯图斯·庞培的海盗巢穴"
+  },
+  {
+    "id": "sardinia",
+    "name": "撒丁尼亚",
+    "name_la": "Sardinia",
+    "importance": 4,
+    "terrain": "hills",
+    "climate": "mediterranean",
+    "has_port": true,
+    "description": "西西里的卫星岛屿，辅助封锁意大利"
+  },
+  {
+    "id": "hispania_citerior",
+    "name": "近西班牙",
+    "name_la": "Hispania Citerior",
+    "importance": 6,
+    "terrain": "plains",
+    "climate": "mediterranean",
+    "has_port": true,
+    "description": "西班牙东部行省，雷必达的基地，丰富的银矿"
+  },
+  {
+    "id": "narbonensis",
+    "name": "纳尔旁高卢",
+    "name_la": "Gallia Narbonensis",
+    "importance": 5,
+    "terrain": "plains",
+    "climate": "mediterranean",
+    "has_port": true,
+    "description": "通往西班牙的陆桥，罗马化最彻底的行省"
+  },
+  {
+    "id": "asia",
+    "name": "亚细亚行省",
+    "name_la": "Asia",
+    "importance": 8,
+    "terrain": "hills",
+    "climate": "mediterranean",
+    "has_port": true,
+    "description": "以弗所、帕加马——最富庶的行省，税收的摇钱树"
+  },
+  {
+    "id": "cyrenaica",
+    "name": "昔兰尼加",
+    "name_la": "Cyrenaica",
+    "importance": 4,
+    "terrain": "desert",
+    "climate": "arid",
+    "has_port": true,
+    "description": "埃及以西的非洲海岸，连接东西地中海"
+  },
+  {
+    "id": "cyprus",
+    "name": "塞浦路斯",
+    "name_la": "Cyprus",
+    "importance": 5,
+    "terrain": "hills",
+    "climate": "mediterranean",
+    "has_port": true,
+    "description": "东地中海的海军基地，铜矿岛"
+  },
+  {
+    "id": "africa",
+    "name": "阿非利加",
+    "name_la": "Africa",
+    "importance": 7,
+    "terrain": "plains",
+    "climate": "arid",
+    "has_port": true,
+    "description": "迦太基故地，罗马的粮仓之二，谷物供应关键"
+  },
+  {
+    "id": "mesopotamia",
+    "name": "美索不达米亚",
+    "name_la": "Mesopotamia",
+    "importance": 8,
+    "terrain": "river_valley",
+    "climate": "arid",
+    "has_port": false,
+    "description": "两河流域，帕提亚的西境堡垒，克拉苏葬身之地"
+  },
+  {
+    "id": "media",
+    "name": "米底",
+    "name_la": "Media",
+    "importance": 5,
+    "terrain": "mountain",
+    "climate": "continental",
+    "has_port": false,
+    "description": "帕提亚高原腹地"
+  },
+  {
+    "id": "persis",
+    "name": "波斯",
+    "name_la": "Persis",
+    "importance": 6,
+    "terrain": "mountain",
+    "climate": "arid",
+    "has_port": false,
+    "description": "帕提亚帝国的发源地"
+  },
+  {
+    "id": "bithynia",
+    "name": "比提尼亚",
+    "name_la": "Bithynia",
+    "importance": 5,
+    "terrain": "hills",
+    "climate": "mediterranean",
+    "has_port": true,
+    "description": "黑海入口，庞培曾在此击败米特里达梯"
+  },
+  {
+    "id": "illyria",
+    "name": "伊利里亚",
+    "name_la": "Illyria",
+    "importance": 4,
+    "terrain": "mountain",
+    "climate": "mediterranean",
+    "has_port": true,
+    "description": "亚得里亚海东岸，连接意大利与希腊的跳板"
+  }
+]
