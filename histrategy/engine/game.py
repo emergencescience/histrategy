@@ -61,85 +61,7 @@ try:
 except ImportError as _e:
     _V2_IMPORT_ERROR = str(_e)
 
-# ─── Initial faction configurations (v1) ──────────────────────────
-
-FACTION_CONFIGS = {
-    "cao": {
-        "name": "曹操",
-        "ruler": "caocao",
-        "capital": "xuchang",
-        "territories": ["xuchang", "luoyang", "yecheng", "changan"],
-        # 史实: 207年曹操总兵力 20-25万 (参考 207_reference.md)
-        "strength": 150000,
-        "economy": 75,
-        "morale": 75,
-        "treasury": 50000,
-        "food": 30000,
-    },
-    "shu": {
-        "name": "刘备",
-        "ruler": "liubei",
-        "capital": "xinye",
-        "territories": ["xinye"],
-        # 史实: 207年刘备客居新野, 兵力 2000-5000
-        "strength": 5000,
-        "economy": 30,
-        "morale": 85,
-        "treasury": 3000,
-        "food": 3000,
-    },
-    "wu": {
-        "name": "孙权",
-        "ruler": "sunquan",
-        "capital": "jianye",
-        "territories": ["jianye", "wujun", "kuaiji", "lujiang"],
-        # 史实: 207年孙权总兵力 5-8万
-        "strength": 60000,
-        "economy": 60,
-        "morale": 80,
-        "treasury": 15000,
-        "food": 10000,
-    },
-}
-
-# NPC_FACTION_CONFIGS now only includes 3 major factions.
-# Minor factions (liubiao/liuzhang/machao/zhanglu) are no longer simulated —
-# they were passive conservative forces that never triggered meaningful LLM output.
-NPC_FACTION_CONFIGS = {
-    "cao": {
-        "name": "曹操",
-        "ruler": "caocao",
-        "capital": "xuchang",
-        "territories": ["xuchang", "luoyang", "yecheng", "changan"],
-        "strength": 150000,
-        "economy": 75,
-        "morale": 75,
-        "treasury": 50000,
-        "food": 30000,
-    },
-    "shu": {
-        "name": "刘备",
-        "ruler": "liubei",
-        "capital": "xinye",
-        "territories": ["xinye"],
-        "strength": 5000,
-        "economy": 30,
-        "morale": 85,
-        "treasury": 3000,
-        "food": 3000,
-    },
-    "wu": {
-        "name": "孙权",
-        "ruler": "sunquan",
-        "capital": "jianye",
-        "territories": ["jianye", "wujun", "kuaiji", "lujiang"],
-        "strength": 60000,
-        "economy": 60,
-        "morale": 80,
-        "treasury": 15000,
-        "food": 10000,
-    },
-}
+# ─── Faction data is now loaded from scenarios/ JSON (P0.2) ──────
 
 
 # ─── Macro engine: first-turn hard-coded suggestions ───────────
@@ -169,8 +91,13 @@ FIRST_TURN_SUGGESTIONS = {
 
 
 def create_initial_world(player_faction_id: str) -> WorldState:
-    """Create a fresh world state for a new game (v1)."""
+    """Create a fresh world state for a new game (v1).
+
+    Faction data is loaded from the scenario JSON (e.g. 207_liubei.json)
+    rather than hardcoded Python dicts.
+    """
     from ..engine.log_exporter import clear_session_log
+    from .loader import load_scenario
 
     clear_session_log()
 
@@ -178,22 +105,21 @@ def create_initial_world(player_faction_id: str) -> WorldState:
     state.scenario = "207"
     state.player_faction_id = player_faction_id
 
-    pfc = FACTION_CONFIGS.get(player_faction_id)
-    if pfc:
-        state.factions[player_faction_id] = FactionState(
-            id=player_faction_id,
-            **{k: v for k, v in pfc.items() if k != "ruler"},
-            ruler_id=pfc["ruler"],
-        )
+    scenario = load_scenario("207")
+    factions_data = scenario.get("factions", {}) if scenario else {}
 
-    for fid, fc in NPC_FACTION_CONFIGS.items():
-        # Skip the NPC that matches the player's faction
-        if fid == player_faction_id:
-            continue
+    for fid, fd in factions_data.items():
         state.factions[fid] = FactionState(
             id=fid,
-            **{k: v for k, v in fc.items() if k != "ruler"},
-            ruler_id=fc["ruler"],
+            name=fd["name"],
+            ruler_id=fd.get("ruler", ""),
+            capital=fd.get("capital", ""),
+            strength=fd.get("strength", 5000),
+            economy=fd.get("economy", 50),
+            morale=fd.get("morale_actual", 50),
+            treasury=fd.get("treasury", 5000),
+            food=fd.get("food", 3000),
+            territories=list(fd.get("territories", [])),
         )
 
     save_world(state)

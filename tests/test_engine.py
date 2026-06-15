@@ -302,9 +302,11 @@ class TestCapitalNames:
 
     def test_cao_cao_capital_is_chinese(self):
         """Cao Cao's capital should show as 许昌."""
-        from histrategy.engine.game import FACTION_CONFIGS
+        from histrategy.engine.loader import load_scenario
 
-        assert FACTION_CONFIGS["cao"]["capital"] == "xuchang"
+        scenario = load_scenario("207")
+        assert scenario is not None
+        assert scenario["factions"]["cao"]["capital"] == "xuchang"
         # The capital ID is used to look up Chinese name
         from histrategy.engine.offline_sim import CAPITAL_NAMES
 
