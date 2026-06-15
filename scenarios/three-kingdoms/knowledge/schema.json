@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "三國志略 Knowledge Base Schema",
+  "description": "JSON Schema definitions for all knowledge base data files.",
+  "definitions": {
+    "Character": {
+      "type": "object",
+      "required": ["id", "name", "alias", "title", "faction", "personality", "skills", "description"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier in snake_case (e.g. 'caocao', 'guan_yu')"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full Chinese name (e.g. '曹操')"
+        },
+        "alias": {
+          "type": "string",
+          "description": "Courtesy name / 字 (e.g. '孟德'). Use empty string if unknown."
+        },
+        "title": {
+          "type": "string",
+          "description": "Display title, typically the same as name"
+        },
+        "faction": {
+          "type": "string",
+          "description": "Faction ID this character belongs to (references factions.json id field)"
+        },
+        "birth": {
+          "type": ["integer", "null"],
+          "description": "Birth year (e.g. 155). null if unknown."
+        },
+        "death": {
+          "type": ["integer", "null"],
+          "description": "Death year (e.g. 220). null if unknown."
+        },
+        "personality": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Personality traits (Chinese phrases). Used by the simulation engine for trait-driven effects."
+        },
+        "skills": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Character skills/abilities (e.g. '统帅', '谋略', '武艺')"
+        },
+        "description": {
+          "type": "string",
+          "description": "Character biography / background"
+        }
+      }
+    },
+    "Faction": {
+      "type": "object",
+      "required": ["id", "name", "ruler_id", "color", "description", "capital", "starting_territories", "strength", "economy", "morale", "intel_level", "aggression", "diplomacy_tendency"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique faction identifier in snake_case (e.g. 'cao', 'yuan_shao')"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name (e.g. '曹操军')"
+        },
+        "ruler_id": {
+          "type": ["string", "null"],
+          "description": "Character ID of the faction ruler (references characters.json). null for 'other' factions."
+        },
+        "color": {
+          "type": "string",
+          "enum": ["red", "blue", "yellow", "green", "cyan", "magenta", "white", "grey"],
+          "description": "Display color for the faction"
+        },
+        "description": {
+          "type": "string",
+          "description": "Faction flavor description"
+        },
+        "capital": {
+          "type": "string",
+          "description": "Capital region ID (references regions.json). Empty string for 'other' factions."
+        },
+        "starting_territories": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Region IDs the faction controls at game start"
+        },
+        "strength": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Starting military strength (troop count)"
+        },
+        "economy": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Starting economy rating (0-100)"
+        },
+        "morale": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Starting morale rating (0-100)"
+        },
+        "intel_level": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Starting intelligence/information level (0-100)"
+        },
+        "aggression": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Aggression tendency (0-100). Higher = more likely to attack."
+        },
+        "diplomacy_tendency": {
+          "type": "string",
+          "enum": ["hostile", "neutral", "calculating", "friendly", "pragmatic", "arrogant", "defensive"],
+          "description": "AI diplomacy stance. Drives NPC behavior in the simulation."
+        }
+      }
+    },
+    "Region": {
+      "type": "object",
+      "required": ["id", "name", "capital", "description", "strategic_value", "resources", "neighbors"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique region identifier in snake_case (e.g. 'sili', 'jizhou')"
+        },
+        "name": {
+          "type": "string",
+          "description": "Chinese region name (e.g. '司隶')"
+        },
+        "capital": {
+          "type": "string",
+          "description": "Capital city name (e.g. '洛阳')"
+        },
+        "description": {
+          "type": "string",
+          "description": "Region flavor description"
+        },
+        "owner_190": {
+          "type": "string",
+          "description": "Faction ID that owns this region in the 190 scenario"
+        },
+        "strategic_value": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Strategic importance rating (0-100). Higher = more contested."
+        },
+        "resources": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Natural resources available (e.g. '粮食', '铁', '马')"
+        },
+        "neighbors": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Adjacent region IDs (used for movement, trade, and conflict)"
+        }
+      }
+    },
+    "HistoricalEvent": {
+      "type": "object",
+      "required": ["year", "season", "title", "description", "trigger", "effects", "is_historical"],
+      "properties": {
+        "year": {
+          "type": "integer",
+          "description": "Year the event occurs (e.g. 190)"
+        },
+        "season": {
+          "type": "string",
+          "enum": ["spring", "summer", "autumn", "winter"],
+          "description": "Season the event triggers in"
+        },
+        "title": {
+          "type": "string",
+          "description": "Event title (displayed in-game)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Event narrative description"
+        },
+        "trigger": {
+          "type": "string",
+          "description": "Trigger condition identifier (e.g. 'game_start', 'time_190_summer', 'alliance_formed')"
+        },
+        "effects": {
+          "type": "object",
+          "description": "Game state effects as key-value flags (e.g. {'alliance_against_dongzhuo': true})"
+        },
+        "is_historical": {
+          "type": "boolean",
+          "description": "Whether this is a historical event (true) vs. a dynamic/random event (false)"
+        }
+      }
+    }
+  }
+}

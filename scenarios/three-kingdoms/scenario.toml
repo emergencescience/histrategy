@@ -1,0 +1,61 @@
+# 三國志略 — Scenario Configuration
+# histrategy/scenarios/three-kingdoms/scenario.toml
+
+[meta]
+id = "three-kingdoms"
+legacy_id = "207"                          # 向后兼容 GameRoom.scenario = "207"
+name = "三國志略"
+name_en = "Histrategy"
+era = "东汉末年至三国时期 (190-280)"
+start_year = 207
+start_season = "冬"
+end_year = 280
+description = """
+群雄割据的三国乱世，扮演一方诸侯逐鹿天下。
+曹操据中原、刘备困新野、孙权守江东。
+官渡之战胜负已分，赤壁烽烟即将燃起。
+"""
+
+[engine]
+default_version = "v3"                    # v1=纯LLM, v2=rule-based, v3=混合
+quarter_per_year = 4
+quarters = ["春", "夏", "秋", "冬"]
+turn_timeout_human = 300                  # 人类玩家决策超时（秒）
+turn_timeout_ai = 120                     # AI NPC 决策超时（秒）
+max_quarters = 120                        # 游戏最大季度数（207冬→237冬，共30年）
+
+[factions]
+available = ["cao", "shu", "wu"]          # 可扮演势力
+major_npc = ["cao", "shu", "wu"]          # 主要AI势力（独立LLM决策）
+minor_npc = ["liu_biao", "yuan_shao", "yuan_shu", "dongzhuo", "other"]
+default_player_faction = "shu"            # 默认扮演势力
+
+[display]
+icon = "🏯"
+color_scheme = "three-kingdoms"
+map_svg = "web/map.svg"
+language = "zh-CN"
+style = "文白相间"                         # system prompt 风格
+
+[knowledge]
+# 知识库文件（相对于 knowledge/ 目录）
+factions_file = "factions.json"
+characters_file = "characters.json"
+regions_file = "regions.json"
+events_file = "events.json"
+arc_goals_file = "arc_goals.json"
+roster_file = "roster.json"
+territories_file = "territories.json"
+timeline_file = "timeline.json"
+initial_state_file = "initial_state.json"
+
+[llm]
+# LLM 配置覆盖（可选，默认使用环境变量）
+# model = "deepseek-chat"
+# max_tokens = 16384
+# temperature = 0.8
+
+[db]
+# 场景在 DB 中的标识
+# game_room.scenario 字段存储此值
+scenario_id_column = "scenario"
