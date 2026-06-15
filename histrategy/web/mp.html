@@ -117,11 +117,13 @@ select { cursor:pointer; }
 
 <script>
 // ── State ──────────────────────
-const API = new URLSearchParams(location.search).get('api_prefix') || '';
+const urlParams = new URLSearchParams(location.search);
+const API = urlParams.get('api_prefix') || '';
 let roomId = '';
 let myUserId = 'u_' + Math.random().toString(36).slice(2,10);
 let myFaction = '';
 let myRole = '';
+let lang = urlParams.get('lang') || (navigator.language || 'zh').startsWith('zh') ? 'zh-CN' : 'en';
 let pollTimer = null;
 let scenarios = [];         // from /api/scenarios
 let currentScenario = null; // selected scenario object
@@ -275,6 +277,7 @@ async function doCreateRoom() {
     user_id: myUserId,
     human_faction_ids: humanFactions,
     scenario: currentScenario.id,
+    language: lang,
   });
   if (!r.ok) { alert(r.error || '创建失败'); return; }
 

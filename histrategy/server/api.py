@@ -1110,6 +1110,7 @@ def create_app(llm_provider: str | None = None) -> Any:
     def api_room_turns(room_id: str):
         """Return all quarter_turn records with turn_deltas and policy_state per quarter."""
         from histrategy.db.models import get_policies_by_quarter, get_quarter_turns, get_turn_deltas
+        from histrategy.server.room_manager import _get_faction_names, _get_room
 
         raw_turns = get_quarter_turns(room_id, limit=10000)
 
@@ -1163,10 +1164,15 @@ def create_app(llm_provider: str | None = None) -> Any:
         # Return in ascending quarter_number order
         turns.sort(key=lambda t: t["quarter_number"])
 
+        # Build faction_names from room
+        room = _get_room(room_id)
+        fnames = _get_faction_names(room) if room else {}
+
         return {
             "room_id": room_id,
             "turns": turns,
             "count": len(turns),
+            "faction_names": fnames,
         }
 
     @app.get("/api/rooms/{room_id}/state")

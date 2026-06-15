@@ -64,7 +64,6 @@ def create_room(
     """
     from histrategy.engine.faction_slot import (
         FACTION_DISPLAY_TO_ID,
-        FACTION_ID_TO_DISPLAY,
         LLM_NPC_FACTIONS,
         PLAYABLE_FACTIONS,
         create_ai_slot,
@@ -103,7 +102,8 @@ def create_room(
             slot = create_human_slot(fid, fid)
             room.slots[fid] = slot
             player_name = internal_map[fid]
-            display_fid = FACTION_ID_TO_DISPLAY.get(fid, fid)
+            # Use fid directly — frontend resolves display names from /api/scenarios
+            display_fid = fid
             player_links.append({
                 "faction": display_fid,
                 "player_name": player_name,
@@ -147,8 +147,9 @@ def create_room(
     # AI NPC 马上开始生成决策
     _trigger_npc_decisions(room)
 
-    # 返回显示名列表供前端展示
-    display_factions = [FACTION_ID_TO_DISPLAY.get(f, f) for f in internal_ids]
+    # 返回显示名列表供前端展示（动态从场景数据获取）
+    fnames = _get_faction_names(room)
+    display_factions = [fnames.get(f, f) for f in internal_ids]
 
     logger.info(f"Room created+started: {room.id} by {host_user_id or 'anon'} (humans: {display_factions})")
     result = {
@@ -428,14 +429,16 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
     if not room:
         return {"ok": False, "error": "房间不存在"}
 
-    from histrategy.engine.faction_slot import FACTION_ID_TO_DISPLAY
+    # Dynamic faction names from scenario data (not hardcoded Three Kingdoms)
+    fnames = _get_faction_names(room)
+    _display = lambda fid: fnames.get(fid, fid)
 
     room_players = _players.get(room_id, {})
     submitted = [
-        FACTION_ID_TO_DISPLAY.get(fid, fid) for fid, s in room.slots.items() if s.is_active and s.has_submitted()
+        _display(fid) for fid, s in room.slots.items() if s.is_active and s.has_submitted()
     ]
     pending = [
-        FACTION_ID_TO_DISPLAY.get(fid, fid) for fid, s in room.slots.items() if s.is_active and not s.has_submitted()
+        _display(fid) for fid, s in room.slots.items() if s.is_active and not s.has_submitted()
     ]
 
     status = {
@@ -446,12 +449,13 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
         "year": room.year,
         "season": room.season,
         "quarter": room.quarter_number,
+        "faction_names": fnames,  # {internal_id: display_name} for orchestrator
         "players": {
             uid: {"role": p["role"], "display_name": p.get("display_name", "")} for uid, p in room_players.items()
         },
         "slots": {
-            FACTION_ID_TO_DISPLAY.get(fid, fid): {
-                "faction_id": FACTION_ID_TO_DISPLAY.get(fid, fid),
+            _display(fid): {
+                "faction_id": _display(fid),
                 "internal_id": fid,
                 "occupant_type": s.occupant_type.value,
                 "occupant_id": s.occupant_id,
@@ -1062,6 +1066,38 @@ def _save_quarter(room, decisions, result):
         )
     except Exception as e:
         logger.warning(f"Quarter save failed: {e}")
+
+
+def _get_faction_names(room) -> dict[str, str]:
+    """Build {internal_id: display_name} from scenario faction data.
+
+    Returns a dict mapping every faction_id known to the room's scenario
+    to its display name (Chinese name or name_en fallback).
+    Used by get_room_status and api_room_turns to provide dynamic
+    faction name mappings without hardcoding Three Kingdoms factions.
+    """
+    names: dict[str, str] = {}
+    # Try scenario faction data first
+    try:
+        from histrategy.engine.scenario_loader import ScenarioLoader
+        loader = ScenarioLoader(room.scenario)
+        factions = loader.load_factions()
+        for fid, f in factions.items():
+            names[fid] = f.get("name", f.get("name_en", fid))
+    except Exception:
+        pass
+    # Fallback: derive from room slots + world_state
+    ws = getattr(room, "world_state", None)
+    if ws:
+        for fid in getattr(room, "slots", {}):
+            faction = ws.factions.get(fid) if hasattr(ws, "factions") else None
+            if faction and fid not in names:
+                names[fid] = getattr(faction, "name", fid)
+    # Ensure all room slots have names
+    for fid in getattr(room, "slots", {}):
+        if fid not in names:
+            names[fid] = fid
+    return names
 
 
 def _write_backup(room, ws_dict):
