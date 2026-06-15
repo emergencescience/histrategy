@@ -85,7 +85,7 @@ def create_room(
         all_factions = loader.load_factions()
         # Build display_name → internal_id mapping (e.g. "屋大维" → "octavian")
         faction_display_to_id = {
-            f["display_name"]: fid
+            f.get("name", f.get("name_en", fid)): fid
             for fid, f in all_factions.items()
             if not f.get("npc_only", False)
         }
