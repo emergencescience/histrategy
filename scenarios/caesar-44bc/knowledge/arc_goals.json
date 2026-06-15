@@ -1,0 +1,127 @@
+[
+  {
+    "id": "caesar_heir",
+    "title": "继承人之战",
+    "phase": "early",
+    "year_range": [
+      -43,
+      -42
+    ],
+    "description": "确立自己作为恺撒合法继承人的地位。在罗马的政治丛林中生存，与安东尼的宿怨中取得优势。",
+    "faction": "octavian",
+    "key_events": [
+      "caesar_funeral",
+      "octavian_consul"
+    ]
+  },
+  {
+    "id": "liberators_war",
+    "title": "解放者战争",
+    "phase": "early",
+    "year_range": [
+      -43,
+      -42
+    ],
+    "description": "为恺撒复仇，消灭布鲁图斯和卡西乌斯的共和派军队。这是后三头同盟存在的唯一理由。",
+    "faction": "all",
+    "key_events": [
+      "philippi_first",
+      "philippi_second"
+    ]
+  },
+  {
+    "id": "triumvir_fracture",
+    "title": "同盟裂痕",
+    "phase": "mid",
+    "year_range": [
+      -41,
+      -36
+    ],
+    "description": "三头同盟内部的矛盾公开化。佩鲁西亚战争、布林迪西条约、雷必达被废——同盟走向解体。",
+    "faction": "all",
+    "key_events": [
+      "perusine_war",
+      "brundisium",
+      "lepidus_sidelined"
+    ]
+  },
+  {
+    "id": "sons_of_pompey",
+    "title": "庞培之子",
+    "phase": "mid",
+    "year_range": [
+      -39,
+      -36
+    ],
+    "description": "塞克斯图斯·庞培的海上帝国威胁着罗马的粮食生命线。屋大维必须击败他，或者被他击败。",
+    "faction": "octavian",
+    "key_events": [
+      "misenum",
+      "naulochus"
+    ]
+  },
+  {
+    "id": "eastern_ambitions",
+    "title": "东方野心",
+    "phase": "mid",
+    "year_range": [
+      -41,
+      -34
+    ],
+    "description": "安东尼在东方建立自己的帝国。克利奥帕特拉、帕提亚远征、亚历山大里亚赠礼——他离罗马越来越远。",
+    "faction": "antony",
+    "key_events": [
+      "antony_cleopatra_meeting",
+      "parthia_fail",
+      "alexandria_donations"
+    ]
+  },
+  {
+    "id": "propaganda_war",
+    "title": "宣传战争",
+    "phase": "mid",
+    "year_range": [
+      -34,
+      -32
+    ],
+    "description": "在没有硝烟的战场上，屋大维和安东尼用谣言、遗嘱和宣言互相毁灭。罗马的民心是最终的裁判。",
+    "faction": "all",
+    "key_events": [
+      "octavia_divorced",
+      "antony_will_revealed",
+      "oath_of_italy"
+    ]
+  },
+  {
+    "id": "final_war",
+    "title": "最终决战",
+    "phase": "late",
+    "year_range": [
+      -32,
+      -30
+    ],
+    "description": "屋大维与安东尼的最后对决。亚克兴的海战将决定帝国的命运——是罗马还是亚历山大里亚？",
+    "faction": "all",
+    "key_events": [
+      "actium_campaign",
+      "actium_battle",
+      "alexandria_fall"
+    ]
+  },
+  {
+    "id": "birth_of_empire",
+    "title": "帝国诞生",
+    "phase": "late",
+    "year_range": [
+      -30,
+      -27
+    ],
+    "description": "从内战的灰烬中，屋大维建立了新的秩序。共和国已成往事，奥古斯都的时代开始了。",
+    "faction": "octavian",
+    "key_events": [
+      "cleopatra_death",
+      "end_of_republic",
+      "augustus_title"
+    ]
+  }
+]

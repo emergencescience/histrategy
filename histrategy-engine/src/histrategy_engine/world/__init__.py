@@ -7,7 +7,7 @@ No game logic here — just types and serialization.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import InitVar, dataclass, field
 from enum import Enum
 
 # ─── Enums ────────────────────────────────────────────────────
@@ -256,6 +256,45 @@ class FactionState:
     development_focus: float = 0.5
     mercy: float = 0.5
 
+    # ── Backward-compat init vars (map old field names to new) ──
+    strength: InitVar[int | None] = None
+    economy: InitVar[int | None] = None
+    morale: InitVar[int | None] = None
+
+    def __post_init__(self, strength, economy, morale):
+        if strength is not None:
+            self.strength_actual = strength
+        if economy is not None:
+            self.economy_actual = economy
+        if morale is not None:
+            self.morale_actual = morale
+
+
+# ─── Backward-compat properties on FactionState ────────────────
+
+
+def _make_bc_prop(target_attr: str):
+    return property(
+        lambda self, attr=target_attr: getattr(self, attr),
+        lambda self, v, attr=target_attr: setattr(self, attr, v),
+    )
+
+
+FactionState.strength = _make_bc_prop("strength_actual")  # type: ignore[attr-defined]
+FactionState.economy = _make_bc_prop("economy_actual")  # type: ignore[attr-defined]
+FactionState.morale = _make_bc_prop("morale_actual")  # type: ignore[attr-defined]
+
+FactionState.personality_applied = property(  # type: ignore[attr-defined]
+    lambda self: {
+        "aggression": self.aggression,
+        "cunning": self.cunning,
+        "caution": self.caution,
+        "diplomacy": self.diplomacy,
+        "development_focus": self.development_focus,
+        "mercy": self.mercy,
+    }
+)
+
 
 # ─── Military ─────────────────────────────────────────────────
 
@@ -343,6 +382,7 @@ class Command:
     params: dict = field(default_factory=dict)
     faction_id: str = ""
     notes: str = ""  # LLM-provided context: reasoning, campaign name, risk notes, etc.
+    reasoning: str = ""  # backward-compat alias
 
 
 # ─── Turn Result ───────────────────────────────────────────────
@@ -396,3 +436,98 @@ class WorldState:
     event_history: list[dict] = field(default_factory=list)
     completed_events: list[str] = field(default_factory=list)
     averted_events: list[str] = field(default_factory=list)
+
+
+# ─── Backward-compat properties on WorldState ──────────────────
+
+
+WorldState.turn = property(  # type: ignore[attr-defined]
+    lambda self: self.turn_number,
+    lambda self, v: setattr(self, "turn_number", v),
+)
+
+WorldState.event_log = property(  # type: ignore[attr-defined]
+    lambda self: self.event_history,
+    lambda self, v: setattr(self, "event_history", v),
+)
+
+WorldState.season_index = property(  # type: ignore[attr-defined]
+    lambda self: {"spring": 0, "summer": 1, "autumn": 2, "winter": 3}.get(
+        str(self.season.value), 0
+    ),
+    lambda self, v: setattr(
+        self,
+        "season",
+        {0: Season.SPRING, 1: Season.SUMMER, 2: Season.AUTUMN, 3: Season.WINTER}[v % 4],
+    ),
+)
+
+
+# ─── Backward-compat from_dict / to_dict on WorldState ─────────
+
+
+def _worldstate_from_dict(self, data: dict) -> None:
+    """Restore WorldState from dict (backward-compat with old JSON format)."""
+    self.turn = data.get("turn", data.get("turn_number", 1))
+    self.year = data.get("year", 207)
+    si = data.get("season_index", 0)
+    self.season_index = si
+    self.player_faction_id = data.get("player_faction_id", "")
+    self.scenario = data.get("scenario", "three-kingdoms")
+    self.player_deviation = data.get("player_deviation", 0.0)
+    self.completed_events = data.get("completed_events", [])
+    self.event_history = data.get("event_log", data.get("event_history", []))
+
+    # Restore factions
+    factions_data = data.get("factions", {})
+    for fid, fd in factions_data.items():
+        fs = FactionState(
+            id=fid,
+            name=fd.get("name", fid),
+            ruler_id=fd.get("ruler_id", ""),
+            capital=fd.get("capital", ""),
+            territories=fd.get("territories", []),
+            strength=fd.get("strength", fd.get("strength_actual", 0)),
+            economy=fd.get("economy", fd.get("economy_actual", 0)),
+            morale=fd.get("morale", fd.get("morale_actual", 50)),
+            food=fd.get("food", 0),
+            treasury=fd.get("treasury", 0),
+            is_active=fd.get("is_active", True),
+            tax_rate=fd.get("tax_rate", 0.3),
+            prestige=fd.get("prestige", 50),
+            aggression=fd.get("aggression", fd.get("personality", {}).get("aggression", 0.5)),
+            cunning=fd.get("cunning", fd.get("personality", {}).get("cunning", 0.5)),
+            caution=fd.get("caution", fd.get("personality", {}).get("caution", 0.5)),
+            diplomacy=fd.get("diplomacy", fd.get("personality", {}).get("diplomacy", 0.5)),
+            development_focus=fd.get("development", fd.get("personality", {}).get("development", 0.5)),
+            mercy=fd.get("mercy", fd.get("personality", {}).get("mercy", 0.5)),
+        )
+        self.factions[fid] = fs
+
+
+WorldState.from_dict = _worldstate_from_dict  # type: ignore[attr-defined]
+
+
+def _worldstate_get_player_faction(self) -> "FactionState | None":
+    """Backward-compat: return the player's faction."""
+    return self.factions.get(self.player_faction_id)
+
+
+WorldState.get_player_faction = _worldstate_get_player_faction  # type: ignore[attr-defined]
+
+
+def _worldstate_current_season_cn(self) -> str:
+    """Backward-compat: return season name in Chinese."""
+    _map = {"spring": "春", "summer": "夏", "autumn": "秋", "winter": "冬"}
+    return _map.get(str(self.season.value), "春")
+
+
+WorldState.current_season_cn = property(_worldstate_current_season_cn)  # type: ignore[attr-defined]
+
+
+def _factionstate_faction_id(self) -> str:
+    """Backward-compat alias for FactionState.id."""
+    return self.id
+
+
+FactionState.faction_id = property(_factionstate_faction_id)  # type: ignore[attr-defined]

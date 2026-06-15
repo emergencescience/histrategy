@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from histrategy.engine.faction_slot import LLM_NPC_FACTIONS, FactionSlot
@@ -28,10 +29,50 @@ if TYPE_CHECKING:
 
     from histrategy.llm.adapter import LLMAdapter
 
-NPC_DECISION_SYSTEM = load_prompt(
+# Module-level cache of NPC decision prompts keyed by (scenario, language)
+_NPC_PROMPT_CACHE: dict[tuple[str, str], str] = {}
+
+# Default Three Kingdoms prompt (for backward compatibility)
+_NPC_DECISION_SYSTEM_DEFAULT = load_prompt(
     "npc_decision.md",
     default="你是《三國志略》中的一位诸侯，请根据当前天下形势制定本季度战略决策。",
 )
+
+
+def _load_npc_prompt(scenario: str | None, language: str = "zh-CN") -> str:
+    """Load scenario-specific NPC decision prompt with language fallback.
+
+    Priority:
+    1. scenarios/{scenario}/prompts/npc_decision_{lang}.md
+    2. scenarios/{scenario}/prompts/npc_decision_en.md
+    3. scenarios/{scenario}/prompts/npc_decision.md
+    4. Fall back to module-level default (Three Kingdoms)
+    """
+    if not scenario or scenario in ("207", "three-kingdoms", ""):
+        return _NPC_DECISION_SYSTEM_DEFAULT
+
+    cache_key = (scenario, language)
+    if cache_key in _NPC_PROMPT_CACHE:
+        return _NPC_PROMPT_CACHE[cache_key]
+
+    # Try scenario-specific prompts directory
+    candidates = [
+        Path(f"scenarios/{scenario}/prompts/npc_decision_{language}.md"),
+        Path(f"scenarios/{scenario}/prompts/npc_decision_en.md"),
+        Path(f"scenarios/{scenario}/prompts/npc_decision.md"),
+    ]
+
+    for p in candidates:
+        if p.is_file():
+            try:
+                content = p.read_text(encoding="utf-8").strip()
+                _NPC_PROMPT_CACHE[cache_key] = content
+                return content
+            except Exception:
+                pass
+
+    # Fall back to default
+    return _NPC_DECISION_SYSTEM_DEFAULT
 
 # 可用命令类型（与 IntentParser 保持一致）
 NPC_COMMAND_TYPES = [
@@ -55,11 +96,14 @@ class NPCDecisionEngine:
     1. FOW (Fog of War) — NPC 只能看到相邻势力的估算兵力
     2. 个性驱动 — 不同 NPC 有不同 aggression/caution 参数
     3. 记忆感知 — NPC 能看到最近 N 回合的历史摘要
+    4. 场景感知 — 从 scenarios/{name}/prompts/ 加载专属 prompt，支持多语言
     """
 
-    def __init__(self, llm: LLMAdapter | None = None):
+    def __init__(self, llm: LLMAdapter | None = None, scenario: str | None = None, language: str = "zh-CN"):
         self.llm = llm
         self.llm_available = llm is not None and llm.is_available
+        self.scenario = scenario
+        self.language = language
 
     def generate(
         self,
@@ -69,6 +113,7 @@ class NPCDecisionEngine:
         slot: FactionSlot | None = None,
         room_id: str = "",
         quarter_number: int = 0,
+        scenario: str | None = None,
     ) -> tuple[str, list]:
         """生成 NPC 的本季度决策。
 
@@ -77,6 +122,9 @@ class NPCDecisionEngine:
             faction_id: 该NPC的势力ID
             turn_memory: 最近回合摘要列表
             slot: FactionSlot（可选，用于读取AI配置）
+            scenario: 覆盖场景名（用于加载专属 prompt）
+            room_id: 房间 ID（用于 DB 日志）
+            quarter_number: 季度编号（用于 DB 日志）
 
         Returns:
             (decision_text, parsed_commands)
@@ -87,12 +135,15 @@ class NPCDecisionEngine:
         if not faction or not faction.is_active:
             return "该势力已不存在，无需决策。", []
 
-        # 次要势力：使用启发式规则
-        if faction_id not in LLM_NPC_FACTIONS:
-            return self._generate_heuristic(world_state, faction_id)
+        # Minor factions use heuristic rules
+        faction_set = set(getattr(slot, "__dict__", {}))
+        if faction_id not in LLM_NPC_FACTIONS and faction_id not in (slot.faction_id if slot else ""):
+            pass  # 继续尝试 LLM 或 heuristic
 
-        # 主要势力：LLM 独立决策
-        if not self.llm_available or not self.llm:
+        # Use LLM for major factions; fall back to heuristic for minor
+        use_llm = self.llm_available and self.llm is not None
+
+        if not use_llm:
             return self._generate_heuristic(world_state, faction_id)
 
         try:
@@ -104,6 +155,7 @@ class NPCDecisionEngine:
                 slot,
                 room_id,
                 quarter_number,
+                scenario or self.scenario,
             )
         except Exception as e:
             # LLM 失败时回退到启发式
@@ -119,14 +171,16 @@ class NPCDecisionEngine:
         slot: FactionSlot | None,
         room_id: str = "",
         quarter_number: int = 0,
+        scenario: str | None = None,
     ) -> tuple[str, list]:
         """LLM 生成决策。"""
         context = self._build_context(ws, faction_id, faction, turn_memory)
 
         temperature = slot.ai_temperature if slot else 0.7
+        system_prompt = _load_npc_prompt(scenario or self.scenario, self.language)
 
         messages = [
-            {"role": "system", "content": NPC_DECISION_SYSTEM},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": context},
         ]
 
@@ -138,6 +192,9 @@ class NPCDecisionEngine:
             metadata={
                 "category": "npc_decision",
                 "faction_id": faction_id,
+                "system_prompt_type": "npc_decision",
+                "room_id": room_id,
+                "quarter_number": quarter_number,
             },
         )
 
@@ -150,20 +207,8 @@ class NPCDecisionEngine:
         # 标准化命令
         commands = self._normalize_commands(raw_commands, faction_id)
 
-        # ── Log to DB ──
-        if room_id:
-            try:
-                from histrategy.db.models import log_llm_call
-                log_llm_call(
-                    room_id=room_id,
-                    quarter_number=quarter_number,
-                    call_type="npc_decision",
-                    faction_id=faction_id,
-                    provider=getattr(self.llm, "provider_name", "") if self.llm else "",
-                    model=getattr(self.llm, "model", "") if self.llm else "",
-                )
-            except Exception:
-                pass
+        # Note: LLMAdapter already logs the call to llm_call_log via _log_to_db.
+        # No separate log_llm_call needed here.
 
         return decision, commands
 

@@ -138,7 +138,7 @@ def main():
 
     if engine_mode == EngineMode.V1:
         ok = test_v1_multi()
-    elif engine_mode in (EngineMode.V3, EngineMode.MACRO):
+    elif engine_mode in (EngineMode.V3,):
         ok = test_v3_multi()
     else:
         print(f"⚠️ Unknown engine mode: {engine_mode}")

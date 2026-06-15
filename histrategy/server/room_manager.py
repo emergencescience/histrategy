@@ -64,7 +64,6 @@ def create_room(
     """
     from histrategy.engine.faction_slot import (
         FACTION_DISPLAY_TO_ID,
-        FACTION_ID_TO_DISPLAY,
         LLM_NPC_FACTIONS,
         PLAYABLE_FACTIONS,
         create_ai_slot,
@@ -103,7 +102,8 @@ def create_room(
             slot = create_human_slot(fid, fid)
             room.slots[fid] = slot
             player_name = internal_map[fid]
-            display_fid = FACTION_ID_TO_DISPLAY.get(fid, fid)
+            # Use fid directly — frontend resolves display names from /api/scenarios
+            display_fid = fid
             player_links.append({
                 "faction": display_fid,
                 "player_name": player_name,
@@ -114,10 +114,26 @@ def create_room(
         else:
             room.slots[fid] = create_open_slot(fid)
 
-    # 未指定的势力 → AI NPC
-    for fid in LLM_NPC_FACTIONS:
+    # 未指定的势力 → AI NPC（从场景数据动态获取，只加载可扮演势力）
+    try:
+        from histrategy.engine.scenario_loader import ScenarioLoader
+
+        loader = ScenarioLoader(room.scenario)
+        all_factions = loader.load_factions()
+        # 只加载非 npc_only 的势力作为 AI NPC 槽位
+        scenario_faction_ids = {fid for fid, f in all_factions.items() if not f.get("npc_only", False)}
+        # Major NPCs: all playable scenario factions not assigned to humans
+        npc_factions = list(scenario_faction_ids - set(internal_ids))
+    except Exception:
+        # Fallback to hardcoded defaults
+        npc_factions = list(LLM_NPC_FACTIONS)
+
+    for fid in npc_factions:
         if fid not in room.slots:
             room.slots[fid] = create_ai_slot(fid)
+
+    # 标记这些为场景的主要 NPC（用于 LLM 决策生成）
+    room.major_npc_ids = set(npc_factions)
 
     # host 进入房间
     _enter_player(room.id, host_user_id or ("host_" + uuid.uuid4().hex[:6]), "host", host_name or "房主")
@@ -131,8 +147,9 @@ def create_room(
     # AI NPC 马上开始生成决策
     _trigger_npc_decisions(room)
 
-    # 返回显示名列表供前端展示
-    display_factions = [FACTION_ID_TO_DISPLAY.get(f, f) for f in internal_ids]
+    # 返回显示名列表供前端展示（动态从场景数据获取）
+    fnames = _get_faction_names(room)
+    display_factions = [fnames.get(f, f) for f in internal_ids]
 
     logger.info(f"Room created+started: {room.id} by {host_user_id or 'anon'} (humans: {display_factions})")
     result = {
@@ -390,20 +407,12 @@ def submit_decision(room_id: str, faction_id: str, decision: str) -> dict:
     pending = [fid for fid, s in room.slots.items() if s.is_active and not s.has_submitted()]
 
     if not pending:
-        # 异步执行（LLM 调用可能耗时 30-60s，不能阻塞 HTTP 响应）
-        import threading
-        import traceback
-
-        def _resolve_safe(room):
-            try:
-                _resolve_and_advance(room)
-            except Exception as exc:
-                logger.error("Room %s resolve failed: %s", room.id, exc)
-                traceback.print_exc()
-                room.phase = type(room.phase).WAITING  # reset on error
-
-        t = threading.Thread(target=_resolve_safe, args=(room,), daemon=True)
-        t.start()
+        # 同步执行（调试用 — 若卡住请检查服务器日志）
+        try:
+            _resolve_and_advance(room)
+        except Exception as exc:
+            logger.error("Room %s resolve failed: %s", room.id, exc)
+            room.phase = type(room.phase).WAITING  # reset on error
 
     status = "resolving" if not pending else "waiting"
     return {
@@ -420,14 +429,16 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
     if not room:
         return {"ok": False, "error": "房间不存在"}
 
-    from histrategy.engine.faction_slot import FACTION_ID_TO_DISPLAY
+    # Dynamic faction names from scenario data (not hardcoded Three Kingdoms)
+    fnames = _get_faction_names(room)
+    _display = lambda fid: fnames.get(fid, fid)
 
     room_players = _players.get(room_id, {})
     submitted = [
-        FACTION_ID_TO_DISPLAY.get(fid, fid) for fid, s in room.slots.items() if s.is_active and s.has_submitted()
+        _display(fid) for fid, s in room.slots.items() if s.is_active and s.has_submitted()
     ]
     pending = [
-        FACTION_ID_TO_DISPLAY.get(fid, fid) for fid, s in room.slots.items() if s.is_active and not s.has_submitted()
+        _display(fid) for fid, s in room.slots.items() if s.is_active and not s.has_submitted()
     ]
 
     status = {
@@ -438,12 +449,13 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
         "year": room.year,
         "season": room.season,
         "quarter": room.quarter_number,
+        "faction_names": fnames,  # {internal_id: display_name} for orchestrator
         "players": {
             uid: {"role": p["role"], "display_name": p.get("display_name", "")} for uid, p in room_players.items()
         },
         "slots": {
-            FACTION_ID_TO_DISPLAY.get(fid, fid): {
-                "faction_id": FACTION_ID_TO_DISPLAY.get(fid, fid),
+            _display(fid): {
+                "faction_id": _display(fid),
                 "internal_id": fid,
                 "occupant_type": s.occupant_type.value,
                 "occupant_id": s.occupant_id,
@@ -612,23 +624,43 @@ def _init_world_state(room: GameRoom):
 
     humans = [s for s in room.slots.values() if s.is_human()]
     player_faction = humans[0].faction_id if humans else "cao"
+
+    # For non-default scenarios, use ScenarioLoader to pick up
+    # scenario-specific factions and year
+    if room.scenario and room.scenario not in ("207", "three-kingdoms", ""):
+        from histrategy.engine.scenario_loader import ScenarioLoader
+
+        try:
+            loader = ScenarioLoader(room.scenario)
+            room.world_state = loader.build_world_state(player_faction)
+            if room.world_state is not None:
+                room.year = room.world_state.year
+                room.season = str(room.world_state.season.value) if hasattr(room.world_state.season, 'value') else str(room.world_state.season)
+            return
+        except Exception:
+            pass  # Fall through to default
+
     room.world_state = create_initial_world(player_faction)
+    if room.world_state is not None:
+        room.year = getattr(room.world_state, 'year', 207)
+        # Old WorldState (v1) doesn't have 'season' — default to spring
+        if hasattr(room.world_state, 'season'):
+            ws_season = room.world_state.season
+            room.season = str(ws_season.value) if hasattr(ws_season, 'value') else str(ws_season)
+        else:
+            room.season = "spring"
 
 
 def _save_initial_state_to_db(room: GameRoom):
-    """写入三大势力的初始状态到 game_state 表 (quarter=0)。"""
+    """写入所有势力的初始状态到 game_state 表 (quarter=0)。"""
     from histrategy.db.models import save_game_state
-    from histrategy.engine.faction_slot import LLM_NPC_FACTIONS
 
     ws = room.world_state
     if ws is None:
         return
     try:
-        # 只追踪玩家势力 + LLM NPC 势力（cao/shu/wu）
-        tracked = set(LLM_NPC_FACTIONS)
-        for s in room.slots.values():
-            if s.is_human():
-                tracked.add(s.faction_id)
+        # 追踪所有已创建的 slot（人类 + AI NPC）
+        tracked = set(room.slots.keys())
 
         for fid in tracked:
             faction = ws.factions.get(fid)
@@ -697,7 +729,10 @@ def _resolve_and_advance(room: GameRoom):
     # 根据引擎模式选择仿真器
     if engine_mode == EngineMode.V1:
         result = _resolve_v1(room, ws, decisions, llm)
+    elif engine_mode == EngineMode.V2:
+        result = _resolve_v2(room, ws, decisions, llm)
     else:
+        # V3 (merged V3+Macro)
         result = _resolve_v3(room, ws, decisions, llm)
 
     room._last_narratives = result.narratives
@@ -761,7 +796,8 @@ def _resolve_v1(room, ws, decisions, llm):
         fd[fid] = {"decision": dr.decision_text, "commands": dr.commands}
 
     v1_result = simulator.simulate(ws, fd, room.turn_summaries,
-                                   room_id=room.id, quarter_number=room.quarter_number + 1)
+                                   room_id=room.id, quarter_number=room.quarter_number + 1,
+                                   scenario=room.scenario)
 
     # ── 先捕获旧状态（用于 turn_delta 计算）──
     old_state = {}
@@ -824,8 +860,61 @@ def _resolve_v1(room, ws, decisions, llm):
     )
 
 
+def _resolve_v2(room, ws, decisions, llm):
+    """V2 引擎：纯确定性仿真 — 零 LLM 调用。
+
+    使用 QuarterlyResolver 的确定性基线（TurnController），
+    不启用 macro_policy_engine / narrative_engine 等 LLM 组件。
+    """
+    from dataclasses import dataclass
+
+    from histrategy.engine.quarterly_resolver import QuarterlyResolver
+
+    # ── 捕获旧状态（用于 turn_delta 计算）──
+    old_state = {}
+    for fid in ws.factions:
+        faction = ws.factions[fid]
+        old_state[fid] = {
+            "population": getattr(faction, "population", 0),
+            "troops": getattr(faction, "strength_actual", 0),
+            "food": faction.food,
+            "treasury": faction.treasury,
+            "morale": getattr(faction, "morale_actual", 50),
+        }
+
+    # 仅初始化确定性组件（无 LLM 富化层）
+    try:
+        from histrategy.engine.game import GameEngine
+
+        engine = GameEngine(scenario=room.scenario, new_game=True, llm=llm)
+        engine.world_state_v2 = ws
+        engine._use_v2 = True
+        turn_controller = getattr(engine, "turn_controller", None)
+        intent_parser = getattr(engine, "intent_parser", None)
+    except Exception as e:
+        logger.warning(f"GameEngine init for V2 failed: {e}, using bare resolver")
+        turn_controller = None
+        intent_parser = None
+
+    resolver = QuarterlyResolver(
+        intent_parser=intent_parser,
+        turn_controller=turn_controller,
+        # 不传入 macro_policy_engine / narrative_engine → 纯确定性
+    )
+    result = resolver.resolve(room, ws, decisions, llm=llm)
+
+    # 写入 DB
+    _save_v3_state_to_db(room, ws, decisions, result, old_state)
+
+    return result
+
+
 def _resolve_v3(room, ws, decisions, llm):
-    """V3 引擎：完整初始化的 QuarterlyResolver。"""
+    """V3 引擎：完整初始化的 QuarterlyResolver（合并旧 V3+Macro）。
+
+    包含：V2 确定性基线 + MacroPolicyEngine LLM 非线性层
+    + BlackSwanInjector + GuardrailValidator + NarrativeEngine。
+    """
 
     from histrategy.engine.quarterly_resolver import QuarterlyResolver
 
@@ -977,6 +1066,38 @@ def _save_quarter(room, decisions, result):
         )
     except Exception as e:
         logger.warning(f"Quarter save failed: {e}")
+
+
+def _get_faction_names(room) -> dict[str, str]:
+    """Build {internal_id: display_name} from scenario faction data.
+
+    Returns a dict mapping every faction_id known to the room's scenario
+    to its display name (Chinese name or name_en fallback).
+    Used by get_room_status and api_room_turns to provide dynamic
+    faction name mappings without hardcoding Three Kingdoms factions.
+    """
+    names: dict[str, str] = {}
+    # Try scenario faction data first
+    try:
+        from histrategy.engine.scenario_loader import ScenarioLoader
+        loader = ScenarioLoader(room.scenario)
+        factions = loader.load_factions()
+        for fid, f in factions.items():
+            names[fid] = f.get("name", f.get("name_en", fid))
+    except Exception:
+        pass
+    # Fallback: derive from room slots + world_state
+    ws = getattr(room, "world_state", None)
+    if ws:
+        for fid in getattr(room, "slots", {}):
+            faction = ws.factions.get(fid) if hasattr(ws, "factions") else None
+            if faction and fid not in names:
+                names[fid] = getattr(faction, "name", fid)
+    # Ensure all room slots have names
+    for fid in getattr(room, "slots", {}):
+        if fid not in names:
+            names[fid] = fid
+    return names
 
 
 def _write_backup(room, ws_dict):

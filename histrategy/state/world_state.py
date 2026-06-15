@@ -26,6 +26,9 @@ from pathlib import Path
 
 from .npc_state import NPCState, load_npc_states, save_npc_states
 
+# Phase 1: Re-export WorldState/FactionState from unified engine
+from histrategy_engine.world import FactionState, WorldState  # noqa: F401
+
 
 class HistoricalMode(Enum):
     HISTORICAL = "historical"

@@ -1,0 +1,184 @@
+[
+  {
+    "year": -43,
+    "season": "spring",
+    "event": "caesar_assassination",
+    "title": "恺撒遇刺",
+    "description": "3月15日，布鲁图斯和卡西乌斯在庞培剧院刺杀尤利乌斯·恺撒"
+  },
+  {
+    "year": -43,
+    "season": "spring",
+    "event": "octavian_returns",
+    "title": "屋大维返回意大利",
+    "description": "屋大维从阿波罗尼亚渡海返回，宣布接受恺撒遗嘱"
+  },
+  {
+    "year": -43,
+    "season": "summer",
+    "event": "antony_senate_split",
+    "title": "安东尼与元老院决裂",
+    "description": "安东尼与元老院就高卢行省分配发生冲突"
+  },
+  {
+    "year": -43,
+    "season": "autumn",
+    "event": "octavian_consul",
+    "title": "屋大维成为执政官",
+    "description": "屋大维以武力迫使元老院任命他为执政官"
+  },
+  {
+    "year": -43,
+    "season": "winter",
+    "event": "triumvirate_law",
+    "title": "后三头同盟立法",
+    "description": "Lex Titia 法律确认屋大维、安东尼、雷必达为「重建共和国的三头」"
+  },
+  {
+    "year": -43,
+    "season": "winter",
+    "event": "proscriptions",
+    "title": "公敌宣告",
+    "description": "三巨头处决西塞罗等政敌，没收财产充军费"
+  },
+  {
+    "year": -42,
+    "season": "spring",
+    "event": "caesar_deified",
+    "title": "恺撒封神",
+    "description": "元老院正式宣布恺撒为神——屋大维从此自称 divi filius（神之子）"
+  },
+  {
+    "year": -42,
+    "season": "autumn",
+    "event": "philippi_first",
+    "title": "腓立比第一战",
+    "description": "屋大维部队被布鲁图斯击退，但安东尼击败卡西乌斯"
+  },
+  {
+    "year": -42,
+    "season": "autumn",
+    "event": "philippi_second",
+    "title": "腓立比第二战",
+    "description": "三周后联军击败布鲁图斯。布鲁图斯和卡西乌斯先后自杀"
+  },
+  {
+    "year": -41,
+    "season": "autumn",
+    "event": "perusine_war",
+    "title": "佩鲁西亚战争",
+    "description": "安东尼的弟弟和妻子在意大利起兵反对屋大维"
+  },
+  {
+    "year": -40,
+    "season": "spring",
+    "event": "perusia_falls",
+    "title": "佩鲁西亚陷落",
+    "description": "屋大维攻陷佩鲁西亚，富尔维娅流亡希腊"
+  },
+  {
+    "year": -40,
+    "season": "autumn",
+    "event": "brundisium",
+    "title": "布林迪西条约",
+    "description": "屋大维与安东尼重新划分势力范围，安东尼娶屋大维娅"
+  },
+  {
+    "year": -39,
+    "season": "spring",
+    "event": "misenum",
+    "title": "米塞努姆条约",
+    "description": "屋大维与塞克斯图斯·庞培达成和平协议"
+  },
+  {
+    "year": -38,
+    "season": "spring",
+    "event": "sicilian_war_start",
+    "title": "西西里战争爆发",
+    "description": "屋大维撕毁米塞努姆条约，进攻西西里"
+  },
+  {
+    "year": -36,
+    "season": "summer",
+    "event": "naulochus",
+    "title": "瑙洛库斯海战",
+    "description": "阿格里帕大败塞克斯图斯·庞培，"
+  },
+  {
+    "year": -36,
+    "season": "summer",
+    "event": "lepidus_sidelined",
+    "title": "雷必达被废",
+    "description": "雷必达试图夺取西西里失败，被屋大维剥夺三头权力"
+  },
+  {
+    "year": -36,
+    "season": "summer",
+    "event": "antony_parthia_fail",
+    "title": "安东尼帕提亚远征失败",
+    "description": "安东尼在亚美尼亚被帕提亚重创，损失惨重"
+  },
+  {
+    "year": -34,
+    "season": "autumn",
+    "event": "alexandria_donations",
+    "title": "亚历山大里亚赠礼",
+    "description": "安东尼将罗马东部行省赠予克利奥帕特拉及其子女"
+  },
+  {
+    "year": -33,
+    "season": "winter",
+    "event": "propaganda_war",
+    "title": "宣传战白热化",
+    "description": "屋大维和安东尼互相公开指责，屋大维娅被安东尼休弃"
+  },
+  {
+    "year": -32,
+    "season": "spring",
+    "event": "war_declared",
+    "title": "对克利奥帕特拉宣战",
+    "description": "屋大维在元老院公布安东尼遗嘱，向克利奥帕特拉宣战"
+  },
+  {
+    "year": -32,
+    "season": "summer",
+    "event": "oath_of_italy",
+    "title": "意大利宣誓效忠",
+    "description": "全意大利城镇向屋大维宣誓效忠"
+  },
+  {
+    "year": -31,
+    "season": "spring",
+    "event": "actium_campaign",
+    "title": "亚克兴战役开始",
+    "description": "屋大维和阿格里帕的舰队跨海进攻希腊"
+  },
+  {
+    "year": -31,
+    "season": "summer",
+    "event": "actium_battle",
+    "title": "亚克兴海战",
+    "description": "9月2日，阿格里帕海军决定性地击败安东尼和克利奥帕特拉的舰队"
+  },
+  {
+    "year": -30,
+    "season": "spring",
+    "event": "alexandria_fall",
+    "title": "亚历山大里亚陷落",
+    "description": "屋大维进军埃及，安东尼自杀"
+  },
+  {
+    "year": -30,
+    "season": "summer",
+    "event": "cleopatra_death",
+    "title": "克利奥帕特拉之死",
+    "description": "克利奥帕特拉自杀，埃及成为罗马行省"
+  },
+  {
+    "year": -30,
+    "season": "autumn",
+    "event": "end_of_republic",
+    "title": "共和国终结",
+    "description": "屋大维成为罗马世界唯一主宰，共和国向帝国过渡"
+  }
+]

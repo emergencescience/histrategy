@@ -1,345 +1,548 @@
 """
-Scenario Loader — 多场景支持的核心加载器。
+ScenarioLoader — unified scenario data loader for the Scenarios/{id}/ directory.
 
-从 scenarios/{id}/ 目录加载场景配置和 knowledge 数据。
-向后兼容 GameRoom.scenario = "207" → 映射到 three-kingdoms 场景。
+Replaces the ad-hoc loader functions with a single class that reads from the
+standardised scenarios/ directory structure:
 
-Usage:
-    loader = ScenarioLoader("three-kingdoms")
-    factions = loader.load_factions()
-    territories = loader.load_territories()
-    config = loader.config  # scenario.toml as dict
+    scenarios/{scenario_id}/
+        scenario.toml          — engine & faction config
+        knowledge/
+            territories.json   — map territories
+            factions.json      — faction definitions (array or dict)
+            characters.json    — character roster
+            events.json        — scripted/historical events
+            initial_state.json — full initial WorldState snapshot
+        prompts/
+            system.md          — system prompt template
+            ...
+        rules/
+            *.yaml             — rule configuration files
+
+For backwards compatibility, when a scenario does not yet have its own data
+files the loader falls back to the old histrategy-knowledge/ directory.
 """
 
 from __future__ import annotations
 
 import json
-import logging
-import os
-from dataclasses import dataclass, field
+import tomllib
 from pathlib import Path
-from typing import Any
 
-logger = logging.getLogger("histrategy.scenario")
+from histrategy_engine.world import (
+    Army,
+    Character,
+    FactionState,
+    Season,
+    TerrainType,
+    Territory,
+    UnitType,
+    WorldState,
+)
 
-# ── Scenario ID Mapping (backward compat) ─────────────────
+from .loader import (
+    TERRAIN_MAP,
+    _territory_from_json,
+    resolve_knowledge_path,
+    _find_scenarios_root,
+    load_characters as _legacy_load_characters,
+    _default_characters,
+    _default_factions,
+)
 
-LEGACY_TO_ID: dict[str, str] = {
-    "207": "three-kingdoms",
-    "190": "three-kingdoms",  # 190 scenario also maps to three-kingdoms
-}
+# ─── helpers ────────────────────────────────────────────────────────────────
 
-# ── Resolution ────────────────────────────────────────────
+def _coerce_factions_to_dict(data: list | dict) -> dict:
+    """Normalise faction data to a dict keyed by faction id.
 
-
-def resolve_scenarios_root() -> str:
-    """Find the scenarios/ root directory.
-
-    Resolution order:
-    1. HISTRATEGY_SCENARIOS_DIR env var
-    2. ../scenarios/ relative to histrategy package
-    3. ../../scenarios/ relative to histrategy package
+    Supports both the array format (caesar-44bc) and the legacy dict format.
     """
-    env_dir = os.environ.get("HISTRATEGY_SCENARIOS_DIR", "")
-    if env_dir and os.path.isdir(env_dir):
-        return env_dir
-
-    candidates = [
-        os.path.join(os.path.dirname(__file__), "..", "..", "scenarios"),
-        os.path.join(os.path.dirname(__file__), "..", "..", "..", "scenarios"),
-        os.path.join(os.path.dirname(__file__), "..", "scenarios"),
-    ]
-    for cand in candidates:
-        abs_path = os.path.abspath(cand)
-        if os.path.isdir(abs_path):
-            return abs_path
-
-    raise FileNotFoundError(
-        "Cannot locate scenarios/ directory. "
-        "Set HISTRATEGY_SCENARIOS_DIR or run from repo root."
-    )
+    if isinstance(data, dict):
+        return data
+    result: dict = {}
+    for item in data:
+        fid = item.get("id", item.get("name", ""))
+        if fid:
+            result[fid] = item
+    return result
 
 
-def _normalize_scenario_id(raw: str | None) -> str:
-    """Normalize scenario ID, mapping legacy IDs to new ones."""
-    if not raw:
-        return "three-kingdoms"
-    return LEGACY_TO_ID.get(raw, raw)
-
-
-# ── Loader ────────────────────────────────────────────────
-
-
-@dataclass
-class ScenarioConfig:
-    """Parsed scenario.toml configuration."""
-
-    meta: dict = field(default_factory=dict)
-    engine: dict = field(default_factory=dict)
-    factions: dict = field(default_factory=dict)
-    display: dict = field(default_factory=dict)
-    knowledge: dict = field(default_factory=dict)
-    llm: dict = field(default_factory=dict)
-    db: dict = field(default_factory=dict)
-
-    @classmethod
-    def from_toml(cls, path: str) -> ScenarioConfig:
-        """Parse scenario.toml into ScenarioConfig.
-
-        Uses a simple TOML parser (no third-party dependency).
-        """
-        config = cls()
-        current_section = "meta"
-
-        with open(path, encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                # Skip comments and empty lines
-                if not line or line.startswith("#"):
-                    continue
-                # Section header
-                if line.startswith("[") and line.endswith("]"):
-                    current_section = line[1:-1].strip()
-                    if "." in current_section:
-                        current_section = current_section.split(".")[0]
-                    continue
-                # Key = Value
-                if "=" in line:
-                    key, _, raw_value = line.partition("=")
-                    key = key.strip()
-                    raw_value = raw_value.strip()
-                    
-                    # Extract the actual value (handle quoted strings and inline comments)
-                    value = raw_value  # fallback
-                    if raw_value.startswith('"'):
-                        # Find closing quote
-                        end_quote = raw_value.find('"', 1)
-                        if end_quote > 0:
-                            value = raw_value[1:end_quote]
-                    elif raw_value.startswith("'"):
-                        end_quote = raw_value.find("'", 1)
-                        if end_quote > 0:
-                            value = raw_value[1:end_quote]
-                    else:
-                        # Unquoted: strip inline comment
-                        if "#" in raw_value:
-                            value = raw_value.split("#")[0].strip()
-                        else:
-                            value = raw_value
-                    # Type coercion (only for string values)
-                    if isinstance(value, str):
-                        if value in ("true", "True"):
-                            value = True
-                        elif value in ("false", "False"):
-                            value = False
-                        elif value.isdigit():
-                            value = int(value)
-                        elif value.replace(".", "").replace("-", "").isdigit():
-                            try:
-                                value = float(value)
-                            except ValueError:
-                                pass
-
-                    section_dict = getattr(config, current_section, {})
-                    if isinstance(section_dict, dict):
-                        section_dict[key] = value
-        return config
-
-    def get(self, section: str, key: str, default: Any = None) -> Any:
-        """Get a config value with default."""
-        section_dict = getattr(self, section, {})
-        if isinstance(section_dict, dict):
-            return section_dict.get(key, default)
-        return default
-
+# ─── ScenarioLoader ─────────────────────────────────────────────────────────
 
 class ScenarioLoader:
-    """Loads scenario data: config, knowledge, prompts, rules.
+    """Load scenario data from scenarios/{id}/ directory.
 
-    Usage:
+    Usage::
+
         loader = ScenarioLoader("three-kingdoms")
-        factions = loader.load_json("factions.json")
-        config = loader.config
+        ws = loader.build_world_state("shu")
+
+        loader2 = ScenarioLoader("caesar-44bc")
+        ws2 = loader2.build_world_state("octavian")
     """
 
-    def __init__(self, scenario_id: str | None = None):
-        self.scenario_id = _normalize_scenario_id(scenario_id)
-        self.scenarios_root = resolve_scenarios_root()
-        self.scenario_dir = os.path.join(self.scenarios_root, self.scenario_id)
+    def __init__(
+        self,
+        scenario_id: str = "three-kingdoms",
+        scenarios_root: Path | None = None,
+    ):
+        self.scenario_id = scenario_id
+        self._root = scenarios_root or _find_scenarios_root()
+        self._dir = self._root / scenario_id
+        self._toml = self._load_toml()
 
-        if not os.path.isdir(self.scenario_dir):
+    # ── TOML config ─────────────────────────────────────────────────────
+
+    def _load_toml(self) -> dict:
+        """Load scenario.toml, returning an empty dict if it doesn't exist."""
+        toml_path = self._dir / "scenario.toml"
+        if toml_path.is_file():
+            with open(toml_path, "rb") as f:
+                return tomllib.load(f)
+        return {}
+
+    @property
+    def year_direction(self) -> str:
+        """'positive' (AD) or 'negative' (BC)."""
+        engine = self._toml.get("engine", {})
+        return engine.get("year_direction", "positive")
+
+    @property
+    def available_factions(self) -> list[str]:
+        """Player-selectable faction IDs from TOML config."""
+        factions_cfg = self._toml.get("factions", {})
+        return list(factions_cfg.get("available", []))
+
+    @property
+    def npc_only_factions(self) -> list[str]:
+        """NPC-only faction IDs from TOML config."""
+        factions_cfg = self._toml.get("factions", {})
+        return list(factions_cfg.get("npc_only", []))
+
+    # ── public data loaders ─────────────────────────────────────────────
+
+    def load_factions(self) -> dict:
+        """Read knowledge/factions.json (array or dict format).
+
+        Falls back to initial_state.json factions if factions.json is missing.
+        """
+        # 1) Try knowledge/factions.json
+        factions_path = self._dir / "knowledge" / "factions.json"
+        if factions_path.is_file():
+            with open(factions_path, encoding="utf-8") as f:
+                return _coerce_factions_to_dict(json.load(f))
+
+        # 2) Try initial_state.json factions key
+        init = self.load_initial_state()
+        if init and "factions" in init:
+            return _coerce_factions_to_dict(init["factions"])
+
+        # 3) Try old histrategy-knowledge/ scenario JSON
+        try:
+            from .loader import load_scenario as _legacy_load_scenario
+            scenario = _legacy_load_scenario(self.scenario_id)
+            if scenario and "factions" in scenario:
+                return scenario["factions"]
+        except Exception:
+            pass
+
+        # 4) Fall back to hardcoded defaults
+        return _default_factions()
+
+    def load_characters(self) -> dict[str, Character]:
+        """Read knowledge/characters.json.
+
+        Falls back to the legacy loader when the file is missing.
+        """
+        char_path = self._dir / "knowledge" / "characters.json"
+        if char_path.is_file():
+            with open(char_path, encoding="utf-8") as f:
+                data = json.load(f)
+
+            # Support both array and {"characters": [...]} formats
+            if isinstance(data, list):
+                items = data
+            else:
+                items = data.get("characters", [])
+
+            characters: dict[str, Character] = {}
+            for cd in items:
+                if isinstance(cd, dict):
+                    char = _character_from_dict(cd)
+                    characters[char.id] = char
+            if characters:
+                return characters
+
+        # Fall back to legacy loader (histrategy-knowledge/)
+        try:
+            return _legacy_load_characters()
+        except Exception:
+            return _default_characters()
+
+    def load_territories(self) -> dict[str, Territory]:
+        """Read knowledge/territories.json.
+
+        Uses the same code path as the P0.3 refactored load_territories().
+        """
+        territory_path = self._dir / "knowledge" / "territories.json"
+
+        # Fallback: try three-kingdoms if this scenario doesn't have its own
+        if not territory_path.is_file() and self.scenario_id != "three-kingdoms":
+            fallback = self._root / "three-kingdoms" / "knowledge" / "territories.json"
+            if fallback.is_file():
+                territory_path = fallback
+
+        if not territory_path.is_file():
+            # Last resort: try old knowledge_path
+            try:
+                kp = resolve_knowledge_path()
+                old_path = Path(kp) / "territories.json"
+                if old_path.is_file():
+                    territory_path = old_path
+            except Exception:
+                pass
+
+        if not territory_path.is_file():
             raise FileNotFoundError(
-                f"Scenario '{self.scenario_id}' not found at {self.scenario_dir}"
+                f"Cannot find territories.json for scenario '{self.scenario_id}'"
             )
 
-        # Load config
-        toml_path = os.path.join(self.scenario_dir, "scenario.toml")
-        if os.path.isfile(toml_path):
-            self.config = ScenarioConfig.from_toml(toml_path)
-        else:
-            logger.warning("scenario.toml not found for %s, using defaults", self.scenario_id)
-            self.config = ScenarioConfig()
+        with open(territory_path, encoding="utf-8") as f:
+            data = json.load(f)
 
-        self.knowledge_dir = os.path.join(self.scenario_dir, "knowledge")
-        self.prompts_dir = os.path.join(self.scenario_dir, "prompts")
-        self.rules_dir = os.path.join(self.scenario_dir, "rules")
-
-    # ── Knowledge Loading ────────────────────────────
-
-    def load_json(self, filename: str) -> Any:
-        """Load a JSON file from the knowledge directory."""
-        filepath = os.path.join(self.knowledge_dir, filename)
-        if not os.path.isfile(filepath):
-            raise FileNotFoundError(
-                f"Knowledge file '{filename}' not found in {self.knowledge_dir}"
-            )
-        with open(filepath, encoding="utf-8") as f:
-            return json.load(f)
-
-    def load_factions(self) -> list[dict]:
-        """Load faction definitions."""
-        filename = self.config.get("knowledge", "factions_file", "factions.json")
-        return self.load_json(filename)
-
-    def load_characters(self) -> list[dict]:
-        """Load character definitions."""
-        filename = self.config.get("knowledge", "characters_file", "characters.json")
-        return self.load_json(filename)
-
-    def load_regions(self) -> list[dict]:
-        """Load region/territory definitions."""
-        filename = self.config.get("knowledge", "regions_file", "regions.json")
-        return self.load_json(filename)
+        territories: dict[str, Territory] = {}
+        for td in data:
+            t = _territory_from_json(td)
+            territories[t.id] = t
+        return territories
 
     def load_events(self) -> list[dict]:
-        """Load historical event definitions."""
-        filename = self.config.get("knowledge", "events_file", "events.json")
-        return self.load_json(filename)
+        """Read knowledge/events.json."""
+        events_path = self._dir / "knowledge" / "events.json"
+        if events_path.is_file():
+            with open(events_path, encoding="utf-8") as f:
+                data = json.load(f)
+            return data if isinstance(data, list) else []
+        return []
 
-    def load_arc_goals(self) -> list[dict]:
-        """Load story arc goals."""
-        filename = self.config.get("knowledge", "arc_goals_file", "arc_goals.json")
-        return self.load_json(filename)
-
-    def load_roster(self) -> dict | list:
-        """Load character roster with stats."""
-        filename = self.config.get("knowledge", "roster_file", "roster.json")
-        return self.load_json(filename)
-
-    def load_territories(self) -> dict | list:
-        """Load detailed territory data."""
-        filename = self.config.get("knowledge", "territories_file", "territories.json")
-        return self.load_json(filename)
-
-    def load_timeline(self) -> dict | list:
-        """Load historical timeline."""
-        filename = self.config.get("knowledge", "timeline_file", "timeline.json")
-        return self.load_json(filename)
-
-    # ── Prompt Loading ───────────────────────────────
-
-    def load_prompt(self, name: str) -> str | None:
-        """Load a prompt template file.
-
-        Args:
-            name: Prompt name without extension (e.g. 'system', 'plan_mode')
-        """
-        for ext in (".md", ".txt"):
-            filepath = os.path.join(self.prompts_dir, f"{name}{ext}")
-            if os.path.isfile(filepath):
-                with open(filepath, encoding="utf-8") as f:
-                    return f.read()
+    def load_initial_state(self) -> dict | None:
+        """Read knowledge/initial_state.json."""
+        init_path = self._dir / "knowledge" / "initial_state.json"
+        if init_path.is_file():
+            with open(init_path, encoding="utf-8") as f:
+                return json.load(f)
         return None
 
-    def get_system_prompt(self, engine_version: str = "v3") -> str | None:
-        """Get the system prompt for the given engine version."""
-        # Try version-specific first, then generic
-        prompt = self.load_prompt(f"system_{engine_version}")
-        if prompt:
-            return prompt
-        return self.load_prompt("system")
+    def load_prompt(self, name: str = "system") -> str:
+        """Read prompts/{name}.md."""
+        prompt_path = self._dir / "prompts" / f"{name}.md"
+        if prompt_path.is_file():
+            return prompt_path.read_text(encoding="utf-8")
 
-    # ── Rule Loading ─────────────────────────────────
-
-    def load_rules(self, filename: str | None = None) -> dict | None:
-        """Load YAML rule definitions."""
-        import yaml
-
-        if filename:
-            filepath = os.path.join(self.rules_dir, filename)
-            if os.path.isfile(filepath):
-                with open(filepath, encoding="utf-8") as f:
-                    return yaml.safe_load(f)
-            return None
-
-        # Load all rules
-        rules = {}
-        if os.path.isdir(self.rules_dir):
-            for fname in sorted(os.listdir(self.rules_dir)):
-                if fname.endswith((".yaml", ".yml")):
-                    filepath = os.path.join(self.rules_dir, fname)
-                    with open(filepath, encoding="utf-8") as f:
-                        rules[fname] = yaml.safe_load(f)
-        return rules if rules else None
-
-    # ── Utility ──────────────────────────────────────
-
-    def get_starting_state(self) -> dict:
-        """Get initial world state for this scenario."""
-        return {
-            "scenario": self.scenario_id,
-            "year": self.config.get("meta", "start_year", 207),
-            "season": self.config.get("meta", "start_season", "冬"),
-            "engine_version": self.config.get("engine", "default_version", "v3"),
-        }
-
-    def list_available_scenarios() -> list[dict]:
-        """List all available scenarios."""
+        # Fallback: try old prompt_loader
         try:
-            root = resolve_scenarios_root()
-        except FileNotFoundError:
+            from histrategy.llm.prompt_loader import load_prompt as _load_prompt
+            return _load_prompt(name)
+        except Exception:
+            pass
+
+        raise FileNotFoundError(
+            f"No prompt '{name}.md' in {self._dir / 'prompts'} and no fallback available"
+        )
+
+    def load_rules(self) -> list[Path]:
+        """List rules/*.yaml files in the scenario directory."""
+        rules_dir = self._dir / "rules"
+        if not rules_dir.is_dir():
             return []
+        return sorted(rules_dir.glob("*.yaml"))
 
-        scenarios = []
-        for entry in sorted(os.listdir(root)):
-            entry_path = os.path.join(root, entry)
-            if not os.path.isdir(entry_path):
+    # ── world state assembly ────────────────────────────────────────────
+
+    def build_world_state(self, player_faction_id: str) -> WorldState:
+        """Assemble a complete WorldState from scenario data.
+
+        For scenarios with an initial_state.json this is the canonical path;
+        otherwise falls back to the legacy build_world_state() codepath.
+        """
+        # Load territories and characters
+        territories = self.load_territories()
+        characters = self.load_characters()
+
+        # Try initial_state.json first (modern path)
+        init = self.load_initial_state()
+        if init and "factions" in init:
+            return self._build_from_initial_state(
+                init, player_faction_id, territories, characters
+            )
+
+        # Legacy path: use old histrategy-knowledge/ scenario JSON
+        from .loader import load_scenario as _legacy_load_scenario
+
+        scenario = _legacy_load_scenario(self.scenario_id)
+        knowledge_path = resolve_knowledge_path()
+
+        return self._build_from_legacy_scenario(
+            scenario, player_faction_id, territories, characters, knowledge_path
+        )
+
+    def _build_from_initial_state(
+        self,
+        init: dict,
+        player_faction_id: str,
+        territories: dict[str, Territory],
+        characters: dict[str, Character],
+    ) -> WorldState:
+        """Build WorldState from a modern initial_state.json."""
+        factions_data = _coerce_factions_to_dict(init.get("factions", {}))
+        factions = self._build_factions(factions_data)
+
+        # Override territory ownership from faction data
+        for fid, faction in factions.items():
+            for tid in faction.territories:
+                if tid in territories:
+                    territories[tid].owner_id = fid
+
+        # Determine season
+        season_str = init.get("season", "spring")
+        season = _parse_season(season_str)
+
+        # Determine year
+        year = init.get("year", 207)
+        # Apply TOML override
+        toml_meta = self._toml.get("meta", {})
+        if "start_year" in toml_meta:
+            year = toml_meta["start_year"]
+
+        # Create armies
+        armies = self._create_armies(factions)
+
+        return WorldState(
+            year=year,
+            season=season,
+            turn_number=1,
+            scenario=self.scenario_id,
+            player_faction_id=player_faction_id,
+            territories=territories,
+            characters=characters,
+            factions=factions,
+            armies=armies,
+            player_deviation=0.0,
+        )
+
+    def _build_from_legacy_scenario(
+        self,
+        scenario: dict | None,
+        player_faction_id: str,
+        territories: dict[str, Territory],
+        characters: dict[str, Character],
+        knowledge_path: str,
+    ) -> WorldState:
+        """Build WorldState from legacy histrategy-knowledge/ scenario JSON."""
+        # Apply territory overrides from scenario
+        if scenario and "territories" in scenario:
+            for tid, td in scenario["territories"].items():
+                if tid in territories:
+                    t = territories[tid]
+                    if "name" in td:
+                        t.name = td["name"]
+                    if "population" in td:
+                        t.population = td["population"]
+                    if "development" in td:
+                        t.development = td["development"]
+                    if "terrain" in td:
+                        t.terrain_type = TERRAIN_MAP.get(td["terrain"], TerrainType.PLAINS)
+                    if "climate_zone" in td:
+                        t.climate_zone = td["climate_zone"]
+                    if "fertility" in td:
+                        t.fertility = td["fertility"]
+
+        # Determine season
+        season = Season.SPRING
+        if scenario:
+            season_str = scenario.get("season", "winter")
+            season = _parse_season(season_str)
+
+        # Build factions
+        factions: dict[str, FactionState] = {}
+        if scenario and "factions" in scenario:
+            factions = self._build_factions(scenario["factions"])
+        else:
+            factions = _default_factions()
+
+        # Assign territory ownership from faction data
+        for fid, faction in factions.items():
+            for tid in faction.territories:
+                if tid in territories:
+                    territories[tid].owner_id = fid
+
+        # Create armies
+        armies = self._create_armies(factions)
+
+        return WorldState(
+            year=scenario.get("year", 207) if scenario else 207,
+            season=season,
+            turn_number=1,
+            scenario=self.scenario_id,
+            player_faction_id=player_faction_id,
+            territories=territories,
+            characters=characters,
+            factions=factions,
+            armies=armies,
+            player_deviation=0.0,
+        )
+
+    def _build_factions(self, factions_data: dict) -> dict[str, FactionState]:
+        """Build FactionState objects from raw dict data.
+
+        Handles both legacy TK field names and modern caesar-44bc field names.
+        """
+        factions: dict[str, FactionState] = {}
+        for fid, fd in factions_data.items():
+            personality = fd.get("personality", {})
+
+            # Support both `territories` (legacy) and `starting_territories` (caesar)
+            faction_territories = list(
+                fd.get("territories", fd.get("starting_territories", []))
+            )
+
+            factions[fid] = FactionState(
+                id=fid,
+                name=fd.get("name", fid),
+                ruler_id=fd.get("ruler", fd.get("ruler_id", "")),
+                capital=fd.get("capital", ""),
+                territories=faction_territories,
+                is_active=fd.get("is_active", fd.get("is_active_manually", True)),
+                prestige=fd.get("prestige", 50),
+                legitimacy=fd.get("legitimacy", 50),
+                strength_actual=fd.get("strength_actual", fd.get("strength", 5000)),
+                economy_actual=fd.get("economy_actual", fd.get("economy", 50)),
+                morale_actual=fd.get("morale_actual", fd.get("morale", 50)),
+                treasury=fd.get("treasury", 5000),
+                food=fd.get("food", 3000),
+                tax_rate=fd.get("tax_rate", 0.3),
+                tech_levels=fd.get("tech_levels", {}),
+                relations=fd.get("relations", {}),
+                aggression=personality.get("aggression", fd.get("aggression", 0.5)),
+                cunning=personality.get("cunning", fd.get("cunning", 0.5)),
+                caution=personality.get("caution", fd.get("caution", 0.5)),
+                diplomacy=personality.get(
+                    "diplomacy", fd.get("diplomacy_tendency", 0.5)
+                ),
+                development_focus=personality.get("development", fd.get("development_focus", 0.5)),
+                mercy=personality.get("mercy", fd.get("mercy", 0.5)),
+            )
+        return factions
+
+    def _create_armies(self, factions: dict[str, FactionState]) -> dict[str, Army]:
+        """Create initial armies for active factions."""
+        armies: dict[str, Army] = {}
+        army_idx = 1
+        for fid, faction in factions.items():
+            if not faction.is_active or not faction.territories:
                 continue
-            toml_path = os.path.join(entry_path, "scenario.toml")
-            if not os.path.isfile(toml_path):
+            capital = faction.capital or faction.territories[0]
+            army_id = f"army_{fid}_{army_idx}"
+            armies[army_id] = Army(
+                id=army_id,
+                faction_id=fid,
+                location=capital,
+                commander_id=faction.ruler_id,
+                units={UnitType.INFANTRY: min(faction.strength_actual, 5000)},
+                morale=80,
+                training=1.0,
+                supply=30,
+            )
+            army_idx += 1
+        return armies
+
+    # ── utility ─────────────────────────────────────────────────────────
+
+    def format_year(self, year: int) -> str:
+        """Render year with BC/AD support.
+
+        - positive year_direction: '公元{year}年'
+        - negative year_direction: '公元前{abs(year)}年'
+        """
+        if self.year_direction == "negative":
+            return f"公元前{abs(year)}年"
+        return f"公元{year}年"
+
+    @staticmethod
+    def list_scenarios(root: Path | None = None) -> list[str]:
+        """List all available scenario IDs (directories containing scenario.toml
+        or knowledge/ data)."""
+        if root is None:
+            root = _find_scenarios_root()
+        scenarios: list[str] = []
+        if not root.is_dir():
+            return scenarios
+        for entry in sorted(root.iterdir()):
+            if not entry.is_dir():
                 continue
-
-            try:
-                config = ScenarioConfig.from_toml(toml_path)
-            except Exception:
-                config = ScenarioConfig()
-
-            scenarios.append({
-                "id": entry,
-                "name": config.get("meta", "name", entry),
-                "era": config.get("meta", "era", ""),
-                "start_year": config.get("meta", "start_year", 0),
-                "icon": config.get("display", "icon", "🎮"),
-                "description": config.get("meta", "description", ""),
-            })
-
+            # A valid scenario has either scenario.toml or a knowledge/ subdirectory
+            if (entry / "scenario.toml").is_file() or (entry / "knowledge").is_dir():
+                scenarios.append(entry.name)
         return scenarios
 
 
-# ── Singleton ─────────────────────────────────────────────
+# ─── character builder ──────────────────────────────────────────────────────
+
+def _character_from_dict(cd: dict) -> Character:
+    """Build a Character from a JSON dict.
+
+    Supports both TK field names (stats.leadership, faction, location, loyalty)
+    and caesar-44bc field names (martial, intellect, politics, charisma, faction, role).
+    """
+    # Stats: TK uses nested stats dict, Caesar uses top-level attributes
+    if "stats" in cd:
+        stats = cd["stats"]
+        leadership = stats.get("leadership", 50)
+        might = stats.get("might", 50)
+        intelligence = stats.get("intelligence", 50)
+        politics_stat = stats.get("politics", 50)
+        charisma = stats.get("charisma", 50)
+    else:
+        # Caesar format: martial, intellect, politics, charisma
+        leadership = cd.get("leadership", cd.get("martial", 50))
+        might = cd.get("might", cd.get("martial", 50))
+        intelligence = cd.get("intelligence", cd.get("intellect", 50))
+        politics_stat = cd.get("politics", cd.get("politics", 50))
+        charisma = cd.get("charisma", 50)
+
+    # Role detection
+    role = cd.get("role", "")
+    is_governor = role == "governor"
+    is_commanding = role in ("general", "commander", "ruler")
+
+    return Character(
+        id=cd["id"],
+        name=cd.get("name_cn", cd.get("name", cd["id"])),
+        alias=cd.get("alias", cd.get("style", "")),
+        leadership=leadership,
+        might=might,
+        intelligence=intelligence,
+        politics=politics_stat,
+        charisma=charisma,
+        skills=cd.get("skills", cd.get("traits", [])),
+        sworn_brothers=cd.get("sworn_brothers", []),
+        spouse=cd.get("spouse", ""),
+        mentor=cd.get("mentor", ""),
+        faction_id=cd.get("faction", ""),
+        location=cd.get("location", ""),
+        loyalty=cd.get("loyalty", 80),
+        birth=cd.get("birth", 150),
+        death=cd.get("death", 200),
+        is_governor=is_governor,
+        is_commanding=is_commanding,
+    )
 
 
-_scenario_cache: dict[str, ScenarioLoader] = {}
-
-
-def get_scenario_loader(scenario_id: str | None = None) -> ScenarioLoader:
-    """Get or create a cached ScenarioLoader."""
-    sid = _normalize_scenario_id(scenario_id)
-    if sid not in _scenario_cache:
-        _scenario_cache[sid] = ScenarioLoader(sid)
-    return _scenario_cache[sid]
-
-
-def get_default_scenario_id() -> str:
-    """Get the default scenario from env or fallback to three-kingdoms."""
-    return os.environ.get("HISTRATEGY_SCENARIO", "three-kingdoms")
+def _parse_season(season_str: str) -> Season:
+    """Parse a season string to a Season enum value."""
+    season_map = {
+        "spring": Season.SPRING,
+        "summer": Season.SUMMER,
+        "autumn": Season.AUTUMN,
+        "winter": Season.WINTER,
+    }
+    return season_map.get(season_str.lower(), Season.WINTER)

@@ -15,6 +15,7 @@ Output: Structured delta with battle outcomes, morale events,
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from histrategy.llm.prompt_loader import load_prompt
@@ -25,10 +26,30 @@ if TYPE_CHECKING:
     from histrategy.engine.quarterly_engine import QuarterResult
     from histrategy.llm.adapter import LLMAdapter
 
-MACRO_SIM_SYSTEM = load_prompt(
+# Default prompt (Three Kingdoms)
+_MACRO_SIM_DEFAULT = load_prompt(
     "macro_simulator.md",
     default="你是《三國志略》的太史令（Macro Historical Simulator）。",
 )
+_MACRO_PROMPT_CACHE: dict[str, str] = {}
+
+
+def _load_macro_prompt(scenario: str | None) -> str:
+    """Load scenario-specific macro simulator prompt with fallback to default."""
+    if not scenario or scenario in ("207", "three-kingdoms", ""):
+        return _MACRO_SIM_DEFAULT
+    if scenario in _MACRO_PROMPT_CACHE:
+        return _MACRO_PROMPT_CACHE[scenario]
+    candidates = [
+        Path(f"scenarios/{scenario}/prompts/macro_simulator_en.md"),
+        Path(f"scenarios/{scenario}/prompts/macro_simulator_zh-CN.md"),
+        Path(f"scenarios/{scenario}/prompts/macro_simulator.md"),
+    ]
+    for p in candidates:
+        if p.is_file():
+            _MACRO_PROMPT_CACHE[scenario] = p.read_text(encoding="utf-8")
+            return _MACRO_PROMPT_CACHE[scenario]
+    return _MACRO_SIM_DEFAULT
 
 OUTPUT_SCHEMA_HINT = """
 ## battle_results
@@ -108,9 +129,10 @@ OUTPUT_SCHEMA_HINT = """
 class MacroPolicyEngine:
     """LLM-driven quarterly historical simulation."""
 
-    def __init__(self, llm_adapter: LLMAdapter | None = None):
+    def __init__(self, llm_adapter: LLMAdapter | None = None, scenario: str | None = None):
         self.llm = llm_adapter
         self.llm_available = llm_adapter is not None and llm_adapter.is_available
+        self.scenario = scenario
 
     def simulate(
         self,
@@ -140,8 +162,9 @@ class MacroPolicyEngine:
             epoch_memory or [],
         )
 
+        system_prompt = _load_macro_prompt(self.scenario)
         messages = [
-            {"role": "system", "content": MACRO_SIM_SYSTEM + "\n" + OUTPUT_SCHEMA_HINT},
+            {"role": "system", "content": system_prompt + "\n" + OUTPUT_SCHEMA_HINT},
             {"role": "user", "content": context},
         ]
 

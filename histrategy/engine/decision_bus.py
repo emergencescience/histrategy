@@ -133,6 +133,7 @@ def collect_all_decisions(
             results,
             room_id=getattr(room, "id", ""),
             quarter_number=getattr(room, "quarter_number", 0),
+            scenario=getattr(room, "scenario", None),
         )
     elif major_ai:
         # LLM not available → heuristic fallback for major NPCs too
@@ -205,11 +206,12 @@ def _collect_ai_decisions_parallel(
     results: dict[str, DecisionResult],
     room_id: str = "",
     quarter_number: int = 0,
+    scenario: str | None = None,
 ):
     """并行调用 LLM 为多个 NPC 生成决策。"""
     from histrategy.llm.npc_decision_engine import NPCDecisionEngine
 
-    engine = NPCDecisionEngine(llm)
+    engine = NPCDecisionEngine(llm, scenario=scenario)
 
     def _generate_one(slot: FactionSlot) -> DecisionResult:
         t0 = time.time()
@@ -283,6 +285,9 @@ def _generate_heuristic_decision(
     commands: list[dict] = []
     parts: list[str] = []
 
+    def _cmd(type_: str, params: dict, reasoning: str) -> dict:
+        return {"type": type_, "params": params, "reasoning": reasoning, "faction_id": faction_id}
+
     strength = getattr(faction, "strength_actual", 0)
     treasury = faction.treasury
     food = faction.food
@@ -291,11 +296,7 @@ def _generate_heuristic_decision(
     if strength < 10000 and treasury > 2000:
         amount = min(3000, treasury // 2)
         commands.append(
-            {
-                "type": "conscript",
-                "params": {"amount": amount},
-                "reasoning": "补充兵力",
-            }
+            _cmd("conscript", {"amount": amount}, "补充兵力")
         )
         parts.append(f"征兵{amount}")
 
@@ -304,22 +305,14 @@ def _generate_heuristic_decision(
         capital = faction.capital or (faction.territories[0] if faction.territories else None)
         if capital:
             commands.append(
-                {
-                    "type": "develop",
-                    "params": {"territory": capital},
-                    "reasoning": "发展经济",
-                }
+                _cmd("develop", {"territory": capital}, "发展经济")
             )
             parts.append(f"开发{capital}")
 
     # 税收到30%以上降低
     if faction.tax_rate > 0.35:
         commands.append(
-            {
-                "type": "tax",
-                "params": {"tax_rate": 0.3},
-                "reasoning": "减轻民负",
-            }
+            _cmd("tax", {"tax_rate": 0.3}, "减轻民负")
         )
         parts.append("降低税率至三成")
 

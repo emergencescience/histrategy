@@ -16,7 +16,6 @@ def load_prompt(filename: str, default: str | None = None) -> str | None:
 
 ADVISOR_SYSTEM_PROMPT = load_prompt("advisor.md")
 ALIGNMENT_SYSTEM_PROMPT = load_prompt("alignment.md")
-VALIDATION_SYSTEM_PROMPT = load_prompt("validation.md")
 GAMEMASTER_INTRO_SYSTEM = load_prompt("gamemaster_intro.md")
 GAMEMASTER_PLAN_SYSTEM = load_prompt("gamemaster_plan.md")
 GAMEMASTER_COMMAND_SYSTEM = load_prompt("gamemaster_command.md")
@@ -30,7 +29,6 @@ WORLD_SIMULATOR_SYSTEM = load_prompt("world_simulator.md")
 KNOWN_PROMPTS = {
     "ADVISOR_SYSTEM_PROMPT": ADVISOR_SYSTEM_PROMPT,
     "ALIGNMENT_SYSTEM_PROMPT": ALIGNMENT_SYSTEM_PROMPT,
-    "VALIDATION_SYSTEM_PROMPT": VALIDATION_SYSTEM_PROMPT,
     "GAMEMASTER_INTRO_SYSTEM": GAMEMASTER_INTRO_SYSTEM,
     "GAMEMASTER_PLAN_SYSTEM": GAMEMASTER_PLAN_SYSTEM,
     "GAMEMASTER_COMMAND_SYSTEM": GAMEMASTER_COMMAND_SYSTEM,

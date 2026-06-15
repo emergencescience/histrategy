@@ -61,85 +61,7 @@ try:
 except ImportError as _e:
     _V2_IMPORT_ERROR = str(_e)
 
-# ─── Initial faction configurations (v1) ──────────────────────────
-
-FACTION_CONFIGS = {
-    "cao": {
-        "name": "曹操",
-        "ruler": "caocao",
-        "capital": "xuchang",
-        "territories": ["xuchang", "luoyang", "yecheng", "changan"],
-        # 史实: 207年曹操总兵力 20-25万 (参考 207_reference.md)
-        "strength": 150000,
-        "economy": 75,
-        "morale": 75,
-        "treasury": 50000,
-        "food": 30000,
-    },
-    "shu": {
-        "name": "刘备",
-        "ruler": "liubei",
-        "capital": "xinye",
-        "territories": ["xinye"],
-        # 史实: 207年刘备客居新野, 兵力 2000-5000
-        "strength": 5000,
-        "economy": 30,
-        "morale": 85,
-        "treasury": 3000,
-        "food": 3000,
-    },
-    "wu": {
-        "name": "孙权",
-        "ruler": "sunquan",
-        "capital": "jianye",
-        "territories": ["jianye", "wujun", "kuaiji", "lujiang"],
-        # 史实: 207年孙权总兵力 5-8万
-        "strength": 60000,
-        "economy": 60,
-        "morale": 80,
-        "treasury": 15000,
-        "food": 10000,
-    },
-}
-
-# NPC_FACTION_CONFIGS now only includes 3 major factions.
-# Minor factions (liubiao/liuzhang/machao/zhanglu) are no longer simulated —
-# they were passive conservative forces that never triggered meaningful LLM output.
-NPC_FACTION_CONFIGS = {
-    "cao": {
-        "name": "曹操",
-        "ruler": "caocao",
-        "capital": "xuchang",
-        "territories": ["xuchang", "luoyang", "yecheng", "changan"],
-        "strength": 150000,
-        "economy": 75,
-        "morale": 75,
-        "treasury": 50000,
-        "food": 30000,
-    },
-    "shu": {
-        "name": "刘备",
-        "ruler": "liubei",
-        "capital": "xinye",
-        "territories": ["xinye"],
-        "strength": 5000,
-        "economy": 30,
-        "morale": 85,
-        "treasury": 3000,
-        "food": 3000,
-    },
-    "wu": {
-        "name": "孙权",
-        "ruler": "sunquan",
-        "capital": "jianye",
-        "territories": ["jianye", "wujun", "kuaiji", "lujiang"],
-        "strength": 60000,
-        "economy": 60,
-        "morale": 80,
-        "treasury": 15000,
-        "food": 10000,
-    },
-}
+# ─── Faction data is now loaded from scenarios/ JSON (P0.2) ──────
 
 
 # ─── Macro engine: first-turn hard-coded suggestions ───────────
@@ -169,8 +91,13 @@ FIRST_TURN_SUGGESTIONS = {
 
 
 def create_initial_world(player_faction_id: str) -> WorldState:
-    """Create a fresh world state for a new game (v1)."""
+    """Create a fresh world state for a new game (v1).
+
+    Faction data is loaded from the scenario JSON (e.g. 207_liubei.json)
+    rather than hardcoded Python dicts.
+    """
     from ..engine.log_exporter import clear_session_log
+    from .loader import load_scenario
 
     clear_session_log()
 
@@ -178,22 +105,21 @@ def create_initial_world(player_faction_id: str) -> WorldState:
     state.scenario = "207"
     state.player_faction_id = player_faction_id
 
-    pfc = FACTION_CONFIGS.get(player_faction_id)
-    if pfc:
-        state.factions[player_faction_id] = FactionState(
-            id=player_faction_id,
-            **{k: v for k, v in pfc.items() if k != "ruler"},
-            ruler_id=pfc["ruler"],
-        )
+    scenario = load_scenario("207")
+    factions_data = scenario.get("factions", {}) if scenario else {}
 
-    for fid, fc in NPC_FACTION_CONFIGS.items():
-        # Skip the NPC that matches the player's faction
-        if fid == player_faction_id:
-            continue
+    for fid, fd in factions_data.items():
         state.factions[fid] = FactionState(
             id=fid,
-            **{k: v for k, v in fc.items() if k != "ruler"},
-            ruler_id=fc["ruler"],
+            name=fd["name"],
+            ruler_id=fd.get("ruler", ""),
+            capital=fd.get("capital", ""),
+            strength=fd.get("strength", 5000),
+            economy=fd.get("economy", 50),
+            morale=fd.get("morale_actual", 50),
+            treasury=fd.get("treasury", 5000),
+            food=fd.get("food", 3000),
+            territories=list(fd.get("territories", [])),
         )
 
     save_world(state)
@@ -246,8 +172,10 @@ class GameEngine:
 
     # ─── v2 initialization ────────────────────────────────────
 
-    def _init_v2(self, scenario: str, new_game: bool) -> None:
-        """Initialize the v2 engine stack."""
+    def _build_engine_stack(self, llm=None):
+        """Initialize all sub-engines: map, character, domestic, military,
+        decision, turn, history, narrative, intent, v3 sim, and macro policy.
+        """
         from .loader import resolve_knowledge_path
 
         knowledge_path = resolve_knowledge_path()
@@ -267,11 +195,11 @@ class GameEngine:
             from histrategy_engine.ai.npc_planner import NPCPlanner
 
             advisor = None
-            if self.llm and self.llm.is_available:
+            if llm and llm.is_available:
                 try:
                     from ..llm.advisor import StrategicAdvisor
 
-                    advisor = StrategicAdvisor(self.llm)
+                    advisor = StrategicAdvisor(llm)
                 except Exception:
                     pass
 
@@ -318,10 +246,10 @@ class GameEngine:
         self._use_v3 = os.environ.get("HISTRATEGY_V3", "").lower() in ("1", "true", "yes")
         self._use_macro = os.environ.get("HISTRATEGY_MACRO", "").lower() in ("1", "true", "yes")
 
-        if self.llm and self.llm.is_available:
+        if llm and llm.is_available:
             from ..llm.narrative import NarrativeEngine
 
-            self.narrative_engine = NarrativeEngine(self.llm)
+            self.narrative_engine = NarrativeEngine(llm)
 
             # IntentParser: use fast model in v3 mode for speed
             if self._use_v3:
@@ -331,14 +259,14 @@ class GameEngine:
 
                     self._intent_llm = _LLM(model=intent_model)
                 except Exception:
-                    self._intent_llm = self.llm
+                    self._intent_llm = llm
                 from ..parser.intent import IntentParser
 
                 self.intent_parser = IntentParser(self._intent_llm)
             else:
                 from ..parser.intent import IntentParser
 
-                self.intent_parser = IntentParser(self.llm)
+                self.intent_parser = IntentParser(llm)
 
             from ..parser.validator import CommandValidator
 
@@ -352,6 +280,71 @@ class GameEngine:
             from ..parser.validator import CommandValidator
 
             self.command_validator = CommandValidator(self.map_engine)
+
+        # v3 init: LLM simulation layer
+        if self._use_v3 and llm and llm.is_available:
+            from ..engine.guardrail import GuardrailValidator
+            from ..engine.state_applier import StateApplier, TurnMemory
+            from ..llm.world_simulator import WorldSimulator
+
+            # WorldSimulator uses a fast model (no reasoning overhead)
+            v3_fast_model = os.environ.get("HISTRATEGY_V3_FAST_MODEL", "deepseek-chat")
+            try:
+                from ..llm.adapter import LLMAdapter as _LLM
+
+                self._v3_llm = _LLM(
+                    model=v3_fast_model,
+                    api_key=llm.api_key if llm.api_key else None,
+                    api_base=llm.api_base if llm.api_base else None,
+                )
+            except Exception:
+                self._v3_llm = llm  # fallback to default
+
+            self.world_simulator = WorldSimulator(self._v3_llm)
+            self.guardrail = GuardrailValidator()
+            self.state_applier = StateApplier()
+            self.turn_memory = TurnMemory()
+
+        # ── macro: quarterly policy engine ──
+        self._turn_summaries: list[dict] = []  # recent turn summaries for LLM context
+        if self._use_macro and llm and llm.is_available:
+            from ..engine.black_swan import BlackSwanInjector
+            from ..engine.knowledge_layer import KnowledgeBase
+            from ..engine.macro_policy_engine import MacroPolicyEngine
+            from ..engine.quarterly_engine import QuarterlyEngine
+            from ..policy.policy_parser import PolicyParser
+            from ..policy.policy_validator import PolicyValidator
+
+            # PolicyParser uses the default LLM
+            self._macro_parser = PolicyParser(llm)
+            self._macro_validator = PolicyValidator()
+            self._quarterly_engine = QuarterlyEngine()
+            self._black_swan = BlackSwanInjector()
+
+            # MacroPolicyEngine uses chat model for creative simulation
+            macro_model = os.environ.get("HISTRATEGY_MACRO_MODEL", "deepseek-chat")
+            try:
+                from ..llm.adapter import LLMAdapter as _LLM
+                from ..state.world_state import get_data_dir as _get_data_dir
+
+                _room_dir = str(_get_data_dir())
+                self._macro_llm = _LLM(
+                    model=macro_model,
+                    api_key=llm.api_key if llm and llm.api_key else None,
+                    api_base=llm.api_base if llm and llm.api_base else None,
+                    data_dir=_room_dir,
+                )
+            except Exception:
+                self._macro_llm = llm
+            self._macro_sim = MacroPolicyEngine(self._macro_llm, scenario=self.scenario)
+            self._knowledge_base = KnowledgeBase()
+
+            # Replace IntentParser with PolicyParser in macro mode
+            self.intent_parser = None  # Not used in macro mode
+
+    def _init_v2(self, scenario: str, new_game: bool) -> None:
+        """Initialize the v2 engine stack."""
+        self._build_engine_stack(self.llm)
 
         # Try to load existing game or create new
         if not new_game:
@@ -370,67 +363,6 @@ class GameEngine:
         self.world_state = None
         self._legacy_world = None
         self.sim_engine = None
-
-        # v3 init: LLM simulation layer
-        if self._use_v3 and self.llm and self.llm.is_available:
-            from ..engine.guardrail import GuardrailValidator
-            from ..engine.state_applier import StateApplier, TurnMemory
-            from ..llm.world_simulator import WorldSimulator
-
-            # WorldSimulator uses a fast model (no reasoning overhead)
-            v3_fast_model = os.environ.get("HISTRATEGY_V3_FAST_MODEL", "deepseek-chat")
-            try:
-                from ..llm.adapter import LLMAdapter as _LLM
-
-                self._v3_llm = _LLM(
-                    model=v3_fast_model,
-                    api_key=self.llm.api_key if self.llm.api_key else None,
-                    api_base=self.llm.api_base if self.llm.api_base else None,
-                )
-            except Exception:
-                self._v3_llm = self.llm  # fallback to default
-
-            self.world_simulator = WorldSimulator(self._v3_llm)
-            self.guardrail = GuardrailValidator()
-            self.state_applier = StateApplier()
-            self.turn_memory = TurnMemory()
-
-        # ── macro: quarterly policy engine ──
-        self._turn_summaries: list[dict] = []  # recent turn summaries for LLM context
-        if self._use_macro and self.llm and self.llm.is_available:
-            from ..engine.black_swan import BlackSwanInjector
-            from ..engine.knowledge_layer import KnowledgeBase
-            from ..engine.macro_policy_engine import MacroPolicyEngine
-            from ..engine.quarterly_engine import QuarterlyEngine
-            from ..policy.policy_parser import PolicyParser
-            from ..policy.policy_validator import PolicyValidator
-
-            # PolicyParser uses the default LLM
-            self._macro_parser = PolicyParser(self.llm)
-            self._macro_validator = PolicyValidator()
-            self._quarterly_engine = QuarterlyEngine()
-            self._black_swan = BlackSwanInjector()
-
-            # MacroPolicyEngine uses chat model for creative simulation
-            macro_model = os.environ.get("HISTRATEGY_MACRO_MODEL", "deepseek-chat")
-            try:
-                from ..llm.adapter import LLMAdapter as _LLM
-                from ..state.world_state import get_data_dir as _get_data_dir
-
-                _room_dir = str(_get_data_dir())
-                self._macro_llm = _LLM(
-                    model=macro_model,
-                    api_key=self.llm.api_key if self.llm and self.llm.api_key else None,
-                    api_base=self.llm.api_base if self.llm and self.llm.api_base else None,
-                    data_dir=_room_dir,
-                )
-            except Exception:
-                self._macro_llm = self.llm
-            self._macro_sim = MacroPolicyEngine(self._macro_llm)
-            self._knowledge_base = KnowledgeBase()
-
-            # Replace IntentParser with PolicyParser in macro mode
-            self.intent_parser = None  # Not used in macro mode
 
         self._setup_rules_logging()
 
@@ -629,151 +561,9 @@ class GameEngine:
         engine.llm = llm
         engine.scenario = data.get("scenario", "207")
 
-        # Force v2 since that's what we serialize
-        from .loader import resolve_knowledge_path
-
         engine._use_v2 = True
-        engine._use_v3 = engine._use_v2 and os.environ.get("HISTRATEGY_V3", "").lower() in ("1", "true", "yes")
-        engine._use_macro = engine._use_v2 and os.environ.get("HISTRATEGY_MACRO", "").lower() in ("1", "true", "yes")
 
-        knowledge_path = resolve_knowledge_path()
-        engine._knowledge_path = knowledge_path
-
-        # Initialize the 7-engine stack (same as _init_v2)
-        engine.map_engine = MapEngine()
-        engine.char_engine = CharacterEngine()
-        engine.domestic_engine = DomesticEngine()
-        engine.military_engine = MilitaryEngine()
-        engine.decision_engine = DecisionEngine()
-
-        # NPC Planner for FOW-aware NPC AI (optional LLM-based strategic advisor)
-        npc_planner = None
-        try:
-            from histrategy_engine.ai.npc_planner import NPCPlanner
-
-            advisor = None
-            if llm and llm.is_available:
-                try:
-                    from ..llm.advisor import StrategicAdvisor
-
-                    advisor = StrategicAdvisor(llm)
-                except Exception:
-                    pass
-
-            npc_planner = NPCPlanner(
-                decision_engine=engine.decision_engine,
-                advisor=advisor,
-            )
-        except Exception:
-            pass
-
-        engine.turn_controller = TurnController(
-            map_engine=engine.map_engine,
-            char_engine=engine.char_engine,
-            domestic_engine=engine.domestic_engine,
-            military_engine=engine.military_engine,
-            decision_engine=engine.decision_engine,
-            npc_planner=npc_planner,
-        )
-
-        try:
-            engine.history_engine = HistoryEngine(knowledge_path)
-        except Exception:
-            engine.history_engine = None
-
-        engine.narrative_engine = None
-        engine.intent_parser = None
-        engine.command_validator = None
-
-        if llm and llm.is_available:
-            from ..llm.narrative import NarrativeEngine
-
-            engine.narrative_engine = NarrativeEngine(llm)
-
-            # IntentParser: use flash model in v3 mode
-            if engine._use_v3:
-                intent_model = os.environ.get("HISTRATEGY_V3_INTENT_MODEL", "deepseek-v4-flash")
-                try:
-                    from ..llm.adapter import LLMAdapter as _LLM2
-
-                    engine._intent_llm = _LLM2(model=intent_model)
-                except Exception:
-                    engine._intent_llm = llm
-                from ..parser.intent import IntentParser
-
-                engine.intent_parser = IntentParser(engine._intent_llm)
-            else:
-                from ..parser.intent import IntentParser
-
-                engine.intent_parser = IntentParser(llm)
-
-            from ..parser.validator import CommandValidator
-
-            engine.command_validator = CommandValidator(engine.map_engine)
-        else:
-            from ..parser.intent import IntentParser
-
-            engine.intent_parser = IntentParser(None)
-            from ..parser.validator import CommandValidator
-
-            engine.command_validator = CommandValidator(engine.map_engine)
-
-        # v3 init for saved games
-        if engine._use_v3 and llm and llm.is_available:
-            try:
-                from ..engine.guardrail import GuardrailValidator
-                from ..engine.state_applier import StateApplier, TurnMemory
-                from ..llm.world_simulator import WorldSimulator
-
-                v3_fast_model = os.environ.get("HISTRATEGY_V3_FAST_MODEL", "deepseek-chat")
-                from ..llm.adapter import LLMAdapter as _LLM
-
-                engine._v3_llm = _LLM(model=v3_fast_model)
-
-                engine.world_simulator = WorldSimulator(engine._v3_llm)
-                engine.guardrail = GuardrailValidator()
-                engine.state_applier = StateApplier()
-                engine.turn_memory = TurnMemory()
-            except Exception:
-                engine._use_v3 = False
-                engine.world_simulator = None
-                engine.guardrail = None
-                engine.state_applier = None
-                engine.turn_memory = None
-
-        # macro init for saved games
-        engine._macro_parser = None
-        engine._macro_validator = None
-        engine._quarterly_engine = None
-        engine._macro_sim = None
-        engine._black_swan = None
-        engine._knowledge_base = None
-        if engine._use_macro and llm and llm.is_available:
-            try:
-                from ..engine.black_swan import BlackSwanInjector
-                from ..engine.knowledge_layer import KnowledgeBase
-                from ..engine.macro_policy_engine import MacroPolicyEngine
-                from ..engine.quarterly_engine import QuarterlyEngine
-                from ..policy.policy_parser import PolicyParser
-                from ..policy.policy_validator import PolicyValidator
-
-                macro_model = os.environ.get("HISTRATEGY_MACRO_MODEL", "deepseek-chat")
-                try:
-                    macro_llm = __import__("histrategy.llm.adapter", fromlist=["LLMAdapter"]).LLMAdapter(
-                        model=macro_model
-                    )
-                except Exception:
-                    macro_llm = llm
-
-                engine._macro_parser = PolicyParser(llm)
-                engine._macro_validator = PolicyValidator()
-                engine._quarterly_engine = QuarterlyEngine()
-                engine._black_swan = BlackSwanInjector()
-                engine._macro_sim = MacroPolicyEngine(macro_llm)
-                engine._knowledge_base = KnowledgeBase()
-                engine.intent_parser = None  # Not used in macro mode
-            except Exception:
-                engine._macro_sim = None
+        engine._build_engine_stack(llm)
 
         # Restore world state from saved data
         engine.world_state_v2 = engine._rebuild_from_save(data)
@@ -957,13 +747,23 @@ class GameEngine:
             self._set_player_faction_v1(faction_id)
 
     def _set_player_faction_v2(self, faction_id: str) -> None:
-        """v2 path: build WorldState from knowledge data."""
-        from .loader import build_world_state
+        """v2 path: build WorldState from scenario data via ScenarioLoader."""
+        from .loader import _normalise_scenario_id
+        from .scenario_loader import ScenarioLoader
 
         mapped = V2_FACTION_MAP.get(faction_id, faction_id)
-        scenario_id = "207"
+        scenario_id = _normalise_scenario_id(self.scenario)
 
-        self.world_state_v2 = build_world_state(mapped, scenario_id, self._knowledge_path)
+        loader = ScenarioLoader(scenario_id)
+        try:
+            self.world_state_v2 = loader.build_world_state(mapped)
+        except FileNotFoundError:
+            # Fall back to legacy loader for scenarios without scenario.toml
+            from .loader import build_world_state
+            self.world_state_v2 = build_world_state(mapped, scenario_id, self._knowledge_path)
+
+        # Cache the loader for later use (prompts, format_year, etc.)
+        self.scenario_loader = loader
 
         # Load territories and characters into engines
         self.map_engine.load_territories(self.world_state_v2.territories)
