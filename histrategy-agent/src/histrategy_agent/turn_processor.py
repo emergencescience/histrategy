@@ -322,7 +322,12 @@ class TurnProcessor:
                     unit_type = ut
                     break
             amount = self._extract_number(text) or 1000
-            return {"action": "recruit", "target": unit_type, "params": {"unit_type": unit_type, "amount": amount}}
+            territory = self._extract_territory(text)
+            return {"action": "recruit", "target": territory, "params": {"unit_type": unit_type, "amount": amount, "territory": territory}}
+
+        if any(kw in text for kw in ["防守", "布防", "防御", "戒备", "镇守", "驻防", "保卫", "设防"]):
+            target = self._extract_territory(text)
+            return {"action": "defend", "target": target, "params": {"target": target}}
 
         if any(kw in text for kw in ["移动", "前往", "进军", "move"]):
             target = self._extract_territory(text)
@@ -389,6 +394,7 @@ class TurnProcessor:
             "develop": f"发展内政，{msg}。百姓安居乐业，国力日渐强盛。" if success else f"开发失败。{msg}",
             "diplomacy": f"使者奉命出使，{msg}。" if success else f"外交行动失败。{msg}",
             "tax": f"调整税收，{msg}。" if success else f"税收调整失败。{msg}",
+            "defend": f"加强城防，{msg}。壁垒森严，固若金汤。" if success else f"城防加固受阻。{msg}",
             "info": "天下大势，分久必合，合久必分。",
             "unknown": "主公之意，臣等揣摩中...请明示具体指令。",
         }

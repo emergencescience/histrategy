@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS game_room (
     slots           TEXT,                      -- JSON: [FactionSlot, ...]
     decision_timeout INTEGER DEFAULT 300,
     turn_summaries  TEXT DEFAULT '[]',         -- JSON: 回合摘要数组
+    engine_version  TEXT DEFAULT '',            -- 'v1' | 'v2' | 'v3' — 哪套引擎产生此房间
     created_at      TEXT DEFAULT '',
     updated_at      TEXT DEFAULT ''
 );
@@ -93,20 +94,6 @@ CREATE TABLE IF NOT EXISTS simulation_event_log (
     created_at      TEXT DEFAULT ''
 );
 
--- ═══════════════════════════════════════════════════════════
--- room_player: 谁在房间里（与势力选择分离）
--- ═══════════════════════════════════════════════════════════
-CREATE TABLE IF NOT EXISTS room_player (
-    id              TEXT PRIMARY KEY,
-    room_id         TEXT NOT NULL REFERENCES game_room(id),
-    user_id         TEXT NOT NULL,
-    role            TEXT DEFAULT 'player',
-    display_name    TEXT DEFAULT '',
-    player_token    TEXT DEFAULT '',
-    joined_at       TEXT DEFAULT '',
-    UNIQUE(room_id, user_id)
-);
-
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_faction_slot_room ON faction_slot(room_id);
 CREATE INDEX IF NOT EXISTS idx_quarter_turn_room ON quarter_turn(room_id, quarter_number);
@@ -172,5 +159,5 @@ CREATE TABLE IF NOT EXISTS policy_state (
 );
 
 CREATE INDEX IF NOT EXISTS idx_game_state_room ON game_state(room_id, quarter_number);
-CREATE INDEX IF NOT EXISTS idx_turn_delta_room ON turn_delta(room_id, quarter_number);
+CREATE INDEX IF NOT EXISTS idx_turn_delta_room ON turn_delta(room_id, quarter_number, faction_id);
 CREATE INDEX IF NOT EXISTS idx_policy_state_room ON policy_state(room_id, faction_id);

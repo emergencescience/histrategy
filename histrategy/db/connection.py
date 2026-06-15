@@ -97,10 +97,26 @@ def init_db():
         schema = _load_schema()
         if _IS_SQLITE:
             conn.executescript(schema)
-            # ── Migrations (H14i) ──
-            # Drop deprecated room_player table
+            # ── Migrations ──
+            # Drop deprecated room_player table (H14i)
             try:
                 conn.execute("DROP TABLE IF EXISTS room_player")
+                conn.commit()
+            except Exception:
+                pass
+            # Add engine_version column to game_room (H16a)
+            try:
+                conn.execute("ALTER TABLE game_room ADD COLUMN engine_version TEXT DEFAULT ''")
+                conn.commit()
+            except Exception:
+                pass
+            # Rebuild turn_delta index with faction_id (H16a)
+            try:
+                conn.execute("DROP INDEX IF EXISTS idx_turn_delta_room")
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_turn_delta_room "
+                    "ON turn_delta(room_id, quarter_number, faction_id)"
+                )
                 conn.commit()
             except Exception:
                 pass
@@ -115,10 +131,26 @@ def init_db():
                         except Exception as _stmt_err:
                             logger.warning("Schema statement skipped: %s", str(_stmt_err)[:100])
                 conn.commit()
-                # ── Migrations (H14i) ──
-                # Drop deprecated room_player table
+                # ── Migrations ──
+                # Drop deprecated room_player table (H14i)
                 try:
                     cur.execute("DROP TABLE IF EXISTS room_player")
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                # Add engine_version column to game_room (H16a)
+                try:
+                    cur.execute("ALTER TABLE game_room ADD COLUMN IF NOT EXISTS engine_version TEXT DEFAULT ''")
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                # Rebuild turn_delta index with faction_id (H16a)
+                try:
+                    cur.execute("DROP INDEX IF EXISTS idx_turn_delta_room")
+                    cur.execute(
+                        "CREATE INDEX IF NOT EXISTS idx_turn_delta_room "
+                        "ON turn_delta(room_id, quarter_number, faction_id)"
+                    )
                     conn.commit()
                 except Exception:
                     conn.rollback()
@@ -245,6 +277,7 @@ CREATE TABLE IF NOT EXISTS game_room (
     slots           TEXT,
     decision_timeout INTEGER DEFAULT 300,
     turn_summaries  TEXT DEFAULT '[]',
+    engine_version  TEXT DEFAULT '',
     created_at      TEXT DEFAULT '',
     updated_at      TEXT DEFAULT ''
 );
@@ -307,17 +340,6 @@ CREATE TABLE IF NOT EXISTS simulation_event_log (
     event_type      TEXT NOT NULL,
     event_data      TEXT,
     created_at      TEXT DEFAULT ''
-);
-
-CREATE TABLE IF NOT EXISTS room_player (
-    id              TEXT PRIMARY KEY,
-    room_id         TEXT NOT NULL REFERENCES game_room(id),
-    user_id         TEXT NOT NULL,
-    role            TEXT DEFAULT 'player',
-    display_name    TEXT DEFAULT '',
-    player_token    TEXT DEFAULT '',
-    joined_at       TEXT DEFAULT '',
-    UNIQUE(room_id, user_id)
 );
 
 -- ── Migration: drop deprecated room_player table ──
@@ -386,6 +408,6 @@ CREATE INDEX IF NOT EXISTS idx_quarter_turn_room ON quarter_turn(room_id, quarte
 CREATE INDEX IF NOT EXISTS idx_llm_call_log_room ON llm_call_log(room_id, quarter_number);
 CREATE INDEX IF NOT EXISTS idx_sim_event_room ON simulation_event_log(room_id, quarter_number);
 CREATE INDEX IF NOT EXISTS idx_game_state_room ON game_state(room_id, quarter_number);
-CREATE INDEX IF NOT EXISTS idx_turn_delta_room ON turn_delta(room_id, quarter_number);
+CREATE INDEX IF NOT EXISTS idx_turn_delta_room ON turn_delta(room_id, quarter_number, faction_id);
 CREATE INDEX IF NOT EXISTS idx_policy_state_room ON policy_state(room_id, faction_id);
 """
