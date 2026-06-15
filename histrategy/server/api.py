@@ -1048,7 +1048,7 @@ def create_app(llm_provider: str | None = None) -> Any:
                 pre_assigned=pre_assigned,
             )
         else:
-            human_faction_ids = body.get("human_faction_ids", ["cao", "shu", "wu"])
+            human_faction_ids = body.get("human_faction_ids") or None
             result = create_room(
                 host_user_id=body.get("user_id", ""),
                 host_name=body.get("display_name", ""),
