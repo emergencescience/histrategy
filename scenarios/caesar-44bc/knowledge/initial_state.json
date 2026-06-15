@@ -4,10 +4,12 @@
   "year": -43,
   "season": "spring",
   "player_faction": "octavian",
-  "description": "公元前44年3月。恺撒倒在庞培剧院的血泊中。他的养子屋大维在希腊，安东尼控制了罗马，塞克斯图斯的海盗舰队封锁着粮食供应，雷必达在西班牙观望。四头争夺恺撒的余烬。",
+  "description": "公元前44年3月。恺撒倒在庞培剧院的血泊中。屋大维从希腊返回，安东尼控制了罗马和军团，克利奥帕特拉在亚历山大里亚观望，元老院在恐慌中寻找出路。四股力量将在这十五年内决定罗马的命运。",
+  "description_en": "March 44 BC. Caesar lies dead on the floor of Pompey's Theatre. Octavian returns from Greece, Antony controls Rome and the legions, Cleopatra watches from Alexandria, and the Senate scrambles for direction. Four forces will decide Rome's fate over the next fifteen years.",
   "factions": {
     "octavian": {
       "name": "屋大维",
+      "name_en": "Octavian",
       "ruler": "octavian",
       "capital": "roma",
       "territories": [
@@ -27,10 +29,10 @@
       },
       "relations": {
         "antony": -50,
+        "cleopatra": -10,
+        "senate": 30,
         "sextus_pompey": -30,
-        "lepidus": 20,
-        "brutus": -60,
-        "senate": 30
+        "lepidus": 20
       },
       "personality": {
         "aggression": 0.55,
@@ -43,32 +45,31 @@
     },
     "antony": {
       "name": "马克·安东尼",
+      "name_en": "Mark Antony",
       "ruler": "antony",
       "capital": "roma",
       "territories": [
         "cisalpine_gaul",
-        "transalpine_gaul",
-        "aegyptus",
-        "cyprus"
+        "transalpine_gaul"
       ],
-      "treasury": 30000,
-      "food": 25000,
+      "treasury": 20000,
+      "food": 15000,
       "strength": 25000,
       "prestige": 70,
       "tax_rate": 0.4,
-      "morale_actual": 65,
+      "morale_actual": 70,
       "tech_levels": {
         "infrastructure": 3,
-        "navy": 3,
+        "navy": 2,
         "logistics": 3,
         "propaganda": 1
       },
       "relations": {
         "octavian": -50,
+        "cleopatra": 40,
+        "senate": -80,
         "sextus_pompey": -40,
-        "lepidus": 30,
-        "brutus": -90,
-        "senate": -80
+        "lepidus": 30
       },
       "personality": {
         "aggression": 0.75,
@@ -79,243 +80,214 @@
         "mercy": 0.4
       }
     },
-    "sextus_pompey": {
-      "name": "塞克斯图斯·庞培",
-      "ruler": "sextus_pompeius",
-      "capital": "syracusae",
+    "cleopatra": {
+      "name": "克利奥帕特拉",
+      "name_en": "Cleopatra",
+      "ruler": "cleopatra",
+      "capital": "alexandria",
       "territories": [
-        "sicilia",
-        "sardinia"
+        "aegyptus",
+        "cyrenaica",
+        "cyprus"
       ],
-      "treasury": 6000,
-      "food": 8000,
-      "strength": 10000,
-      "prestige": 40,
-      "tax_rate": 0.35,
-      "morale_actual": 75,
-      "tech_levels": {
-        "infrastructure": 2,
-        "navy": 5,
-        "logistics": 1,
-        "propaganda": 2
-      },
-      "relations": {
-        "octavian": -30,
-        "antony": -40,
-        "lepidus": -10,
-        "brutus": 50,
-        "senate": -50
-      },
-      "personality": {
-        "aggression": 0.65,
-        "cunning": 0.55,
-        "caution": 0.4,
-        "diplomacy": 0.3,
-        "development": 0.4,
-        "mercy": 0.25
-      }
-    },
-    "lepidus": {
-      "name": "雷必达",
-      "ruler": "lepidus",
-      "capital": "carthago_nova",
-      "territories": [
-        "hispania_citerior",
-        "narbonensis",
-        "africa"
-      ],
-      "treasury": 12000,
-      "food": 12000,
-      "strength": 20000,
-      "prestige": 35,
+      "treasury": 50000,
+      "food": 40000,
+      "strength": 15000,
+      "prestige": 55,
       "tax_rate": 0.3,
-      "morale_actual": 55,
+      "morale_actual": 65,
       "tech_levels": {
-        "infrastructure": 2,
-        "navy": 1,
+        "infrastructure": 4,
+        "navy": 4,
         "logistics": 2,
-        "propaganda": 1
-      },
-      "relations": {
-        "octavian": 20,
-        "antony": 30,
-        "sextus_pompey": -10,
-        "brutus": -20,
-        "senate": -10
-      },
-      "personality": {
-        "aggression": 0.35,
-        "cunning": 0.3,
-        "caution": 0.8,
-        "diplomacy": 0.4,
-        "development": 0.5,
-        "mercy": 0.45
-      }
-    },
-    "brutus": {
-      "name": "布鲁图斯与卡西乌斯",
-      "ruler": "brutus",
-      "capital": "athens",
-      "territories": [
-        "macedonia",
-        "syria",
-        "asia",
-        "graecia"
-      ],
-      "treasury": 25000,
-      "food": 12000,
-      "strength": 40000,
-      "prestige": 45,
-      "tax_rate": 0.35,
-      "morale_actual": 60,
-      "tech_levels": {
-        "infrastructure": 2,
-        "navy": 2,
-        "logistics": 3,
         "propaganda": 3
       },
       "relations": {
-        "octavian": -60,
-        "antony": -90,
-        "sextus_pompey": 50,
-        "lepidus": -20,
-        "senate": 70
+        "octavian": -10,
+        "antony": 40,
+        "senate": -30,
+        "sextus_pompey": 0,
+        "lepidus": 0
       },
       "personality": {
-        "aggression": 0.3,
-        "cunning": 0.55,
-        "caution": 0.7,
-        "diplomacy": 0.6,
-        "development": 0.55,
+        "aggression": 0.4,
+        "cunning": 0.95,
+        "caution": 0.55,
+        "diplomacy": 0.9,
+        "development": 0.75,
         "mercy": 0.5
       }
+    },
+    "senate": {
+      "name": "元老院",
+      "name_en": "Senate",
+      "ruler": "cicero",
+      "capital": "roma",
+      "territories": [],
+      "treasury": 15000,
+      "food": 5000,
+      "strength": 2000,
+      "prestige": 85,
+      "tax_rate": 0.15,
+      "morale_actual": 45,
+      "tech_levels": {
+        "infrastructure": 5,
+        "navy": 1,
+        "logistics": 1,
+        "propaganda": 5
+      },
+      "relations": {
+        "octavian": 30,
+        "antony": -80,
+        "cleopatra": -30,
+        "sextus_pompey": -50,
+        "lepidus": -10
+      },
+      "personality": {
+        "aggression": 0.1,
+        "cunning": 0.7,
+        "caution": 0.85,
+        "diplomacy": 0.6,
+        "development": 0.55,
+        "mercy": 0.4
+      },
+      "political_capital": 80
     }
   },
   "territories": {
     "roma": {
       "name": "罗马",
+      "name_en": "Rome",
       "owner": "octavian",
       "population": 500000,
       "development": 80,
       "terrain": "urban",
-      "climate_zone": "mediterranean",
       "has_port": true
     },
     "cisalpine_gaul": {
       "name": "山南高卢",
+      "name_en": "Cisalpine Gaul",
       "owner": "antony",
       "population": 200000,
       "development": 45,
-      "terrain": "plains",
-      "climate_zone": "continental"
+      "terrain": "plains"
     },
     "transalpine_gaul": {
       "name": "山北高卢",
+      "name_en": "Transalpine Gaul",
       "owner": "antony",
       "population": 300000,
       "development": 35,
       "terrain": "plains",
-      "climate_zone": "continental",
       "has_port": true
     },
     "aegyptus": {
       "name": "埃及",
-      "owner": "antony",
+      "name_en": "Egypt",
+      "owner": "cleopatra",
       "population": 400000,
       "development": 65,
       "terrain": "river_valley",
-      "climate_zone": "arid",
       "has_port": true,
       "fertility": 10
     },
+    "cyrenaica": {
+      "name": "昔兰尼加",
+      "name_en": "Cyrenaica",
+      "owner": "cleopatra",
+      "population": 80000,
+      "development": 30,
+      "terrain": "desert",
+      "has_port": true
+    },
     "cyprus": {
       "name": "塞浦路斯",
-      "owner": "antony",
+      "name_en": "Cyprus",
+      "owner": "cleopatra",
       "population": 60000,
       "development": 35,
       "terrain": "hills",
-      "climate_zone": "mediterranean",
       "has_port": true
     },
     "sicilia": {
       "name": "西西里",
+      "name_en": "Sicily",
       "owner": "sextus_pompey",
       "population": 200000,
       "development": 50,
       "terrain": "hills",
-      "climate_zone": "mediterranean",
       "has_port": true
     },
     "sardinia": {
       "name": "撒丁尼亚",
+      "name_en": "Sardinia",
       "owner": "sextus_pompey",
       "population": 60000,
       "development": 25,
       "terrain": "hills",
-      "climate_zone": "mediterranean",
       "has_port": true
     },
     "hispania_citerior": {
       "name": "近西班牙",
+      "name_en": "Nearer Spain",
       "owner": "lepidus",
       "population": 180000,
       "development": 40,
       "terrain": "plains",
-      "climate_zone": "mediterranean",
       "has_port": true
     },
     "narbonensis": {
       "name": "纳尔旁高卢",
+      "name_en": "Narbonensis",
       "owner": "lepidus",
       "population": 120000,
       "development": 50,
       "terrain": "plains",
-      "climate_zone": "mediterranean",
       "has_port": true
     },
     "africa": {
       "name": "阿非利加",
+      "name_en": "Africa",
       "owner": "lepidus",
       "population": 200000,
       "development": 45,
       "terrain": "plains",
-      "climate_zone": "arid",
       "has_port": true
     },
     "macedonia": {
       "name": "马其顿",
+      "name_en": "Macedonia",
       "owner": "brutus",
       "population": 150000,
       "development": 40,
       "terrain": "mountain",
-      "climate_zone": "mediterranean",
       "has_port": true
     },
     "syria": {
       "name": "叙利亚",
+      "name_en": "Syria",
       "owner": "brutus",
       "population": 250000,
       "development": 50,
       "terrain": "desert",
-      "climate_zone": "arid",
       "has_port": true
     },
     "asia": {
       "name": "亚细亚",
+      "name_en": "Asia",
       "owner": "brutus",
       "population": 350000,
       "development": 55,
       "terrain": "hills",
-      "climate_zone": "mediterranean",
       "has_port": true
     },
     "graecia": {
       "name": "希腊",
+      "name_en": "Greece",
       "owner": "brutus",
       "population": 150000,
       "development": 50,
       "terrain": "hills",
-      "climate_zone": "mediterranean",
       "has_port": true
     }
   },
@@ -323,44 +295,51 @@
     {
       "id": "claim_inheritance",
       "description": "确立恺撒继承人的法律地位",
+      "description_en": "Establish legal status as Caesar's heir",
       "type": "main",
-      "reward": "恺撒的财富和名号"
+      "reward": "Caesar's wealth and name"
     },
     {
       "id": "defeat_liberators",
       "description": "消灭刺杀恺撒的布鲁图斯和卡西乌斯",
+      "description_en": "Destroy the Liberators who killed Caesar",
       "type": "main",
-      "reward": "为养父复仇"
+      "reward": "Avenge your adoptive father"
     },
     {
       "id": "secure_italy",
       "description": "确保意大利半岛的忠诚和控制",
+      "description_en": "Secure loyalty and control of the Italian peninsula",
       "type": "main",
-      "reward": "稳固的权力基地"
+      "reward": "A stable power base"
     },
     {
       "id": "defeat_sextus",
       "description": "消灭塞克斯图斯·庞培，恢复罗马粮食供应",
+      "description_en": "Destroy Sextus Pompey and restore Rome's grain supply",
       "type": "secondary",
-      "reward": "罗马城的民心"
+      "reward": "The people's gratitude"
     },
     {
       "id": "outmaneuver_antony",
-      "description": "以政治或军事手段击败安东尼-克利奥帕特拉联盟",
+      "description": "以政治或军事手段击败安东尼",
+      "description_en": "Defeat Antony through politics or war",
       "type": "main",
-      "reward": "罗马世界主宰者"
+      "reward": "Master of the Roman world"
     },
     {
       "id": "annex_egypt",
       "description": "将埃及纳入罗马统治",
+      "description_en": "Bring Egypt under Roman rule",
       "type": "secondary",
-      "reward": "无尽财富和粮仓"
+      "reward": "Endless wealth and grain"
     },
     {
       "id": "become_augustus",
       "description": "终结共和国，成为罗马的第一位皇帝",
+      "description_en": "End the Republic and become Rome's first Emperor",
       "type": "main",
-      "reward": "奥古斯都称号"
+      "reward": "Title of Augustus — game victory"
     }
   ]
 }

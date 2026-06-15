@@ -1,0 +1,63 @@
+# Naval Warfare Rules for Ashes of Caesar
+# scenarios/caesar-44bc/rules/naval.yaml
+
+naval_power:
+  description: "Naval warfare rules specific to the Mediterranean theater"
+  
+  ship_types:
+    trireme:
+      name: "Trireme"
+      name_zh: "三列桨战船"
+      cost: 200
+      crew: 200
+      combat_power: 10
+      speed: 3
+    
+    quinquereme:
+      name: "Quinquereme"
+      name_zh: "五列桨战船"
+      cost: 500
+      crew: 420
+      combat_power: 25
+      speed: 2
+      requires_tech: "navy 3"
+    
+    liburnian:
+      name: "Liburnian"
+      name_zh: "利布尔尼亚快船"
+      cost: 150
+      crew: 100
+      combat_power: 8
+      speed: 5
+      bonus: "scout"  # Reveals enemy fleets
+
+  naval_combat:
+    base_formula: "attacker_ships * combat_power * (1 + tech_bonus) - defender_ships * combat_power * (1 + terrain_bonus)"
+    terrain_bonus:
+      coastal: 0.2   # Defender advantage near coast
+      open_sea: 0.0
+      harbor: 0.5    # Defender in fortified harbor
+    morale_impact: 0.3  # Loser loses this fraction of morale
+
+  blockade:
+    description: "A fleet stationed in a sea zone can blockade enemy ports"
+    effect: "Blockaded territory loses 50% grain income"
+    requires_ships: 20  # Minimum ships for effective blockade
+    counter: "Enemy fleet can break blockade by engaging"
+
+  grain_supply:
+    description: "Rome requires grain shipments from Sicily, Africa, and Egypt"
+    rome_daily_consumption: 300
+    famine_threshold: 0.5  # Below 50% supply, morale drops sharply
+    morale_penalty: 0.1    # Per quarter of famine
+
+naval_chokepoints:
+  - name: "Strait of Messina"
+    between: ["sicilia", "italia"]
+    control_bonus: "blockade_capability"
+  - name: "Adriatic Sea"
+    between: ["illyria", "italia"]
+    description: "Key route for Eastern reinforcements"
+  - name: "Actium"
+    between: ["graecia", "aegyptus"]
+    description: "Decisive battle site — naval combat bonus for defender"
