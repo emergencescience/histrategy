@@ -89,19 +89,20 @@ def create_room(
             for fid, f in all_factions.items()
             if not f.get("npc_only", False)
         }
-        # Also map internal_id → itself (for pre_assigned in internal format)
-        for fid in all_factions:
-            if fid not in faction_display_to_id:
-                faction_display_to_id[fid] = fid
         playable_display_ids = list(faction_display_to_id.keys())
         fallback_npc_factions = list(faction_display_to_id.values())
 
     # 翻译显示名 → 内部 ID（caocao→cao, liubei→shu, sunquan→wu）
     if pre_assigned:
         # 新流程：Host 预分配势力到具体玩家
+        # Also map internal_id → itself for pre_assigned with internal format
+        display_to_id = dict(faction_display_to_id)
+        for fid in all_factions if not use_fallback else PLAYABLE_FACTIONS:
+            if fid not in display_to_id:
+                display_to_id[fid] = fid
         internal_map = {}
         for display_fid, player_name in pre_assigned.items():
-            internal_fid = faction_display_to_id.get(display_fid, display_fid)
+            internal_fid = display_to_id.get(display_fid, display_fid)
             internal_map[internal_fid] = player_name
         internal_ids = list(internal_map.keys())
     else:
