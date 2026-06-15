@@ -9,7 +9,6 @@
 from __future__ import annotations
 
 import logging
-import time
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -102,29 +101,24 @@ def command(game_id: str, decision: str) -> dict:
     if not human_fid:
         return {"ok": False, "error": "找不到人类势力"}
 
-    # 1. 提交决策 → 触发异步 resolve
+    # 记录提交前的 quarter（必须在 submit_decision 之前！）
+    prev_quarter = room.quarter_number
+
+    # 1. 提交决策 → 同步 resolve（submit_decision 内部调用 _resolve_and_advance）
     submit_result = submit_decision(game_id, human_fid, decision)
     if not submit_result.get("ok"):
         return {"ok": False, "error": submit_result.get("error", "提交决策失败")}
 
-    # 2. 轮询等待 resolve 完成
-    prev_quarter = room.quarter_number
-    start_time = time.time()
-    while time.time() - start_time < RESOLVE_TIMEOUT:
-        time.sleep(RESOLVE_POLL_INTERVAL)
-        # 重新加载房间（异步线程可能已更新）
-        room = _get_room(game_id)
-        if not room:
-            return {"ok": False, "error": "游戏在推演中丢失"}
-        if room.quarter_number > prev_quarter:
-            break
-        # 如果 resolve 失败，phase 会被重置为 WAITING，quarter 不变
-        if (room.phase.value == "waiting" and room.quarter_number == prev_quarter
-                and time.time() - start_time > 10):
-            logger.warning(f"Room {game_id}: phase=waiting but quarter unchanged after resolve attempt")
-            return {"ok": False, "error": "推演失败，请重试"}
-    else:
-        return {"ok": False, "error": "推演超时（超过3分钟）"}
+    # 2. 检查 resolve 是否已完成（同步调用，应该已经完成）
+    # 不需要轮询 — submit_decision 内部是同步的 _resolve_and_advance
+    room = _get_room(game_id)
+    if not room:
+        return {"ok": False, "error": "游戏在推演中丢失"}
+
+    if room.quarter_number <= prev_quarter:
+        # resolve 失败了（异常被 submit_decision 吞掉）
+        logger.warning(f"Room {game_id}: quarter unchanged ({prev_quarter}) after resolve")
+        return {"ok": False, "error": "推演失败，请重试"}
 
     # 3. 读取推演结果
     narratives = getattr(room, "_last_narratives", {})
