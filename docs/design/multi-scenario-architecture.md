@@ -14,7 +14,7 @@ histrategy 仓库同时托管多个策略游戏场景。引擎核心（GameRoom�
 | 场景 ID | 名称 | 时代 | 起始年 | 状态 | 势力数 |
 |---------|------|------|--------|------|--------|
 | `three-kingdoms` | 《三國志略》 | 东汉末年至三国 | 207 | **生产** | 4（可扮演：3） |
-| `caesar` | 《凯撒余烬 Ashes of Caesar》 | 罗马共和国末期 | 44 BC | **骨架** | **4**（见注） |
+| `caesar-44bc` | 《凯撒余烬》 | 44-30 BC | **骨架** | **4**（见注） |
 | `shanhe-dingge` | 《山河鼎革》 | 明末清初 | 1644 | **骨架** | 4（南明/清/大顺/郑氏） |
 
 > **[审阅意见 - 势力数量]** `scenarios/caesar/` Hermes Agent scaffold 了 8 个势力（原文档也写了 8 个），但这对游戏设计来说过于复杂，且与三国（4 势力）不一致。
@@ -51,10 +51,10 @@ histrategy/
 │   │   ├── web/                # UI assets (SVG map, CSS, JS)
 │   │   └── cli/                # CLI branding/entry
 │   │
-│   ├── caesar/                 # ★ 罗马内战（4 势力）
+│   ├── caesar-44bc/            # ★ 罗马内战（4 势力）
 │   │   ├── scenario.toml
 │   │   ├── knowledge/
-│   │   │   ├── factions.json   ← 4 势力（删减 Hermes scaffold 的 8 势力）
+│   │   │   ├── factions.json   ← 4 主势力 + 4 NPC
 │   │   │   ├── characters.json
 │   │   │   ├── events.json
 │   │   │   ├── initial_state.json

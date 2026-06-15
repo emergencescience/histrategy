@@ -116,7 +116,7 @@ histrategy（主仓库）
 │
 ├── scenarios/              ← 场景数据包（纯 JSON/TOML/Markdown，无 Python）
 │   ├── three-kingdoms/
-│   ├── caesar/             ← 4 势力版本
+│   ├── caesar-44bc/         ← 4 势力版本
 │   └── shanhe-dingge/
 │
 └── histrategy-knowledge/   ← 历史知识库（只读 JSON，逐步迁移到 scenarios/）
@@ -161,7 +161,7 @@ histrategy（主仓库）
 | 场景 ID | 名称 | 时代 | 状态 | 势力数 | 特殊机制 |
 |---------|------|------|------|--------|----------|
 | `three-kingdoms` | 《三國志略》 | 207-280 | **生产** | 4 | 陆战为主 |
-| `caesar` | 《凯撒余烬》 | 44-30 BC | **骨架** | **4**（修正） | 海战/宣传战/元老院 |
+| `caesar-44bc` | 《凯撒余烬》 | 44-30 BC | **骨架** | **4**（修正） | 海战/宣传战/元老院 |
 | `shanhe-dingge` | 《山河鼎革》 | 1644-1662 | **骨架** | 4 | 火炮/多族/正统衰减 |
 
 ### 3.3 ScenarioLoader 设计（修订）

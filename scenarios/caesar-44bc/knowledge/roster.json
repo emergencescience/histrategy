@@ -7,15 +7,9 @@
   ],
   "antony": [
     "antony",
-    "fulvia"
-  ],
-  "brutus": [
-    "brutus",
-    "cassius"
-  ],
-  "cleopatra": [
     "cleopatra",
-    "caesarion"
+    "caesarion",
+    "fulvia"
   ],
   "sextus_pompey": [
     "sextus_pompeius"
@@ -23,13 +17,14 @@
   "lepidus": [
     "lepidus"
   ],
-  "senate": [
-    "cicero"
+  "brutus": [
+    "brutus",
+    "cassius"
   ],
   "parthia": [
     "orodes_iv"
   ],
-  "client_kings": [
-    "herod"
+  "senate": [
+    "cicero"
   ]
 }
