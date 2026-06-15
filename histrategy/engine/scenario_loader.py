@@ -51,6 +51,17 @@ from .loader import (
 
 # ─── helpers ────────────────────────────────────────────────────────────────
 
+def _normalise_scenario_id(scenario_id: str) -> str:
+    """Map legacy numeric scenario IDs to directory names.
+
+    "207" / "" → "three-kingdoms"
+    Everything else is passed through unchanged.
+    """
+    if scenario_id in ("", "207", "three-kingdoms"):
+        return "three-kingdoms"
+    return scenario_id
+
+
 def _coerce_factions_to_dict(data: list | dict) -> dict:
     """Normalise faction data to a dict keyed by faction id.
 
@@ -85,9 +96,10 @@ class ScenarioLoader:
         scenario_id: str = "three-kingdoms",
         scenarios_root: Path | None = None,
     ):
-        self.scenario_id = scenario_id
+        # Normalise legacy scenario IDs to directory names
+        self.scenario_id = _normalise_scenario_id(scenario_id)
         self._root = scenarios_root or _find_scenarios_root()
-        self._dir = self._root / scenario_id
+        self._dir = self._root / self.scenario_id
         self._toml = self._load_toml()
 
     # ── TOML config ─────────────────────────────────────────────────────
