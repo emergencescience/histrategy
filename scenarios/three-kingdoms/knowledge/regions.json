@@ -1,0 +1,192 @@
+[
+  {
+    "id": "sili",
+    "name": "司隶",
+    "capital": "洛阳",
+    "description": "天子脚下，中原腹地",
+    "owner_190": "dongzhuo",
+    "strategic_value": 95,
+    "resources": ["粮食", "人口"],
+    "neighbors": ["兖州", "豫州", "荆州", "雍州"]
+  },
+  {
+    "id": "yuzhou",
+    "name": "豫州",
+    "capital": "许昌",
+    "description": "中原要冲，四战之地",
+    "owner_190": "cao",
+    "strategic_value": 80,
+    "resources": ["粮食", "人口"],
+    "neighbors": ["兖州", "司隶", "荆州", "徐州"]
+  },
+  {
+    "id": "yanzhou",
+    "name": "兖州",
+    "capital": "鄄城",
+    "description": "曹操起家之地",
+    "owner_190": "cao",
+    "strategic_value": 75,
+    "resources": ["粮食"],
+    "neighbors": ["冀州", "青州", "徐州", "豫州", "司隶"]
+  },
+  {
+    "id": "jizhou",
+    "name": "冀州",
+    "capital": "邺城",
+    "description": "河北富庶之地，袁绍的大本营",
+    "owner_190": "yuan_shao",
+    "strategic_value": 85,
+    "resources": ["粮食", "铁", "人口"],
+    "neighbors": ["幽州", "并州", "青州", "兖州", "司隶"]
+  },
+  {
+    "id": "qingzhou",
+    "name": "青州",
+    "capital": "临淄",
+    "description": "齐国故地，鱼盐之利",
+    "owner_190": "yuan_shao",
+    "strategic_value": 65,
+    "resources": ["盐", "粮食"],
+    "neighbors": ["冀州", "兖州", "徐州"]
+  },
+  {
+    "id": "youzhou",
+    "name": "幽州",
+    "capital": "蓟城",
+    "description": "北方边塞，苦寒之地",
+    "owner_190": "yuan_shao",
+    "strategic_value": 55,
+    "resources": ["马", "铁"],
+    "neighbors": ["冀州", "并州"]
+  },
+  {
+    "id": "bingzhou",
+    "name": "并州",
+    "capital": "晋阳",
+    "description": "表里山河，边防重镇",
+    "owner_190": "yuan_shao",
+    "strategic_value": 60,
+    "resources": ["马", "铁"],
+    "neighbors": ["冀州", "司隶", "雍州"]
+  },
+  {
+    "id": "xuzhou",
+    "name": "徐州",
+    "capital": "下邳",
+    "description": "富庶之地，兵家必争",
+    "owner_190": "other",
+    "strategic_value": 70,
+    "resources": ["粮食", "盐"],
+    "neighbors": ["兖州", "青州", "豫州", "扬州"]
+  },
+  {
+    "id": "yangzhou",
+    "name": "扬州",
+    "capital": "建业",
+    "description": "江东富饶之地，长江天险",
+    "owner_190": "wu",
+    "strategic_value": 80,
+    "resources": ["粮食", "丝绸", "人口"],
+    "neighbors": ["徐州", "豫州", "荆州", "交州"]
+  },
+  {
+    "id": "jingzhou",
+    "name": "荆州",
+    "capital": "襄阳",
+    "description": "荆襄九郡，天下之中",
+    "owner_190": "liu_biao",
+    "strategic_value": 90,
+    "resources": ["粮食", "人口", "木材"],
+    "neighbors": ["司隶", "豫州", "扬州", "益州", "交州"]
+  },
+  {
+    "id": "yizhou",
+    "name": "益州",
+    "capital": "成都",
+    "description": "天府之国，蜀道天险",
+    "owner_190": "other",
+    "strategic_value": 85,
+    "resources": ["粮食", "丝绸", "铁", "盐"],
+    "neighbors": ["荆州", "凉州", "司隶"]
+  },
+  {
+    "id": "liangzhou",
+    "name": "凉州",
+    "capital": "武威",
+    "description": "西凉边塞，产精骑",
+    "owner_190": "dongzhuo",
+    "strategic_value": 65,
+    "resources": ["马", "铁"],
+    "neighbors": ["雍州", "益州", "并州"]
+  },
+  {
+    "id": "yongzhou",
+    "name": "雍州",
+    "capital": "长安",
+    "description": "关中平原，秦地根本",
+    "owner_190": "dongzhuo",
+    "strategic_value": 80,
+    "resources": ["粮食", "人口"],
+    "neighbors": ["司隶", "凉州", "益州", "并州"]
+  },
+  {
+    "id": "jiaozhou",
+    "name": "交州",
+    "capital": "番禺",
+    "description": "岭南偏僻之地",
+    "owner_190": "other",
+    "strategic_value": 30,
+    "resources": ["香料", "珍果"],
+    "neighbors": ["扬州", "荆州"]
+  },
+  {
+    "id": "pingyuan",
+    "name": "平原",
+    "capital": "平原",
+    "description": "刘备暂居之地",
+    "owner_190": "shu",
+    "strategic_value": 40,
+    "resources": ["粮食"],
+    "neighbors": ["冀州", "青州", "兖州"]
+  },
+  {
+    "id": "nanyang",
+    "name": "南阳",
+    "capital": "宛城",
+    "description": "光武帝故里，人口众多",
+    "owner_190": "yuan_shu",
+    "strategic_value": 75,
+    "resources": ["粮食", "人口"],
+    "neighbors": ["司隶", "豫州", "荆州"]
+  },
+  {
+    "id": "jiujiang",
+    "name": "九江",
+    "capital": "寿春",
+    "description": "淮南重镇",
+    "owner_190": "yuan_shu",
+    "strategic_value": 65,
+    "resources": ["粮食"],
+    "neighbors": ["徐州", "豫州", "扬州"]
+  },
+  {
+    "id": "changsha",
+    "name": "长沙",
+    "capital": "临湘",
+    "description": "荆南重镇",
+    "owner_190": "wu",
+    "strategic_value": 60,
+    "resources": ["粮食"],
+    "neighbors": ["荆州", "扬州"]
+  },
+  {
+    "id": "yuzhang",
+    "name": "豫章",
+    "capital": "南昌",
+    "description": "江南之地",
+    "owner_190": "wu",
+    "strategic_value": 50,
+    "resources": ["粮食", "木材"],
+    "neighbors": ["扬州", "荆州"]
+  }
+]

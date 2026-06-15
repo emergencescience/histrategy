@@ -97,6 +97,8 @@ class StateBridge:
             return self._execute_tax(faction_id, params)
         elif cmd_type == "diplomacy":
             return self._execute_diplomacy(faction_id, params)
+        elif cmd_type == "defend":
+            return self._execute_defend(faction_id, params)
         elif cmd_type == "info":
             return self._execute_info(faction_id)
         else:
@@ -310,6 +312,55 @@ class StateBridge:
 
         else:
             return {"success": False, "result": None, "message": f"未知外交行动: {action}"}
+
+    def _execute_defend(self, faction_id: str, params: dict) -> dict:
+        """Fortify a territory — increase garrison strength and defense bonus."""
+        target_id = params.get("target", "") or params.get("territory", "")
+        faction = self.world_state.factions.get(faction_id)
+        if not faction:
+            return {"success": False, "result": None, "message": "势力不存在"}
+
+        territory = self.world_state.territories.get(target_id) if target_id else None
+        if not territory:
+            # Defend without specific territory — fortify all border territories
+            border_territories = []
+            for tid in faction.territories:
+                t = self.world_state.territories.get(tid)
+                if t:
+                    for nid in t.neighbors:
+                        n = self.world_state.territories.get(nid)
+                        if n and n.owner_id and n.owner_id != faction_id:
+                            border_territories.append(t)
+                            break
+            if border_territories:
+                target_id = border_territories[0].id
+                territory = border_territories[0]
+
+        if not territory:
+            return {"success": False, "result": None, "message": "无可防守的边境领地"}
+
+        # Find or create garrison army
+        existing_army = None
+        for army in self.world_state.armies.values():
+            if army.faction_id == faction_id and army.location == target_id:
+                existing_army = army
+                break
+
+        if existing_army:
+            # Reinforce: add defense bonus (represented as morale buff)
+            existing_army.morale = min(100, existing_army.morale + 10)
+            return {"success": True, "result": None, "message": f"加强{territory.name}城防，守军士气+10"}
+        else:
+            # Create garrison
+            garrison = Army(
+                id=f"garrison_{target_id}_{faction_id}",
+                faction_id=faction_id,
+                location=target_id,
+                units={UnitType.INFANTRY: 2000},
+                morale=80,
+            )
+            self.world_state.armies[garrison.id] = garrison
+            return {"success": True, "result": None, "message": f"在{territory.name}部署2000守军，加固城防"}
 
     def _execute_info(self, faction_id: str) -> dict:
         snapshot = self.get_world_snapshot(faction_id)

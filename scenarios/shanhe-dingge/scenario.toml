@@ -1,0 +1,55 @@
+# 山河鼎革 — Scenario Configuration (SKELETON)
+# histrategy/scenarios/shanhe-dingge/scenario.toml
+#
+# 状态: 骨架 — knowledge/prompts/rules/web 待充实
+
+[meta]
+id = "shanhe-dingge"
+name = "山河鼎革"
+name_en = "Shanhe Dingge"
+era = "TBD"
+start_year = 0
+start_season = "春"
+end_year = 0
+description = """
+山河鼎革 — 新时代策略游戏场景。
+（详细设定待定义）
+"""
+
+[engine]
+default_version = "v3"
+quarter_per_year = 4
+quarters = ["春", "夏", "秋", "冬"]
+turn_timeout_human = 300
+turn_timeout_ai = 120
+max_quarters = 120
+
+[factions]
+available = []
+major_npc = []
+minor_npc = []
+default_player_faction = ""
+
+[display]
+icon = "⛰️"
+color_scheme = "shanhe"
+map_svg = "web/map.svg"
+language = "zh-CN"
+style = "文白相间"
+
+[knowledge]
+factions_file = "factions.json"
+characters_file = "characters.json"
+regions_file = "regions.json"
+events_file = "events.json"
+arc_goals_file = "arc_goals.json"
+roster_file = "roster.json"
+territories_file = "territories.json"
+timeline_file = "timeline.json"
+initial_state_file = "initial_state.json"
+
+[llm]
+# 待定义
+
+[db]
+scenario_id_column = "scenario"

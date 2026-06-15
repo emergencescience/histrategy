@@ -1,0 +1,82 @@
+[
+  {
+    "event_id": "coalition_against_dong",
+    "title": "讨董之盟",
+    "target_turn": 2,
+    "deadline_turn": 6,
+    "gravity": 0.8,
+    "hint_template": "讨伐董卓的时机已近，各路诸侯蠢蠢欲动，请在本回合NPC反应中自然埋下讨董联盟的伏笔。",
+    "completed": false,
+    "missed": false
+  },
+  {
+    "event_id": "dong_zhuo_moves_capital",
+    "title": "董卓迁都长安",
+    "target_turn": 4,
+    "deadline_turn": 10,
+    "gravity": 0.7,
+    "hint_template": "董卓在洛阳的统治岌岌可危，迁都长安已在其谋划之中，请在本回合的天下动向中体现西凉军的异动。",
+    "completed": false,
+    "missed": false
+  },
+  {
+    "event_id": "dong_zhuo_killed",
+    "title": "董卓被刺",
+    "target_turn": 8,
+    "deadline_turn": 14,
+    "gravity": 0.7,
+    "hint_template": "董卓的末日将近，吕布与王允的密谋即将成熟，请在本回合NPC反应中体现长安朝廷的暗流涌动。",
+    "completed": false,
+    "missed": false
+  },
+  {
+    "event_id": "cao_cao_controls_emperor",
+    "title": "曹操迎献帝",
+    "target_turn": 12,
+    "deadline_turn": 20,
+    "gravity": 0.75,
+    "hint_template": "挟天子以令诸侯的时机成熟，献帝在洛阳颠沛流离，请在本回合体现朝廷权力的真空状态。",
+    "completed": false,
+    "missed": false
+  },
+  {
+    "event_id": "sun_ce_conquers_jiangdong",
+    "title": "孙策平定江东",
+    "target_turn": 10,
+    "deadline_turn": 20,
+    "gravity": 0.65,
+    "hint_template": "孙策借兵渡江的时机已至，江东正酝酿着新的势力崛起，请在本回合的南方动向中体现这一走向。",
+    "completed": false,
+    "missed": false
+  },
+  {
+    "event_id": "battle_of_guandu",
+    "title": "官渡之战",
+    "target_turn": 24,
+    "deadline_turn": 36,
+    "gravity": 0.85,
+    "hint_template": "官渡之战在历史上即将爆发，曹操与袁绍的决战时机已至，请在本回合的NPC行动和天下形势中自然地引导这一走向。",
+    "completed": false,
+    "missed": false
+  },
+  {
+    "event_id": "yuan_shao_defeated",
+    "title": "袁绍败亡",
+    "target_turn": 28,
+    "deadline_turn": 40,
+    "gravity": 0.75,
+    "hint_template": "袁绍集团在官渡大败后已是强弩之末，内部分裂在即，请在本回合体现河北局势的分崩离析。",
+    "completed": false,
+    "missed": false
+  },
+  {
+    "event_id": "battle_of_chibi",
+    "title": "赤壁之战",
+    "target_turn": 40,
+    "deadline_turn": 60,
+    "gravity": 0.9,
+    "hint_template": "赤壁之战是三国历史的转折点，孙刘联军对抗曹操的时机正在成熟，请在本回合体现南方局势的变化与三方势力的博弈。",
+    "completed": false,
+    "missed": false
+  }
+]
