@@ -1243,8 +1243,12 @@ def create_app(llm_provider: str | None = None) -> Any:
 
     @app.get("/api/scenarios")
     def api_list_scenarios():
-        """列出所有可用场景，含势力列表。"""
+        """列出所有可用场景，含势力列表（标记 playable/npc_only）。"""
         from histrategy.engine.scenario_loader import ScenarioLoader
+        from histrategy.engine.faction_slot import (
+            PLAYABLE_FACTIONS, LLM_NPC_FACTIONS,
+            FACTION_DISPLAY_TO_ID, FACTION_ID_TO_DISPLAY,
+        )
 
         # Known metadata for scenarios without scenario.toml
         _BUILTIN_META = {
@@ -1265,20 +1269,35 @@ def create_app(llm_provider: str | None = None) -> Any:
             meta = cfg.get("meta", {})
             builtin = _BUILTIN_META.get(sid, {})
 
+            # Determine playable faction IDs per scenario
+            toml_available = set(meta.get("available", cfg.get("factions", {}).get("available", [])))
+            # Map display IDs to internal IDs for TK scenario
+            toml_available = {FACTION_DISPLAY_TO_ID.get(f, f) for f in toml_available}
+            if not toml_available:
+                # Fallback for TK: use PLAYABLE_FACTIONS
+                toml_available = {FACTION_DISPLAY_TO_ID.get(f, f) for f in PLAYABLE_FACTIONS}
+
             factions_raw = loader.load_factions()
             faction_list = []
             for fname, fdata in factions_raw.items():
+                playable = fname in toml_available
+                # Determine display ID for backward compat
+                display_id = FACTION_ID_TO_DISPLAY.get(fname, fname)
                 if isinstance(fdata, dict):
                     faction_list.append({
                         "id": fname,
+                        "display_id": display_id,
                         "name": fdata.get("name", fname),
                         "name_cn": fdata.get("name_cn", fdata.get("name", fname)),
                         "color": fdata.get("color", ""),
+                        "playable": playable,
                     })
                 else:
                     name = getattr(fdata, "name", fname)
                     faction_list.append({
-                        "id": fname, "name": name, "name_cn": name, "color": "",
+                        "id": fname, "display_id": display_id,
+                        "name": name, "name_cn": name, "color": "",
+                        "playable": playable,
                     })
             scenarios.append({
                 "id": sid,

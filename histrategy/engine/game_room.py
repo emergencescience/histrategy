@@ -90,8 +90,12 @@ class GameRoom:
         return [s for s in self.slots.values() if s.is_ai()]
 
     def major_ai_slots(self) -> list[FactionSlot]:
-        """主要 NPC 势力（cao/shu/wu）—— 使用 LLM 独立决策。"""
-        return [s for s in self.slots.values() if s.is_ai() and s.is_active and s.faction_id in LLM_NPC_FACTIONS]
+        """主要 NPC 势力 —— 使用 LLM 独立决策。
+
+        优先使用 room.major_npc_ids（场景特定），否则回退到 LLM_NPC_FACTIONS。
+        """
+        npc_set = getattr(self, "major_npc_ids", None) or LLM_NPC_FACTIONS
+        return [s for s in self.slots.values() if s.is_ai() and s.is_active and s.faction_id in npc_set]
 
     def minor_ai_slots(self) -> list[FactionSlot]:
         """所有 AI NPC 都是主要势力（不再区分主次）。"""

@@ -215,16 +215,18 @@ function renderFactionToggles() {
   const div = el('create-faction-toggles');
   div.innerHTML = '';
   const factions = currentScenario.factions || [];
-  if (factions.length === 0) {
+  // Only show playable factions for human selection
+  const playable = factions.filter(f => f.playable !== false);
+  if (playable.length === 0) {
     div.innerHTML = '<span style="color:var(--muted)">无可用势力</span>';
     return;
   }
-  factions.forEach((f, i) => {
+  playable.forEach((f, i) => {
     const color = f.color || factionColor(i);
     const btn = document.createElement('span');
-    btn.className = 'faction-toggle on';
+    btn.className = 'faction-toggle';  // default: OFF
     btn.style.borderColor = color;
-    btn.style.background = color;
+    btn.style.color = 'var(--muted)';
     btn.textContent = f.name_cn || f.name || f.id;
     btn.dataset.fid = f.id;
     btn.dataset.color = color;

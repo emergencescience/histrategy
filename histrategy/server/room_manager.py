@@ -131,6 +131,9 @@ def create_room(
         if fid not in room.slots:
             room.slots[fid] = create_ai_slot(fid)
 
+    # 标记这些为场景的主要 NPC（用于 LLM 决策生成）
+    room.major_npc_ids = set(npc_factions) | set(LLM_NPC_FACTIONS)
+
     # host 进入房间
     _enter_player(room.id, host_user_id or ("host_" + uuid.uuid4().hex[:6]), "host", host_name or "房主")
 
@@ -402,20 +405,12 @@ def submit_decision(room_id: str, faction_id: str, decision: str) -> dict:
     pending = [fid for fid, s in room.slots.items() if s.is_active and not s.has_submitted()]
 
     if not pending:
-        # 异步执行（LLM 调用可能耗时 30-60s，不能阻塞 HTTP 响应）
-        import threading
-        import traceback
-
-        def _resolve_safe(room):
-            try:
-                _resolve_and_advance(room)
-            except Exception as exc:
-                logger.error("Room %s resolve failed: %s", room.id, exc)
-                traceback.print_exc()
-                room.phase = type(room.phase).WAITING  # reset on error
-
-        t = threading.Thread(target=_resolve_safe, args=(room,), daemon=True)
-        t.start()
+        # 同步执行（调试用 — 若卡住请检查服务器日志）
+        try:
+            _resolve_and_advance(room)
+        except Exception as exc:
+            logger.error("Room %s resolve failed: %s", room.id, exc)
+            room.phase = type(room.phase).WAITING  # reset on error
 
     status = "resolving" if not pending else "waiting"
     return {

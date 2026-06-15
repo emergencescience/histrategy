@@ -70,6 +70,13 @@ class TurnController:
         """
         season = world_state.season
 
+        # ── Normalize commands: dict → Command objects ──
+        if player_commands:
+            player_commands = [
+                Command(**c) if isinstance(c, dict) else c
+                for c in player_commands
+            ]
+
         # ── Step 1: Climate roll ──
         climate_events = self.domestic_engine.climate.roll_all(
             world_state.territories, season, year, turn_number
@@ -330,21 +337,26 @@ class TurnController:
         return valid
 
     def _is_valid_command(self, cmd: Command, world_state: WorldState) -> bool:
-        if not cmd.faction_id:
+        # Handle both Command objects and dicts
+        fid = getattr(cmd, "faction_id", None) or (cmd.get("faction_id") if isinstance(cmd, dict) else None)
+        if not fid:
             return False
 
-        faction = world_state.factions.get(cmd.faction_id)
+        faction = world_state.factions.get(fid)
         if not faction or not faction.is_active:
             return False
 
-        if cmd.type in ("recruit", "develop"):
-            tid = cmd.params.get("territory", "")
+        cmd_type = getattr(cmd, "type", None) or (cmd.get("type") if isinstance(cmd, dict) else None)
+        params = getattr(cmd, "params", None) or (cmd.get("params", {}) if isinstance(cmd, dict) else {})
+
+        if cmd_type in ("recruit", "develop"):
+            tid = params.get("territory", "") if isinstance(params, dict) else getattr(params, "territory", "")
             territory = world_state.territories.get(tid)
             if not territory:
                 return False
-            return territory.owner_id == cmd.faction_id
+            return territory.owner_id == fid
 
-        if cmd.type in ("move", "attack", "defend"):
+        if cmd_type in ("move", "attack", "defend"):
             target = (
                 cmd.params.get("destination")
                 or cmd.params.get("target_territory")

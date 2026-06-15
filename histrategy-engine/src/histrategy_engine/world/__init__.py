@@ -382,6 +382,7 @@ class Command:
     params: dict = field(default_factory=dict)
     faction_id: str = ""
     notes: str = ""  # LLM-provided context: reasoning, campaign name, risk notes, etc.
+    reasoning: str = ""  # backward-compat alias
 
 
 # ─── Turn Result ───────────────────────────────────────────────
@@ -513,3 +514,20 @@ def _worldstate_get_player_faction(self) -> "FactionState | None":
 
 
 WorldState.get_player_faction = _worldstate_get_player_faction  # type: ignore[attr-defined]
+
+
+def _worldstate_current_season_cn(self) -> str:
+    """Backward-compat: return season name in Chinese."""
+    _map = {"spring": "春", "summer": "夏", "autumn": "秋", "winter": "冬"}
+    return _map.get(str(self.season.value), "春")
+
+
+WorldState.current_season_cn = property(_worldstate_current_season_cn)  # type: ignore[attr-defined]
+
+
+def _factionstate_faction_id(self) -> str:
+    """Backward-compat alias for FactionState.id."""
+    return self.id
+
+
+FactionState.faction_id = property(_factionstate_faction_id)  # type: ignore[attr-defined]
