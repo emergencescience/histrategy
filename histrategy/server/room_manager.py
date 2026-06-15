@@ -114,15 +114,16 @@ def create_room(
         else:
             room.slots[fid] = create_open_slot(fid)
 
-    # 未指定的势力 → AI NPC（从场景数据动态获取，不再硬编码三国势力）
+    # 未指定的势力 → AI NPC（从场景数据动态获取，只加载可扮演势力）
     try:
         from histrategy.engine.scenario_loader import ScenarioLoader
 
         loader = ScenarioLoader(room.scenario)
         all_factions = loader.load_factions()
-        scenario_faction_ids = set(all_factions.keys())
-        # Major NPCs: all scenario factions not assigned to humans, limited to 8 for performance
-        npc_factions = list(scenario_faction_ids - set(internal_ids))[:8]
+        # 只加载非 npc_only 的势力作为 AI NPC 槽位
+        scenario_faction_ids = {fid for fid, f in all_factions.items() if not f.get("npc_only", False)}
+        # Major NPCs: all playable scenario factions not assigned to humans
+        npc_factions = list(scenario_faction_ids - set(internal_ids))
     except Exception:
         # Fallback to hardcoded defaults
         npc_factions = list(LLM_NPC_FACTIONS)
@@ -132,7 +133,7 @@ def create_room(
             room.slots[fid] = create_ai_slot(fid)
 
     # 标记这些为场景的主要 NPC（用于 LLM 决策生成）
-    room.major_npc_ids = set(npc_factions) | set(LLM_NPC_FACTIONS)
+    room.major_npc_ids = set(npc_factions)
 
     # host 进入房间
     _enter_player(room.id, host_user_id or ("host_" + uuid.uuid4().hex[:6]), "host", host_name or "房主")
@@ -642,19 +643,15 @@ def _init_world_state(room: GameRoom):
 
 
 def _save_initial_state_to_db(room: GameRoom):
-    """写入三大势力的初始状态到 game_state 表 (quarter=0)。"""
+    """写入所有势力的初始状态到 game_state 表 (quarter=0)。"""
     from histrategy.db.models import save_game_state
-    from histrategy.engine.faction_slot import LLM_NPC_FACTIONS
 
     ws = room.world_state
     if ws is None:
         return
     try:
-        # 只追踪玩家势力 + LLM NPC 势力（cao/shu/wu）
-        tracked = set(LLM_NPC_FACTIONS)
-        for s in room.slots.values():
-            if s.is_human():
-                tracked.add(s.faction_id)
+        # 追踪所有已创建的 slot（人类 + AI NPC）
+        tracked = set(room.slots.keys())
 
         for fid in tracked:
             faction = ws.factions.get(fid)

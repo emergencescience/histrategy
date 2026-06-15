@@ -1,7 +1,7 @@
 # 多场景同仓库架构设计
 
-> **更新**: 2026-06-15 — 新增《凯撒余烬 Ashes of Caesar》场景，Web UI 多场景支持已完成。
-> **状态**: Phase 1-2 ✅ / Phase 4 ✅️ (Web UI) / Phase 3 ⚠️ (内容充实中)
+> **更新**: 2026-06-15 — 新增《凯撒余烬 Ashes of Caesar》场景，NPC prompt 场景化+多语言支持。
+> **状态**: Phase 1-2 ✅ / Phase 4 ✅ (Web UI) / Phase 3 ✅ (Prompt 架构) / Phase 5 ⚠️ (内容充实中)
 
 ## 概述
 
@@ -13,11 +13,11 @@ histrategy 仓库同时托管多个策略游戏场景。引擎核心（GameRoom�
 
 | 场景 ID | 名称 | 时代 | 起始年 | 状态 | 势力数 | Web UI |
 |---------|------|------|--------|------|--------|--------|
-| `three-kingdoms` | 《三國志略》 | 东汉末年至三国 | 207 | **生产** | 4（可扮演：3） | `?scenario=three-kingdoms` |
-| `caesar-44bc` | 《凯撒余烬》 | 44-30 BC | -43 | **可玩** | 4主+4NPC | `?scenario=caesar-44bc` |
+| `three-kingdoms` | 《三國志略》 | 东汉末年至三国 | 207 | **生产** | 3 | `?scenario=three-kingdoms` |
+| `caesar-44bc` | 《凯撒余烬》 | 44-30 BC | -44 | **可玩** | 4 | `?scenario=caesar-44bc` |
 | `shanhe-dingge` | 《山河鼎革》 | 明末清初 | 1644 | **骨架** | 4 | `?scenario=shanhe-dingge` |
 
-> Caesar 4 主势力：屋大维、安东尼、克利奥帕特拉（埃及）、元老院。4 NPC：塞克斯图斯·庞培、雷必达、布鲁图斯/卡西乌斯、帕提亚。
+> Caesar 4 主势力：屋大维、安东尼、克利奥帕特拉（埃及）、元老院。NPC-only 势力（布鲁图斯、雷必达、塞克斯图斯·庞培、帕提亚）不创建 AI slot，仅在 WorldState 中作为中立/背景势力存在。
 
 ## 目录结构
 
@@ -119,19 +119,74 @@ Web UI: /mp?scenario=caesar-44bc
   ▼
 GET /api/scenarios → ScenarioLoader.list_scenarios()
   ├─ 读取 scenarios/{id}/scenario.toml
-  ├─ 加载 knowledge/factions.json
+  ├─ 加载 knowledge/factions.json → 过滤 npc_only: false
   └─ 返回 [id, name_cn, period, start_year, factions]
 
 doCreateRoom → POST /api/rooms {scenario: "caesar-44bc", human_faction_ids: [...]}
   │
   ▼
 room_manager.create_room(scenario="caesar-44bc")
-  ├─ ScenarioLoader.load_factions() → 获取 8 势力
-  ├─ 人类指定势力 → OPEN slot
-  ├─ 其余势力 → AI NPC slot
-  ├─ ScenarioLoader.build_world_state() → 完整 WorldState
-  └─ 同步 room.year / room.season
+  ├─ ScenarioLoader.load_factions() → 只取 npc_only: false (4势力)
+  ├─ 人类指定势力 → OPEN/HUMAN slot
+  ├─ 其余可扮演势力 → AI NPC slot
+  ├─ ScenarioLoader.build_world_state() → 完整 WorldState (含NPC-only中立势力)
+  ├─ room.major_npc_ids = set(npc_factions)  ← 场景特定
+  └─ 同步 room.year / room.season (-44 / spring)
 ```
+
+## NPC Prompt 架构（场景感知 + 多语言）✅
+
+### 设计原则
+
+NPC 决策 prompt 与场景绑定——不同时代需要不同的世界观、术语和战略思维。Caesar 的 NPC 不应该看到三国术语（"诸侯""屯田""民心"），正如三国 NPC 不应该看到罗马术语（"legions""元老院""公敌宣告"）。
+
+### 加载优先级
+
+```
+NPCDecisionEngine._load_npc_prompt(scenario, language)
+  │
+  ├─ 1. scenarios/{scenario}/prompts/npc_decision_{language}.md
+  │     例: caesar-44bc/prompts/npc_decision_zh-CN.md
+  │         caesar-44bc/prompts/npc_decision_en.md
+  │
+  ├─ 2. scenarios/{scenario}/prompts/npc_decision_en.md  (English fallback)
+  │
+  ├─ 3. scenarios/{scenario}/prompts/npc_decision.md  (unversioned)
+  │
+  └─ 4. histrategy/llm/prompts/npc_decision.md  (三国默认，向后兼容)
+```
+
+### 缓存策略
+
+模块级 `_NPC_PROMPT_CACHE: dict[tuple[scenario, language], str]` 缓存每个场景×语言组合的 prompt 内容，避免每次 NPC LLM 调用都读取文件。
+
+### 渲染参数
+
+场景感知的 NPCDecisionEngine 在 `_build_context()` 中额外输出：
+- 势力个性参数（aggression, caution, diplomacy, mercy）← 从 FactionState 读取
+- 周边势力估算兵力（FOW）← 启发式探报
+- 近期历史摘要（最近 N 回合）← 从 TurnMemory 读取
+
+### 调用链
+
+```
+DecisionBus.collect_all_decisions(room, ws, llm)
+  │
+  ├─ major_ai_slots() → room.major_npc_ids (场景特定)
+  │
+  └─ _collect_ai_decisions_parallel()
+       └─ NPCDecisionEngine(llm, scenario=room.scenario)
+            └─ generate() → _generate_llm()
+                 ├─ _load_npc_prompt(scenario, language) → system prompt
+                 ├─ _build_context() → 用户消息
+                 └─ llm.chat_structured(messages, metadata={system_prompt_type: "npc_decision", ...})
+```
+
+### LLM 日志改进
+
+- `metadata` 中显式传递 `system_prompt_type: "npc_decision"` → LLMAdapter 不再 fallback 到 `"custom"`
+- 移除 NPCDecisionEngine 内的重复 `log_llm_call()` — LLMAdapter 已有日志记录
+- `room_id` 和 `quarter_number` 通过 metadata 传递，确保日志关联到具体房间和季度
 
 ## 共享引擎核心（场景无关）
 
@@ -156,6 +211,7 @@ room_manager.create_room(scenario="caesar-44bc")
 | 角色 | 20+ 历史武将 | 15 历史人物 | TBD | knowledge/characters.json |
 | 历史事件 | 讨董→赤壁→三国 | 恺撒遇刺→腓立比→亚克兴 | 甲申→江南→永历 | knowledge/events.json |
 | System Prompt | 三国演义文白体 | 罗马史诗叙事 | 末世多族史诗 | prompts/system.md |
+| NPC Prompt | 诸侯/屯田/民心 | 军团/元老院/公敌 | TBD | prompts/npc_decision_{lang}.md |
 | 政策规则 | 屯田/科举/盐铁 | 海战/宣传战/元老院 | 火炮/多族/正统衰减 | rules/*.yaml |
 | 特殊字段 | — | legions, ships, government | artillery, legitimacy_decay | schema.json + rules |
 
@@ -177,10 +233,12 @@ room_manager.create_room(scenario="caesar-44bc")
 
 ### Phase 3: 场景内容充实 ⚠️ 进行中
 
-1. ✅ 《凯撒余烬》prompts/system.md（双语，英文 ~3129 词 / 中文 ~1169 词）
-2. ✅ 《凯撒余烬》rules/naval.yaml
-3. ✅ 《凯撒余烬》factions.json 采用用户 4 主势力方案
-4. ⬜ 《山河鼎革》knowledge 数据充实
+1. ✅ 《凯撒余烬》prompts/system.md（双语，英文 ~3149 词 / 中文 ~2983 词）
+2. ✅ 《凯撒余烬》prompts/npc_decision_en.md + npc_decision_zh-CN.md
+3. ✅ 《凯撒余烬》rules/naval.yaml
+4. ✅ 《凯撒余烬》factions.json — 精简为 4 主势力（移除 NPC-only）
+5. ✅ 《凯撒余烬》initial_state.json — 起始年修正为 -44
+6. ⬜ 《山河鼎革》knowledge 数据充实
 
 ### Phase 4: 前端多场景 + 持久化完善 ✅ 部分完成
 

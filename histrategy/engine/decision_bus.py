@@ -133,6 +133,7 @@ def collect_all_decisions(
             results,
             room_id=getattr(room, "id", ""),
             quarter_number=getattr(room, "quarter_number", 0),
+            scenario=getattr(room, "scenario", None),
         )
     elif major_ai:
         # LLM not available → heuristic fallback for major NPCs too
@@ -205,11 +206,12 @@ def _collect_ai_decisions_parallel(
     results: dict[str, DecisionResult],
     room_id: str = "",
     quarter_number: int = 0,
+    scenario: str | None = None,
 ):
     """并行调用 LLM 为多个 NPC 生成决策。"""
     from histrategy.llm.npc_decision_engine import NPCDecisionEngine
 
-    engine = NPCDecisionEngine(llm)
+    engine = NPCDecisionEngine(llm, scenario=scenario)
 
     def _generate_one(slot: FactionSlot) -> DecisionResult:
         t0 = time.time()
