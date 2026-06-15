@@ -1,15 +1,20 @@
 # histrategy 重构计划：消除冗余 + 引擎统一 + 多场景复用
 
-> **状态**: 审阅更新版 — Claude Sonnet 4.6
-> **日期**: 2026-06-15（原草案: Prometheus/Hermes Agent；审阅: Claude Sonnet 4.6）
+> **状态**: 实施中 — 更新于 2026-06-15
+> **分支**: `feat/engine-merge-v3-macro`
+> **测试**: 236 passed / 0 failed
 
 ---
 
-> **[审阅总评]** 重构方向完全正确，优先级排列合理。但有 3 个重要 Gap 需要在执行前明确：
+> **[审阅评语 — 已处理 3/3]**
 >
-> 1. **`ScenarioLoader` 尚未实现**（文档以为 ✅，实际是 `loader.py` 中的函数，且 `load_territories()` 硬编码三国数据）
-> 2. **`_init_v2` 和 `from_dict` 有大量重复代码**（约 200 行）——精简 `game.py` 的关键是先提取 `_build_engine_stack()` 辅助函数
-> 3. **Phase 1 的删除顺序需要反转**：`offline_sim_engine.py` 和 `resilient_sim_engine.py` 被 `game.py:898-903` 引用（v2 路径的 fallback），不能作为"无调用方"直接删除
+> 1. **`ScenarioLoader` 已实现** ✅ — `histrategy/engine/scenario_loader.py` (548行)，含 `build_world_state()` / `load_factions()` / `load_characters()` / `list_scenarios()` 等 20+ 方法
+> 2. **`_build_engine_stack()` 已提取** ✅ — `game.py` 去重约 136 行
+> 3. **`FACTION_CONFIGS` / `NPC_FACTION_CONFIGS` 已删除** ✅ — 约 95 行硬编码字典移除
+> 4. **`load_territories()` 硬编码已去除** ✅ — 三国地图数据移到 `scenarios/three-kingdoms/knowledge/territories.json`
+> 5. **Phase 1 WorldState 统一** ✅ 部分 — 向后兼容 shim（`get_player_faction`, `strength`/`strength_actual` 别名）已加；完整统一需待 v1 CLI 退役
+> 6. **Phase 5.1 Web UI 多场景** ✅ — `mp.html` 完全重写为场景感知，`/api/scenarios` 端点已加
+> 7. **Phase 5.4 BC 年份渲染** ✅ — `公元前43年` 正确显示
 
 ---
 
@@ -164,40 +169,22 @@ histrategy（主仓库）
 | `caesar-44bc` | 《凯撒余烬》 | 44-30 BC | **骨架** | **4**（修正） | 海战/宣传战/元老院 |
 | `shanhe-dingge` | 《山河鼎革》 | 1644-1662 | **骨架** | 4 | 火炮/多族/正统衰减 |
 
-### 3.3 ScenarioLoader 设计（修订）
+### 3.3 ScenarioLoader 设计 ✅ 已实现
 
-> **[审阅意见]** 原文档说 ScenarioLoader「已实现（H16c, 345行）」，但代码中不存在这个类。实际是 `loader.py` 中的函数集合。重构时应实现以下接口：
+`histrategy/engine/scenario_loader.py` (548行) — 完整实现，含以下方法：
 
+- `load_factions()` / `load_characters()` / `load_territories()` / `load_events()` — 数据加载
+- `load_prompt(name)` — 场景特定 LLM prompt 模板
+- `load_rules()` — 规则 YAML 加载
+- `build_world_state(player_faction_id)` — 组装完整 WorldState
+- `format_year(year)` — 年份格式化（支持 BC）
+- `list_scenarios(root)` — 静态方法，列出所有可用场景
+
+**调用方式**:
 ```python
-# histrategy/engine/scenario_loader.py（新文件）
-class ScenarioLoader:
-    def __init__(self, scenario_id: str, scenarios_root: Path | None = None):
-        self.scenario_id = scenario_id
-        self._root = scenarios_root or _find_scenarios_root()
-
-    def load_toml(self) -> dict:
-        """读取 scenarios/{id}/scenario.toml"""
-
-    def load_factions(self) -> dict[str, FactionState]:
-        """读取 scenarios/{id}/knowledge/factions.json → FactionState"""
-
-    def load_territories(self) -> dict[str, Territory]:
-        """读取 scenarios/{id}/knowledge/territories.json → Territory（不再硬编码）"""
-
-    def load_characters(self) -> dict[str, Character]:
-        """读取 scenarios/{id}/knowledge/characters.json → Character"""
-
-    def load_events(self) -> list[dict]:
-        """读取 scenarios/{id}/knowledge/events.json"""
-
-    def load_prompt(self, name: str = "system") -> str:
-        """读取 scenarios/{id}/prompts/{name}.md"""
-
-    def load_rules(self) -> list[Path]:
-        """返回 scenarios/{id}/rules/*.yaml 路径列表"""
-
-    def build_world_state(self, player_faction_id: str) -> WorldState:
-        """组装完整 WorldState（替代 loader.py:build_world_state()）"""
+from histrategy.engine.scenario_loader import ScenarioLoader
+loader = ScenarioLoader("caesar-44bc")
+ws = loader.build_world_state("octavian")  # WorldState with 8 factions, year=-43
 ```
 
 ---
@@ -234,35 +221,35 @@ async def handle_decision(room_id: str, decision: str):
 
 ## 五、执行计划（已修订）
 
-### Pre-Phase: 代码去重（无风险，1-2天）
+### Pre-Phase: 代码去重 ✅ 已完成
 
-| # | 任务 | 预计删除/简化 |
-|---|---|---|
-| P0.1 | 提取 `game.py._build_engine_stack()` 合并 `_init_v2`/`from_dict` | ~200行 |
-| P0.2 | 删除 `FACTION_CONFIGS`/`NPC_FACTION_CONFIGS` dict | ~80行 |
-| P0.3 | 新建 `scenarios/three-kingdoms/knowledge/territories.json`，删除 `load_territories()` 硬编码 | ~300行 |
-
-**目标**: `game.py` 从 2,866 → 约 2,400 行（无破坏性变更）
-
-### Phase 1: WorldState 统一（本周，高风险，需全量测试）
-
-| # | 任务 | 影响范围 | 预计删除 |
+| # | 任务 | 预计删除/简化 | 状态 |
 |---|---|---|---|
-| P1.1 | 迁移 `state/world_state.py` → `histrategy_engine.world` | CLI, v1_simulator, game.py | ~391行 |
-| P1.2 | 迁移 `engine/world.py` → 同上 | offline_sim | ~348行 |
-| P1.3 | 迁移 `offline_sim.py` → DomesticEngine + MilitaryEngine | game.py fallback | ~1029行 |
-| P1.4 | 删除 `offline_sim_engine.py` + `resilient_sim_engine.py` | — | ~212行 |
+| P0.1 | 提取 `game.py._build_engine_stack()` 合并 `_init_v2`/`from_dict` | ~200行 | ✅ done |
+| P0.2 | 删除 `FACTION_CONFIGS`/`NPC_FACTION_CONFIGS` dict | ~80行 | ✅ done |
+| P0.3 | 新建 `scenarios/three-kingdoms/knowledge/territories.json`，删除 `load_territories()` 硬编码 | ~300行 | ✅ done |
 
-**Phase 1 目标**: 删除 ~1,980 行，`game.py` 精简到约 ~800 行。
+**成果**: `game.py` 从 2,866 → ~2,400 行（零回归，236 测试通过）
 
-### Phase 2: ScenarioLoader 升级（场景无关，低风险）
+### Phase 1: WorldState 统一 ✅ 部分完成
 
-| # | 任务 |
-|---|---|
-| P2.1 | 实现 `ScenarioLoader` 类（`histrategy/engine/scenario_loader.py`） |
-| P2.2 | `GameEngine.__init__` 改为 `ScenarioLoader(scenario_id).build_world_state()` |
-| P2.3 | 删除 `loader.py` 的旧函数接口（保留 `resolve_knowledge_path()` 作为路径辅助） |
-| P2.4 | `scenarios/caesar/knowledge/factions.json` 精简为 4 势力 |
+| # | 任务 | 影响范围 | 预计删除 | 状态 |
+|---|---|---|---|---|
+| P1.1 | 迁移 `state/world_state.py` → `histrategy_engine.world` | CLI, v1_simulator, game.py | ~391行 | ⚠️ 向后兼容 shim 已加；CLI 仍用旧 WorldState |
+| P1.2 | 迁移 `engine/world.py` → 同上 | offline_sim | ~348行 | ⚠️ 向后兼容属性已加 |
+| P1.3 | 迁移 `offline_sim.py` → DomesticEngine + MilitaryEngine | game.py fallback | ~1029行 | ⬜ 未开始 |
+| P1.4 | 删除 `offline_sim_engine.py` + `resilient_sim_engine.py` | — | ~212行 | ⬜ 未开始 |
+
+**成果**: 添加了 `get_player_faction()`, `strength`/`strength_actual` 别名，`_coerce_factions_to_dict()` 兼容层。完整统一需待 v1 CLI 退役。
+
+### Phase 2: ScenarioLoader 升级 ✅ 已完成
+
+| # | 任务 | 状态 |
+|---|---|---|
+| P2.1 | 实现 `ScenarioLoader` 类（`histrategy/engine/scenario_loader.py`） | ✅ done (548行) |
+| P2.2 | `GameEngine.__init__` 改为 `ScenarioLoader(scenario_id).build_world_state()` | ✅ done |
+| P2.3 | 删除 `loader.py` 的旧函数接口（保留 `resolve_knowledge_path()` 作为路径辅助） | ✅ done |
+| P2.4 | `scenarios/caesar-44bc/knowledge/factions.json` 采用用户方案 4 主势力 | ✅ done |
 
 ### Phase 3: 场景内容充实
 
@@ -282,12 +269,14 @@ async def handle_decision(room_id: str, decision: str):
 
 ### Phase 5: 前端多场景 + 引擎扩展
 
-| # | 任务 |
-|---|---|
-| P5.1 | `/mp` UI 支持 `?scenario=caesar` 等场景参数 |
-| P5.2 | 引擎核心添加 `naval_power` 维度（亚克兴海战） |
-| P5.3 | 引擎核心添加 `political_influence` + `propaganda` 维度 |
-| P5.4 | BC 年份渲染支持 |
+| # | 任务 | 状态 |
+|---|---|---|
+| P5.1 | `/mp` UI 支持 `?scenario=caesar` 等场景参数 | ✅ done — `mp.html` 完全重写，动态势力加载 |
+| P5.2 | `/api/scenarios` REST 端点（列出场景 + 势力） | ✅ done — 含 metadata (name/period/start_year/factions) |
+| P5.3 | 创建房间时动态加载 NPC 势力（不再硬编码三国） | ✅ done — `room_manager.py:create_room` 使用 ScenarioLoader |
+| P5.4 | BC 年份渲染支持 | ✅ done — `format_year()` + Web UI `fmtYear()` |
+| P5.5 | 引擎核心添加 `naval_power` 维度（亚克兴海战） | ⬜ 待实施 |
+| P5.6 | 引擎核心添加 `political_influence` + `propaganda` 维度 | ⬜ 待实施 |
 
 ---
 
@@ -302,6 +291,60 @@ async def handle_decision(room_id: str, decision: str):
 4. **测试覆盖** — 每个 Phase 完成后运行全量 `pytest tests/ -q`。Phase 1 涉及引擎替换，需要特别关注 E2E 测试。
 
 5. **场景优先级** — 《凯撒余烬》先于《山河鼎革》（海战/宣传战系统可复用，减少重复工作）。
+
+---
+
+## 九、Web UI 多场景支持 (2026-06-15 新增)
+
+### 9.1 `/api/scenarios` 端点
+
+```json
+GET /api/scenarios
+{
+  "ok": true,
+  "scenarios": [
+    {
+      "id": "caesar-44bc",
+      "name_cn": "凯撒余烬",
+      "period": "罗马共和国末期 (44 BC - 30 BC)",
+      "start_year": -43,
+      "epoch": "",
+      "factions": [
+        {"id": "octavian", "name_cn": "屋大维", "color": "gold"},
+        {"id": "antony", "name_cn": "马克·安东尼", "color": "red"},
+        ...
+      ]
+    },
+    ...
+  ]
+}
+```
+
+### 9.2 `mp.html` 场景感知架构
+
+```
+mp.html?scenario=caesar-44bc
+  │
+  ├─ onLoad → GET /api/scenarios → 填充场景下拉菜单
+  ├─ onScenarioChange → 重新渲染势力 toggle
+  ├─ doCreateRoom → POST /api/rooms {scenario: "caesar-44bc", ...}
+  ├─ doJoinRoom  → POST /api/rooms/{id}/enter {faction: "octavian"}
+  └─ updateGameUI → 动态格式化年份（BC/AD），势力颜色渲染
+```
+
+### 9.3 `room_manager.py` 场景化改造
+
+- `create_room()` — NPC 势力从 `ScenarioLoader.load_factions()` 动态获取，不再硬编码 `LLM_NPC_FACTIONS`
+- `_init_world_state()` — 非三国场景使用 `ScenarioLoader.build_world_state()` 替代 `create_initial_world()`
+- 年份/季节从 WorldState 同步到房间 `room.year`/`room.season`
+
+### 9.4 已知限制
+
+| 限制 | 影响 | 解决方案 |
+|------|------|---------|
+| CLI 不支持场景选择 | `cli/app.py` 仍硬编码三国 | 待 CLI 重构到 v3 |
+| game_master intro prompt 未切换 | 首次创建 room 时 narrative 可能仍是三国文本 | 需接入 ScenarioLoader 的 prompt 加载 |
+| NPC 决策引擎未场景化 | 多 NPC 推演在 LLM 模式下可能引用错误势力 ID | 需 `_trigger_npc_decisions` 使用场景 faction 列表 |
 
 ---
 

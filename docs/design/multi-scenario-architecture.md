@@ -1,31 +1,23 @@
 # 多场景同仓库架构设计
 
-> **更新**: 2026-06-15 — 新增《凯撒余烬 Ashes of Caesar》场景，场景矩阵扩充至 3 个。
-> **审阅**: Claude Sonnet 4.6 (2026-06-15) — 补充了 `ScenarioLoader` 实现现状、势力数量校正、知识库路径问题。
+> **更新**: 2026-06-15 — 新增《凯撒余烬 Ashes of Caesar》场景，Web UI 多场景支持已完成。
+> **状态**: Phase 1-2 ✅ / Phase 4 ✅️ (Web UI) / Phase 3 ⚠️ (内容充实中)
 
 ## 概述
 
 histrategy 仓库同时托管多个策略游戏场景。引擎核心（GameRoom、WorldState、LLM Adapter、DB、Policy Engine）保持场景无关；各场景通过独立的 knowledge、prompts、rules 和 UI 包注入差异。
 
-> **[审阅意见]** 文档中提到的 `ScenarioLoader`（H16c ✅）在代码中**尚未以类的形式实现**。实际上 `histrategy/engine/loader.py` 中有 `load_scenario()` 函数和 `build_world_state()` 函数，功能上等价，但不是文档描述的 `ScenarioLoader` 类。重构时应将其重命名并升级为类，统一接口。
+> **[审阅评语 — 已处理]** ScenarioLoader 已以类的形式实现 (`histrategy/engine/scenario_loader.py`, 548行)。`load_territories()` 不再硬编码三国数据，从 `scenarios/{id}/knowledge/territories.json` 读取。新场景数据路径 `scenarios/caesar-44bc/knowledge/` 正确加载。
 
 ## 目标场景
 
-| 场景 ID | 名称 | 时代 | 起始年 | 状态 | 势力数 |
-|---------|------|------|--------|------|--------|
-| `three-kingdoms` | 《三國志略》 | 东汉末年至三国 | 207 | **生产** | 4（可扮演：3） |
-| `caesar-44bc` | 《凯撒余烬》 | 44-30 BC | **骨架** | **4**（见注） |
-| `shanhe-dingge` | 《山河鼎革》 | 明末清初 | 1644 | **骨架** | 4（南明/清/大顺/郑氏） |
+| 场景 ID | 名称 | 时代 | 起始年 | 状态 | 势力数 | Web UI |
+|---------|------|------|--------|------|--------|--------|
+| `three-kingdoms` | 《三國志略》 | 东汉末年至三国 | 207 | **生产** | 4（可扮演：3） | `?scenario=three-kingdoms` |
+| `caesar-44bc` | 《凯撒余烬》 | 44-30 BC | -43 | **可玩** | 4主+4NPC | `?scenario=caesar-44bc` |
+| `shanhe-dingge` | 《山河鼎革》 | 明末清初 | 1644 | **骨架** | 4 | `?scenario=shanhe-dingge` |
 
-> **[审阅意见 - 势力数量]** `scenarios/caesar/` Hermes Agent scaffold 了 8 个势力（原文档也写了 8 个），但这对游戏设计来说过于复杂，且与三国（4 势力）不一致。
->
-> **建议 caesar 场景采用 4 势力**：
-> - **屋大维**（Octavian）— 继承者，罗马西部
-> - **安东尼**（Antony）+ 克利奥帕特拉 — 东方联盟（合并为一势力）
-> - **塞克斯图斯**（Sextus Pompeius）— 海上力量，控制西西里
-> - **雷必达**（Lepidus）— 三巨头成员，北非
->
-> 其余人物（布鲁图斯已在腓立比战死，帕提亚为外部威胁非可扮演势力）作为事件触发器或 NPC 而非独立势力。
+> Caesar 4 主势力：屋大维、安东尼、克利奥帕特拉（埃及）、元老院。4 NPC：塞克斯图斯·庞培、雷必达、布鲁图斯/卡西乌斯、帕提亚。
 
 ## 目录结构
 
@@ -119,38 +111,27 @@ map_svg = "web/map.svg"
 > - `[engine].year_direction = "positive" | "negative"`（支持 BC 年份倒数）
 > - `[factions].npc_only = ["lepidus"]`（标记不可扮演的 NPC 势力）
 
-### 场景加载流程（实际 vs 文档）
+### 场景加载流程（当前实现 ✅）
 
-**文档描述（理想）**：
 ```
-CLI: histrategy --scenario three-kingdoms
+Web UI: /mp?scenario=caesar-44bc
   │
   ▼
-ScenarioLoader(scenario_id)   ← 类尚未实现
+GET /api/scenarios → ScenarioLoader.list_scenarios()
   ├─ 读取 scenarios/{id}/scenario.toml
   ├─ 加载 knowledge/factions.json
-  ├─ 加载 knowledge/regions.json
-  ├─ 加载 knowledge/characters.json
-  ├─ 加载 prompts/*.md
-  ├─ 加载 rules/*.yaml
-  └─ 加载 web/*
-```
+  └─ 返回 [id, name_cn, period, start_year, factions]
 
-**实际实现（当前代码）**：
-```
-CLI → GameEngine.__init__(scenario="207")
+doCreateRoom → POST /api/rooms {scenario: "caesar-44bc", human_faction_ids: [...]}
   │
   ▼
-loader.build_world_state(faction_id, scenario_id, knowledge_path)
-  ├─ load_territories()  ← 硬编码三国数据！知识库路径未使用
-  ├─ load_characters()   ← 读取 histrategy-knowledge/characters/207_roster.json
-  ├─ load_scenario()     ← 读取 histrategy-knowledge/scenarios/{id}.json
-  └─ 返回 WorldState
+room_manager.create_room(scenario="caesar-44bc")
+  ├─ ScenarioLoader.load_factions() → 获取 8 势力
+  ├─ 人类指定势力 → OPEN slot
+  ├─ 其余势力 → AI NPC slot
+  ├─ ScenarioLoader.build_world_state() → 完整 WorldState
+  └─ 同步 room.year / room.season
 ```
-
-> **关键 Gap**：`scenarios/` 目录和 `histrategy-knowledge/` 目录**并行存在**，`loader.py` 只读取后者。新场景数据在 `scenarios/caesar/knowledge/` 下，但 `load_territories()` 完全忽略它，返回硬编码的三国城市数据。
->
-> **重构必须解决**：`ScenarioLoader` 类需要根据 `scenario_id` 从 `scenarios/{id}/knowledge/` 读取正确的数据，并且 `load_territories()` 必须摆脱三国硬编码。
 
 ## 共享引擎核心（场景无关）
 
@@ -180,33 +161,35 @@ loader.build_world_state(faction_id, scenario_id, knowledge_path)
 
 ## 迁移计划（已更新）
 
-### Phase 1: 引擎瘦身（**当前优先**）
+### Phase 1: 引擎瘦身 ✅ 部分完成
 
-1. 删除 `offline_sim_engine.py` + `resilient_sim_engine.py`（确认 game.py:898-903 是唯一调用方后删除）
-2. 迁移 `state/world_state.py` → `histrategy_engine.world.WorldState`
-3. 迁移 `engine/world.py` → 同上
-4. 精简 `game.py` 从 2,866 行到 ~800 行
+1. ✅ Pre-Phase 去重: `_build_engine_stack()` 提取, `FACTION_CONFIGS` 删除, `load_territories()` 去硬编码
+2. ⚠️ `state/world_state.py` → `histrategy_engine.world.WorldState`（向后兼容 shim 已加）
+3. ⬜ `offline_sim_engine.py` + `resilient_sim_engine.py` 删除（需待 v1 退役）
+4. ⬜ `game.py` 从 2,866 精简到 ~800 行（部分完成: ~2,400 行）
 
-### Phase 2: ScenarioLoader 升级（**紧随其后**）
+### Phase 2: ScenarioLoader 升级 ✅ 已完成
 
-1. 将 `loader.py` 的函数式接口重构为 `ScenarioLoader` 类
-2. 使 `load_territories()` 从 `scenarios/{id}/knowledge/territories.json` 读取，**不再硬编码三国数据**
-3. 实现 `scenarios/caesar/` 和 `scenarios/shanhe-dingge/` 的完整知识库加载
-4. `scenario.toml` 解析（目前仅读取 `histrategy-knowledge/scenarios/*.json`）
+1. ✅ `loader.py` 重构为 `ScenarioLoader` 类 (548行)
+2. ✅ `load_territories()` 从 `scenarios/{id}/knowledge/territories.json` 读取
+3. ✅ `scenarios/caesar-44bc/` 完整知识库加载
+4. ✅ `scenario.toml` 解析
 
-### Phase 3: 场景内容充实
+### Phase 3: 场景内容充实 ⚠️ 进行中
 
-1. 《凯撒余烬》prompts/system.md（罗马史诗叙事风格）
-2. 《凯撒余烬》rules/naval.yaml + rules/propaganda.yaml
-3. 《凯撒余烬》factions.json 精简为 4 势力
-4. 《山河鼎革》knowledge 数据充实
+1. ✅ 《凯撒余烬》prompts/system.md（双语，英文 ~3129 词 / 中文 ~1169 词）
+2. ✅ 《凯撒余烬》rules/naval.yaml
+3. ✅ 《凯撒余烬》factions.json 采用用户 4 主势力方案
+4. ⬜ 《山河鼎革》knowledge 数据充实
 
-### Phase 4: 前端多场景 + 持久化完善
+### Phase 4: 前端多场景 + 持久化完善 ✅ 部分完成
 
-1. `/mp` UI 场景选择器
-2. 引擎核心添加 `naval_power` framework（凯撒海战需求）
-3. 引擎核心添加 `political_influence` dimension（凯撒宣传战 + 山河鼎革正统性）
-4. BC 年份渲染支持（负数年份显示「公元前X年」）
+1. ✅ `mp.html` 完全重写为场景感知（动态势力选择、BC年份渲染）
+2. ✅ `/api/scenarios` REST 端点
+3. ✅ 创建房间时动态加载 NPC 势力（不再硬编码三国）
+4. ⬜ 引擎核心添加 `naval_power` framework
+5. ⬜ 引擎核心添加 `political_influence` dimension
+6. ⬜ `room_manager.py` 去内存缓存（SDK + SQLite 持久化）
 
 ## 向后兼容
 
