@@ -169,7 +169,7 @@ def load_room(room_id: str) -> GameRoom | None:
     ws_data = json_loads(row.get("world_state"))
     if ws_data:
         try:
-            from histrategy.state.world_state import WorldState as WS
+            from histrategy_engine.world import WorldState as WS
 
             ws = WS()
             # Map season string → season_index (to_dict uses "spring", from_dict expects int)
