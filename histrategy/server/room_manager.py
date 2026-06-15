@@ -799,6 +799,9 @@ def _resolve_and_advance(room: GameRoom):
         room.year = ws.year
     if hasattr(ws, "season"):
         room.season = ws.season.value if hasattr(ws.season, "value") else str(ws.season)
+    elif hasattr(ws, "current_season"):
+        # v1 WorldState uses season_index + current_season property
+        room.season = ws.current_season
 
     room.world_state = ws
 
@@ -1062,6 +1065,12 @@ def _get_llm():
 
 
 def _advance_season(ws):
+    """Advance season by one step. Supports both WorldState versions.
+
+    v2 (histrategy_engine): season is a Season enum member.
+    v1 (histrategy.state):  season_index int + current_season property.
+    """
+    # Try v2 WorldState first (Season enum)
     try:
         from histrategy_engine.world import Season
 
@@ -1071,8 +1080,19 @@ def _advance_season(ws):
         if ws.season == seasons[0]:
             ws.year += 1
         ws.turn_number += 1
+        return
     except (ValueError, IndexError, AttributeError):
         pass
+
+    # Fallback: v1 WorldState (season_index + advance_turn)
+    if hasattr(ws, "advance_turn"):
+        ws.advance_turn()
+    elif hasattr(ws, "season_index"):
+        # Manual advance — advance_turn() does this but make it explicit
+        ws.turn = getattr(ws, "turn", 0) + 1
+        ws.season_index = (getattr(ws, "season_index", 0) + 1) % 4
+        if ws.season_index == 0:
+            ws.year = getattr(ws, "year", 207) + 1
 
 
 def _save_quarter(room, decisions, result):
