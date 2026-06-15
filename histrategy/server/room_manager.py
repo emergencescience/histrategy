@@ -638,8 +638,13 @@ def _init_world_state(room: GameRoom):
 
     room.world_state = create_initial_world(player_faction)
     if room.world_state is not None:
-        room.year = room.world_state.year
-        room.season = str(room.world_state.season.value) if hasattr(room.world_state.season, 'value') else str(room.world_state.season)
+        room.year = getattr(room.world_state, 'year', 207)
+        # Old WorldState (v1) doesn't have 'season' — default to spring
+        if hasattr(room.world_state, 'season'):
+            ws_season = room.world_state.season
+            room.season = str(ws_season.value) if hasattr(ws_season, 'value') else str(ws_season)
+        else:
+            room.season = "spring"
 
 
 def _save_initial_state_to_db(room: GameRoom):
@@ -787,7 +792,8 @@ def _resolve_v1(room, ws, decisions, llm):
         fd[fid] = {"decision": dr.decision_text, "commands": dr.commands}
 
     v1_result = simulator.simulate(ws, fd, room.turn_summaries,
-                                   room_id=room.id, quarter_number=room.quarter_number + 1)
+                                   room_id=room.id, quarter_number=room.quarter_number + 1,
+                                   scenario=room.scenario)
 
     # ── 先捕获旧状态（用于 turn_delta 计算）──
     old_state = {}

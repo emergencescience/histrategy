@@ -24,9 +24,28 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("histrategy.v1")
 
-# 加载系统提示词
+# ── Prompt cache ─────────────────────────────────────────────
 _PROMPT_DIR = Path(__file__).parent.parent / "llm" / "prompts"
-_SYSTEM_PROMPT = (_PROMPT_DIR / "v1_simulator.md").read_text(encoding="utf-8")
+_DEFAULT_SYSTEM_PROMPT = (_PROMPT_DIR / "v1_simulator.md").read_text(encoding="utf-8")
+_PROMPT_CACHE: dict[str, str] = {}  # scenario → prompt
+
+
+def _load_simulator_prompt(scenario: str | None) -> str:
+    """Load scenario-specific simulator prompt with fallback to default."""
+    if not scenario or scenario in ("207", "three-kingdoms", ""):
+        return _DEFAULT_SYSTEM_PROMPT
+    if scenario in _PROMPT_CACHE:
+        return _PROMPT_CACHE[scenario]
+    # Try scenario-specific prompts
+    candidates = [
+        Path(f"scenarios/{scenario}/prompts/v1_simulator_en.md"),
+        Path(f"scenarios/{scenario}/prompts/v1_simulator.md"),
+    ]
+    for p in candidates:
+        if p.is_file():
+            _PROMPT_CACHE[scenario] = p.read_text(encoding="utf-8")
+            return _PROMPT_CACHE[scenario]
+    return _DEFAULT_SYSTEM_PROMPT
 
 
 def _build_context(
@@ -116,6 +135,7 @@ class V1Simulator:
         turn_memory: list[dict] | None = None,
         room_id: str = "",
         quarter_number: int = 0,
+        scenario: str | None = None,
     ) -> dict:
         """Execute V1 simulation — single LLM call handles all state evolution.
 
@@ -125,6 +145,7 @@ class V1Simulator:
             turn_memory: Turn memory (recent round summaries)
             room_id: Game room ID for DB logging
             quarter_number: Current quarter for DB logging
+            scenario: Scenario ID for loading scenario-specific prompt
 
         Returns:
             {
@@ -141,9 +162,10 @@ class V1Simulator:
             return self._fallback(ws, faction_decisions)
 
         context = _build_context(ws, faction_decisions, turn_memory or [])
+        system_prompt = _load_simulator_prompt(scenario)
 
         messages = [
-            {"role": "system", "content": _SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": context},
         ]
 
