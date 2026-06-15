@@ -163,6 +163,27 @@ def init_db():
                     conn.commit()
                 except Exception:
                     conn.rollback()
+                # H16d: Add missing llm_call_log columns for multi-scenario schema
+                try:
+                    cur.execute("ALTER TABLE llm_call_log ADD COLUMN IF NOT EXISTS room_id TEXT")
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                try:
+                    cur.execute("ALTER TABLE llm_call_log ADD COLUMN IF NOT EXISTS quarter_number INTEGER DEFAULT 0")
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                try:
+                    cur.execute("ALTER TABLE llm_call_log ADD COLUMN IF NOT EXISTS faction_id TEXT")
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                try:
+                    cur.execute("ALTER TABLE llm_call_log ADD COLUMN IF NOT EXISTS system_prompt_type TEXT")
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
         conn.commit()
         _SCHEMA_LOADED = True
         logger.info("Database schema initialized (type=%s)", "sqlite" if _IS_SQLITE else "postgres")

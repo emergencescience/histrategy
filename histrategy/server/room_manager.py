@@ -805,8 +805,10 @@ def _resolve_and_advance(room: GameRoom):
 
     room.world_state = ws
 
-    # 下个季度 NPC 立即下命令
-    _trigger_npc_decisions(room)
+    # 下个季度 NPC 异步预生成决策（不阻塞人类玩家的响应）
+    # 人类 think time (10-30s) > NPC 生成时间 (3-8s)，所以下个命令到达时 NPC 已准备好
+    import threading
+    threading.Thread(target=_trigger_npc_decisions, args=(room,), daemon=True).start()
 
     ws_dict = ws.to_dict() if hasattr(ws, "to_dict") else None
     _try_save(room, ws_dict)
