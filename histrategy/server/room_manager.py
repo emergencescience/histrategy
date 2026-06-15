@@ -697,7 +697,10 @@ def _resolve_and_advance(room: GameRoom):
     # 根据引擎模式选择仿真器
     if engine_mode == EngineMode.V1:
         result = _resolve_v1(room, ws, decisions, llm)
+    elif engine_mode == EngineMode.V2:
+        result = _resolve_v2(room, ws, decisions, llm)
     else:
+        # V3 (merged V3+Macro)
         result = _resolve_v3(room, ws, decisions, llm)
 
     room._last_narratives = result.narratives
@@ -824,8 +827,61 @@ def _resolve_v1(room, ws, decisions, llm):
     )
 
 
+def _resolve_v2(room, ws, decisions, llm):
+    """V2 引擎：纯确定性仿真 — 零 LLM 调用。
+
+    使用 QuarterlyResolver 的确定性基线（TurnController），
+    不启用 macro_policy_engine / narrative_engine 等 LLM 组件。
+    """
+    from dataclasses import dataclass
+
+    from histrategy.engine.quarterly_resolver import QuarterlyResolver
+
+    # ── 捕获旧状态（用于 turn_delta 计算）──
+    old_state = {}
+    for fid in ws.factions:
+        faction = ws.factions[fid]
+        old_state[fid] = {
+            "population": getattr(faction, "population", 0),
+            "troops": getattr(faction, "strength_actual", 0),
+            "food": faction.food,
+            "treasury": faction.treasury,
+            "morale": getattr(faction, "morale_actual", 50),
+        }
+
+    # 仅初始化确定性组件（无 LLM 富化层）
+    try:
+        from histrategy.engine.game import GameEngine
+
+        engine = GameEngine(scenario=room.scenario, new_game=True, llm=llm)
+        engine.world_state_v2 = ws
+        engine._use_v2 = True
+        turn_controller = getattr(engine, "turn_controller", None)
+        intent_parser = getattr(engine, "intent_parser", None)
+    except Exception as e:
+        logger.warning(f"GameEngine init for V2 failed: {e}, using bare resolver")
+        turn_controller = None
+        intent_parser = None
+
+    resolver = QuarterlyResolver(
+        intent_parser=intent_parser,
+        turn_controller=turn_controller,
+        # 不传入 macro_policy_engine / narrative_engine → 纯确定性
+    )
+    result = resolver.resolve(room, ws, decisions, llm=llm)
+
+    # 写入 DB
+    _save_v3_state_to_db(room, ws, decisions, result, old_state)
+
+    return result
+
+
 def _resolve_v3(room, ws, decisions, llm):
-    """V3 引擎：完整初始化的 QuarterlyResolver。"""
+    """V3 引擎：完整初始化的 QuarterlyResolver（合并旧 V3+Macro）。
+
+    包含：V2 确定性基线 + MacroPolicyEngine LLM 非线性层
+    + BlackSwanInjector + GuardrailValidator + NarrativeEngine。
+    """
 
     from histrategy.engine.quarterly_resolver import QuarterlyResolver
 
