@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 
 from histrategy_engine.world import (
     Army,
@@ -44,310 +45,99 @@ def resolve_knowledge_path() -> str:
     raise FileNotFoundError("Cannot locate histrategy-knowledge/")
 
 
-def load_territories(knowledge_path: str | None = None) -> dict[str, Territory]:
-    """Load territory data from knowledge base.
+def _find_scenarios_root() -> Path:
+    """Find the scenarios/ directory relative to the project root."""
+    loader_dir = Path(__file__).resolve().parent
+    candidates = [
+        loader_dir.parent / "scenarios",
+        loader_dir.parent.parent / "scenarios",
+    ]
+    for p in candidates:
+        if p.is_dir():
+            return p
+    raise FileNotFoundError("Cannot locate scenarios/")
 
-    Bypasses province-level geography file to return city-level territories
-    essential for the 207 scenario.
+
+def _territory_from_json(td: dict) -> Territory:
+    """Build a Territory from a JSON dict, supporting both TK and Caesar field names."""
+    terrain_str = td.get("terrain", "plains")
+    terrain = TERRAIN_MAP.get(terrain_str, TerrainType.PLAINS)
+
+    # Support both `population`/`development` (TK) and `base_population`/`base_development` (Caesar)
+    population = td.get("population", td.get("base_population", 50000))
+    development = td.get("development", td.get("base_development", 30))
+    climate_zone = td.get("climate_zone", td.get("region", "central"))
+
+    return Territory(
+        id=td["id"],
+        name=td["name"],
+        owner_id=td.get("owner_id", ""),
+        fertility=td.get("fertility", 5),
+        terrain_type=terrain,
+        climate_zone=climate_zone,
+        has_river=td.get("has_river", False),
+        has_coast=td.get("has_coast", td.get("has_port", False)),
+        horse_resource=td.get("horse_resource", False),
+        iron_resource=td.get("iron_resource", False),
+        salt_resource=td.get("salt_resource", False),
+        neighbors=td.get("neighbors", []),
+        population=population,
+        development=development,
+    )
+
+
+def load_territories(
+    scenario_id: str = "three-kingdoms",
+    knowledge_path: str | None = None,
+) -> dict[str, Territory]:
+    """Load territory data from scenarios/{scenario_id}/knowledge/territories.json.
+
+    Args:
+        scenario_id: Scenario directory name (e.g. "three-kingdoms", "caesar-44bc").
+        knowledge_path: Deprecated fallback; ignored unless the scenarios/ file is missing.
+
+    Returns:
+        Dict of territory_id -> Territory objects.
     """
-    return _default_territories()
+    # Primary path: scenarios/{scenario_id}/knowledge/territories.json
+    try:
+        scenarios_root = _find_scenarios_root()
+    except FileNotFoundError:
+        scenarios_root = None
 
+    territory_path = None
+    if scenarios_root:
+        candidate = scenarios_root / scenario_id / "knowledge" / "territories.json"
+        if candidate.is_file():
+            territory_path = candidate
 
-def _default_territories() -> dict[str, Territory]:
-    """Complete city-level territory set for 207 scenario."""
-    return {
-        "xinye": Territory(
-            id="xinye",
-            name="新野",
-            owner_id="shu",
-            fertility=6,
-            terrain_type=TerrainType.PLAINS,
-            climate_zone="central",
-            population=30000,
-            development=25,
-            neighbors=["xiangyang", "wancheng"],
-        ),
-        "xiangyang": Territory(
-            id="xiangyang",
-            name="襄阳",
-            owner_id="liubiao",
-            fertility=8,
-            terrain_type=TerrainType.PLAINS,
-            climate_zone="central",
-            has_river=True,
-            population=80000,
-            development=55,
-            neighbors=["xinye", "jiangling", "wancheng", "changsha", "jiangkou"],
-        ),
-        "wancheng": Territory(
-            id="wancheng",
-            name="宛城",
-            owner_id="cao",
-            fertility=7,
-            terrain_type=TerrainType.PLAINS,
-            climate_zone="central",
-            population=50000,
-            development=45,
-            neighbors=["xinye", "xiangyang", "xuchang"],
-        ),
-        "xuchang": Territory(
-            id="xuchang",
-            name="许昌",
-            owner_id="cao",
-            fertility=7,
-            terrain_type=TerrainType.PLAINS,
-            climate_zone="central",
-            population=100000,
-            development=70,
-            neighbors=["wancheng", "luoyang", "puyang", "xiapi"],
-        ),
-        "luoyang": Territory(
-            id="luoyang",
-            name="洛阳",
-            owner_id="cao",
-            fertility=7,
-            terrain_type=TerrainType.PLAINS,
-            climate_zone="north",
-            population=80000,
-            development=60,
-            neighbors=["xuchang", "ye", "hanshui"],
-        ),
-        "ye": Territory(
-            id="ye",
-            name="邺城",
-            owner_id="cao",
-            fertility=8,
-            terrain_type=TerrainType.PLAINS,
-            climate_zone="north",
-            population=120000,
-            development=75,
-            neighbors=["luoyang", "ji", "puyang", "changshan"],
-        ),
-        "jiangling": Territory(
-            id="jiangling",
-            name="江陵",
-            owner_id="liubiao",
-            fertility=8,
-            terrain_type=TerrainType.PLAINS,
-            climate_zone="central",
-            has_river=True,
-            population=60000,
-            development=50,
-            neighbors=["xiangyang", "jiangkou", "nanjun", "jiangzhou"],
-        ),
-        "jiangkou": Territory(
-            id="jiangkou",
-            name="江口",
-            owner_id="liubiao",
-            fertility=5,
-            terrain_type=TerrainType.RIVER,
-            climate_zone="central",
-            has_river=True,
-            population=15000,
-            development=20,
-            neighbors=["xiangyang", "jiangling", "chaisang"],
-        ),
-        "jianye": Territory(
-            id="jianye",
-            name="建业",
-            owner_id="wu",
-            fertility=7,
-            terrain_type=TerrainType.PLAINS,
-            climate_zone="south",
-            has_river=True,
-            has_coast=True,
-            population=70000,
-            development=55,
-            neighbors=["wu", "chaisang", "lujiang", "danyang"],
-        ),
-        "wu": Territory(
-            id="wu",
-            name="吴郡",
-            owner_id="wu",
-            fertility=7,
-            terrain_type=TerrainType.PLAINS,
-            climate_zone="south",
-            has_coast=True,
-            population=50000,
-            development=45,
-            neighbors=["jianye", "kuaiji"],
-        ),
-        "kuaiji": Territory(
-            id="kuaiji",
-            name="会稽",
-            owner_id="wu",
-            fertility=6,
-            terrain_type=TerrainType.COAST,
-            climate_zone="south",
-            has_coast=True,
-            population=40000,
-            development=35,
-            neighbors=["wu"],
-        ),
-        "chaisang": Territory(
-            id="chaisang",
-            name="柴桑",
-            owner_id="wu",
-            fertility=7,
-            terrain_type=TerrainType.PLAINS,
-            climate_zone="south",
-            has_river=True,
-            population=40000,
-            development=40,
-            neighbors=["jianye", "jiangkou", "lujiang", "yuzhang"],
-        ),
-        # New cities for Cao Cao
-        "ji": Territory(
-            id="ji",
-            name="蓟县",
-            owner_id="cao",
-            fertility=5,
-            terrain_type=TerrainType.PLAINS,
-            climate_zone="north",
-            population=60000,
-            development=40,
-            neighbors=["ye", "changshan"],
-        ),
-        "puyang": Territory(
-            id="puyang",
-            name="濮阳",
-            owner_id="cao",
-            fertility=6,
-            terrain_type=TerrainType.PLAINS,
-            climate_zone="north",
-            population=50000,
-            development=45,
-            neighbors=["ye", "xuchang", "beihai"],
-        ),
-        "beihai": Territory(
-            id="beihai",
-            name="北海",
-            owner_id="cao",
-            fertility=6,
-            terrain_type=TerrainType.PLAINS,
-            climate_zone="north",
-            has_coast=True,
-            population=45000,
-            development=40,
-            neighbors=["puyang", "xiapi"],
-        ),
-        "xiapi": Territory(
-            id="xiapi",
-            name="下邳",
-            owner_id="cao",
-            fertility=7,
-            terrain_type=TerrainType.PLAINS,
-            climate_zone="central",
-            has_coast=True,
-            population=70000,
-            development=50,
-            neighbors=["beihai", "xuchang", "lujiang"],
-        ),
-        "changshan": Territory(
-            id="changshan",
-            name="常山",
-            owner_id="cao",
-            fertility=5,
-            terrain_type=TerrainType.HILLS,
-            climate_zone="north",
-            population=40000,
-            development=30,
-            neighbors=["ye", "ji"],
-        ),
-        # New cities for Wu
-        "lujiang": Territory(
-            id="lujiang",
-            name="庐江",
-            owner_id="wu",
-            fertility=6,
-            terrain_type=TerrainType.PLAINS,
-            climate_zone="south",
-            has_river=True,
-            population=50000,
-            development=40,
-            neighbors=["jianye", "chaisang", "danyang", "xiapi"],
-        ),
-        "yuzhang": Territory(
-            id="yuzhang",
-            name="豫章",
-            owner_id="wu",
-            fertility=6,
-            terrain_type=TerrainType.HILLS,
-            climate_zone="south",
-            population=45000,
-            development=35,
-            neighbors=["chaisang", "changsha"],
-        ),
-        "danyang": Territory(
-            id="danyang",
-            name="丹阳",
-            owner_id="wu",
-            fertility=6,
-            terrain_type=TerrainType.HILLS,
-            climate_zone="south",
-            population=55000,
-            development=45,
-            neighbors=["jianye", "lujiang"],
-        ),
-        # New cities for Liubiao
-        "changsha": Territory(
-            id="changsha",
-            name="长沙",
-            owner_id="liubiao",
-            fertility=7,
-            terrain_type=TerrainType.PLAINS,
-            climate_zone="south",
-            population=50000,
-            development=40,
-            neighbors=["xiangyang", "yuzhang"],
-        ),
-        # New cities for Liuzhang
-        "chengdu": Territory(
-            id="chengdu",
-            name="成都",
-            owner_id="liuzhang",
-            fertility=8,
-            terrain_type=TerrainType.PLAINS,
-            climate_zone="south",
-            has_river=True,
-            population=100000,
-            development=60,
-            neighbors=["hanshui", "jiangzhou"],
-        ),
-        "hanshui": Territory(
-            id="hanshui",
-            name="汉中",
-            owner_id="liuzhang",
-            fertility=6,
-            terrain_type=TerrainType.MOUNTAIN,
-            climate_zone="central",
-            population=40000,
-            development=35,
-            neighbors=["chengdu", "luoyang"],
-        ),
-        "jiangzhou": Territory(
-            id="jiangzhou",
-            name="江州",
-            owner_id="liuzhang",
-            fertility=6,
-            terrain_type=TerrainType.HILLS,
-            climate_zone="south",
-            population=45000,
-            development=35,
-            neighbors=["chengdu", "jiangling", "nanjun"],
-        ),
-        "nanjun": Territory(
-            id="nanjun",
-            name="南郡",
-            owner_id="liuzhang",
-            fertility=7,
-            terrain_type=TerrainType.PLAINS,
-            climate_zone="south",
-            population=50000,
-            development=45,
-            neighbors=["jiangling", "jiangzhou"],
-        ),
-    }
+    # Fallback: old knowledge_path-based loading
+    if territory_path is None and knowledge_path:
+        candidate = Path(knowledge_path) / "territories.json"
+        if candidate.is_file():
+            territory_path = candidate
+
+    # Last resort: fall back to the three-kingdoms default territories
+    if territory_path is None and scenarios_root and scenario_id != "three-kingdoms":
+        territory_path = scenarios_root / "three-kingdoms" / "knowledge" / "territories.json"
+        if not territory_path.is_file():
+            territory_path = None
+
+    if territory_path is None:
+        raise FileNotFoundError(
+            f"Cannot find territories.json for scenario '{scenario_id}' "
+            f"in scenarios/ or knowledge_path"
+        )
+
+    with open(territory_path, encoding="utf-8") as f:
+        data = json.load(f)
+
+    territories: dict[str, Territory] = {}
+    for td in data:
+        t = _territory_from_json(td)
+        territories[t.id] = t
+
+    return territories
 
 
 def load_characters(knowledge_path: str | None = None) -> dict[str, Character]:
@@ -577,7 +367,7 @@ def build_world_state(
         knowledge_path = resolve_knowledge_path()
 
     # Load base territory and character data
-    territories = load_territories(knowledge_path)
+    territories = load_territories(scenario_id=scenario_id, knowledge_path=knowledge_path)
     characters = load_characters(knowledge_path)
 
     # Load scenario data for faction configurations
