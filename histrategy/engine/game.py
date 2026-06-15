@@ -747,13 +747,23 @@ class GameEngine:
             self._set_player_faction_v1(faction_id)
 
     def _set_player_faction_v2(self, faction_id: str) -> None:
-        """v2 path: build WorldState from knowledge data."""
-        from .loader import build_world_state
+        """v2 path: build WorldState from scenario data via ScenarioLoader."""
+        from .loader import _normalise_scenario_id
+        from .scenario_loader import ScenarioLoader
 
         mapped = V2_FACTION_MAP.get(faction_id, faction_id)
-        scenario_id = "207"
+        scenario_id = _normalise_scenario_id(self.scenario)
 
-        self.world_state_v2 = build_world_state(mapped, scenario_id, self._knowledge_path)
+        loader = ScenarioLoader(scenario_id)
+        try:
+            self.world_state_v2 = loader.build_world_state(mapped)
+        except FileNotFoundError:
+            # Fall back to legacy loader for scenarios without scenario.toml
+            from .loader import build_world_state
+            self.world_state_v2 = build_world_state(mapped, scenario_id, self._knowledge_path)
+
+        # Cache the loader for later use (prompts, format_year, etc.)
+        self.scenario_loader = loader
 
         # Load territories and characters into engines
         self.map_engine.load_territories(self.world_state_v2.territories)

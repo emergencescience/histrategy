@@ -2,12 +2,18 @@
 Knowledge data loader for v2 engine integration.
 
 Maps histrategy-knowledge/ JSON data to histrategy_engine.world dataclasses.
+
+.. deprecated::
+    Prefer :class:`histrategy.engine.scenario_loader.ScenarioLoader` for new code.
+    The module-level functions are kept for backward compatibility and delegate
+    to ScenarioLoader internally.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import warnings
 from pathlib import Path
 
 from histrategy_engine.world import (
@@ -20,6 +26,22 @@ from histrategy_engine.world import (
     UnitType,
     WorldState,
 )
+
+# ─── scenario ID mapping ────────────────────────────────────────────────────
+# Legacy code uses short numeric IDs ("207"); the scenarios/ directory uses
+# human-readable directory names ("three-kingdoms").
+
+_SCENARIO_ID_MAP: dict[str, str] = {
+    "207": "three-kingdoms",
+    "three-kingdoms": "three-kingdoms",
+    "caesar-44bc": "caesar-44bc",
+    "44bc": "caesar-44bc",
+}
+
+
+def _normalise_scenario_id(scenario_id: str) -> str:
+    """Map legacy scenario IDs to directory names."""
+    return _SCENARIO_ID_MAP.get(scenario_id, scenario_id)
 
 TERRAIN_MAP: dict[str, TerrainType] = {
     "plains": TerrainType.PLAINS,
@@ -92,6 +114,8 @@ def load_territories(
 ) -> dict[str, Territory]:
     """Load territory data from scenarios/{scenario_id}/knowledge/territories.json.
 
+    Delegates to :class:`~histrategy.engine.scenario_loader.ScenarioLoader`.
+
     Args:
         scenario_id: Scenario directory name (e.g. "three-kingdoms", "caesar-44bc").
         knowledge_path: Deprecated fallback; ignored unless the scenarios/ file is missing.
@@ -99,7 +123,17 @@ def load_territories(
     Returns:
         Dict of territory_id -> Territory objects.
     """
-    # Primary path: scenarios/{scenario_id}/knowledge/territories.json
+    from .scenario_loader import ScenarioLoader
+
+    normalised = _normalise_scenario_id(scenario_id)
+    loader = ScenarioLoader(normalised)
+
+    try:
+        return loader.load_territories()
+    except FileNotFoundError:
+        pass
+
+    # ── fully-inline legacy fallback ────────────────────────────────────
     try:
         scenarios_root = _find_scenarios_root()
     except FileNotFoundError:
@@ -107,18 +141,16 @@ def load_territories(
 
     territory_path = None
     if scenarios_root:
-        candidate = scenarios_root / scenario_id / "knowledge" / "territories.json"
+        candidate = scenarios_root / normalised / "knowledge" / "territories.json"
         if candidate.is_file():
             territory_path = candidate
 
-    # Fallback: old knowledge_path-based loading
     if territory_path is None and knowledge_path:
         candidate = Path(knowledge_path) / "territories.json"
         if candidate.is_file():
             territory_path = candidate
 
-    # Last resort: fall back to the three-kingdoms default territories
-    if territory_path is None and scenarios_root and scenario_id != "three-kingdoms":
+    if territory_path is None and scenarios_root and normalised != "three-kingdoms":
         territory_path = scenarios_root / "three-kingdoms" / "knowledge" / "territories.json"
         if not territory_path.is_file():
             territory_path = None
@@ -355,22 +387,37 @@ def build_world_state(
 ) -> WorldState:
     """Build a complete WorldState for a new game.
 
+    Delegates to :class:`~histrategy.engine.scenario_loader.ScenarioLoader`
+    for all data loading.  The ``knowledge_path`` argument is kept for backward
+    compatibility but is only used as a fallback when the scenario does not yet
+    have its own data files.
+
     Args:
         player_faction_id: The faction the player controls ("shu", "cao", "wu")
-        scenario_id: Scenario identifier ("207")
-        knowledge_path: Path to histrategy-knowledge/
+        scenario_id: Scenario identifier ("207" or "three-kingdoms")
+        knowledge_path: Deprecated; path to histrategy-knowledge/
 
     Returns:
         Fully initialized WorldState ready for engine use.
     """
+    from .scenario_loader import ScenarioLoader
+
+    normalised = _normalise_scenario_id(scenario_id)
+    loader = ScenarioLoader(normalised)
+
+    try:
+        return loader.build_world_state(player_faction_id)
+    except FileNotFoundError:
+        # If the scenario loader can't find data, fall back to the
+        # fully-inline legacy path below.
+        pass
+
+    # ── fully-inline legacy fallback (kept for histrategy-knowledge/ only) ──
     if knowledge_path is None:
         knowledge_path = resolve_knowledge_path()
 
-    # Load base territory and character data
-    territories = load_territories(scenario_id=scenario_id, knowledge_path=knowledge_path)
+    territories = load_territories(scenario_id=normalised, knowledge_path=knowledge_path)
     characters = load_characters(knowledge_path)
-
-    # Load scenario data for faction configurations
     scenario = load_scenario(scenario_id, knowledge_path)
 
     # Override territory attributes from scenario if defined
@@ -391,7 +438,6 @@ def build_world_state(
                 if "fertility" in td:
                     t.fertility = td["fertility"]
 
-    # Determine season
     season = Season.SPRING
     if scenario:
         season_str = scenario.get("season", "winter")
@@ -403,7 +449,6 @@ def build_world_state(
         }
         season = season_map.get(season_str, Season.WINTER)
 
-    # Build factions
     factions: dict[str, FactionState] = {}
     if scenario and "factions" in scenario:
         for fid, fd in scenario["factions"].items():
@@ -438,27 +483,22 @@ def build_world_state(
                 mercy=personality.get("mercy", 0.5),
             )
     else:
-        # Fallback to default faction configs
         factions = _default_factions()
 
-    # Assign territory ownership from faction data
     for fid, faction in factions.items():
         for tid in faction.territories:
             if tid in territories:
                 territories[tid].owner_id = fid
 
-    # Assign character faction from roster
     for _cid, char in characters.items():
         if char.faction_id and char.faction_id in factions:
-            pass  # Already has correct faction_id
+            pass
 
-    # Create initial armies
     armies: dict[str, Army] = {}
     army_idx = 1
     for fid, faction in factions.items():
         if not faction.is_active or not faction.territories:
             continue
-        # Create an army at the capital
         capital = faction.capital or faction.territories[0]
         army_id = f"army_{fid}_{army_idx}"
         armies[army_id] = Army(
