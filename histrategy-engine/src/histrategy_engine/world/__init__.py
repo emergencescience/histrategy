@@ -505,3 +505,11 @@ def _worldstate_from_dict(self, data: dict) -> None:
 
 
 WorldState.from_dict = _worldstate_from_dict  # type: ignore[attr-defined]
+
+
+def _worldstate_get_player_faction(self) -> "FactionState | None":
+    """Backward-compat: return the player's faction."""
+    return self.factions.get(self.player_faction_id)
+
+
+WorldState.get_player_faction = _worldstate_get_player_faction  # type: ignore[attr-defined]

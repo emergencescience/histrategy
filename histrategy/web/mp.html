@@ -3,13 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>三國志略 · 多人对战</title>
+<title>Histrategy · Multiplayer</title>
 <style>
 :root {
   --bg: #1a1a2e; --panel: #16213e; --border: #0f3460;
   --gold: #d4a574; --text: #e0d6c2; --muted: #8a8a8a;
-  --cao: #4a90d9; --shu: #5cb85c; --wu: #d9534f;
   --btn: #0f3460; --btn-hover: #1a5276;
+  /* Default faction colours — overridden dynamically */
+  --f0: #4a90d9; --f1: #5cb85c; --f2: #d9534f; --f3: #f0ad4e;
+  --f4: #8e44ad; --f5: #1abc9c; --f6: #e74c3c; --f7: #3498db;
 }
 * { box-sizing:border-box; margin:0; padding:0; }
 body { background:var(--bg); color:var(--text); font-family:"Noto Serif SC","SimSun",serif; min-height:100vh; }
@@ -21,50 +23,32 @@ h2 { font-size:1.1em; color:var(--gold); margin:12px 0 8px; }
 .container { max-width:800px; margin:0 auto; padding:16px; }
 .panel { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:16px; }
 input, textarea, button { font-family:inherit; font-size:0.95em; }
-input, textarea { width:100%; padding:10px; background:#1a1a2e; border:1px solid var(--border); color:var(--text); border-radius:6px; margin:6px 0; }
+input, textarea, select { width:100%; padding:10px; background:#1a1a2e; border:1px solid var(--border); color:var(--text); border-radius:6px; margin:6px 0; }
 textarea { resize:vertical; min-height:60px; }
+select { cursor:pointer; }
 .btn { display:inline-block; padding:10px 20px; background:var(--btn); color:var(--gold); border:1px solid var(--border); border-radius:6px; cursor:pointer; margin:4px; }
 .btn:hover { background:var(--btn-hover); }
 .btn.primary { background:#2d6a4f; font-size:1.05em; }
 .btn:disabled { opacity:0.4; cursor:not-allowed; }
 
-/* 势力选择 toggle 按钮 */
 .faction-toggle { display:inline-block; padding:10px 20px; margin:4px; border-radius:6px; cursor:pointer;
   background:transparent; font-size:0.95em; border:2px solid var(--border); color:var(--muted);
   transition:all 0.2s; }
-.faction-toggle.cao { border-color:var(--cao); }
-.faction-toggle.shu { border-color:var(--shu); }
-.faction-toggle.wu  { border-color:var(--wu); }
-.faction-toggle.other { border-color:var(--muted); }
-.faction-toggle.on.cao { background:var(--cao); color:#fff; border-color:var(--cao); }
-.faction-toggle.on.shu { background:var(--shu); color:#fff; border-color:var(--shu); }
-.faction-toggle.on.wu  { background:var(--wu); color:#fff; border-color:var(--wu); }
-.faction-toggle.on.other { background:var(--gold); color:#1a1a2e; border-color:var(--gold); }
+.faction-toggle.on { color:#fff; }
+.faction-badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:0.85em; margin:0 4px; color:#fff; }
 
-/* 玩家进入链接 */
 .player-link { display:block; padding:8px 12px; margin:6px 0; background:rgba(255,255,255,0.05); border-radius:6px;
   border-left:3px solid var(--gold); }
 .player-link code { color:var(--gold); font-size:0.9em; word-break:break-all; }
 .player-link .copy-btn { float:right; background:var(--btn); color:var(--text); border:none; padding:4px 10px;
   border-radius:4px; cursor:pointer; font-size:0.8em; }
-.player-link .faction-tag { display:inline-block; padding:2px 8px; border-radius:3px; font-size:0.8em;
-  margin-right:8px; font-weight:bold; }
-.faction-tag.cao { background:var(--cao); color:#fff; }
-.faction-tag.shu { background:var(--shu); color:#fff; }
-.faction-tag.wu  { background:var(--wu); color:#fff; }
 
-/* 游戏界面 */
 .narrative-box { max-height:400px; overflow-y:auto; padding:12px; background:rgba(0,0,0,0.2); border-radius:6px; line-height:1.7; }
 #status-bar { text-align:center; padding:8px; font-size:0.9em; color:var(--muted); }
 .ready { color:#5cb85c; }
 .waiting { color:#d4a574; }
 .hidden { display:none; }
-.faction-badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:0.85em; margin:0 4px; }
-.faction-badge.cao { background:var(--cao); color:#fff; }
-.faction-badge.shu { background:var(--shu); color:#fff; }
-.faction-badge.wu  { background:var(--wu); color:#fff; }
 
-/* Turn history blocks */
 .turn-block { margin-bottom: 12px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 6px; border-left: 3px solid var(--border); }
 .turn-header { font-size: 0.85em; color: var(--gold); margin-bottom: 6px; font-weight: bold; }
 .turn-narrative { line-height: 1.7; margin-bottom: 6px; }
@@ -74,15 +58,20 @@ textarea { resize:vertical; min-height:60px; }
 <body>
 <div class="container">
 <div class="mp-header">
-  <img src="/images/histrategy-logo-scroll.svg" alt="三國志略" class="mp-logo">
-  <h1>三國志略 · 多人对战</h1>
+  <img src="/images/histrategy-logo-scroll.svg" alt="Histrategy" class="mp-logo">
+  <h1 id="page-title">Histrategy · Multiplayer</h1>
 </div>
 <div id="top-bar"></div>
 
 <!-- Screen 1: Create or Join -->
 <div id="home-panel" class="panel">
   <h2>🏯 开始游戏</h2>
-  <p style="color:var(--muted); margin-bottom:16px">房主创建房间，其他人通过链接加入。不需要注册，不需要账号。</p>
+
+  <!-- Scenario picker -->
+  <div style="margin-bottom:12px">
+    <label style="color:var(--gold); font-size:0.9em">场景:</label>
+    <select id="scenario-select" onchange="onScenarioChange()" style="width:auto; min-width:200px"></select>
+  </div>
 
   <!-- Create Room -->
   <h3>▸ 创建房间（房主）</h3>
@@ -96,17 +85,13 @@ textarea { resize:vertical; min-height:60px; }
     <p style="font-size:0.85em; color:var(--muted)">粘贴房主分享的链接，或手动输入房间号和势力：</p>
     <input id="join-room-id" placeholder="房间 ID（从链接中复制）">
     <div style="display:flex; gap:8px; margin-top:8px">
-      <select id="join-faction" style="flex:1; padding:10px; background:#1a1a2e; border:1px solid var(--border); color:var(--text); border-radius:6px">
-        <option value="caocao">曹操军 (魏)</option>
-        <option value="liubei">刘备军 (蜀)</option>
-        <option value="sunquan">孙权军 (吴)</option>
-      </select>
+      <select id="join-faction" style="flex:1"><option value="">加载中...</option></select>
       <button class="btn primary" onclick="doJoinRoom()">进入</button>
     </div>
   </div>
 </div>
 
-<!-- Screen 2: Room created — show player links, game already started -->
+<!-- Screen 2: Room created -->
 <div id="room-created-panel" class="panel hidden">
   <h2>✅ 游戏已开始</h2>
   <p style="color:var(--muted); margin-bottom:12px">AI NPC 已在运筹帷幄。把下面的链接发给其他玩家：</p>
@@ -131,13 +116,15 @@ textarea { resize:vertical; min-height:60px; }
 </div>
 
 <script>
-// API prefix: empty for direct histrategy access, "/games/histrategy" behind orchestrator proxy
+// ── State ──────────────────────
 const API = new URLSearchParams(location.search).get('api_prefix') || '';
 let roomId = '';
 let myUserId = 'u_' + Math.random().toString(36).slice(2,10);
 let myFaction = '';
 let myRole = '';
 let pollTimer = null;
+let scenarios = [];         // from /api/scenarios
+let currentScenario = null; // selected scenario object
 
 // ── Utils ──────────────────────
 async function api(method, path, body) {
@@ -150,30 +137,50 @@ function show(id) { document.getElementById(id).classList.remove('hidden'); }
 function hide(id) { document.getElementById(id).classList.add('hidden'); }
 function el(id) { return document.getElementById(id); }
 
-// Read room, faction from URL (for player joining via link)
-function parseURL() {
-  const p = new URLSearchParams(location.search);
-  return { room: p.get('room') || '', faction: p.get('faction') || '' };
+// ── Colour helpers ─────────────
+const PALETTE = ['#4a90d9','#5cb85c','#d9534f','#f0ad4e','#8e44ad','#1abc9c','#e74c3c','#3498db'];
+function factionColor(idx) { return PALETTE[idx % PALETTE.length]; }
+
+// ── Year formatting ────────────
+function fmtYear(y, epoch) {
+  if (epoch === 'BC' || epoch === 'BCE' || y < 0) {
+    const absY = Math.abs(y < 0 ? y : y);
+    return `公元前${absY}年`;
+  }
+  return `${y || 207}年`;
 }
 
 // ── Init ───────────────────────
-(function init() {
-  // Render faction toggles for room creation
-  const toggles = [
-    {id:'caocao', name:'曹操军 (魏)', css:'cao'},
-    {id:'liubei', name:'刘备军 (蜀)', css:'shu'},
-    {id:'sunquan',  name:'孙权军 (吴)', css:'wu'},
-  ];
-  const FACTION_NAMES = {caocao:'曹操军(魏)', liubei:'刘备军(蜀)', sunquan:'孙权军(吴)'};
-  const div = el('create-faction-toggles');
-  toggles.forEach(t => {
-    const btn = document.createElement('span');
-    btn.className = `faction-toggle ${t.css} ${(t.id==='caocao'||t.id==='liubei'||t.id==='sunquan')?'on':''}`;
-    btn.textContent = t.name;
-    btn.dataset.fid = t.id;
-    btn.onclick = function() { this.classList.toggle('on'); };
-    div.appendChild(btn);
+(async function init() {
+  // Fetch scenario list
+  const r = await api('GET', '/api/scenarios');
+  if (r.ok && r.scenarios) {
+    scenarios = r.scenarios;
+  } else {
+    // Fallback: hardcoded Three Kingdoms
+    scenarios = [{id:'three-kingdoms', name_cn:'三國志略', start_year:207, epoch:'', factions:[
+      {id:'caocao', name_cn:'曹操军(魏)', color:'#4a90d9'},
+      {id:'liubei', name_cn:'刘备军(蜀)', color:'#5cb85c'},
+      {id:'sunquan', name_cn:'孙权军(吴)', color:'#d9534f'}
+    ]}];
+  }
+
+  // Determine scenario from URL or default
+  const urlParams = new URLSearchParams(location.search);
+  const scenFromURL = urlParams.get('scenario') || 'three-kingdoms';
+
+  // Populate scenario dropdown
+  const sel = el('scenario-select');
+  scenarios.forEach((s, i) => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name_cn || s.name || s.id;
+    if (s.id === scenFromURL) opt.selected = true;
+    sel.appendChild(opt);
   });
+
+  // Load initial scenario
+  selectScenario(scenFromURL);
 
   // Auto-join if URL has room + faction
   const { room, faction } = parseURL();
@@ -184,7 +191,79 @@ function parseURL() {
   }
 })();
 
-// ── Create Room (game starts immediately) ──
+function selectScenario(sid) {
+  currentScenario = scenarios.find(s => s.id === sid) || scenarios[0];
+  if (!currentScenario) return;
+
+  // Update page title
+  const name = currentScenario.name_cn || currentScenario.name || sid;
+  const period = currentScenario.period || '';
+  el('page-title').textContent = period ? `${name} · ${period}` : `${name} · Multiplayer`;
+
+  // Render faction toggles
+  renderFactionToggles();
+
+  // Update join faction dropdown
+  renderJoinDropdown();
+}
+
+function onScenarioChange() {
+  selectScenario(el('scenario-select').value);
+}
+
+function renderFactionToggles() {
+  const div = el('create-faction-toggles');
+  div.innerHTML = '';
+  const factions = currentScenario.factions || [];
+  if (factions.length === 0) {
+    div.innerHTML = '<span style="color:var(--muted)">无可用势力</span>';
+    return;
+  }
+  factions.forEach((f, i) => {
+    const color = f.color || factionColor(i);
+    const btn = document.createElement('span');
+    btn.className = 'faction-toggle on';
+    btn.style.borderColor = color;
+    btn.style.background = color;
+    btn.textContent = f.name_cn || f.name || f.id;
+    btn.dataset.fid = f.id;
+    btn.dataset.color = color;
+    btn.onclick = function() {
+      this.classList.toggle('on');
+      if (this.classList.contains('on')) {
+        this.style.background = color;
+        this.style.color = '#fff';
+      } else {
+        this.style.background = 'transparent';
+        this.style.color = 'var(--muted)';
+      }
+    };
+    div.appendChild(btn);
+  });
+}
+
+function renderJoinDropdown() {
+  const sel = el('join-faction');
+  sel.innerHTML = '';
+  const factions = currentScenario.factions || [];
+  factions.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = f.id;
+    opt.textContent = f.name_cn || f.name || f.id;
+    sel.appendChild(opt);
+  });
+  if (factions.length === 0) {
+    sel.innerHTML = '<option value="">无可用势力</option>';
+  }
+}
+
+// Read room, faction from URL
+function parseURL() {
+  const p = new URLSearchParams(location.search);
+  return { room: p.get('room') || '', faction: p.get('faction') || '' };
+}
+
+// ── Create Room ─────────────────
 async function doCreateRoom() {
   const toggles = document.querySelectorAll('.faction-toggle.on');
   const humanFactions = Array.from(toggles).map(t => t.dataset.fid);
@@ -193,50 +272,54 @@ async function doCreateRoom() {
   const r = await api('POST', '/api/rooms', {
     user_id: myUserId,
     human_faction_ids: humanFactions,
+    scenario: currentScenario.id,
   });
   if (!r.ok) { alert(r.error || '创建失败'); return; }
 
   roomId = r.room_id;
   myRole = 'host';
 
-  // Show player links — use server-returned links
   hide('home-panel');
   show('room-created-panel');
   el('top-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · 已开始`;
 
+  // Build faction colour map
+  const factionColors = {};
+  const factionNames = {};
+  (currentScenario.factions || []).forEach((f, i) => {
+    factionColors[f.id] = f.color || factionColor(i);
+    factionNames[f.id] = f.name_cn || f.name || f.id;
+  });
+
   const linksDiv = el('player-links');
   linksDiv.innerHTML = '';
-  const factionNames = {caocao:'曹操军(魏)', liubei:'刘备军(蜀)', sunquan:'孙权军(吴)'};
 
-  // 优先使用服务端返回的 player_links（含 player_token）
   const playerLinks = r.player_links || [];
   if (playerLinks.length > 0) {
     playerLinks.forEach(link => {
       const fid = link.faction;
-      const cssClass = ['caocao','liubei','sunquan'].includes(fid) ? fid : fid;
+      const color = factionColors[fid] || factionColor(0);
       const div = document.createElement('div');
       div.className = 'player-link';
       div.innerHTML = `
-        <span class="faction-tag ${cssClass}">${factionNames[fid] || fid} — ${link.player_name || ''}</span>
+        <span class="faction-badge" style="background:${color}">${factionNames[fid] || fid} — ${link.player_name || ''}</span>
         <code>${link.url}</code>
         <button class="copy-btn" onclick="copyLink(this, '${link.url}')">复制链接</button>`;
       linksDiv.appendChild(div);
     });
   } else {
-    // 旧格式回退：自行构造 URL（无 player_token，兼容旧服务端）
     humanFactions.forEach(fid => {
-      const url = `${location.origin}/mp?room=${roomId}&faction=${fid}`;
+      const color = factionColors[fid] || factionColor(0);
+      const url = `${location.origin}/mp?scenario=${currentScenario.id}&room=${roomId}&faction=${fid}`;
       const div = document.createElement('div');
       div.className = 'player-link';
       div.innerHTML = `
-        <span class="faction-tag ${['caocao','liubei','sunquan'].includes(fid) ? fid : ''}">${factionNames[fid] || fid}</span>
+        <span class="faction-badge" style="background:${color}">${factionNames[fid] || fid}</span>
         <code>${url}</code>
         <button class="copy-btn" onclick="copyLink(this, '${url}')">复制链接</button>`;
       linksDiv.appendChild(div);
     });
   }
-
-  // Stay on link page — Host needs to share links before playing
 }
 
 // ── Join Room ───────────────────
@@ -255,10 +338,19 @@ async function doJoinRoom() {
   myUserId = r.user_id || myUserId;
 
   hide('home-panel');
-  el('top-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · 势力: <span class="faction-badge ${fid}">${fid}</span>`;
-
-  // Game is already started — go straight to game
   hide('room-created-panel');
+
+  // Build faction colour map
+  const factionColors = {};
+  const factionNames = {};
+  (currentScenario.factions || []).forEach((f, i) => {
+    factionColors[f.id] = f.color || factionColor(i);
+    factionNames[f.id] = f.name_cn || f.name || f.id;
+  });
+  const badge = factionNames[fid] || fid;
+  const color = factionColors[fid] || factionColor(0);
+  el('top-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · 势力: <span class="faction-badge" style="background:${color}">${badge}</span>`;
+
   const status = await api('GET', `/api/rooms/${roomId}/status?faction_id=${myFaction}`);
   startGameLoop(status);
 }
@@ -271,7 +363,7 @@ function copyLink(btn, url) {
   });
 }
 
-// ── Game Loop (manual refresh) ──
+// ── Game Loop ───────────────────
 function startGameLoop(initialStatus) {
   show('game-panel');
   updateGameUI(initialStatus);
@@ -284,7 +376,13 @@ async function refreshGame() {
 
 function updateGameUI(s) {
   if (!s.ok) return;
-  el('top-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · ${s.year||207}年${s.season||'春'} · 第${s.quarter||0}季`;
+
+  // Year display — support BC
+  const epoch = currentScenario.epoch || '';
+  const year = s.year || currentScenario.start_year || 207;
+  const season = s.season || '春';
+  const quarter = s.quarter || 0;
+  el('top-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · ${fmtYear(year, epoch)}${season} · 第${quarter}季`;
 
   const phase = s.phase;
   const submitted = s.submitted || [];
@@ -306,14 +404,13 @@ function updateGameUI(s) {
     el('submit-btn').disabled = true;
   }
 
-  // ── Render turn history ──
   const turns = s.turns || [];
   if (turns.length > 0) {
     let html = '';
     for (const t of turns) {
       const factionNarrative = t.narratives[myFaction] || '';
       html += `<div class="turn-block">`;
-      html += `<div class="turn-header">📜 第${t.quarter||'?'}季 · ${t.year||'?'}年${t.season||'?'}</div>`;
+      html += `<div class="turn-header">📜 第${t.quarter||'?'}季 · ${fmtYear(t.year||year, epoch)}${t.season||'?'}</div>`;
       if (factionNarrative) {
         html += `<div class="turn-narrative">${factionNarrative.replace(/\n/g, '<br>')}</div>`;
       }
@@ -324,7 +421,6 @@ function updateGameUI(s) {
     }
     el('narrative').innerHTML = html || '<p style="color:var(--muted)">等待第一回合...</p>';
   } else {
-    // Fallback: single narrative (backward compat)
     if (s.narrative) {
       el('narrative').innerHTML = s.narrative.replace(/\n/g, '<br>');
     }
@@ -344,7 +440,7 @@ async function doDecide() {
   });
   if (r.ok) {
     el('decision-input').value = '';
-    setTimeout(refreshGame, 500);  // refresh after submit
+    setTimeout(refreshGame, 500);
   } else {
     alert(r.error);
     el('submit-btn').disabled = false;

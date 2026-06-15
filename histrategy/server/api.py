@@ -1241,6 +1241,56 @@ def create_app(llm_provider: str | None = None) -> Any:
             language_style=body.get("language_style", "vernacular"),
         )
 
+    @app.get("/api/scenarios")
+    def api_list_scenarios():
+        """列出所有可用场景，含势力列表。"""
+        from histrategy.engine.scenario_loader import ScenarioLoader
+
+        # Known metadata for scenarios without scenario.toml
+        _BUILTIN_META = {
+            "three-kingdoms": {
+                "name": "三國志略", "name_cn": "三國志略",
+                "period": "公元207年 东汉末年", "start_year": 207, "epoch": "",
+            },
+            "shanhe-dingge": {
+                "name": "山河鼎革", "name_cn": "山河鼎革",
+                "period": "公元1644年 明末清初", "start_year": 1644, "epoch": "",
+            },
+        }
+
+        scenarios = []
+        for sid in ScenarioLoader.list_scenarios():
+            loader = ScenarioLoader(sid)
+            cfg = loader._toml
+            meta = cfg.get("meta", {})
+            builtin = _BUILTIN_META.get(sid, {})
+
+            factions_raw = loader.load_factions()
+            faction_list = []
+            for fname, fdata in factions_raw.items():
+                if isinstance(fdata, dict):
+                    faction_list.append({
+                        "id": fname,
+                        "name": fdata.get("name", fname),
+                        "name_cn": fdata.get("name_cn", fdata.get("name", fname)),
+                        "color": fdata.get("color", ""),
+                    })
+                else:
+                    name = getattr(fdata, "name", fname)
+                    faction_list.append({
+                        "id": fname, "name": name, "name_cn": name, "color": "",
+                    })
+            scenarios.append({
+                "id": sid,
+                "name": meta.get("name") or builtin.get("name", sid),
+                "name_cn": meta.get("name_cn") or meta.get("name") or builtin.get("name_cn", builtin.get("name", sid)),
+                "period": meta.get("era") or builtin.get("period", ""),
+                "start_year": meta.get("start_year") or builtin.get("start_year", 0),
+                "epoch": meta.get("epoch") or builtin.get("epoch", ""),
+                "factions": faction_list,
+            })
+        return {"ok": True, "scenarios": scenarios}
+
     @app.get("/mp")
     def serve_multiplayer_page():
         import os as _os

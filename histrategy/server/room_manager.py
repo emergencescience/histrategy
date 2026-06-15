@@ -114,8 +114,20 @@ def create_room(
         else:
             room.slots[fid] = create_open_slot(fid)
 
-    # 未指定的势力 → AI NPC
-    for fid in LLM_NPC_FACTIONS:
+    # 未指定的势力 → AI NPC（从场景数据动态获取，不再硬编码三国势力）
+    try:
+        from histrategy.engine.scenario_loader import ScenarioLoader
+
+        loader = ScenarioLoader(room.scenario)
+        all_factions = loader.load_factions()
+        scenario_faction_ids = set(all_factions.keys())
+        # Major NPCs: all scenario factions not assigned to humans, limited to 8 for performance
+        npc_factions = list(scenario_faction_ids - set(internal_ids))[:8]
+    except Exception:
+        # Fallback to hardcoded defaults
+        npc_factions = list(LLM_NPC_FACTIONS)
+
+    for fid in npc_factions:
         if fid not in room.slots:
             room.slots[fid] = create_ai_slot(fid)
 
@@ -612,7 +624,26 @@ def _init_world_state(room: GameRoom):
 
     humans = [s for s in room.slots.values() if s.is_human()]
     player_faction = humans[0].faction_id if humans else "cao"
+
+    # For non-default scenarios, use ScenarioLoader to pick up
+    # scenario-specific factions and year
+    if room.scenario and room.scenario not in ("207", "three-kingdoms", ""):
+        from histrategy.engine.scenario_loader import ScenarioLoader
+
+        try:
+            loader = ScenarioLoader(room.scenario)
+            room.world_state = loader.build_world_state(player_faction)
+            if room.world_state is not None:
+                room.year = room.world_state.year
+                room.season = str(room.world_state.season.value) if hasattr(room.world_state.season, 'value') else str(room.world_state.season)
+            return
+        except Exception:
+            pass  # Fall through to default
+
     room.world_state = create_initial_world(player_faction)
+    if room.world_state is not None:
+        room.year = room.world_state.year
+        room.season = str(room.world_state.season.value) if hasattr(room.world_state.season, 'value') else str(room.world_state.season)
 
 
 def _save_initial_state_to_db(room: GameRoom):
