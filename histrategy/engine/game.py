@@ -350,7 +350,7 @@ class GameEngine:
                 )
             except Exception:
                 self._macro_llm = llm
-            self._macro_sim = MacroPolicyEngine(self._macro_llm, scenario=self.scenario)
+            self._macro_sim = MacroPolicyEngine(self._macro_llm, scenario=self.scenario, lang=self._scenario_language)
             self._knowledge_base = KnowledgeBase()
 
             # Replace IntentParser with PolicyParser in macro mode

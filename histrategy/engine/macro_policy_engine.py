@@ -31,24 +31,34 @@ _MACRO_SIM_DEFAULT = load_prompt(
     "macro_simulator.md",
     default="你是《三國志略》的太史令（Macro Historical Simulator）。",
 )
-_MACRO_PROMPT_CACHE: dict[str, str] = {}
+_MACRO_PROMPT_CACHE: dict[tuple, str] = {}
 
 
-def _load_macro_prompt(scenario: str | None) -> str:
-    """Load scenario-specific macro simulator prompt with fallback to default."""
+def _load_macro_prompt(scenario: str | None, lang: str = "zh") -> str:
+    """Load scenario-specific macro simulator prompt with language selection."""
     if not scenario or scenario in ("207", "three-kingdoms", ""):
         return _MACRO_SIM_DEFAULT
-    if scenario in _MACRO_PROMPT_CACHE:
-        return _MACRO_PROMPT_CACHE[scenario]
-    candidates = [
-        Path(f"scenarios/{scenario}/prompts/macro_simulator_en.md"),
-        Path(f"scenarios/{scenario}/prompts/macro_simulator_zh-CN.md"),
-        Path(f"scenarios/{scenario}/prompts/macro_simulator.md"),
-    ]
+    cache_key = (scenario, lang)
+    if cache_key in _MACRO_PROMPT_CACHE:
+        return _MACRO_PROMPT_CACHE[cache_key]
+    
+    # Try language-specific prompt first
+    if lang == "en":
+        candidates = [
+            Path(f"scenarios/{scenario}/prompts/macro_simulator_en.md"),
+            Path(f"scenarios/{scenario}/prompts/macro_simulator_zh-CN.md"),
+            Path(f"scenarios/{scenario}/prompts/macro_simulator.md"),
+        ]
+    else:
+        candidates = [
+            Path(f"scenarios/{scenario}/prompts/macro_simulator_zh-CN.md"),
+            Path(f"scenarios/{scenario}/prompts/macro_simulator_en.md"),
+            Path(f"scenarios/{scenario}/prompts/macro_simulator.md"),
+        ]
     for p in candidates:
         if p.is_file():
-            _MACRO_PROMPT_CACHE[scenario] = p.read_text(encoding="utf-8")
-            return _MACRO_PROMPT_CACHE[scenario]
+            _MACRO_PROMPT_CACHE[cache_key] = p.read_text(encoding="utf-8")
+            return _MACRO_PROMPT_CACHE[cache_key]
     return _MACRO_SIM_DEFAULT
 
 OUTPUT_SCHEMA_HINT = """
@@ -129,10 +139,11 @@ OUTPUT_SCHEMA_HINT = """
 class MacroPolicyEngine:
     """LLM-driven quarterly historical simulation."""
 
-    def __init__(self, llm_adapter: LLMAdapter | None = None, scenario: str | None = None):
+    def __init__(self, llm_adapter: LLMAdapter | None = None, scenario: str | None = None, lang: str = "zh"):
         self.llm = llm_adapter
         self.llm_available = llm_adapter is not None and llm_adapter.is_available
         self.scenario = scenario
+        self.lang = lang
 
     def simulate(
         self,
@@ -162,7 +173,7 @@ class MacroPolicyEngine:
             epoch_memory or [],
         )
 
-        system_prompt = _load_macro_prompt(self.scenario)
+        system_prompt = _load_macro_prompt(self.scenario, self.lang)
         messages = [
             {"role": "system", "content": system_prompt + "\n" + OUTPUT_SCHEMA_HINT},
             {"role": "user", "content": context},
