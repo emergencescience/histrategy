@@ -1055,10 +1055,13 @@ def _resolve_v3(room, ws, decisions, llm):
         guardrail_validator=getattr(engine, "guardrail_validator", None),
         state_applier=getattr(engine, "state_applier", None),
     )
-    # Override MacroPolicyEngine language from room metadata
+    # Override language from room metadata on all LLM engines
     if resolver.macro_policy_engine:
         lang = getattr(room, 'metadata', {}).get('lang', 'zh')
         resolver.macro_policy_engine.lang = lang
+    if resolver.narrative_engine:
+        lang = getattr(room, 'metadata', {}).get('lang', 'zh')
+        resolver.narrative_engine.lang = lang
     result = resolver.resolve(room, ws, decisions, llm=llm)
     _save_v3_state_to_db(room, ws, decisions, result, old_state)
     return result

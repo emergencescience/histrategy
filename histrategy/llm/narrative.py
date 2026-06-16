@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
     from .adapter import LLMAdapter
 
-from .prompt_loader import NARRATIVE_SYSTEM, PLAN_SUGGESTIONS_SYSTEM
+from .prompt_loader import NARRATIVE_SYSTEM, NARRATIVE_SYSTEM_EN, PLAN_SUGGESTIONS_SYSTEM
 
 # ─── Knowledge path resolution ──────────────────────────────────
 
@@ -68,6 +68,14 @@ class NarrativeEngine:
     @property
     def is_available(self) -> bool:
         return self.llm_available
+
+    @property
+    def lang(self) -> str:
+        return self._language
+
+    @lang.setter
+    def lang(self, value: str):
+        self._language = value
 
     @property
     def rag_available(self) -> bool:
@@ -161,8 +169,9 @@ class NarrativeEngine:
         if macro_delta:
             lines.append(f"Macro adjustments: {macro_delta}")
 
+        system_prompt = NARRATIVE_SYSTEM_EN if self._language == "en" else NARRATIVE_SYSTEM
         messages = [
-            {"role": "system", "content": NARRATIVE_SYSTEM},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": "\n".join(lines)},
         ]
 
