@@ -51,7 +51,7 @@ def start(faction: str, scenario: str = "207", language_style: str = "vernacular
     display_fid = FACTION_KEY_TO_DISPLAY.get(faction, faction)
 
     # 1. 创建房间：1 个人类（用 pre_assigned）+ AI NPC 自动填充
-    result = create_room(host_user_id="system", pre_assigned={display_fid: "Player"})
+    result = create_room(host_user_id="system", scenario=scenario, pre_assigned={display_fid: "Player"})
 
     if not result.get("ok"):
         return {"ok": False, "error": result.get("error", "创建房间失败")}
@@ -224,10 +224,30 @@ def _get_intro_narrative(faction_id: str, language_style: str) -> str:
             "classical": "建安十二年春，孙权承父兄基业，坐领江东六郡。内有张昭、周瑜等文武之才，外有长江天险，然北有曹操虎视，西有刘表为邻，孙权日夜思量进取之策。",
             "vernacular": "公元207年，孙权继承父兄的基业，统领江东六郡。文有张昭，武有周瑜，更有长江天险作为屏障。但北方的曹操虎视眈眈，西边的刘表也是一大威胁。孙权深知，偏安一隅终非长久之计。",
         },
+        # ── Rome: Ashes of Caesar (44 BC) ──
+        "octavian": {
+            "classical": "公元前44年，尤利乌斯·恺撒在庞培剧院遇刺身亡，罗马共和国陷入空前的权力真空。年仅18岁的屋大维被遗嘱指定为继承人，从阿波罗尼亚渡海返回意大利。他既无军队，也无政治经验，却拥有恺撒之名——这是罗马最锋利的武器。",
+            "vernacular": "公元前44年，恺撒遇刺，罗马陷入混乱。18岁的屋大维突然成了恺撒的继承人。他没有军队，没有盟友，只有一个名字——盖乌斯·尤利乌斯·恺撒·屋大维。整个罗马都在注视着他：这个少年能守住恺撒留下的余烬吗？",
+        },
+        "antony": {
+            "classical": "公元前44年，恺撒遇刺后，其最信任的将军马克·安东尼控制了罗马城。他手握恺撒的军团与财富，却面临元老院的敌意和恺撒继承人的挑战。高卢行省是安东尼最大的筹码——但控制高卢意味着放弃罗马。",
+            "vernacular": "公元前44年，恺撒死了。作为他最信任的将军，安东尼控制了罗马城和恺撒的军团。但麻烦才刚刚开始——元老院恨他，恺撒的继承人屋大维在挑战他的权威，而高卢行省是他最后的底牌。安东尼必须做出选择：留下控制罗马，还是去高卢集结军队？",
+        },
+        "cleopatra": {
+            "classical": "公元前44年，恺撒遇刺的消息传到亚历山大里亚，克利奥帕特拉七世失去了罗马最强的庇护者。作为埃及法老，她控制着罗马最重要的粮仓，却身处一个由罗马男人主导的世界。她必须在恺撒的继承者们之间，找到新的盟友。",
+            "vernacular": "公元前44年，恺撒死了。对克利奥帕特拉来说，这不只是失去一个情人，更是失去罗马最强的保护伞。她是埃及的法老，控制着罗马的粮仓——但在这个由罗马男人主导的世界里，一个女人如何生存？她必须在这场内战中，找到正确的那一方。",
+        },
+        "senate": {
+            "classical": "公元前44年，布鲁图斯和卡西乌斯刺杀了恺撒，高呼'共和国万岁'——却发现罗马人民并不感谢他们。元老院控制着东部行省，但安东尼的军团正在逼近。共和国已垂死，问题是：谁将给它最后一击？",
+            "vernacular": "公元前44年，布鲁图斯和卡西乌斯刺杀了恺撒。他们以为人民会欢呼共和国的重生——但人民只是沉默。元老院控制着东部行省，但安东尼的军团正在逼近。共和国已经垂死，问题只是：谁来做最后的刽子手？",
+        },
     }
 
-    faction_narratives = narratives.get(faction_id, narratives["cao"])
-    return faction_narratives.get(language_style, faction_narratives["vernacular"])
+    faction_narratives = narratives.get(faction_id)
+    if faction_narratives:
+        return faction_narratives.get(language_style, faction_narratives.get("vernacular", ""))
+    # Fallback: generic intro for unknown factions
+    return f"历史进入了关键的时刻。你将以{faction_id}势力的身份，在这乱世中书写自己的篇章。"
 
 
 def _build_faction_status(room: GameRoom, faction_id: str) -> dict:
