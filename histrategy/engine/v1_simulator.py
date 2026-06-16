@@ -77,25 +77,67 @@ def _load_simulator_prompt(scenario: str | None, lang: str = "zh") -> str:
     return _DEFAULT_SYSTEM_PROMPT
 
 
+# ── Bilingual labels for _build_context ────────────────────
+_LABELS = {
+    "zh": {
+        "world_state": "当前世界状态",
+        "cities": "城池",
+        "no_territory": "无领地",
+        "population": "人口",
+        "troops": "兵力",
+        "food": "粮草",
+        "treasury": "库金",
+        "morale": "民心",
+        "tax_rate": "税率",
+        "policies": "政策",
+        "decisions": "本季度决策",
+        "decision": "决策",
+        "structured_commands": "结构化命令",
+        "history": "历史摘要",
+        "diplomacy": "当前外交与特殊状态",
+    },
+    "en": {
+        "world_state": "Current World State",
+        "cities": "Territories",
+        "no_territory": "No territory",
+        "population": "Population",
+        "troops": "Troops",
+        "food": "Food",
+        "treasury": "Treasury",
+        "morale": "Morale",
+        "tax_rate": "Tax Rate",
+        "policies": "Policies",
+        "decisions": "This Quarter's Decisions",
+        "decision": "Decision",
+        "structured_commands": "Structured Commands",
+        "history": "Historical Summary",
+        "diplomacy": "Current Diplomacy & Special Status",
+    },
+}
+
+
 def _build_context(
     ws: WorldState,
     faction_decisions: dict[str, dict],
     turn_memory: list[dict],
+    lang: str = "zh",
 ) -> str:
-    """构建 V1 仿真上下文。
+    """Build V1 simulation context.
 
-    将世界状态和所有势力决策打包为 LLM 可理解的文本。
-    不做战争迷雾 — 所有信息公开。
+    Packs world state and all faction decisions into LLM-readable text.
+    No fog of war — all information is public.
     """
+    L = _LABELS.get(lang, _LABELS["zh"])
     parts: list[str] = []
 
-    # 1. 当前世界状态
-    parts.append("## 当前世界状态\n")
+    # 1. Current world state
+    parts.append(f"## {L['world_state']}\n")
     for fid, faction in ws.factions.items():
         if not faction.is_active:
             continue
         territories_str = (
-            "、".join([ws.territories[tid].name for tid in faction.territories if tid in ws.territories]) or "无领地"
+            "、".join([ws.territories[tid].name for tid in faction.territories if tid in ws.territories])
+            or L["no_territory"]
         )
         # Compute total population from territories (H15e fix: FactionState has no population field)
         computed_population = getattr(faction, 'population', 0)
@@ -107,63 +149,87 @@ def _build_context(
             )
         parts.append(
             f"### {faction.name} ({fid})\n"
-            f"- 城池: {territories_str}\n"
-            f"- 人口: {computed_population}\n"
-            f"- 兵力: {getattr(faction, 'strength_actual', 0)}\n"
-            f"- 粮草: {faction.food}\n"
-            f"- 库金: {faction.treasury}\n"
-            f"- 民心: {getattr(faction, 'morale_actual', 50)}\n"
-            f"- 税率: {int(getattr(faction, 'tax_rate', 0.3) * 100)}%\n"
+            f"- {L['cities']}: {territories_str}\n"
+            f"- {L['population']}: {computed_population}\n"
+            f"- {L['troops']}: {getattr(faction, 'strength_actual', 0)}\n"
+            f"- {L['food']}: {faction.food}\n"
+            f"- {L['treasury']}: {faction.treasury}\n"
+            f"- {L['morale']}: {getattr(faction, 'morale_actual', 50)}\n"
+            f"- {L['tax_rate']}: {int(getattr(faction, 'tax_rate', 0.3) * 100)}%\n"
         )
-        # 当前生效的政策
+        # Current active policies
         policies = getattr(faction, "policies", {})
         if policies:
-            policy_lines = [f"- 政策: {json.dumps(policies, ensure_ascii=False)}"]
+            policy_lines = [f"- {L['policies']}: {json.dumps(policies, ensure_ascii=False)}"]
             parts.append("\n".join(policy_lines))
 
-    # 2. 各势力决策
-    parts.append("\n## 本季度决策\n")
+    # 2. Faction decisions
+    parts.append(f"\n## {L['decisions']}\n")
     for fid, decision_info in faction_decisions.items():
         faction = ws.factions.get(fid)
         name = faction.name if faction else fid
         decision_text = decision_info.get("decision", "") if isinstance(decision_info, dict) else str(decision_info)
         commands = decision_info.get("commands", []) if isinstance(decision_info, dict) else []
 
-        parts.append(f"### {name} ({fid})\n决策: {decision_text}")
+        parts.append(f"### {name} ({fid})\n{L['decision']}: {decision_text}")
         if commands:
-            parts.append("结构化命令: " + json.dumps(commands, ensure_ascii=False))
+            parts.append(f"{L['structured_commands']}: " + json.dumps(commands, ensure_ascii=False))
 
-    # 3. 回合记忆（最近几轮摘要）
+    # 3. Turn memory (recent round summaries)
     if turn_memory:
-        parts.append("\n## 历史摘要\n")
+        parts.append(f"\n## {L['history']}\n")
         for i, summary in enumerate(turn_memory[-4:]):
             parts.append(f"Q{summary.get('quarter', i + 1)}: {json.dumps(summary, ensure_ascii=False)}")
 
-    # 4. 外交/特殊状态检测（结构化状态注入，避免 LLM 遗忘投降/附庸等事件）
-    diplomatic_notes = _build_diplomatic_context(ws)
+    # 4. Diplomatic/special status detection
+    diplomatic_notes = _build_diplomatic_context(ws, lang)
     if diplomatic_notes:
-        parts.append("\n## 当前外交与特殊状态\n")
+        parts.append(f"\n## {L['diplomacy']}\n")
         parts.append(diplomatic_notes)
 
     return "\n".join(parts)
 
 
-def _build_diplomatic_context(ws: WorldState) -> str:
-    """检测外交/特殊状态并生成结构化上下文注入到 V1 prompt。
+# ── Bilingual diplomatic labels ─────────────────────────────
+_DIP_LABELS = {
+    "zh": {
+        "destroyed": "已灭亡",
+        "lost_territory": "已失去所有领地，目前依附于",
+        "exile": "已失去所有领地，流亡状态（兵力",
+        "vassal": "实力远逊于",
+        "de_facto_vassal": "），实质附庸",
+        "troops_vs": "兵力",
+        "vs": "vs",
+    },
+    "en": {
+        "destroyed": "DESTROYED",
+        "lost_territory": "Lost all territories, now a client of",
+        "exile": "Lost all territories, in exile (troops:",
+        "vassal": "Far weaker than",
+        "de_facto_vassal": "), de facto vassal",
+        "troops_vs": "Troops",
+        "vs": "vs",
+    },
+}
 
-    检测规则（确定性，不依赖 LLM）：
-    - 势力领土=0 且 is_active=True → 已投降/附庸（需推断宗主）
-    - 势力 is_active=False → 已灭亡
+
+def _build_diplomatic_context(ws: WorldState, lang: str = "zh") -> str:
+    """Detect diplomatic/special status and generate structured context for V1 prompt.
+
+    Detection rules (deterministic, not LLM-dependent):
+    - Faction territories=0 and is_active=True -> surrendered/vassal (infer overlord)
+    - Faction is_active=False -> destroyed
     """
+    L = _DIP_LABELS.get(lang, _DIP_LABELS["zh"])
     lines: list[str] = []
     for fid, faction in ws.factions.items():
         if not faction.is_active:
-            lines.append(f"- {faction.name} ({fid}): 💀 已灭亡")
+            lines.append(f"- {faction.name} ({fid}): 💀 {L['destroyed']}")
             continue
         has_territory = bool(getattr(faction, "territories", []))
         troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
         if not has_territory:
-            # 推断宗主：谁控制了该势力原来的领土
+            # Infer overlord: who controls this faction's former territories
             overlord = None
             for other_fid, other_f in ws.factions.items():
                 if other_fid == fid:
@@ -173,17 +239,20 @@ def _build_diplomatic_context(ws: WorldState) -> str:
                     overlord = other_f.name
                     break
             if overlord:
-                lines.append(f"- {faction.name} ({fid}): ⚠️ 已失去所有领地，目前依附于 {overlord}")
+                lines.append(f"- {faction.name} ({fid}): ⚠️ {L['lost_territory']} {overlord}")
             else:
-                lines.append(f"- {faction.name} ({fid}): ⚠️ 已失去所有领地，流亡状态（兵力 {troops}）")
-        # 检测实力悬殊（可能已经是附庸）
+                lines.append(f"- {faction.name} ({fid}): ⚠️ {L['exile']} {troops})")
+        # Detect extreme power imbalance (likely de facto vassal)
         elif troops < 1000:
             for other_fid, other_f in ws.factions.items():
                 if other_fid == fid:
                     continue
                 other_troops = getattr(other_f, "strength_actual", 0) or getattr(other_f, "strength", 0) or 0
                 if other_troops > troops * 10 and getattr(other_f, "territories", []):
-                    lines.append(f"- {faction.name} ({fid}): 实力远逊于 {other_f.name}（兵力 {troops} vs {other_troops}），实质附庸")
+                    lines.append(
+                        f"- {faction.name} ({fid}): {L['vassal']} {other_f.name} "
+                        f"({L['troops_vs']} {troops} {L['vs']} {other_troops}{L['de_facto_vassal']}"
+                    )
                     break
     return "\n".join(lines) if lines else ""
 
@@ -238,7 +307,7 @@ class V1Simulator:
         if not self.is_available:
             return self._fallback(ws, faction_decisions, lang)
 
-        context = _build_context(ws, faction_decisions, turn_memory or [])
+        context = _build_context(ws, faction_decisions, turn_memory or [], lang=lang)
         system_prompt = _load_simulator_prompt(scenario, lang)
 
         messages = [
