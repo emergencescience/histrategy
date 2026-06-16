@@ -77,6 +77,7 @@ def collect_all_decisions(
     llm: LLMAdapter | None = None,
     turn_memory: list[dict] | None = None,
     timeout: int = DEFAULT_DECISION_TIMEOUT,
+    lang: str = "zh",
 ) -> dict[str, DecisionResult]:
     """收集本季度所有活跃 faction 的决策。
 
@@ -89,6 +90,7 @@ def collect_all_decisions(
         llm: LLM 适配器（为 NPC 生成决策）
         turn_memory: 回合记忆
         timeout: 超时秒数（超时后未提交的人类自动 AI 决策）
+        lang: 语言 (zh | en)
 
     Returns:
         {faction_id: DecisionResult}
@@ -134,6 +136,7 @@ def collect_all_decisions(
             room_id=getattr(room, "id", ""),
             quarter_number=getattr(room, "quarter_number", 0),
             scenario=getattr(room, "scenario", None),
+            lang=lang,
         )
     elif major_ai:
         # LLM not available → heuristic fallback for major NPCs too
@@ -207,11 +210,12 @@ def _collect_ai_decisions_parallel(
     room_id: str = "",
     quarter_number: int = 0,
     scenario: str | None = None,
+    lang: str = "zh",
 ):
     """并行调用 LLM 为多个 NPC 生成决策。"""
     from histrategy.llm.npc_decision_engine import NPCDecisionEngine
 
-    engine = NPCDecisionEngine(llm, scenario=scenario)
+    engine = NPCDecisionEngine(llm, scenario=scenario, language=lang)
 
     def _generate_one(slot: FactionSlot) -> DecisionResult:
         t0 = time.time()

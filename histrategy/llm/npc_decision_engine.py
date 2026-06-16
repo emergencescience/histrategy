@@ -32,6 +32,72 @@ if TYPE_CHECKING:
 # Module-level cache of NPC decision prompts keyed by (scenario, language)
 _NPC_PROMPT_CACHE: dict[tuple[str, str], str] = {}
 
+# ── Bilingual labels for _build_context ────────────────────
+_NPC_LABELS = {
+    "zh-CN": {
+        "current_time": "当前时间",
+        "quarter": "季度",
+        "your_faction": "你的势力",
+        "faction": "势力",
+        "ruler": "君主",
+        "troops": "兵力",
+        "funds": "资金",
+        "food": "粮草",
+        "morale": "民心",
+        "tax_rate": "税率",
+        "territories": "领地",
+        "personality": "你的个性",
+        "aggression": "侵略性",
+        "caution": "谨慎",
+        "diplomacy": "外交倾向",
+        "mercy": "仁慈",
+        "relations": "外交关系",
+        "friendly": "友好",
+        "hostile": "敌对",
+        "neutral": "中立",
+        "rel_value": "关系值",
+        "world_intel": "天下势力（斥候探报，兵力为估算值）",
+        "troops_est": "兵力≈",
+        "morale_est": "民心≈",
+        "recent_events": "近期大事",
+        "make_decision": "制定决策",
+        "decision_instruction": "基于以上信息，制定本季度（三个月）的战略决策。",
+        "json_output": "输出 JSON 包含 decision（自然语言描述）和 commands（结构化命令数组）。",
+        "not_active": "该势力已不存在，无需决策。",
+    },
+    "en": {
+        "current_time": "Current Time",
+        "quarter": "Quarter",
+        "your_faction": "Your Faction",
+        "faction": "Faction",
+        "ruler": "Ruler",
+        "troops": "Troops",
+        "funds": "Treasury",
+        "food": "Food",
+        "morale": "Morale",
+        "tax_rate": "Tax Rate",
+        "territories": "Territories",
+        "personality": "Your Personality",
+        "aggression": "Aggression",
+        "caution": "Caution",
+        "diplomacy": "Diplomacy",
+        "mercy": "Mercy",
+        "relations": "Diplomatic Relations",
+        "friendly": "Friendly",
+        "hostile": "Hostile",
+        "neutral": "Neutral",
+        "rel_value": "Relation",
+        "world_intel": "Known Factions (scout reports, troop estimates)",
+        "troops_est": "Troops ≈",
+        "morale_est": "Morale ≈",
+        "recent_events": "Recent Events",
+        "make_decision": "Make Your Decision",
+        "decision_instruction": "Based on the above intelligence, formulate this quarter's (three month) strategic decision.",
+        "json_output": "Output JSON with 'decision' (natural language description) and 'commands' (structured command array).",
+        "not_active": "This faction no longer exists. No decision needed.",
+    },
+}
+
 # Default Three Kingdoms prompt (for backward compatibility)
 _NPC_DECISION_SYSTEM_DEFAULT = load_prompt(
     "npc_decision.md",
@@ -133,7 +199,8 @@ class NPCDecisionEngine:
         """
         faction = world_state.factions.get(faction_id)
         if not faction or not faction.is_active:
-            return "该势力已不存在，无需决策。", []
+            L = _NPC_LABELS.get(self.language, _NPC_LABELS["zh-CN"])
+            return L["not_active"], []
 
         # Minor factions use heuristic rules
         faction_set = set(getattr(slot, "__dict__", {}))
@@ -267,72 +334,78 @@ class NPCDecisionEngine:
         faction,
         turn_memory: list[dict],
     ) -> str:
-        """构建 LLM 决策上下文（FOW-aware）。"""
+        """Build LLM decision context (FOW-aware). Language-controlled via self.language."""
+        L = _NPC_LABELS.get(self.language, _NPC_LABELS["zh-CN"])
         lines: list[str] = []
 
-        # 时间
+        # Time
         season_cn = getattr(ws, "current_season_cn", str(getattr(ws, "season_index", "?")))
         turn = getattr(ws, "turn", 0)
-        lines.append(f"## 当前时间\n{ws.year}年{season_cn} | 第{turn}季度\n")
+        lines.append(f"## {L['current_time']}\n{ws.year}, {season_cn} | {L['quarter']} {turn}\n")
 
-        # 自身状态
-        lines.append("## 你的势力")
-        lines.append(f"势力: {faction.name} ({faction_id})")
-        lines.append(f"君主: {getattr(faction, 'ruler_id', '')}")
-        lines.append(f"兵力: {getattr(faction, 'strength_actual', 0):,}")
-        lines.append(f"资金: {getattr(faction, 'treasury', 0):,} | 粮草: {getattr(faction, 'food', 0):,}")
-        lines.append(f"民心: {getattr(faction, 'morale_actual', 50)} | 税率: {int(getattr(faction, 'tax_rate', 0.3) * 100)}%")
+        # Own state
+        lines.append(f"## {L['your_faction']}")
+        lines.append(f"{L['faction']}: {faction.name} ({faction_id})")
+        lines.append(f"{L['ruler']}: {getattr(faction, 'ruler_id', '')}")
+        lines.append(f"{L['troops']}: {getattr(faction, 'strength_actual', 0):,}")
+        lines.append(f"{L['funds']}: {getattr(faction, 'treasury', 0):,} | {L['food']}: {getattr(faction, 'food', 0):,}")
+        lines.append(f"{L['morale']}: {getattr(faction, 'morale_actual', 50)} | {L['tax_rate']}: {int(getattr(faction, 'tax_rate', 0.3) * 100)}%")
         territories = list(getattr(faction, 'territories', []))
-        lines.append(f"领地: {territories}")
+        lines.append(f"{L['territories']}: {territories}")
         lines.append("")
 
-        # 个性参数
+        # Personality params
         aggression = getattr(faction, "aggression", 0.5)
         caution = getattr(faction, "caution", 0.5)
         diplomacy = getattr(faction, "diplomacy", 0.5)
         mercy = getattr(faction, "mercy", 0.5)
-        lines.append("## 你的个性")
-        lines.append(f"侵略性: {aggression:.1f} | 谨慎: {caution:.1f}")
-        lines.append(f"外交倾向: {diplomacy:.1f} | 仁慈: {mercy:.1f}")
+        lines.append(f"## {L['personality']}")
+        lines.append(f"{L['aggression']}: {aggression:.1f} | {L['caution']}: {caution:.1f}")
+        lines.append(f"{L['diplomacy']}: {diplomacy:.1f} | {L['mercy']}: {mercy:.1f}")
         lines.append("")
 
-        # 外交关系
+        # Diplomatic relations
         relations = getattr(faction, "relations", {})
         if relations:
-            lines.append("## 外交关系")
+            lines.append(f"## {L['relations']}")
             for target_id, rel in relations.items():
                 if target_id == faction_id:
                     continue
                 target = ws.factions.get(target_id)
                 target_name = target.name if target else target_id
-                rel_str = "友好" if rel > 30 else ("敌对" if rel < -30 else "中立")
-                lines.append(f"- {target_name} ({target_id}): {rel_str} (关系值{rel})")
+                if rel > 30:
+                    rel_str = L["friendly"]
+                elif rel < -30:
+                    rel_str = L["hostile"]
+                else:
+                    rel_str = L["neutral"]
+                lines.append(f"- {target_name} ({target_id}): {rel_str} ({L['rel_value']} {rel})")
             lines.append("")
 
-        # 周边情报（FOW: 只能看到估算值）
-        lines.append("## 天下势力（斥候探报，兵力为估算值）")
+        # Surrounding intelligence (FOW: estimated values)
+        lines.append(f"## {L['world_intel']}")
         for fid, f in ws.factions.items():
             if fid == faction_id or not getattr(f, "is_active", True):
                 continue
             est_str = getattr(f, "strength_actual", 0)
             morale_est = getattr(f, "morale_actual", 50)
-            territories = list(getattr(f, "territories", []))
-            lines.append(f"- {getattr(f, 'name', fid)} ({fid}): 兵力≈{est_str:,}, 民心≈{morale_est}, 领地={territories}")
+            ft = list(getattr(f, "territories", []))
+            lines.append(f"- {getattr(f, 'name', fid)} ({fid}): {L['troops_est']}{est_str:,}, {L['morale_est']}{morale_est}, {L['territories']}={ft}")
         lines.append("")
 
-        # 历史记忆
+        # Historical memory
         if turn_memory:
-            lines.append("## 近期大事")
+            lines.append(f"## {L['recent_events']}")
             for mem in turn_memory[-5:]:
                 summary = mem.get("outcome_summary", "")
                 if summary:
                     lines.append(f"- {summary}")
             lines.append("")
 
-        # 指令
-        lines.append("## 制定决策")
-        lines.append("基于以上信息，制定本季度（三个月）的战略决策。")
-        lines.append("输出 JSON 包含 decision（自然语言描述）和 commands（结构化命令数组）。")
+        # Instructions
+        lines.append(f"## {L['make_decision']}")
+        lines.append(L["decision_instruction"])
+        lines.append(L["json_output"])
 
         return "\n".join(lines)
 

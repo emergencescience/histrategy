@@ -588,10 +588,13 @@ def _trigger_npc_decisions(room: GameRoom):
 
     logger.info(f"Room {room.id} Q{room.quarter_number}: triggering NPC decisions for {list(ai_only.keys())}")
 
+    # Extract language from room metadata (default zh)
+    lang = getattr(room, 'metadata', {}).get('lang', 'zh')
+
     # 临时替换 room.slots 为只含 AI 的版本，避免 DecisionBus 等待人类
     # 使用 collect_all_decisions 为 AI 生成决策
     try:
-        decisions = collect_all_decisions(room, ws, llm=llm, turn_memory=room.turn_summaries)
+        decisions = collect_all_decisions(room, ws, llm=llm, turn_memory=room.turn_summaries, lang=lang)
         # 将 AI 决策写入对应的 slot
         for fid, dr in decisions.items():
             if fid in room.slots:
@@ -788,7 +791,8 @@ def _resolve_and_advance(room: GameRoom):
 
     engine_mode = detect_engine_mode()
     llm = _get_llm()
-    decisions = collect_all_decisions(room, ws, llm=llm, turn_memory=room.turn_summaries)
+    lang = getattr(room, 'metadata', {}).get('lang', 'zh')
+    decisions = collect_all_decisions(room, ws, llm=llm, turn_memory=room.turn_summaries, lang=lang)
 
     # 根据引擎模式选择仿真器
     if engine_mode == EngineMode.V1:

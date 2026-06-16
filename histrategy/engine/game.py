@@ -2053,6 +2053,7 @@ class GameEngine:
             ws,
             llm=llm,
             turn_memory=room.turn_summaries,
+            lang=getattr(room, 'metadata', {}).get('lang', 'zh'),
         )
 
         # ── Resolve quarter ──
