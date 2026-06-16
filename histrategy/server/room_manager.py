@@ -116,6 +116,9 @@ def create_room(
     if not internal_ids:
         internal_ids = ["cao", "shu", "wu"]
 
+    # Normalize host_user_id before constructing GameRoom to prevent empty values in DB
+    host_user_id = host_user_id or ("host_" + uuid.uuid4().hex[:6])
+
     room = GameRoom(
         host_user_id=host_user_id,
         scenario=scenario,
@@ -1125,7 +1128,7 @@ def _resolve_v3(room, ws, decisions, llm):
 def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
     """将 V3 仿真结果写入 game_state + turn_delta 表。"""
     try:
-        from histrategy.db.models import save_game_state, save_turn_delta
+        from histrategy.db.models import save_game_state, save_policy_state, save_turn_delta
 
         for fid, faction in ws.factions.items():
             if not faction.is_active:
@@ -1139,6 +1142,9 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
                     {"id": tid, "name": t.name if t else tid}
                 )
 
+            # 政策字典
+            policies = getattr(faction, "policies", {}) or {}
+
             # 写入 game_state
             save_game_state(
                 room_id=room.id,
@@ -1150,9 +1156,24 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
                 treasury=faction.treasury,
                 morale=getattr(faction, "morale_actual", 50),
                 territories=territories_list,
-                policies=getattr(faction, "policies", {}),
+                policies=policies,
                 is_active=faction.is_active,
             )
+
+            # 写入 policy_state（逐条政策独立持久化）
+            if policies:
+                for policy_name, policy_info in policies.items():
+                    if isinstance(policy_info, dict):
+                        save_policy_state(
+                            room_id=room.id,
+                            quarter_number=room.quarter_number,
+                            faction_id=fid,
+                            policy_type=policy_info.get("type", "law"),
+                            policy_name=policy_name,
+                            policy_level=policy_info.get("level", 1),
+                            params=policy_info.get("params", {}),
+                            status=policy_info.get("status", "active"),
+                        )
 
             # 写入 turn_delta（五项）
             if fid not in old_state:
@@ -1230,6 +1251,8 @@ def _save_quarter(room, decisions, result):
             fid: {"decision": dr.decision_text, "commands": dr.commands, "source": dr.source}
             for fid, dr in decisions.items()
         }
+        # Collect per-turn token usage from llm_call_log
+        token_usage = _collect_quarter_tokens(room.id, room.quarter_number)
         save_quarter_turn(
             room.id,
             room.quarter_number,
@@ -1238,9 +1261,35 @@ def _save_quarter(room, decisions, result):
             faction_decisions=fd,
             narratives=result.narratives,
             state_changes=result.state_changes,
+            token_usage=token_usage,
         )
     except Exception as e:
         logger.warning(f"Quarter save failed: {e}")
+
+
+def _collect_quarter_tokens(room_id: str, quarter_number: int) -> dict | None:
+    """Aggregate total_tokens from llm_call_log for a specific quarter."""
+    try:
+        from histrategy.db.connection import execute
+        rows = execute(
+            "SELECT SUM(total_tokens) as total, "
+            "SUM(prompt_tokens) as prompt, "
+            "SUM(completion_tokens) as completion, "
+            "COUNT(*) as calls "
+            "FROM llm_call_log "
+            "WHERE room_id = ? AND quarter_number = ?",
+            (room_id, quarter_number),
+        )
+        if rows and rows[0]["total"]:
+            return {
+                "total_tokens": rows[0]["total"],
+                "prompt_tokens": rows[0]["prompt"],
+                "completion_tokens": rows[0]["completion"],
+                "llm_calls": rows[0]["calls"],
+            }
+    except Exception:
+        pass
+    return None
 
 
 def _get_faction_names(room, lang: str = "zh") -> dict[str, str]:

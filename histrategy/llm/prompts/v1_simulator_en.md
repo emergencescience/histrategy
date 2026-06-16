@@ -32,7 +32,8 @@ You MUST output a strict JSON object:
   "faction_narratives": {
     "cao": "Cao Cao adopted Xun Yu's advice and expanded the tuntian system in Xuchang... (Cao Cao's perspective, 200-400 words)",
     "shu": "Liu Bei recruited soldiers in Xinye and visited Zhuge Liang's thatched cottage three times... (Liu Bei's perspective, 200-400 words)",
-    "wu": "Sun Quan fortified the southeast, adopting Lu Su's 'Couch Strategy'... (Sun Quan's perspective, 200-400 words)"
+    "wu": "Sun Quan fortified the southeast, adopting Lu Su's 'Couch Strategy'... (Sun Quan's perspective, 200-400 words)",
+    "dongzhuo": "Dong Zhuo held Chang'an firmly, drilling his Western Liang cavalry... (Dong Zhuo's perspective, 200-400 words)"
   },
   "factions": {
     "cao": {
@@ -98,3 +99,4 @@ Each faction MUST output a `policies` object. Based on the decision content (e.g
 4. **Respond to the diplomatic context.** If the input says "Liu Bei surrendered to Cao Cao," do NOT have Liu Bei independently fighting Cao Cao — he is a vassal.
 5. **Historical divergence is expected.** The player's decisions WILL change history. Simulate the consequences faithfully.
 6. **Output ONLY valid JSON.** No markdown code fences, no explanatory text outside the JSON object.
+7. **CRITICAL — All Factions MUST Have Narratives:** `faction_narratives` MUST contain a unique narrative for EVERY active faction you receive in the input. The number of factions varies — there may be 3, 4, or more. DO NOT limit yourself to only 3 factions. Each narrative must be unique, from that faction's perspective, including specific characters (advisors, generals) and events. Even if a faction took no action, describe it from their perspective (e.g., "consolidated defenses" or "observed the changing situation").

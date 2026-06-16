@@ -306,6 +306,12 @@ class QuarterlyResolver:
                     commands=all_commands.get(faction_id, []),
                     room_id=room.id,
                 )
+                if not narrative or not narrative.strip():
+                    faction = ws.factions.get(faction_id)
+                    fname = faction.name if faction else faction_id
+                    narrative = self.narrative_engine._offline_faction_narrative(
+                        fname, baseline, macro_delta or {}
+                    )
                 return faction_id, narrative or ""
             except Exception as e:
                 logger.warning(f"Narrative failed for {faction_id}: {e}")
