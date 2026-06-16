@@ -323,17 +323,25 @@ def _apply_v1_state_to_world(ws: WorldState, v1_factions: dict) -> WorldState:
             continue
         faction = ws.factions[fid]
 
-        # 数值更新
+        # 数值更新 — 兼容两个 WorldState 版本的字段名
         if "population" in data:
-            faction.population = data["population"]
+            if hasattr(faction, "population"):
+                faction.population = data["population"]
         if "troops" in data:
-            faction.strength_actual = data["troops"]
+            # V2 engine uses strength_actual, V1 legacy uses strength
+            if hasattr(faction, "strength_actual"):
+                faction.strength_actual = data["troops"]
+            elif hasattr(faction, "strength"):
+                faction.strength = data["troops"]
         if "food" in data:
             faction.food = data["food"]
         if "treasury" in data:
             faction.treasury = data["treasury"]
         if "morale" in data:
-            faction.morale_actual = data["morale"]
+            if hasattr(faction, "morale_actual"):
+                faction.morale_actual = data["morale"]
+            elif hasattr(faction, "morale"):
+                faction.morale = data["morale"]
         if "policies" in data:
             faction.policies = data["policies"]
         if "is_active" in data:
