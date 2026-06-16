@@ -51,7 +51,7 @@ def start(faction: str, scenario: str = "207", language_style: str = "vernacular
     display_fid = FACTION_KEY_TO_DISPLAY.get(faction, faction)
 
     # 1. 创建房间：1 个人类（用 pre_assigned）+ AI NPC 自动填充
-    result = create_room(pre_assigned={display_fid: "Player"})
+    result = create_room(host_user_id="system", pre_assigned={display_fid: "Player"})
 
     if not result.get("ok"):
         return {"ok": False, "error": result.get("error", "创建房间失败")}

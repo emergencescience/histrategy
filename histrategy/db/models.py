@@ -209,13 +209,14 @@ def save_quarter_turn(
 ) -> str:
     """Save a quarter_turn record. Returns the new record ID."""
     turn_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
 
     execute_write(
         """INSERT INTO quarter_turn
             (id, room_id, quarter_number, year, season,
              faction_decisions, baseline_result, macro_delta,
-             narratives, state_changes, token_usage)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+             narratives, state_changes, token_usage, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             turn_id,
             room_id,
@@ -228,6 +229,7 @@ def save_quarter_turn(
             json_dumps(narratives) if narratives else None,
             json_dumps(state_changes) if state_changes else None,
             json_dumps(token_usage) if token_usage else None,
+            now,
         ),
     )
     return turn_id
@@ -311,14 +313,15 @@ def log_sim_event(
 
     execute_write(
         """INSERT INTO simulation_event_log
-            (id, room_id, quarter_number, event_type, event_data)
-        VALUES (?, ?, ?, ?, ?)""",
+            (id, room_id, quarter_number, event_type, event_data, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)""",
         (
             event_id,
             room_id,
             quarter_number,
             event_type,
             json_dumps(event_data) if event_data else None,
+            datetime.now(timezone.utc).isoformat(),
         ),
     )
     return event_id
@@ -374,8 +377,8 @@ def save_game_state(
             """INSERT INTO game_state
                 (id, room_id, quarter_number, faction_id,
                  population, troops, food, treasury, morale,
-                 territories, policies, is_active)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 territories, policies, is_active, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (room_id, quarter_number, faction_id) DO UPDATE SET
                 population = EXCLUDED.population,
                 troops = EXCLUDED.troops,
@@ -398,6 +401,7 @@ def save_game_state(
                 json_dumps(territories) if territories else "[]",
                 json_dumps(policies) if policies else "{}",
                 1 if is_active else 0,
+                datetime.now(timezone.utc).isoformat(),
             ),
         )
     return state_id
@@ -454,12 +458,13 @@ def save_turn_delta(
     """Save a per-turn delta record. Returns the delta ID."""
     delta_id = str(uuid.uuid4())
     delta = new_value - old_value
+    now = datetime.now(timezone.utc).isoformat()
 
     execute_write(
         """INSERT INTO turn_delta
             (id, room_id, quarter_number, faction_id, delta_type,
-             old_value, new_value, delta, reason, source)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+             old_value, new_value, delta, reason, source, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             delta_id,
             room_id,
@@ -471,6 +476,7 @@ def save_turn_delta(
             delta,
             reason,
             source,
+            now,
         ),
     )
     return delta_id
