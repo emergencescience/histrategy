@@ -897,7 +897,8 @@ def _resolve_v1(room, ws, decisions, llm):
         turn_summary: dict | None
 
     narratives = {}
-    faction_narratives = v1_result.get("faction_narratives", {})
+    # LLM returns "narratives" (prompt key), not "faction_narratives" (bug H16)
+    faction_narratives = v1_result.get("narratives", v1_result.get("faction_narratives", {}))
     global_narrative = v1_result.get("narrative", "")
     factions_data = v1_result.get("factions", {})
 
@@ -907,14 +908,21 @@ def _resolve_v1(room, ws, decisions, llm):
         if fn and fn.strip():
             narratives[fid] = fn
         else:
-            # Fallback: generate a basic per-faction summary from state data
-            fd = factions_data.get(fid, {})
-            fname = {"cao": "曹操", "shu": "刘备", "wu": "孙权"}.get(fid, fid)
-            troops = fd.get("troops", 0)
-            food = fd.get("food", 0)
-            territories = fd.get("territories", [])
-            territory_names = [t["name"] if isinstance(t, dict) else str(t) for t in territories]
-            territory_str = "、".join(territory_names[:3]) if territory_names else "无领地"
+            # Fallback: generate per-faction summary from actual WorldState data
+            faction = ws.factions.get(fid)
+            if faction:
+                troops = getattr(faction, "strength_actual", 0)
+                food = faction.food
+                territory_names = [ws.territories[tid].name for tid in faction.territories if tid in ws.territories]
+                territory_str = "、".join(territory_names[:3]) if territory_names else "无领地"
+                fname = faction.name
+            else:
+                fd = factions_data.get(fid, {})
+                fname = {"cao": "曹操", "shu": "刘备", "wu": "孙权"}.get(fid, factions_data.get(fid, {}).get("name", fid))
+                troops = fd.get("troops", 0)
+                food = fd.get("food", 0)
+                territory_names = [t["name"] if isinstance(t, dict) else str(t) for t in fd.get("territories", [])]
+                territory_str = "、".join(territory_names[:3]) if territory_names else "无领地"
             narratives[fid] = (
                 f"{global_narrative}\n\n"
                 f"【{fname}方纪】是季，{fname}拥兵{troops:,}，积粟{food:,}斛，"
