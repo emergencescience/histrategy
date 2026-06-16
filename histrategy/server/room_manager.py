@@ -18,7 +18,6 @@ import json as _json
 import logging
 import os
 import uuid
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -67,11 +66,11 @@ def create_room(
     Returns:
         {"ok": True, "room_id": str, "player_links": [{faction, url}], ...}
     """
-    from histrategy.engine.game_room import GameRoom, RoomPhase
     from histrategy.engine.faction_slot import (
         create_ai_slot,
         create_open_slot,
     )
+    from histrategy.engine.game_room import GameRoom, RoomPhase
 
     # ── Build scenario-aware faction mapping ──
     use_fallback = scenario in ("", "207", "three-kingdoms")
@@ -572,52 +571,23 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
 # ── Internal ─────────────────────────────────────────
 
 
-# ── NPC Decision Cache ───────────────────────────────────
+def _load_repo_npc_decisions(scenario: str) -> dict | None:
+    """Load pre-baked Q0 NPC decisions from repo.
 
-def _get_npc_cache_dir() -> Path:
-    """Return the cache directory for NPC first-round decisions."""
-    data_dir = os.environ.get("HISTRATEGY_DATA_DIR", os.path.expanduser("~/.histrategy"))
-    return Path(data_dir) / "npc_decision_cache"
-
-
-def _get_npc_cache_path(scenario: str, faction_id: str, quarter: int) -> Path:
-    """Return the cache file path for a specific NPC decision."""
-    return _get_npc_cache_dir() / f"{scenario}_{faction_id}_q{quarter}.json"
-
-
-def _load_cached_decision(scenario: str, faction_id: str, quarter: int) -> dict | None:
-    """Load a cached NPC decision. Returns None if not found or stale."""
-    cache_path = _get_npc_cache_path(scenario, faction_id, quarter)
-    if not cache_path.is_file():
+    Looks for scenarios/{scenario}/npc_decisions_q0.json.
+    Returns the parsed dict or None if not found.
+    """
+    path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "scenarios",
+        scenario, "npc_decisions_q0.json"
+    )
+    if not os.path.isfile(path):
         return None
     try:
-        data = _json.loads(cache_path.read_text(encoding="utf-8"))
-        # Basic validation: must have decision_text
-        if not data.get("decision_text"):
-            return None
-        return data
+        return _json.loads(Path(path).read_text(encoding="utf-8"))
     except Exception:
-        logger.warning(f"Failed to load NPC cache: {cache_path}")
+        logger.warning(f"Failed to load repo NPC decisions for {scenario}")
         return None
-
-
-def _save_cached_decision(scenario: str, faction_id: str, quarter: int,
-                          decision_result) -> None:
-    """Save an NPC decision to the file-based cache."""
-    cache_dir = _get_npc_cache_dir()
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    cache_path = _get_npc_cache_path(scenario, faction_id, quarter)
-    data = {
-        "decision_text": decision_result.decision_text,
-        "commands": decision_result.commands,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "scenario_version": "1",
-    }
-    try:
-        cache_path.write_text(_json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-        logger.debug(f"Saved NPC decision cache: {cache_path}")
-    except Exception:
-        logger.warning(f"Failed to save NPC cache: {cache_path}")
 
 
 def _trigger_npc_decisions(room: GameRoom):
@@ -648,36 +618,33 @@ def _trigger_npc_decisions(room: GameRoom):
     # Extract language from room metadata (default zh)
     lang = getattr(room, 'metadata', {}).get('lang', 'zh')
 
-    # ── Quarter 0 cache check ──
-    # For quarter 0, NPC decisions are deterministic (same initial state).
-    # Check file-based JSON cache before calling the LLM.
+    # ── Quarter 0: check for pre-baked repo decisions ──
     if room.quarter_number == 0:
-        cached: dict[str, dict] = {}
-        uncached_factions: list[str] = []
-        for fid in ai_only:
-            data = _load_cached_decision(room.scenario, fid, 0)
-            if data is not None:
-                cached[fid] = data
-            else:
-                uncached_factions.append(fid)
+        repo_decisions = _load_repo_npc_decisions(room.scenario)
+        if repo_decisions:
+            decisions_data = repo_decisions.get("decisions", {})
+            all_cached = True
+            for fid in ai_only:
+                faction_decisions = decisions_data.get(fid, {})
+                lang_data = faction_decisions.get(lang)
+                if lang_data and lang_data.get("decision_text"):
+                    room.slots[fid].submit_decision(
+                        lang_data["decision_text"], lang_data.get("commands", [])
+                    )
+                else:
+                    all_cached = False
 
-        if not uncached_factions:
-            # All decisions cached — submit directly, skip LLM
-            for fid, data in cached.items():
-                room.slots[fid].submit_decision(
-                    data["decision_text"], data.get("commands", [])
+            if all_cached:
+                logger.info(
+                    f"Room {room.id}: NPC Q0 decisions loaded from repo — "
+                    f"{list(ai_only.keys())}"
                 )
-            logger.info(
-                f"Room {room.id}: NPC decisions loaded from cache — "
-                f"{list(cached.keys())}"
-            )
-            return
-
-        # Some or all uncached — generate via LLM, then save to cache
-        logger.info(
-            f"Room {room.id} Q0: cache miss for {uncached_factions}, "
-            f"generating via LLM"
-        )
+                return
+            else:
+                logger.warning(
+                    f"Room {room.id}: Repo NPC decisions found but missing lang={lang} "
+                    f"for some factions — falling through to LLM"
+                )
 
     # 临时替换 room.slots 为只含 AI 的版本，避免 DecisionBus 等待人类
     # 使用 collect_all_decisions 为 AI 生成决策
@@ -688,12 +655,6 @@ def _trigger_npc_decisions(room: GameRoom):
             if fid in room.slots:
                 room.slots[fid].submit_decision(dr.decision_text, dr.commands)
         logger.info(f"Room {room.id}: NPC decisions ready — {list(decisions.keys())}")
-
-        # ── Save quarter 0 decisions to cache ──
-        if room.quarter_number == 0:
-            for fid, dr in decisions.items():
-                if fid in ai_only:
-                    _save_cached_decision(room.scenario, fid, 0, dr)
     except Exception as e:
         logger.error(f"Room {room.id}: NPC decision trigger failed: {e}")
 
@@ -953,8 +914,8 @@ def _resolve_and_advance(room: GameRoom):
 
 def _resolve_v1(room, ws, decisions, llm):
     """V1 引擎：纯 LLM 仿真。"""
-    from dataclasses import dataclass
     import concurrent.futures
+    from dataclasses import dataclass
 
     from histrategy.engine.v1_simulator import V1Simulator, _apply_v1_state_to_world, save_v1_state_to_db
 
@@ -1057,7 +1018,6 @@ def _resolve_v2(room, ws, decisions, llm):
     使用 QuarterlyResolver 的确定性基线（TurnController），
     不启用 macro_policy_engine / narrative_engine 等 LLM 组件。
     """
-    from dataclasses import dataclass
 
     from histrategy.engine.quarterly_resolver import QuarterlyResolver
 
