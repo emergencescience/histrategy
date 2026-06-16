@@ -211,6 +211,7 @@ class V1Simulator:
         room_id: str = "",
         quarter_number: int = 0,
         scenario: str | None = None,
+        lang: str = "zh",
     ) -> dict:
         """Execute V1 simulation — single LLM call handles all state evolution.
 
@@ -221,6 +222,7 @@ class V1Simulator:
             room_id: Game room ID for DB logging
             quarter_number: Current quarter for DB logging
             scenario: Scenario ID for loading scenario-specific prompt
+            lang: Language ('zh' or 'en') for prompt selection
 
         Returns:
             {
@@ -234,10 +236,10 @@ class V1Simulator:
             }
         """
         if not self.is_available:
-            return self._fallback(ws, faction_decisions)
+            return self._fallback(ws, faction_decisions, lang)
 
         context = _build_context(ws, faction_decisions, turn_memory or [])
-        system_prompt = _load_simulator_prompt(scenario)
+        system_prompt = _load_simulator_prompt(scenario, lang)
 
         messages = [
             {"role": "system", "content": system_prompt},

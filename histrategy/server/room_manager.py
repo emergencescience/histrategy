@@ -867,20 +867,21 @@ def _resolve_v1(room, ws, decisions, llm):
 
     # Run V1 simulation with a timeout (80s < Cloudflare 100s)
     _TIMEOUT = 80
+    lang = getattr(room, 'metadata', {}).get('lang', 'zh')
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(
                 simulator.simulate, ws, fd, room.turn_summaries,
                 room_id=room.id, quarter_number=room.quarter_number + 1,
-                scenario=room.scenario,
+                scenario=room.scenario, lang=lang,
             )
             v1_result = future.result(timeout=_TIMEOUT)
     except concurrent.futures.TimeoutError:
         logger.warning(f"V1 simulate timed out after {_TIMEOUT}s for room {room.id}, falling back")
-        v1_result = simulator._fallback(ws, fd, lang=getattr(room, 'metadata', {}).get('lang', 'zh'))
+        v1_result = simulator._fallback(ws, fd, lang=lang)
     except Exception as e:
         logger.error(f"V1 simulate failed for room {room.id}: {e}, falling back")
-        v1_result = simulator._fallback(ws, fd, lang=getattr(room, 'metadata', {}).get('lang', 'zh'))
+        v1_result = simulator._fallback(ws, fd, lang=lang)
 
     # ── 先捕获旧状态（用于 turn_delta 计算）──
     old_state = {}
