@@ -170,6 +170,8 @@ class NarrativeEngine:
             lines.append(f"Macro adjustments: {macro_delta}")
 
         system_prompt = NARRATIVE_SYSTEM_EN if self._language == "en" else NARRATIVE_SYSTEM
+        if self._language == "en":
+            lines.append("\nIMPORTANT: Write the entire narrative in English.")
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": "\n".join(lines)},
