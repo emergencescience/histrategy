@@ -82,7 +82,7 @@
     "description_en": "The Republican faction led by Cicero. The last guardians of the Republic. They have no legions, but they have Rome's treasury, the people's voice, and five centuries of tradition. In this war of titans, words may be the sharpest weapon.",
     "capital": "roma",
     "starting_territories": [],
-    "strength": 2000,
+    "strength": 8000,
     "economy": 80,
     "morale": 45,
     "intel_level": 85,

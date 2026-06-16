@@ -205,7 +205,11 @@ class QuarterlyResolver:
         all_commands: dict[str, list],
         room: GameRoom,
     ):
-        """执行确定性基线（TurnController multi-faction）。"""
+        """执行确定性基线（TurnController multi-faction）。
+
+        Runs execute_turn() ONCE with all faction commands combined,
+        then advances season ONCE (TurnController handles the advance).
+        """
         # 尝试 multi-faction 模式
         if hasattr(self.turn_controller, "execute_multi_faction_turn"):
             return self.turn_controller.execute_multi_faction_turn(
@@ -215,17 +219,25 @@ class QuarterlyResolver:
                 turn_number=ws.turn,
             )
 
-        # 回退：按 faction 逐个执行
+        # 回退：合并所有 faction 的 commands，调用一次 execute_turn
+        # 注意：execute_turn() 内部会 _advance_season，所以这里只需调用一次
+        combined_commands = []
         for faction_id, commands in all_commands.items():
-            try:
-                self.turn_controller.execute_turn(
-                    ws,
-                    player_commands=commands,
-                    year=ws.year,
-                    turn_number=ws.turn,
-                )
-            except Exception as e:
-                logger.warning(f"Baseline execution failed for {faction_id}: {e}")
+            for cmd in commands:
+                # Inject faction_id if missing (dict form)
+                if isinstance(cmd, dict) and "faction_id" not in cmd:
+                    cmd = {**cmd, "faction_id": faction_id}
+                combined_commands.append(cmd)
+
+        try:
+            return self.turn_controller.execute_turn(
+                ws,
+                player_commands=combined_commands,
+                year=ws.year,
+                turn_number=getattr(ws, 'turn_number', getattr(ws, 'turn', 1)),
+            )
+        except Exception as e:
+            logger.warning(f"Baseline execution failed: {e}")
         return _empty_baseline(ws)
 
     def _run_macro_simulation(

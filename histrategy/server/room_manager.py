@@ -831,7 +831,8 @@ def _resolve_and_advance(room: GameRoom):
         if len(room.turn_summaries) > 8:
             room.turn_summaries = room.turn_summaries[-8:]
 
-    _advance_season(ws)
+    # TurnController.execute_turn() already advances the season internally.
+    # Do NOT call _advance_season(ws) here — it would double-advance.
     room.advance_quarter()
 
     # 同步 WorldState 的 year/season 到 room（否则网页永远显示初始值）
