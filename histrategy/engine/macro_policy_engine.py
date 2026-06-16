@@ -200,8 +200,9 @@ class MacroPolicyEngine:
     ) -> str:
         lines = []
 
-        season = baseline.season_name or "?"
-        lines.append(f"## 当前时间\n{baseline.year}年{season} | 第{ws.turn_number}季度\n")
+        season = getattr(baseline, "season_name", None) or "?"
+        year = getattr(baseline, "year", ws.year) if baseline else ws.year
+        lines.append(f"## 当前时间\n{year}年{season} | 第{ws.turn_number}季度\n")
 
         lines.append("## 玩家策令")
         lines.append(decision)
@@ -255,10 +256,10 @@ class MacroPolicyEngine:
             if not getattr(ws.factions[fid], "is_active", True):
                 continue
             fname = ws.factions[fid].name
-            tax = baseline.tax_revenue.get(fid, 0)
-            food = baseline.food_delta.get(fid, 0)
-            morale = baseline.morale_delta.get(fid, 0)
-            pop = baseline.population_delta.get(fid, 0)
+            tax = getattr(baseline, "tax_revenue", {}).get(fid, 0)
+            food = getattr(baseline, "food_delta", {}).get(fid, 0)
+            morale = getattr(baseline, "morale_delta", {}).get(fid, 0)
+            pop = getattr(baseline, "population_delta", {}).get(fid, 0)
             lines.append(f"- {fid} ({fname}): 税收+{tax:.0f}, 粮草{food:+.0f}, 民心{morale:+d}, 人口{pop:+.0f}")
         lines.append("")
 

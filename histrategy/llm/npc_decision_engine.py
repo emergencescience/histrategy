@@ -268,7 +268,7 @@ class NPCDecisionEngine:
         if isinstance(response, str):
             response = self._extract_json(response)
 
-        decision = response.get("decision", "休整观望，静待时机。")
+        decision = response.get("decision", "观望待机" if self.language == "zh-CN" else "Watching and waiting for the right moment.")
         raw_commands = response.get("commands", [])
 
         # 标准化命令
@@ -284,27 +284,28 @@ class NPCDecisionEngine:
         ws: WorldState,
         faction_id: str,
     ) -> tuple[str, list]:
-        """启发式规则生成决策（次要势力或LLM不可用时）。"""
+        """启发式规则生成决策（次要势力或LLM不可用时）。Language-aware via self.language."""
         faction = ws.factions.get(faction_id)
         if not faction:
-            return "休整", []
+            return "休整" if self.language == "zh-CN" else "Rest", []
 
+        is_en = self.language == "en"
         commands: list[dict] = []
         decision_parts: list[str] = []
 
-        # 1. 招募：兵力不足时
+        # 1. 招募/Recruit：兵力不足时
         strength = getattr(faction, "strength_actual", 0)
         if strength < 10000 and faction.treasury > 2000:
             commands.append(
                 {
                     "type": "conscript",
                     "params": {"amount": 3000},
-                    "reasoning": "兵力薄弱，扩充军备以自保",
+                    "reasoning": "兵力薄弱，扩充军备以自保" if not is_en else "Troops weak, expanding military for self-defense",
                 }
             )
-            decision_parts.append("征兵三千")
+            decision_parts.append("征兵三千" if not is_en else "Conscript 3,000")
 
-        # 2. 发展：稳定期开发领地
+        # 2. 发展/Develop：稳定期开发领地
         if faction.treasury > 5000 and faction.food > 3000:
             capital = faction.capital or (faction.territories[0] if faction.territories else None)
             if capital:
@@ -312,19 +313,20 @@ class NPCDecisionEngine:
                     {
                         "type": "develop",
                         "params": {"territory": capital},
-                        "reasoning": "发展领地经济",
+                        "reasoning": "发展领地经济" if not is_en else f"Develop {capital} economy",
                     }
                 )
-                decision_parts.append(f"开发{capital}")
+                decision_parts.append(f"开发{capital}" if not is_en else f"Develop {capital}")
 
         # 3. 外交：与相邻势力保持和平
         neighbors = self._get_neighbors(ws, faction_id)
         for nid in neighbors:
             if nid in faction.relations and faction.relations[nid] > -50:
-                continue  # 关系不差
+                continue
         # 不主动进攻
 
-        decision_text = "、".join(decision_parts) + "。" if decision_parts else "休整观望，静待时机。"
+        default = "休整观望，静待时机。" if not is_en else "Resting and observing, awaiting the right moment."
+        decision_text = "、".join(decision_parts) + "。" if decision_parts and not is_en else ", ".join(decision_parts) + "." if decision_parts and is_en else default
         return decision_text, commands
 
     def _build_context(

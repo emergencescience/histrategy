@@ -63,7 +63,7 @@ def start(faction: str, scenario: str = "207", language_style: str = "vernacular
         return {"ok": False, "error": "房间创建后无法加载"}
 
     # 2. 构建 intro（初始叙事）
-    intro = _build_intro(room, internal_fid, language_style)
+    intro = _build_intro(room, internal_fid, language_style, lang)
 
     # 3. 构建 faction_status
     faction_status = _build_faction_status(room, internal_fid)
@@ -197,22 +197,37 @@ def _find_human_faction(room: GameRoom) -> str | None:
     return None
 
 
-def _build_intro(room: GameRoom, faction_id: str, language_style: str) -> dict:
+def _build_intro(room: GameRoom, faction_id: str, language_style: str, lang: str = "zh") -> dict:
     """构建初始介绍（old IntroScene 格式）。"""
     # 根据 faction 生成介绍叙事
-    narrative = _get_intro_narrative(faction_id, language_style)
+    narrative = _get_intro_narrative(faction_id, language_style, lang)
+    is_en = lang == "en"
 
     return {
         "narrative": narrative,
         "npc_actions": [],  # NPC 的初始行动（在第一回合推演后才有）
-        "new_choices": ["发展内政", "对外用兵", "广纳贤才", "休养生息"],
+        "new_choices": ["Develop Economy", "Military Action", "Recruit Talent", "Consolidate"]
+        if is_en else ["发展内政", "对外用兵", "广纳贤才", "休养生息"],
         "state_changes": {},
         "events_occurred": [],
     }
 
 
-def _get_intro_narrative(faction_id: str, language_style: str) -> str:
+def _get_intro_narrative(faction_id: str, language_style: str, lang: str = "zh") -> str:
     """获取初始叙事文本。"""
+    # English narratives
+    en_narratives = {
+        "cao": "Spring of 207 AD. Cao Cao has pacified the north, controlling the Central Plains with the Emperor as his puppet. His strategists are legion, his generals unmatched. Yet Liu Biao holds Jing Province, Sun Quan rules Jiangdong, and Liu Bei camps at Xinye — the realm remains divided. This spring, Cao Cao summons his court at Xuchang to plan the southern campaign.",
+        "shu": "Spring of 207 AD. Liu Bei shelters in the small town of Xinye. Though his army counts barely a few thousand, his heart burns for the Han dynasty. Guan Yu, Zhang Fei, and Zhao Yun are warriors worth a thousand men each — but he lacks a strategist. Word reaches him of a genius recluse at Longzhong named Zhuge Liang. Liu Bei resolves to visit him in person — three times if necessary.",
+        "wu": "Spring of 207 AD. Sun Quan inherited his father's and brother's legacy, ruling the six commanderies of Jiangdong. Zhang Zhao governs civil affairs, Zhou Yu commands the fleet, and the Yangtze River is his moat. But Cao Cao glares from the north and Liu Biao presses from the west. Sun Quan knows: survival requires more than defense.",
+        "octavian": "44 BC. Julius Caesar lies dead on the Senate floor, and the Roman Republic teeters on the edge of chaos. An 18-year-old named Octavian — Caesar's adopted son and heir — crosses the Adriatic from Apollonia. He has no army, no allies, and no experience. But he has one thing more powerful than legions: the name Gaius Julius Caesar Octavianus. All of Rome watches: can this boy hold the ashes of Caesar's legacy?",
+        "antony": "44 BC. Caesar is dead. As his most trusted general, Mark Antony controls Rome and Caesar's legions. But the Senate despises him, Caesar's young heir Octavian challenges his authority, and the Gallic provinces are his last bargaining chip. Antony must choose: stay in Rome and risk everything, or march to Gaul and gather his forces?",
+        "cleopatra": "44 BC. News of Caesar's assassination reaches Alexandria. Cleopatra VII, Pharaoh of Egypt, has lost her most powerful Roman protector. She commands the richest granary in the Mediterranean — but in a world run by Roman warlords, what power does a woman truly hold? She must find a new ally among Caesar's successors, or watch Egypt be devoured.",
+        "senate": "44 BC. Brutus and Cassius plunged their daggers into Caesar and cried 'The Republic is saved!' — but the people of Rome did not cheer. The Senate holds the eastern provinces, but Antony's legions are marching. The Republic is dying. The only question left: who will strike the final blow?",
+    }
+
+    if lang == "en" and faction_id in en_narratives:
+        return en_narratives[faction_id]
     narratives = {
         "cao": {
             "classical": "建安十二年春，曹操已平河北，拥兖豫之地，挟天子以令诸侯。帐下谋士如云，猛将如雨，然南方刘表、孙权、刘备各据州郡，天下未定。是岁，曹操于许昌大会群臣，问计于荀彧、郭嘉诸谋士。",

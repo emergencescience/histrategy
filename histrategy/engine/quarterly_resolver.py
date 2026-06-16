@@ -226,7 +226,7 @@ class QuarterlyResolver:
                 )
             except Exception as e:
                 logger.warning(f"Baseline execution failed for {faction_id}: {e}")
-        return None
+        return _empty_baseline(ws)
 
     def _run_macro_simulation(
         self,
