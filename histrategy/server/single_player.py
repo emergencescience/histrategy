@@ -83,11 +83,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
     Args:
         game_id: 房间 ID
         decision: 玩家自然语言决策
-        lang: 语言 (zh | en)
-
-    Returns:
-        CommandResponse 格式:
-        {game_id, narrative, aftermath, state_changes, npc_actions, ...}
+        lang: 语言 (zh | en)。优先使用显式传入的值，否则从房间 metadata 读取。
     """
     from histrategy.server.room_manager import (
         _get_room,
@@ -97,6 +93,12 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
     room = _get_room(game_id)
     if not room:
         return {"ok": False, "error": "游戏不存在"}
+
+    # Auto-detect lang from room metadata if not explicitly passed
+    if lang == "zh":
+        room_lang = getattr(room, 'metadata', {}).get('lang', 'zh')
+        if room_lang and room_lang != "zh":
+            lang = room_lang
 
     # 找到人类势力
     human_fid = _find_human_faction(room)
