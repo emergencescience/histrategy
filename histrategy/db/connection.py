@@ -120,6 +120,12 @@ def init_db():
                 conn.commit()
             except Exception:
                 pass
+            # Add metadata column to game_room (H16a multi-scenario)
+            try:
+                conn.execute("ALTER TABLE game_room ADD COLUMN metadata TEXT DEFAULT '{}'")
+                conn.commit()
+            except Exception:
+                pass
         else:
             # PostgreSQL: execute statements individually (psycopg2 doesn't support multi-statement)
             with conn.cursor() as cur:

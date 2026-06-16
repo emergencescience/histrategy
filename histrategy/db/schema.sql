@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS game_room (
     slots           TEXT,                      -- JSON: [FactionSlot, ...]
     decision_timeout INTEGER DEFAULT 300,
     turn_summaries  TEXT DEFAULT '[]',         -- JSON: 回合摘要数组
+    metadata        TEXT DEFAULT '{}',         -- JSON: 房间元数据 (lang, etc.)
     engine_version  TEXT DEFAULT '',            -- 'v1' | 'v2' | 'v3' — 哪套引擎产生此房间
     created_at      TEXT DEFAULT '',
     updated_at      TEXT DEFAULT ''
