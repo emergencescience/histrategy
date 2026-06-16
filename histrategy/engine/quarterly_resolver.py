@@ -309,8 +309,9 @@ class QuarterlyResolver:
                 if not narrative or not narrative.strip():
                     faction = ws.factions.get(faction_id)
                     fname = faction.name if faction else faction_id
+                    fname_en = getattr(faction, "name_en", "") or ""
                     narrative = self.narrative_engine._offline_faction_narrative(
-                        fname, baseline, macro_delta or {}
+                        fname, baseline, macro_delta or {}, name_en=fname_en
                     )
                 return faction_id, narrative or ""
             except Exception as e:

@@ -214,6 +214,7 @@ class FactionState:
     id: str
     name: str
     ruler_id: str
+    name_en: str = ""  # English display name for multi-language support
 
     # ── Public (visible to all) ──
     capital: str = ""

@@ -424,6 +424,7 @@ class ScenarioLoader:
                 id=fid,
                 name=fd.get("name", fid),
                 ruler_id=fd.get("ruler", fd.get("ruler_id", "")),
+                name_en=fd.get("name_en", ""),
                 capital=fd.get("capital", ""),
                 territories=faction_territories,
                 is_active=fd.get("is_active", fd.get("is_active_manually", True)),

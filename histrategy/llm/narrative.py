@@ -158,9 +158,10 @@ class NarrativeEngine:
 
         faction = ws.factions.get(faction_id)
         fname = faction.name if faction else faction_id
+        fname_en = getattr(faction, "name_en", "") or ""
 
         if not self.llm_available or not self.llm:
-            return self._offline_faction_narrative(fname, baseline, macro_delta or {})
+            return self._offline_faction_narrative(fname, baseline, macro_delta or {}, name_en=fname_en)
 
         # Build context
         lines: list[str] = []
@@ -189,16 +190,18 @@ class NarrativeEngine:
             )
             return result.strip()
         except Exception:
-            return self._offline_faction_narrative(fname, baseline, macro_delta or {})
+            return self._offline_faction_narrative(fname, baseline, macro_delta or {}, name_en=fname_en)
 
     def _offline_faction_narrative(
         self,
         faction_name: str,
         baseline,
         macro_delta: dict,
+        name_en: str = "",
     ) -> str:
         """Deterministic fallback narrative for a single faction."""
-        parts = [f"{faction_name} carried out their plans this quarter."]
+        display_name = name_en if (self._language == "en" and name_en) else faction_name
+        parts = [f"{display_name} carried out their plans this quarter."]
         # Try to extract battle info from baseline
         if hasattr(baseline, 'battles') and baseline.battles:
             for b in baseline.battles:
