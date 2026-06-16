@@ -116,6 +116,9 @@ class LLMAdapter:
         provider: str | None = None,
         data_dir: str | None = None,
     ):
+        import logging
+        self._logger = logging.getLogger("histrategy.llm")
+
         self.provider_config = detect_provider()
 
         # Explicit overrides take precedence
@@ -133,6 +136,13 @@ class LLMAdapter:
         # Override log directory (e.g. for room-scoped logging)
         self._data_dir_override = data_dir
 
+        self._logger.info(
+            "LLMAdapter init: provider=%s model=%s base=%s available=%s",
+            self.provider_name, self.model,
+            self.api_base[:50] if self.api_base else "none",
+            bool(self.api_key),
+        )
+
         if self.api_key:
             self.client = httpx.Client(
                 base_url=self.api_base.rstrip("/"),
@@ -144,6 +154,7 @@ class LLMAdapter:
             )
         else:
             self.client = None
+            self._logger.warning("LLMAdapter: No API key configured — offline mode only")
 
     @property
     def is_available(self) -> bool:
@@ -168,6 +179,10 @@ class LLMAdapter:
         start_time = time.perf_counter()
         response = None
         try:
+            self._logger.info(
+                "LLM chat: provider=%s model=%s prompt_chars=%d max_tokens=%d",
+                self.provider_name, self.model, len(str(messages)), max_tokens,
+            )
             response = self.client.post(
                 "/chat/completions",
                 json={
@@ -178,6 +193,7 @@ class LLMAdapter:
                 },
             )
             latency = time.perf_counter() - start_time
+            self._logger.info("LLM chat response: status=%d latency=%.1fs", response.status_code, latency)
             response.raise_for_status()
             data = response.json()
 
@@ -186,6 +202,11 @@ class LLMAdapter:
             return data["choices"][0]["message"]["content"]
         except Exception as e:
             latency = time.perf_counter() - start_time
+            status = getattr(response, "status_code", "N/A") if response else "N/A"
+            self._logger.error(
+                "LLM chat FAILED: provider=%s model=%s latency=%.1fs status=%s error=%s",
+                self.provider_name, self.model, latency, status, str(e)[:200],
+            )
             self._record_error_and_log(messages, e, latency, response, metadata=metadata)
             raise
 

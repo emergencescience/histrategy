@@ -325,18 +325,20 @@ class V1Simulator:
                 "knowledge_cards": [],
             }
 
-    def _fallback(self, ws: WorldState, faction_decisions: dict) -> dict:
+    def _fallback(self, ws: WorldState, faction_decisions: dict, lang: str = "zh") -> dict:
         """V1 不可用时的回退：简单确定性计算。"""
         factions = {}
         for fid, faction in ws.factions.items():
             if not faction.is_active:
                 continue
+            troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
+            morale = getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50) or 50
             factions[fid] = {
                 "population": getattr(faction, "population", 0),
-                "troops": getattr(faction, "strength_actual", 0),
+                "troops": troops,
                 "food": faction.food,
                 "treasury": faction.treasury,
-                "morale": getattr(faction, "morale_actual", 50),
+                "morale": morale,
                 "territories": [
                     {"id": tid, "name": ws.territories[tid].name if tid in ws.territories else tid}
                     for tid in faction.territories
@@ -344,8 +346,13 @@ class V1Simulator:
                 "policies": {},
                 "is_active": True,
             }
+        narrative = (
+            "(Offline mode: LLM unavailable, state unchanged)"
+            if lang == "en" else
+            "（离线模式：无 LLM 可用，状态未变化）"
+        )
         return {
-            "narrative": "（离线模式：无 LLM 可用，状态未变化）",
+            "narrative": narrative,
             "factions": factions,
             "events": [],
             "battles": [],
