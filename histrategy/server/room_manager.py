@@ -727,12 +727,16 @@ def _save_initial_state_to_db(room: GameRoom):
             if not faction:
                 continue
             territories = []
-            for t in getattr(faction, "territories", []) or []:
+            for tid in getattr(faction, "territories", []) or []:
+                # faction.territories is list[str] (territory IDs)
+                # Look up actual territory object from ws.territories
+                tid_str = getattr(tid, "id", None) or str(tid)
+                t_obj = ws.territories.get(tid_str) if hasattr(ws, "territories") else None
                 territories.append({
-                    "id": getattr(t, "id", ""),
-                    "name": getattr(t, "name", ""),
-                    "population": getattr(t, "population", 0),
-                    "development": getattr(t, "development", 50),
+                    "id": tid_str,
+                    "name": getattr(t_obj, "name", tid_str) if t_obj else tid_str,
+                    "population": getattr(t_obj, "population", 0) if t_obj else 0,
+                    "development": getattr(t_obj, "development", 50) if t_obj else 50,
                 })
             policies = {}
             for p in getattr(faction, "policies", []) or []:
@@ -744,7 +748,7 @@ def _save_initial_state_to_db(room: GameRoom):
             troops = (getattr(faction, "strength_actual", 0)
                       or getattr(faction, "strength", 0)
                       or getattr(faction, "troops", 0))
-            # Compute population from territory sum if faction.population is 0
+            # Compute population from territory sum if faction has no population attr
             pop = getattr(faction, "population", 0)
             if pop == 0 and territories:
                 pop = sum(t.get("population", 0) for t in territories)

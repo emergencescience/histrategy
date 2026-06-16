@@ -76,12 +76,13 @@ def start(faction: str, scenario: str = "207", language_style: str = "vernacular
     }
 
 
-def command(game_id: str, decision: str) -> dict:
+def command(game_id: str, decision: str, lang: str = "zh") -> dict:
     """执行玩家命令（阻塞等待 LLM 推演完成）。
 
     Args:
         game_id: 房间 ID
         decision: 玩家自然语言决策
+        lang: 语言 (zh | en)
 
     Returns:
         CommandResponse 格式:
@@ -136,12 +137,12 @@ def command(game_id: str, decision: str) -> dict:
     faction_status = _build_faction_status(room, human_fid)
 
     # 5. 构建建议
-    suggestions = _build_suggestions(room, human_fid)
+    suggestions = _build_suggestions(room, human_fid, lang)
 
     return {
         "game_id": game_id,
         "narrative": narrative or "天下无事。",
-        "aftermath": _build_aftermath(faction_status),
+        "aftermath": _build_aftermath(faction_status, lang),
         "state_changes": {},  # LLM 推演的变化反映在 faction_status 中
         "events_occurred": _extract_events(room),
         "npc_actions": npc_actions,
@@ -265,9 +266,15 @@ def _build_faction_status(room: GameRoom, faction_id: str) -> dict:
         }
 
     territories = []
-    for t in getattr(faction, "territories", []) or []:
-        tid = getattr(t, "id", str(t)) if hasattr(t, "id") else str(t)
-        territories.append(tid)
+    pop_sum = 0
+    for tid in getattr(faction, "territories", []) or []:
+        tid_str = getattr(tid, "id", None) or str(tid)
+        territories.append(tid_str)
+        # Sum territory populations from ws
+        if ws and hasattr(ws, "territories"):
+            t_obj = ws.territories.get(tid_str)
+            if t_obj:
+                pop_sum += getattr(t_obj, "population", 0) or 0
 
     return {
         "name": getattr(faction, "name", faction_id),
@@ -278,19 +285,29 @@ def _build_faction_status(room: GameRoom, faction_id: str) -> dict:
         "territories": territories,
         "morale": getattr(faction, "morale", 50) or getattr(faction, "morale_actual", 50) or 50,
         "is_active": getattr(faction, "is_active", True),
+        "population": pop_sum,
         "year": room.year,
         "season": room.season,
         "turn": room.quarter_number,
     }
 
 
-def _build_aftermath(faction_status: dict) -> str:
+def _build_aftermath(faction_status: dict, lang: str = "zh") -> str:
     """构建 aftermath 文本。"""
+    if lang == "en":
+        return (
+            f"Troops {faction_status.get('strength', 0):,}. "
+            f"Food {faction_status.get('food', 0):,}. "
+            f"Treasury {faction_status.get('treasury', 0):,}. "
+            f"Morale {faction_status.get('morale', 50)}. "
+            f"Population {faction_status.get('population', 0):,}."
+        )
     return (
         f"兵力{faction_status.get('strength', 0):,}。"
         f"粮草{faction_status.get('food', 0):,}。"
         f"资金{faction_status.get('treasury', 0):,}。"
         f"民心{faction_status.get('morale', 50)}。"
+        f"人口{faction_status.get('population', 0):,}。"
     )
 
 
@@ -309,11 +326,12 @@ def _extract_events(room: GameRoom) -> list[str]:
     return events
 
 
-def _build_suggestions(room: GameRoom, faction_id: str) -> list[str]:
+def _build_suggestions(room: GameRoom, faction_id: str, lang: str = "zh") -> list[str]:
     """生成策略建议。"""
     ws = room.world_state
     faction = ws.factions.get(faction_id) if ws else None
     suggestions = []
+    is_en = lang == "en"
 
     if faction:
         food = getattr(faction, "food", 0) or 0
@@ -323,19 +341,33 @@ def _build_suggestions(room: GameRoom, faction_id: str) -> list[str]:
         territories = len(getattr(faction, "territories", []) or [])
 
         if food < 5000:
-            suggestions.append("粮草不足，宜发展农业、推行屯田")
+            suggestions.append(
+                "Low food — develop agriculture, establish supply lines" if is_en
+                else "粮草不足，宜发展农业、推行屯田")
         if treasury < 5000:
-            suggestions.append("资金短缺，宜降低开支、发展商业")
+            suggestions.append(
+                "Low treasury — cut spending, develop trade" if is_en
+                else "资金短缺，宜降低开支、发展商业")
         if morale < 40:
-            suggestions.append("民心不稳，宜减轻赋税、安抚百姓")
+            suggestions.append(
+                "Low morale — reduce taxes, appease the people" if is_en
+                else "民心不稳，宜减轻赋税、安抚百姓")
         if strength < 5000:
-            suggestions.append("兵力薄弱，宜招募新兵、训练士卒")
+            suggestions.append(
+                "Low troops — recruit soldiers, train forces" if is_en
+                else "兵力薄弱，宜招募新兵、训练士卒")
         if territories <= 1:
-            suggestions.append("领地狭小，宜伺机扩张")
+            suggestions.append(
+                "Small territory — seek expansion opportunities" if is_en
+                else "领地狭小，宜伺机扩张")
 
     # 通用建议
     if len(suggestions) < 3:
-        defaults = ["召开朝会听取谋士建议", "派遣细作探查邻国动向", "发展科技树解锁新政"]
+        defaults = (
+            ["Hold council for strategic advice", "Send spies to assess rivals", "Develop new technologies"]
+            if is_en else
+            ["召开朝会听取谋士建议", "派遣细作探查邻国动向", "发展科技树解锁新政"]
+        )
         for d in defaults:
             if d not in suggestions:
                 suggestions.append(d)

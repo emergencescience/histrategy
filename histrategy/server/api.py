@@ -1236,7 +1236,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         """单人模式 — 执行命令（阻塞等待 LLM 推演完成）。"""
         from histrategy.server.single_player import command
 
-        return command(game_id, body.get("decision", ""))
+        return command(game_id, body.get("decision", ""), lang=body.get("lang", "zh"))
 
     @app.post("/api/single-player/start")
     def api_sp_start(body: dict = Body(...)):
