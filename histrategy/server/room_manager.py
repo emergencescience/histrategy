@@ -51,6 +51,7 @@ def create_room(
     scenario: str = "207",
     human_faction_ids: list[str] | None = None,
     pre_assigned: dict[str, str] | None = None,
+    metadata: dict | None = None,
 ) -> dict:
     """创建房间并立即开始游戏。
 
@@ -117,6 +118,8 @@ def create_room(
         host_user_id=host_user_id,
         scenario=scenario,
     )
+    if metadata:
+        room.metadata = metadata
     _rooms[room.id] = room
     _players[room.id] = {}
 

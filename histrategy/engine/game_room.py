@@ -62,6 +62,9 @@ class GameRoom:
     # 回合记忆（最近 N 个季度的摘要，供 LLM 上下文使用）
     turn_summaries: list[dict] = field(default_factory=list)
 
+    # 元数据（设备平台、语言偏好等）
+    metadata: dict = field(default_factory=dict)
+
     def __post_init__(self):
         if isinstance(self.phase, str):
             self.phase = RoomPhase(self.phase)

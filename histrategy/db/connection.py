@@ -184,6 +184,14 @@ def init_db():
                     conn.commit()
                 except Exception:
                     conn.rollback()
+                try:
+                    if _IS_SQLITE:
+                        cur.execute("ALTER TABLE game_room ADD COLUMN metadata TEXT DEFAULT '{}'")
+                    else:
+                        cur.execute("ALTER TABLE game_room ADD COLUMN IF NOT EXISTS metadata TEXT DEFAULT '{}'")
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
         conn.commit()
         _SCHEMA_LOADED = True
         logger.info("Database schema initialized (type=%s)", "sqlite" if _IS_SQLITE else "postgres")
@@ -298,6 +306,7 @@ CREATE TABLE IF NOT EXISTS game_room (
     slots           TEXT,
     decision_timeout INTEGER DEFAULT 300,
     turn_summaries  TEXT DEFAULT '[]',
+    metadata        TEXT DEFAULT '{}',
     engine_version  TEXT DEFAULT '',
     created_at      TEXT DEFAULT '',
     updated_at      TEXT DEFAULT ''

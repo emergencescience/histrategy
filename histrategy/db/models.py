@@ -32,6 +32,7 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
 
     slots_json = json_dumps({fid: s.to_dict() for fid, s in room.slots.items()})
     summaries_json = json_dumps(room.turn_summaries)
+    metadata_json = json_dumps(getattr(room, 'metadata', {}))
     ws_json = json_dumps(world_state_dict) if world_state_dict else None
     now = datetime.now(timezone.utc).isoformat()
 
@@ -54,6 +55,14 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
                 room.id,
             ),
         )
+        # If metadata column exists, update it too
+        try:
+            execute_write(
+                "UPDATE game_room SET metadata = ? WHERE id = ?",
+                (metadata_json, room.id),
+            )
+        except Exception:
+            pass
     else:
         execute_write(
             """INSERT INTO game_room
@@ -77,6 +86,14 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
                 now,
             ),
         )
+        # If metadata column exists, set it
+        try:
+            execute_write(
+                "UPDATE game_room SET metadata = ? WHERE id = ?",
+                (metadata_json, room.id),
+            )
+        except Exception:
+            pass
 
     # Save individual faction slots
     _save_faction_slots(room)

@@ -1046,6 +1046,7 @@ def create_app(llm_provider: str | None = None) -> Any:
                 host_name=body.get("display_name", ""),
                 scenario=body.get("scenario", "207"),
                 pre_assigned=pre_assigned,
+                metadata=body.get("metadata"),
             )
         else:
             human_faction_ids = body.get("human_faction_ids") or None
@@ -1054,6 +1055,7 @@ def create_app(llm_provider: str | None = None) -> Any:
                 host_name=body.get("display_name", ""),
                 scenario=body.get("scenario", "207"),
                 human_faction_ids=human_faction_ids,
+                metadata=body.get("metadata"),
             )
         return result
 
