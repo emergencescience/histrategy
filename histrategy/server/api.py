@@ -1316,6 +1316,28 @@ def create_app(llm_provider: str | None = None) -> Any:
             })
         return {"ok": True, "scenarios": scenarios}
 
+    @app.get("/api/scenarios/{scenario_id}/timeline")
+    def api_scenario_timeline(scenario_id: str, year: int = 0, season: str = ""):
+        """Return historical events matching the given year+season.
+
+        Used by the frontend to display "📜 历史对照" annotations
+        after each turn — showing what actually happened in history
+        at this point in time.
+        """
+        from histrategy.engine.scenario_loader import ScenarioLoader
+
+        loader = ScenarioLoader(scenario_id)
+        events = loader.get_timeline_events(year, season)
+        return {
+            "ok": True,
+            "scenario_id": loader.scenario_id,
+            "year": year,
+            "season": season,
+            "events": events,
+            "count": len(events),
+            "has_timeline": len(events) > 0,
+        }
+
     @app.get("/mp")
     def serve_multiplayer_page():
         import os as _os

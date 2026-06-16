@@ -479,6 +479,61 @@ class ScenarioLoader:
             return f"公元前{abs(year)}年"
         return f"公元{year}年"
 
+    def get_timeline_events(self, year: int, season: str) -> list[dict]:
+        """Return historical events matching the given year and season.
+
+        Loads knowledge/timeline.json and filters by year+season.
+        Returns an empty list if the file doesn't exist or has no match.
+
+        Supports both formats:
+        1. Array format (caesar-44bc): {"year": -43, "season": "spring", ...}
+        2. Object format (three-kingdoms): {"events": [{"year": 207, "month": 12, ...}]}
+        """
+        timeline_path = self._dir / "knowledge" / "timeline.json"
+        if not timeline_path.is_file():
+            return []
+
+        with open(timeline_path, encoding="utf-8") as f:
+            data = json.load(f)
+
+        events: list[dict] = []
+        if isinstance(data, list):
+            events = data
+        elif isinstance(data, dict):
+            events = data.get("events", [])
+
+        # Normalise season to lowercase English
+        _SEASON_CN = {"春": "spring", "夏": "summer", "秋": "autumn", "冬": "winter"}
+        season_lower = _SEASON_CN.get(season, season.lower())
+
+        # Month → season mapping for three-kingdoms format
+        _MONTH_TO_SEASON = {
+            3: "spring", 4: "spring", 5: "spring",
+            6: "summer", 7: "summer", 8: "summer",
+            9: "autumn", 10: "autumn", 11: "autumn",
+            12: "winter", 1: "winter", 2: "winter",
+        }
+
+        matches = []
+        for e in events:
+            if e.get("year") != year:
+                continue
+            # Format 1: explicit season field
+            if "season" in e:
+                ev_season = str(e["season"]).lower()
+                if ev_season == season_lower:
+                    matches.append(e)
+            # Format 2: month field
+            elif "month" in e:
+                month = int(e["month"])
+                if _MONTH_TO_SEASON.get(month) == season_lower:
+                    matches.append(e)
+            # Format 3: no season or month → match any
+            else:
+                matches.append(e)
+
+        return matches
+
     @staticmethod
     def list_scenarios(root: Path | None = None) -> list[str]:
         """List all available scenario IDs (directories containing scenario.toml

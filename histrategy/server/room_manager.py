@@ -14,6 +14,7 @@ RoomManager — 多人游戏房间管理（v2: room_player 对称架构）。
 
 from __future__ import annotations
 
+import json as _json
 import logging
 import uuid
 from typing import TYPE_CHECKING
@@ -506,8 +507,6 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
     if not history:
         # Fallback: load from quarter_turn DB table (survives server restart)
         try:
-            import json as _json
-
             from histrategy.db.models import get_quarter_turns
 
             db_turns = get_quarter_turns(room.id, limit=20)
@@ -527,6 +526,36 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
             pass
     if history:
         status["turns"] = history
+
+    # ── Power ranking (from game_state table) ──
+    try:
+        from histrategy.db.models import get_latest_game_states
+
+        raw_states = get_latest_game_states(room_id, room.quarter_number)
+        ranking = []
+        for row in raw_states:
+            fid = row["faction_id"]
+            # Composite score: troops + population/2 + treasury/1000 + morale/100
+            composite = (
+                (row.get("troops") or 0)
+                + (row.get("population") or 0) / 2
+                + (row.get("treasury") or 0) / 1000
+                + (row.get("morale") or 0) / 100
+            )
+            ranking.append({
+                "faction_id": fid,
+                "display_name": _display(fid),
+                "troops": row.get("troops", 0),
+                "population": row.get("population", 0),
+                "treasury": row.get("treasury", 0),
+                "territories": len(_json.loads(row.get("territories", "[]")) if isinstance(row.get("territories"), str) else (row.get("territories") or [])),
+                "composite": round(composite, 1),
+                "is_active": bool(row.get("is_active", 1)),
+            })
+        ranking.sort(key=lambda x: x["composite"], reverse=True)
+        status["power_ranking"] = ranking
+    except Exception:
+        status["power_ranking"] = []
 
     return status
 

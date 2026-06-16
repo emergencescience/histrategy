@@ -53,6 +53,12 @@ select { cursor:pointer; }
 .turn-header { font-size: 0.85em; color: var(--gold); margin-bottom: 6px; font-weight: bold; }
 .turn-narrative { line-height: 1.7; margin-bottom: 6px; }
 .turn-npc { font-size: 0.85em; color: var(--muted); margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border); }
+.timeline-box { margin-top: 12px; padding: 12px; background: rgba(212, 167, 116, 0.05); border: 1px solid rgba(212, 167, 116, 0.2); border-radius: 6px; }
+.timeline-box h3 { color: var(--gold); font-size: 1em; margin-bottom: 8px; }
+.timeline-item { padding: 6px 0; border-bottom: 1px solid rgba(212, 167, 116, 0.1); }
+.timeline-item:last-child { border-bottom: none; }
+.timeline-divergence { margin-top: 10px; padding: 8px; background: rgba(92, 184, 92, 0.1); border-radius: 4px; font-size: 0.9em; color: #5cb85c; }
+
 </style>
 </head>
 <body>
@@ -387,7 +393,21 @@ function updateGameUI(s) {
   const year = s.year || currentScenario.start_year || 207;
   const season = s.season || '春';
   const quarter = s.quarter || 0;
-  el('top-bar').innerHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · ${fmtYear(year, epoch)}${season} · 第${quarter}季`;
+
+  // ── Top bar: room info + power ranking ──
+  const ranking = s.power_ranking || [];
+  let topHTML = `房间: <b style="color:var(--gold)">${roomId}</b> · ${fmtYear(year, epoch)}${season} · 第${quarter}季`;
+  if (ranking.length > 0) {
+    const top = ranking[0];
+    topHTML += ` · <span style="font-size:0.85em">🏆 ${top.display_name}(${Math.round(top.composite)}分)`;
+    // Show player's own rank
+    if (myFaction && ranking.length > 1) {
+      const myRank = ranking.findIndex(r => r.faction_id === myFaction) + 1;
+      if (myRank > 0) topHTML += ` · 你: #${myRank}/${ranking.length}`;
+    }
+    topHTML += '</span>';
+  }
+  el('top-bar').innerHTML = topHTML;
 
   const phase = s.phase;
   const submitted = s.submitted || [];
@@ -425,6 +445,12 @@ function updateGameUI(s) {
       html += `</div>`;
     }
     el('narrative').innerHTML = html || '<p style="color:var(--muted)">等待第一回合...</p>';
+
+    // ── Render historical timeline comparison ──
+    if (turns.length > 0) {
+      const lastTurn = turns[turns.length - 1];
+      renderTimeline(lastTurn.year, lastTurn.season);
+    }
   } else {
     if (s.narrative) {
       el('narrative').innerHTML = s.narrative.replace(/\n/g, '<br>');
@@ -432,6 +458,51 @@ function updateGameUI(s) {
     if (s.npc_actions && s.npc_actions.length > 0) {
       el('npc-actions').innerHTML = '<b>天下动向:</b><br>' + s.npc_actions.map(a => '· ' + a).join('<br>');
     }
+    // Clear timeline for single-player narrative
+    el('npc-actions').insertAdjacentHTML('afterend', '<div id="timeline-section"></div>');
+    const lastTurnSP = { year: year, season: season };
+    renderTimeline(lastTurnSP.year, lastTurnSP.season);
+  }
+}
+
+// ── Historical Timeline Comparison ──
+async function renderTimeline(year, season) {
+  const sid = currentScenario.id;
+  if (!sid) return;
+
+  let target = document.getElementById('timeline-section');
+  if (!target) {
+    // Create timeline section after narrative
+    const narrativeEl = el('narrative');
+    target = document.createElement('div');
+    target.id = 'timeline-section';
+    narrativeEl.insertAdjacentElement('afterend', target);
+  }
+
+  try {
+    const r = await api('GET', `/api/scenarios/${sid}/timeline?year=${year}&season=${encodeURIComponent(season)}`);
+    if (!r.ok || !r.events || r.events.length === 0) {
+      target.innerHTML = '';
+      return;
+    }
+
+    let html = '<div class="timeline-box"><h3>📜 历史对照</h3>';
+    html += '<p style="font-size:0.85em; color:var(--muted); margin-bottom:8px">';
+    html += `真实历史中（${fmtYear(year, currentScenario.epoch || '')}${season}）：</p>`;
+    for (const ev of r.events) {
+      const title = ev.title || ev.description || '';
+      const desc = ev.description || '';
+      html += `<div class="timeline-item">`;
+      if (title) html += `<b style="color:var(--gold)">${title}</b>`;
+      if (desc && desc !== title) html += `<br><span style="font-size:0.85em; color:var(--muted)">${desc}</span>`;
+      html += `</div>`;
+    }
+    html += '<div class="timeline-divergence">✨ 你的选择正在改写历史——这个世界已经偏离了原本的轨迹。</div>';
+    html += '</div>';
+    target.innerHTML = html;
+  } catch (e) {
+    // Silently ignore — timeline is optional
+    target.innerHTML = '';
   }
 }
 
