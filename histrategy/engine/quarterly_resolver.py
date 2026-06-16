@@ -121,7 +121,7 @@ class QuarterlyResolver:
 
                 proposals = self.history_engine.check_events(
                     world_state.year,
-                    world_state.season,
+                    getattr(world_state, 'season', 0),
                     world_state,
                     deviation=getattr(world_state, "player_deviation", 0.0),
                 )
@@ -345,7 +345,7 @@ def _empty_baseline(ws: WorldState):
         resource_changes={},
         character_events=[],
         history_events=[],
-        season_name=str(getattr(ws.season, "cn", "?")),
+        season_name=str(getattr(getattr(ws, 'season', None), 'cn', None) or getattr(ws, 'season', '?')),
         year=ws.year,
     )
 

@@ -128,6 +128,69 @@ class NarrativeEngine:
         except Exception:
             return self._offline_narrative(turn_result)
 
+    def generate_faction_narrative(
+        self,
+        ws: WorldState,
+        faction_id: str,
+        baseline,
+        macro_delta: dict | None = None,
+        decision: str = "",
+        commands: list | None = None,
+    ) -> str:
+        """Generate a faction-specific narrative from baseline + macro results.
+
+        Used by QuarterlyResolver to produce per-faction narratives for the
+        shared timeline view. Falls back to deterministic text when LLM unavailable.
+        """
+        from types import SimpleNamespace
+
+        faction = ws.factions.get(faction_id)
+        fname = faction.name if faction else faction_id
+
+        if not self.llm_available or not self.llm:
+            return self._offline_faction_narrative(fname, baseline, macro_delta or {})
+
+        # Build context
+        lines: list[str] = []
+        lines.append(f"Faction: {fname} ({faction_id})")
+        lines.append(f"Decision: {decision}")
+        if commands:
+            lines.append(f"Commands: {commands}")
+        lines.append(f"\nBaseline results: {baseline}")
+        if macro_delta:
+            lines.append(f"Macro adjustments: {macro_delta}")
+
+        messages = [
+            {"role": "system", "content": NARRATIVE_SYSTEM},
+            {"role": "user", "content": "\n".join(lines)},
+        ]
+
+        try:
+            result = self.llm.chat(
+                messages,
+                temperature=0.7,
+                max_tokens=1024,
+                metadata={"category": "narrative", "faction_id": faction_id},
+            )
+            return result.strip()
+        except Exception:
+            return self._offline_faction_narrative(fname, baseline, macro_delta or {})
+
+    def _offline_faction_narrative(
+        self,
+        faction_name: str,
+        baseline,
+        macro_delta: dict,
+    ) -> str:
+        """Deterministic fallback narrative for a single faction."""
+        parts = [f"{faction_name} carried out their plans this quarter."]
+        # Try to extract battle info from baseline
+        if hasattr(baseline, 'battles') and baseline.battles:
+            for b in baseline.battles:
+                if hasattr(b, 'attacker_id') and b.attacker_id == faction_name:
+                    parts.append(f"They engaged in battle at {getattr(b, 'location', 'unknown')}.")
+        return " ".join(parts)
+
     def _build_narrative_context(
         self,
         tr: TurnResult,

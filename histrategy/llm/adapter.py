@@ -495,7 +495,12 @@ class LLMAdapter:
             from histrategy.db.models import log_llm_call
 
             meta = metadata or {}
-            room_id = meta.get("room_id", "unknown")
+            room_id = meta.get("room_id")
+            if not room_id or room_id == "unknown":
+                # Skip DB write — no valid room to associate with
+                # NPC baseline decisions and other non-room calls legitimately
+                # have no room context. The FK to game_room would fail.
+                return
             quarter_number = meta.get("quarter_number", 0)
             call_type = meta.get("category", "unknown")
             faction_id = meta.get("faction_id")
