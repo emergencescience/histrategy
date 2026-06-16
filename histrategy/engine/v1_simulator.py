@@ -30,21 +30,50 @@ _DEFAULT_SYSTEM_PROMPT = (_PROMPT_DIR / "v1_simulator.md").read_text(encoding="u
 _PROMPT_CACHE: dict[str, str] = {}  # scenario → prompt
 
 
-def _load_simulator_prompt(scenario: str | None) -> str:
-    """Load scenario-specific simulator prompt with fallback to default."""
-    if not scenario or scenario in ("207", "three-kingdoms", ""):
-        return _DEFAULT_SYSTEM_PROMPT
-    if scenario in _PROMPT_CACHE:
+def _load_simulator_prompt(scenario: str | None, lang: str = "zh") -> str:
+    """Load scenario-specific simulator prompt with fallback to default.
+
+    Args:
+        scenario: Scenario ID (e.g. 'three-kingdoms', 'rome-triumvirate')
+        lang: Language preference ('zh' or 'en')
+    """
+    cache_key = f"{scenario}:{lang}"
+
+    # Default (three-kingdoms) handled below with language
+    if scenario in _PROMPT_CACHE and not scenario:
         return _PROMPT_CACHE[scenario]
-    # Try scenario-specific prompts
-    candidates = [
-        Path(f"scenarios/{scenario}/prompts/v1_simulator_en.md"),
-        Path(f"scenarios/{scenario}/prompts/v1_simulator.md"),
-    ]
+
+    if cache_key in _PROMPT_CACHE:
+        return _PROMPT_CACHE[cache_key]
+
+    # Try scenario-specific prompts in language-preference order
+    candidates = []
+    if scenario and scenario not in ("207", "three-kingdoms", ""):
+        if lang == "en":
+            candidates = [
+                Path(f"scenarios/{scenario}/prompts/v1_simulator_en.md"),
+                Path(f"scenarios/{scenario}/prompts/v1_simulator.md"),
+            ]
+        else:
+            candidates = [
+                Path(f"scenarios/{scenario}/prompts/v1_simulator_zh-CN.md"),
+                Path(f"scenarios/{scenario}/prompts/v1_simulator.md"),
+                Path(f"scenarios/{scenario}/prompts/v1_simulator_en.md"),
+            ]
+    else:
+        # three-kingdoms: use language-specific default
+        if lang == "en":
+            candidates = [
+                _PROMPT_DIR / "v1_simulator_en.md",
+            ]
+
     for p in candidates:
         if p.is_file():
-            _PROMPT_CACHE[scenario] = p.read_text(encoding="utf-8")
-            return _PROMPT_CACHE[scenario]
+            _PROMPT_CACHE[cache_key] = p.read_text(encoding="utf-8")
+            return _PROMPT_CACHE[cache_key]
+
+    # Final fallback: default Chinese prompt
+    _PROMPT_CACHE[cache_key] = _DEFAULT_SYSTEM_PROMPT
     return _DEFAULT_SYSTEM_PROMPT
 
 

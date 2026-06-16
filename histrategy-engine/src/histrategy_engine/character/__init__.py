@@ -185,7 +185,7 @@ class CharacterEngine:
         if not char or not char.alive:
             return False
 
-        if current_year < char.death:
+        if char.death is None or current_year < char.death:
             return False
 
         years_past_death = current_year - char.death
