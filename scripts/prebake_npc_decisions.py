@@ -70,7 +70,7 @@ def generate_decisions(scenario: str, langs: list[str]) -> dict:
                 world_state=ws,
                 faction_id=fid,
                 turn_memory=[],
-                room_id="prebake",
+                room_id="",  # empty → skip DB write
                 quarter_number=0,
             )
 
