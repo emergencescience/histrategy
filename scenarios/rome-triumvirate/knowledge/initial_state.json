@@ -122,11 +122,16 @@
       "name": "元老院",
       "name_en": "Senate",
       "ruler": "cicero",
-      "capital": "roma",
-      "territories": [],
+      "capital": "graecia",
+      "territories": [
+        "macedonia",
+        "graecia",
+        "syria",
+        "asia"
+      ],
       "treasury": 15000,
       "food": 5000,
-      "strength": 2000,
+      "strength": 8000,
       "prestige": 85,
       "tax_rate": 0.15,
       "morale_actual": 45,
@@ -257,7 +262,7 @@
     "macedonia": {
       "name": "马其顿",
       "name_en": "Macedonia",
-      "owner": "brutus",
+      "owner": "senate",
       "population": 150000,
       "development": 40,
       "terrain": "mountain",
@@ -266,7 +271,7 @@
     "syria": {
       "name": "叙利亚",
       "name_en": "Syria",
-      "owner": "brutus",
+      "owner": "senate",
       "population": 250000,
       "development": 50,
       "terrain": "desert",
@@ -275,7 +280,7 @@
     "asia": {
       "name": "亚细亚",
       "name_en": "Asia",
-      "owner": "brutus",
+      "owner": "senate",
       "population": 350000,
       "development": 55,
       "terrain": "hills",
@@ -284,7 +289,7 @@
     "graecia": {
       "name": "希腊",
       "name_en": "Greece",
-      "owner": "brutus",
+      "owner": "senate",
       "population": 150000,
       "development": 50,
       "terrain": "hills",

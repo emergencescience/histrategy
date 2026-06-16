@@ -51,7 +51,7 @@ class GameRoom:
     scenario: str = "207"
     year: int = 207
     season: str = "春"
-    quarter_number: int = 0
+    quarter_number: int = 1
     phase: RoomPhase = RoomPhase.LOBBY
     slots: dict[str, FactionSlot] = field(default_factory=dict)  # faction_id → slot
     world_state: WorldState | None = None
