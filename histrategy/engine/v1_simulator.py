@@ -110,7 +110,53 @@ def _build_context(
         for i, summary in enumerate(turn_memory[-4:]):
             parts.append(f"Q{summary.get('quarter', i + 1)}: {json.dumps(summary, ensure_ascii=False)}")
 
+    # 4. 外交/特殊状态检测（结构化状态注入，避免 LLM 遗忘投降/附庸等事件）
+    diplomatic_notes = _build_diplomatic_context(ws)
+    if diplomatic_notes:
+        parts.append("\n## 当前外交与特殊状态\n")
+        parts.append(diplomatic_notes)
+
     return "\n".join(parts)
+
+
+def _build_diplomatic_context(ws: WorldState) -> str:
+    """检测外交/特殊状态并生成结构化上下文注入到 V1 prompt。
+
+    检测规则（确定性，不依赖 LLM）：
+    - 势力领土=0 且 is_active=True → 已投降/附庸（需推断宗主）
+    - 势力 is_active=False → 已灭亡
+    """
+    lines: list[str] = []
+    for fid, faction in ws.factions.items():
+        if not faction.is_active:
+            lines.append(f"- {faction.name} ({fid}): 💀 已灭亡")
+            continue
+        has_territory = bool(getattr(faction, "territories", []))
+        troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
+        if not has_territory:
+            # 推断宗主：谁控制了该势力原来的领土
+            overlord = None
+            for other_fid, other_f in ws.factions.items():
+                if other_fid == fid:
+                    continue
+                other_territories = getattr(other_f, "territories", [])
+                if other_territories:
+                    overlord = other_f.name
+                    break
+            if overlord:
+                lines.append(f"- {faction.name} ({fid}): ⚠️ 已失去所有领地，目前依附于 {overlord}")
+            else:
+                lines.append(f"- {faction.name} ({fid}): ⚠️ 已失去所有领地，流亡状态（兵力 {troops}）")
+        # 检测实力悬殊（可能已经是附庸）
+        elif troops < 1000:
+            for other_fid, other_f in ws.factions.items():
+                if other_fid == fid:
+                    continue
+                other_troops = getattr(other_f, "strength_actual", 0) or getattr(other_f, "strength", 0) or 0
+                if other_troops > troops * 10 and getattr(other_f, "territories", []):
+                    lines.append(f"- {faction.name} ({fid}): 实力远逊于 {other_f.name}（兵力 {troops} vs {other_troops}），实质附庸")
+                    break
+    return "\n".join(lines) if lines else ""
 
 
 class V1Simulator:
