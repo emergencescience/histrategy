@@ -1,0 +1,260 @@
+{
+  "scenario": "three-kingdoms",
+  "quarter": 0,
+  "generated_at": "2026-06-16T14:15:55.650478+00:00",
+  "generated_by": "deepseek-v4-pro",
+  "decisions": {
+    "dongzhuo": {
+      "en": {
+        "decision_text": "This faction no longer exists. No decision needed.",
+        "commands": []
+      },
+      "zh": {
+        "decision_text": "该势力已不存在，无需决策。",
+        "commands": []
+      }
+    },
+    "yuan_shao": {
+      "en": {
+        "decision_text": "This faction no longer exists. No decision needed.",
+        "commands": []
+      },
+      "zh": {
+        "decision_text": "该势力已不存在，无需决策。",
+        "commands": []
+      }
+    },
+    "cao": {
+      "en": {
+        "decision_text": "孤已平河北，挟天子以令诸侯。今刘备屯新野，兵不过五千，然得诸葛亮为辅，日久必为大患。当趁其羽翼未丰，速遣上将讨之。另刘表病重，荆州人心浮动，可遣使招降襄阳豪族，以图不战而取荆州。",
+        "commands": [
+          {
+            "type": "attack",
+            "params": {
+              "target_territory": "xinye",
+              "from_territory": "wancheng",
+              "amount": 50000,
+              "unit_type": "infantry, cavalry"
+            },
+            "reasoning": "刘备势弱，以十倍兵力碾压可一举攻克新野。从宛城出兵距离最近",
+            "faction_id": "cao"
+          },
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "liubiao",
+              "action": "threaten"
+            },
+            "reasoning": "趁刘表病重，施加外交压力迫使荆州投降",
+            "faction_id": "cao"
+          },
+          {
+            "type": "develop",
+            "params": {
+              "territory": "xuchang"
+            },
+            "reasoning": "首都许昌继续屯田，保障南征粮草供给",
+            "faction_id": "cao"
+          }
+        ]
+      },
+      "zh": {
+        "decision_text": "孤已定河北，挟天子以令诸侯。刘备屯新野，虽兵微将寡，然得诸葛亮为辅，必为后患。今当趁其羽翼未丰，遣上将率雄师讨之，一举荡平。刘表病重，荆州人心动摇，可遣使恫吓，迫其归降。另命许昌屯田积谷，以备南征大军粮草之需。",
+        "commands": [
+          {
+            "type": "attack",
+            "params": {
+              "target_territory": "xinye",
+              "from_territory": "wancheng",
+              "amount": 50000,
+              "unit_type": "infantry, cavalry"
+            },
+            "reasoning": "刘备兵力仅五千，以十倍之师自宛城南下，可确保一役而克，铲除心腹之患。",
+            "faction_id": "cao"
+          },
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "liubiao",
+              "action": "threaten"
+            },
+            "reasoning": "刘表病笃，荆州内惧外患，施以兵威可使其不战而降，或至少震慑其勿援刘备。",
+            "faction_id": "cao"
+          },
+          {
+            "type": "develop",
+            "params": {
+              "territory": "xuchang"
+            },
+            "reasoning": "许昌为根本之地，屯田发展可充实府库，为后续南征提供持续补给。",
+            "faction_id": "cao"
+          }
+        ]
+      }
+    },
+    "shu": {
+      "en": {
+        "decision_text": "备以微末之资，暂居新野。曹操势大，虎视眈眈，不可力敌。当外结孙权，以犄角之势抗曹；内修农政，广积粮草，安抚百姓。今春耕在即，宜劝农植谷，休养生息。另遣使江东，议盟约以定外患。再募精壮，稍充守备。如此，进可伺机而动，退可固守待时。",
+        "commands": [
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "wu",
+              "action": "ally"
+            },
+            "reasoning": "曹操势大，东联孙权可成南北呼应，共抗曹军，减轻新野正面压力。",
+            "faction_id": "shu"
+          },
+          {
+            "type": "develop",
+            "params": {
+              "territory": "xinye"
+            },
+            "reasoning": "发展新野农业与经济，充实粮仓，为长期防守和后续征兵提供物资基础。",
+            "faction_id": "shu"
+          },
+          {
+            "type": "recruit",
+            "params": {
+              "territory": "xinye",
+              "amount": 1000,
+              "unit_type": "infantry"
+            },
+            "reasoning": "新野直面曹军，兵力仅五千，稍有闪失则危，招募千人加强守备，同时不过度消耗粮饷。",
+            "faction_id": "shu"
+          }
+        ]
+      },
+      "zh": {
+        "decision_text": "玄德公屯兵新野，兵微将寡，然心存仁义，不忍劳民。曹操势大，虎视荆襄，新野首当其冲。今当内修政理，外结盟友。闻卧龙凤雏，天下奇才，可使人寻访，延揽经纶济世之士。同时，宜练兵屯田，充实军资，更遣使荆州，固好于刘荆州，缓图联吴抗曹之策。",
+        "commands": [
+          {
+            "type": "recruit",
+            "params": {
+              "territory": "xinye",
+              "amount": 1500,
+              "unit_type": "infantry"
+            },
+            "reasoning": "兵力单薄，需招募新兵以加强新野防守，但仁慈为本，量力而行，征募千五，不扰民生。",
+            "faction_id": "shu"
+          },
+          {
+            "type": "develop",
+            "params": {
+              "territory": "xinye"
+            },
+            "reasoning": "发展新野农桑，安辑百姓，充实粮草，为持久之计。",
+            "faction_id": "shu"
+          },
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "liubiao",
+              "action": "ally"
+            },
+            "reasoning": "刘表为汉室宗亲，现居襄阳，与备友善。结盟可互为犄角，共御曹操，亦可得荆州之援。",
+            "faction_id": "shu"
+          }
+        ]
+      }
+    },
+    "wu": {
+      "en": {
+        "decision_text": "曹操势大，然其河北未定，不宜轻犯江东。刘表病笃，荆州内乱将起，此天赐良机。孤当内修政理，外结盟好，先固柴桑以为西进之基。命鲁肃使刘备，约为唇齿；周瑜练水师于柴桑，待秋粮既足，即取长沙，以成全据长江之势。",
+        "commands": [
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "shu",
+              "action": "ally"
+            },
+            "reasoning": "联刘抗曹，牵制曹操兵力，为我西进创造战略窗口",
+            "faction_id": "wu"
+          },
+          {
+            "type": "develop",
+            "params": {
+              "territory": "chaisang"
+            },
+            "reasoning": "柴桑为西进前线，发展经济以充军资，保障后续作战",
+            "faction_id": "wu"
+          },
+          {
+            "type": "recruit",
+            "params": {
+              "territory": "chaisang",
+              "amount": 8000,
+              "unit_type": "navy"
+            },
+            "reasoning": "江东以水军称雄，扩充水师可制江面，为渡江攻击荆州提供保障",
+            "faction_id": "wu"
+          },
+          {
+            "type": "move",
+            "params": {
+              "from_territory": "jianye",
+              "to_territory": "chaisang",
+              "amount": 20000,
+              "unit_type": "infantry, navy"
+            },
+            "reasoning": "抽调建业部分兵力至柴桑，集结三万水陆精兵，准备下季度进攻长沙",
+            "faction_id": "wu"
+          }
+        ]
+      },
+      "zh": {
+        "decision_text": "孤承父兄基业，雄踞江东六郡。今曹操势大，早晚必图江南，不可不备。刘表老迈，荆州内乱，江夏黄祖乃吾仇雠，当先除此獠，夺其地以为北进之跳板。刘备暂居新野，虽弱然有英雄之志，可遣使结好，共抗曹操。内事则委张昭，外事托周瑜，练兵屯粮，静待天时。",
+        "commands": [
+          {
+            "type": "attack",
+            "params": {
+              "target_territory": "jiangkou",
+              "from_territory": "chaisang",
+              "amount": 20000,
+              "unit_type": "navy, infantry"
+            },
+            "reasoning": "江夏为荆州东大门，黄祖与我血仇，且曹操南下必先取荆州，先发制人可抢得战略要地。柴桑屯兵充足，水陆并进可一举破敌。",
+            "faction_id": "wu"
+          },
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "shu",
+              "action": "ally"
+            },
+            "reasoning": "刘备虽暂居新野，然有关张之勇，且据荆州之侧，联之可互为犄角，牵制曹操。",
+            "faction_id": "wu"
+          },
+          {
+            "type": "develop",
+            "params": {
+              "territory": "jianye"
+            },
+            "reasoning": "建业乃都城，广积粮草，兴修水利，充实府库，为后续战事提供保障。",
+            "faction_id": "wu"
+          },
+          {
+            "type": "recruit",
+            "params": {
+              "territory": "chaisang",
+              "amount": 8000,
+              "unit_type": "navy"
+            },
+            "reasoning": "江东以水师称雄，攻取江夏后需巩固水防，备曹操南下。柴桑为水军基地，就近征募得习水之卒。",
+            "faction_id": "wu"
+          }
+        ]
+      }
+    },
+    "yuan_shu": {
+      "en": {
+        "decision_text": "This faction no longer exists. No decision needed.",
+        "commands": []
+      },
+      "zh": {
+        "decision_text": "该势力已不存在，无需决策。",
+        "commands": []
+      }
+    }
+  }
+}
