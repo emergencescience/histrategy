@@ -16,7 +16,10 @@ from __future__ import annotations
 
 import json as _json
 import logging
+import os
 import uuid
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 logger = logging.getLogger("histrategy.room_manager")
@@ -180,7 +183,8 @@ def create_room(
     _trigger_npc_decisions(room)
 
     # 返回显示名列表供前端展示（动态从场景数据获取）
-    fnames = _get_faction_names(room)
+    lang = getattr(room, 'metadata', {}).get('lang', 'zh') if getattr(room, 'metadata', None) else 'zh'
+    fnames = _get_faction_names(room, lang=lang)
     display_factions = [fnames.get(f, f) for f in internal_ids]
 
     logger.info(f"Room created+started: {room.id} by {host_user_id or 'anon'} (humans: {display_factions})")
@@ -462,7 +466,8 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
         return {"ok": False, "error": "房间不存在"}
 
     # Dynamic faction names from scenario data (not hardcoded Three Kingdoms)
-    fnames = _get_faction_names(room)
+    lang = getattr(room, 'metadata', {}).get('lang', 'zh') if getattr(room, 'metadata', None) else 'zh'
+    fnames = _get_faction_names(room, lang=lang)
     _display = lambda fid: fnames.get(fid, fid)
 
     room_players = _players.get(room_id, {})
@@ -566,11 +571,62 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
 # ── Internal ─────────────────────────────────────────
 
 
+# ── NPC Decision Cache ───────────────────────────────────
+
+def _get_npc_cache_dir() -> Path:
+    """Return the cache directory for NPC first-round decisions."""
+    data_dir = os.environ.get("HISTRATEGY_DATA_DIR", os.path.expanduser("~/.histrategy"))
+    return Path(data_dir) / "npc_decision_cache"
+
+
+def _get_npc_cache_path(scenario: str, faction_id: str, quarter: int) -> Path:
+    """Return the cache file path for a specific NPC decision."""
+    return _get_npc_cache_dir() / f"{scenario}_{faction_id}_q{quarter}.json"
+
+
+def _load_cached_decision(scenario: str, faction_id: str, quarter: int) -> dict | None:
+    """Load a cached NPC decision. Returns None if not found or stale."""
+    cache_path = _get_npc_cache_path(scenario, faction_id, quarter)
+    if not cache_path.is_file():
+        return None
+    try:
+        data = _json.loads(cache_path.read_text(encoding="utf-8"))
+        # Basic validation: must have decision_text
+        if not data.get("decision_text"):
+            return None
+        return data
+    except Exception:
+        logger.warning(f"Failed to load NPC cache: {cache_path}")
+        return None
+
+
+def _save_cached_decision(scenario: str, faction_id: str, quarter: int,
+                          decision_result) -> None:
+    """Save an NPC decision to the file-based cache."""
+    cache_dir = _get_npc_cache_dir()
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_path = _get_npc_cache_path(scenario, faction_id, quarter)
+    data = {
+        "decision_text": decision_result.decision_text,
+        "commands": decision_result.commands,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "scenario_version": "1",
+    }
+    try:
+        cache_path.write_text(_json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        logger.debug(f"Saved NPC decision cache: {cache_path}")
+    except Exception:
+        logger.warning(f"Failed to save NPC cache: {cache_path}")
+
+
 def _trigger_npc_decisions(room: GameRoom):
     """在回合开始时立即为所有 AI NPC 生成决策。
 
     这样当人类玩家提交决策后，不需要等待 NPC LLM 调用——
     NPC 已经提前提交了决策，最后一个人类提交即可立即 resolve。
+
+    Quarter 0 decisions are cached to disk to avoid redundant LLM calls
+    on room creation (same initial state for each scenario).
     """
     from histrategy.engine.decision_bus import collect_all_decisions
 
@@ -591,6 +647,37 @@ def _trigger_npc_decisions(room: GameRoom):
     # Extract language from room metadata (default zh)
     lang = getattr(room, 'metadata', {}).get('lang', 'zh')
 
+    # ── Quarter 0 cache check ──
+    # For quarter 0, NPC decisions are deterministic (same initial state).
+    # Check file-based JSON cache before calling the LLM.
+    if room.quarter_number == 0:
+        cached: dict[str, dict] = {}
+        uncached_factions: list[str] = []
+        for fid in ai_only:
+            data = _load_cached_decision(room.scenario, fid, 0)
+            if data is not None:
+                cached[fid] = data
+            else:
+                uncached_factions.append(fid)
+
+        if not uncached_factions:
+            # All decisions cached — submit directly, skip LLM
+            for fid, data in cached.items():
+                room.slots[fid].submit_decision(
+                    data["decision_text"], data.get("commands", [])
+                )
+            logger.info(
+                f"Room {room.id}: NPC decisions loaded from cache — "
+                f"{list(cached.keys())}"
+            )
+            return
+
+        # Some or all uncached — generate via LLM, then save to cache
+        logger.info(
+            f"Room {room.id} Q0: cache miss for {uncached_factions}, "
+            f"generating via LLM"
+        )
+
     # 临时替换 room.slots 为只含 AI 的版本，避免 DecisionBus 等待人类
     # 使用 collect_all_decisions 为 AI 生成决策
     try:
@@ -600,6 +687,12 @@ def _trigger_npc_decisions(room: GameRoom):
             if fid in room.slots:
                 room.slots[fid].submit_decision(dr.decision_text, dr.commands)
         logger.info(f"Room {room.id}: NPC decisions ready — {list(decisions.keys())}")
+
+        # ── Save quarter 0 decisions to cache ──
+        if room.quarter_number == 0:
+            for fid, dr in decisions.items():
+                if fid in ai_only:
+                    _save_cached_decision(room.scenario, fid, 0, dr)
     except Exception as e:
         logger.error(f"Room {room.id}: NPC decision trigger failed: {e}")
 
@@ -1189,11 +1282,12 @@ def _save_quarter(room, decisions, result):
         logger.warning(f"Quarter save failed: {e}")
 
 
-def _get_faction_names(room) -> dict[str, str]:
+def _get_faction_names(room, lang: str = "zh") -> dict[str, str]:
     """Build {internal_id: display_name} from scenario faction data.
 
     Returns a dict mapping every faction_id known to the room's scenario
     to its display name (Chinese name or name_en fallback).
+    When lang="en", returns English names (name_en) with Chinese fallback.
     Used by get_room_status and api_room_turns to provide dynamic
     faction name mappings without hardcoding Three Kingdoms factions.
     """
@@ -1204,7 +1298,10 @@ def _get_faction_names(room) -> dict[str, str]:
         loader = ScenarioLoader(room.scenario)
         factions = loader.load_factions()
         for fid, f in factions.items():
-            names[fid] = f.get("name", f.get("name_en", fid))
+            if lang == "en":
+                names[fid] = f.get("name_en", f.get("name", fid))
+            else:
+                names[fid] = f.get("name", f.get("name_en", fid))
     except Exception:
         pass
     # Fallback: derive from room slots + world_state

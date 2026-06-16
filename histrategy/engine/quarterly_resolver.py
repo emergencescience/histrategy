@@ -273,14 +273,15 @@ class QuarterlyResolver:
                     }
                 )
 
-        return self.macro_policy_engine.simulate(
-            ws,
-            policy_commands=player_commands,
-            player_decision=player_decision,
-            baseline=baseline or _empty_baseline(ws),
-            history_events=[{"event_id": p.event_id, "title": p.title} for p in bs_proposals] if bs_proposals else [],
-            turn_memory=room.turn_summaries[-8:] if room.turn_summaries else [],
-        )
+            return self.macro_policy_engine.simulate(
+                ws,
+                policy_commands=player_commands,
+                player_decision=player_decision,
+                baseline=baseline or _empty_baseline(ws),
+                history_events=[{"event_id": p.event_id, "title": p.title} for p in bs_proposals] if bs_proposals else [],
+                turn_memory=room.turn_summaries[-8:] if room.turn_summaries else [],
+                room_id=room.id,
+            )
 
     def _generate_narratives(
         self,
@@ -303,6 +304,7 @@ class QuarterlyResolver:
                     macro_delta,
                     decision=all_decisions.get(faction_id, ""),
                     commands=all_commands.get(faction_id, []),
+                    room_id=room.id,
                 )
                 return faction_id, narrative or ""
             except Exception as e:

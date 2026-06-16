@@ -1066,6 +1066,8 @@ class GameEngine:
         if self.history_engine:
             averted_list = list(set(averted_list) | self.history_engine._blocked_downstream)
 
+        room_id = getattr(self, "_room_id", "default")
+
         if self.narrative_engine and self.narrative_engine.is_available:
             import concurrent.futures
 
@@ -1077,6 +1079,7 @@ class GameEngine:
                     deviation=ws.player_deviation,
                     averted_events=averted_list,
                     world_state=ws,
+                    room_id=room_id,
                 )
                 future_suggestions = executor.submit(
                     self.narrative_engine.generate_plan_suggestions, ws, ws.player_faction_id
@@ -1429,6 +1432,7 @@ class GameEngine:
                     deviation=ws.player_deviation,
                     averted_events=averted_list,
                     world_state=ws,
+                    room_id=room_id,
                 )
                 future_suggestions = executor.submit(
                     self.narrative_engine.generate_plan_suggestions, ws, ws.player_faction_id

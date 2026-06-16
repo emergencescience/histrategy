@@ -89,6 +89,7 @@ class NarrativeEngine:
         deviation: float = 0.0,
         averted_events: list[str] | None = None,
         world_state: WorldState | None = None,
+        room_id: str = "",
     ) -> str:
         """Generate a historical chronicle narrative from a turn's physics results.
 
@@ -126,6 +127,7 @@ class NarrativeEngine:
                 "category": "narrative",
                 "reason": "generate_turn_narrative",
                 "faction_id": getattr(turn_result, "player_faction_id", ""),
+                "room_id": room_id,
             }
             result = self.llm.chat(
                 messages,
@@ -145,6 +147,7 @@ class NarrativeEngine:
         macro_delta: dict | None = None,
         decision: str = "",
         commands: list | None = None,
+        room_id: str = "",
     ) -> str:
         """Generate a faction-specific narrative from baseline + macro results.
 
@@ -182,7 +185,7 @@ class NarrativeEngine:
                 messages,
                 temperature=0.7,
                 max_tokens=1024,
-                metadata={"category": "narrative", "faction_id": faction_id},
+                metadata={"category": "narrative", "faction_id": faction_id, "room_id": room_id},
             )
             return result.strip()
         except Exception:

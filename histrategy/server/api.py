@@ -1168,7 +1168,8 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         # Build faction_names from room
         room = _get_room(room_id)
-        fnames = _get_faction_names(room) if room else {}
+        lang = getattr(room, 'metadata', {}).get('lang', 'zh') if getattr(room, 'metadata', None) else 'zh'
+        fnames = _get_faction_names(room, lang=lang) if room else {}
 
         return {
             "room_id": room_id,
