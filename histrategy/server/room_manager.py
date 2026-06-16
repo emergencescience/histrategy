@@ -193,6 +193,7 @@ def create_room(
         "room_id": room.id,
         "phase": "waiting",
         "human_factions": display_factions,
+        "faction_names": fnames,
     }
     if player_links:
         result["player_links"] = player_links
