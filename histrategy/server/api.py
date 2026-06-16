@@ -1247,6 +1247,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             faction=body.get("faction", "shu"),
             scenario=body.get("scenario", "207"),
             language_style=body.get("language_style", "vernacular"),
+            lang=body.get("lang", "zh"),
         )
 
     @app.get("/api/scenarios")
