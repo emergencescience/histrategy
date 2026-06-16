@@ -855,6 +855,7 @@ def _resolve_and_advance(room: GameRoom):
 def _resolve_v1(room, ws, decisions, llm):
     """V1 引擎：纯 LLM 仿真。"""
     from dataclasses import dataclass
+    import concurrent.futures
 
     from histrategy.engine.v1_simulator import V1Simulator, _apply_v1_state_to_world, save_v1_state_to_db
 
@@ -864,9 +865,22 @@ def _resolve_v1(room, ws, decisions, llm):
     for fid, dr in decisions.items():
         fd[fid] = {"decision": dr.decision_text, "commands": dr.commands}
 
-    v1_result = simulator.simulate(ws, fd, room.turn_summaries,
-                                   room_id=room.id, quarter_number=room.quarter_number + 1,
-                                   scenario=room.scenario)
+    # Run V1 simulation with a timeout (80s < Cloudflare 100s)
+    _TIMEOUT = 80
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(
+                simulator.simulate, ws, fd, room.turn_summaries,
+                room_id=room.id, quarter_number=room.quarter_number + 1,
+                scenario=room.scenario,
+            )
+            v1_result = future.result(timeout=_TIMEOUT)
+    except concurrent.futures.TimeoutError:
+        logger.warning(f"V1 simulate timed out after {_TIMEOUT}s for room {room.id}, falling back")
+        v1_result = simulator._fallback(ws, fd)
+    except Exception as e:
+        logger.error(f"V1 simulate failed for room {room.id}: {e}, falling back")
+        v1_result = simulator._fallback(ws, fd)
 
     # ── 先捕获旧状态（用于 turn_delta 计算）──
     old_state = {}
