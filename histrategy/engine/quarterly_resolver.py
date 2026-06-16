@@ -347,6 +347,10 @@ def _empty_baseline(ws: WorldState):
         history_events=[],
         season_name=str(getattr(getattr(ws, 'season', None), 'cn', None) or getattr(ws, 'season', '?')),
         year=ws.year,
+        tax_revenue={},
+        food_delta={},
+        population_delta={},
+        morale_delta={},
     )
 
 
