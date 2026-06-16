@@ -914,6 +914,59 @@ def _resolve_and_advance(room: GameRoom):
     _save_quarter(room, decisions, result)
     _write_backup(room, ws_dict)
 
+    # Async bill call to orchestrator (non-blocking)
+    threading.Thread(target=_bill_quarter, args=(room,), daemon=True).start()
+
+
+def _bill_quarter(room):
+    """Call orchestrator POST /games/histrategy/bill to deduct credits.
+
+    Uses X-Internal-Key for server-to-server auth.
+    Non-blocking -- failures are logged but never raised.
+    """
+    import json as _json
+    import urllib.request
+
+    try:
+        orch_url = os.environ.get('ORCHESTRATOR_URL', 'https://api.emergence.science').rstrip('/')
+        internal_key = os.environ.get('HISTRATEGY_BILL_INTERNAL_KEY', '')
+        if not internal_key:
+            logger.debug('HISTRATEGY_BILL_INTERNAL_KEY not set -- skipping bill')
+            return
+
+        token_usage = _collect_quarter_tokens(room.id, room.quarter_number)
+        total_tokens = token_usage.get('total_tokens', 0) if token_usage else 0
+        if total_tokens <= 0:
+            logger.debug(f'Q{room.quarter_number} has 0 tokens -- skipping bill')
+            return
+
+        payload = _json.dumps({
+            'room_id': room.id,
+            'quarter_number': room.quarter_number,
+            'total_tokens': total_tokens,
+        }).encode()
+
+        req = urllib.request.Request(
+            f'{orch_url}/games/histrategy/bill',
+            data=payload,
+            headers={
+                'Content-Type': 'application/json',
+                'X-Internal-Key': internal_key,
+            },
+            method='POST',
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = _json.loads(resp.read())
+        if result.get('billed'):
+            logger.info(
+                f'Billed room={room.id} Q{room.quarter_number}: '
+                f'{total_tokens} tokens -> {result.get("micro_credits_deducted", "?")} micro_credits'
+            )
+        else:
+            logger.debug(f'Bill skipped: {result.get("reason", "unknown")}')
+    except Exception as e:
+        logger.warning(f'Bill call failed (non-fatal): {e}')
+
 
 def _resolve_v1(room, ws, decisions, llm):
     """V1 引擎：纯 LLM 仿真。"""
