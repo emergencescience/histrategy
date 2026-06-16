@@ -49,9 +49,10 @@ class NarrativeEngine:
     Offline fallback generates deterministic text when no LLM key is available.
     """
 
-    def __init__(self, llm_adapter: LLMAdapter | None = None):
+    def __init__(self, llm_adapter: LLMAdapter | None = None, language: str = "zh"):
         self.llm = llm_adapter
         self.llm_available = llm_adapter is not None and llm_adapter.is_available
+        self._language = language  # "zh" or "en"
 
         # Initialize RAG
         self._knowledge_path = _resolve_knowledge_path()
@@ -344,10 +345,16 @@ class NarrativeEngine:
     def _offline_narrative(self, tr: TurnResult) -> str:
         """Deterministic offline narrative from TurnResult data."""
         parts: list[str] = []
+        is_en = self._language == "en"
 
         # Header
-        parts.append(f"### {tr.year}年{tr.season.cn} · 大事纪")
-        parts.append(f"建安{tr.year - 196}年{tr.season.cn}，天下纷争未休。")
+        if is_en:
+            parts.append(f"### {tr.year} {tr.season.cn.capitalize()} · Chronicle")
+            # Try to use era name if applicable
+            parts.append(f"Year {tr.year}, {tr.season.cn} — the realm remains in turmoil.")
+        else:
+            parts.append(f"### {tr.year}年{tr.season.cn} · 大事纪")
+            parts.append(f"建安{tr.year - 196}年{tr.season.cn}，天下纷争未休。")
 
         # Climate
         not_normal = {tid: ev for tid, ev in tr.climate_events.items() if ev.value != "normal"}
@@ -359,14 +366,31 @@ class NarrativeEngine:
                 "bumper_harvest": "丰年",
                 "cold_wave": "寒潮",
             }
-            climate_desc = "；".join(f"{tid}遭{events_cn.get(ev.value, ev.value)}" for tid, ev in not_normal.items())
-            parts.append(f"\n### 天时气候\n{climate_desc}。")
+            events_en = {
+                "drought": "Drought",
+                "flood": "Flood",
+                "pestilence": "Pestilence",
+                "bumper_harvest": "Bumper Harvest",
+                "cold_wave": "Cold Wave",
+            }
+            if is_en:
+                climate_desc = "; ".join(f"{tid} suffers {events_en.get(ev.value, ev.value)}" for tid, ev in not_normal.items())
+                parts.append(f"\n### Climate\n{climate_desc}.")
+            else:
+                climate_desc = "；".join(f"{tid}遭{events_cn.get(ev.value, ev.value)}" for tid, ev in not_normal.items())
+                parts.append(f"\n### 天时气候\n{climate_desc}。")
         else:
-            parts.append("\n### 天时气候\n是岁风调雨顺，五谷丰登。")
+            if is_en:
+                parts.append("\n### Climate\nFavorable weather, bountiful harvest.")
+            else:
+                parts.append("\n### 天时气候\n是岁风调雨顺，五谷丰登。")
 
         # Battles
         if tr.battles:
-            parts.append("\n### 兵争武事")
+            if is_en:
+                parts.append("\n### Military Affairs")
+            else:
+                parts.append("\n### 兵争武事")
             battle_results_cn = {
                 "decisive_victory": "大破之",
                 "victory": "击败之",
@@ -374,37 +398,69 @@ class NarrativeEngine:
                 "defeat": "败绩",
                 "decisive_defeat": "大败而归",
             }
+            battle_results_en = {
+                "decisive_victory": "decisively crushed",
+                "victory": "defeated",
+                "draw": "fought to a draw against",
+                "defeat": "was defeated by",
+                "decisive_defeat": "suffered a crushing defeat by",
+            }
             for b in tr.battles:
                 atk_loss = sum(b.attacker_casualties.values())
                 def_loss = sum(b.defender_casualties.values())
-                result_cn = battle_results_cn.get(b.result.value, "交战")
-                parts.append(
-                    f"{b.attacker_id}军攻{b.defender_id}于{b.location}，{result_cn}。"
-                    f"攻方折兵{atk_loss}，守方损兵{def_loss}。"
-                )
+                if is_en:
+                    result_en = battle_results_en.get(b.result.value, "engaged")
+                    parts.append(
+                        f"{b.attacker_id} {result_en} {b.defender_id} at {b.location}. "
+                        f"Attacker lost {atk_loss}, defender lost {def_loss}."
+                    )
+                else:
+                    result_cn = battle_results_cn.get(b.result.value, "交战")
+                    parts.append(
+                        f"{b.attacker_id}军攻{b.defender_id}于{b.location}，{result_cn}。"
+                        f"攻方折兵{atk_loss}，守方损兵{def_loss}。"
+                    )
                 if b.territory_captured:
-                    parts.append(f"{b.location}易手，归{b.attacker_id}所有。")
+                    if is_en:
+                        parts.append(f"{b.location} falls to {b.attacker_id}.")
+                    else:
+                        parts.append(f"{b.location}易手，归{b.attacker_id}所有。")
 
         # Character events
         deaths = [e for e in tr.character_events if "death" in str(e.get("type", ""))]
         if deaths:
-            parts.append("\n### 人物变易")
+            if is_en:
+                parts.append("\n### Notable Deaths")
+            else:
+                parts.append("\n### 人物变易")
             for e in deaths:
                 name = e.get("character_name", "?")
                 year = e.get("year", tr.year)
-                parts.append(f"{name}于{year}年病故。")
+                if is_en:
+                    parts.append(f"{name} passed away in {year}.")
+                else:
+                    parts.append(f"{name}于{year}年病故。")
 
         # Resource summary
         if tr.resource_changes:
-            parts.append("\n### 天下态势")
+            if is_en:
+                parts.append("\n### Realm Overview")
+            else:
+                parts.append("\n### 天下态势")
             for fid, changes in tr.resource_changes.items():
                 food = changes.get("food_delta", 0)
                 tax = changes.get("tax_revenue", 0)
                 spent = changes.get("treasury_spent", 0)
                 if food or tax or spent:
-                    parts.append(f"{fid}: 粮草{food:+d} 税收+{tax} 支出{spent}")
+                    if is_en:
+                        parts.append(f"{fid}: Food{food:+d} Tax+{tax} Spent{spent}")
+                    else:
+                        parts.append(f"{fid}: 粮草{food:+d} 税收+{tax} 支出{spent}")
 
-        parts.append(f"\n### 史官评曰\n{tr.year}年{tr.season.cn}之局，诸君且观后变。")
+        if is_en:
+            parts.append(f"\n### Historian's Judgment\nYear {tr.year}, {tr.season.cn} — the board is set.")
+        else:
+            parts.append(f"\n### 史官评曰\n{tr.year}年{tr.season.cn}之局，诸君且观后变。")
 
         return "\n".join(parts)
 

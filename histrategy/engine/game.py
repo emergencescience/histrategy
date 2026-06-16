@@ -164,6 +164,19 @@ class GameEngine:
         force_v1_env = os.environ.get("HISTRATEGY_FORCE_V1", "").lower() in ("true", "1")
         self._use_v2 = _V2_AVAILABLE and not force_v1 and not force_v1_env
 
+        # Detect scenario language early (needed by NarrativeEngine in _build_engine_stack)
+        self._scenario_language = "zh"
+        try:
+            from .scenario_loader import ScenarioLoader
+
+            sl = ScenarioLoader(scenario)
+            config = sl._load_toml()
+            lang = config.get("display", {}).get("language", "zh")
+            if lang in ("en", "zh"):
+                self._scenario_language = lang
+        except Exception:
+            pass
+
         # ─── v2 initialization ────────────────────────────────
         if self._use_v2:
             self._init_v2(scenario, new_game)
@@ -249,7 +262,8 @@ class GameEngine:
         if llm and llm.is_available:
             from ..llm.narrative import NarrativeEngine
 
-            self.narrative_engine = NarrativeEngine(llm)
+            lang = getattr(self, "_scenario_language", "zh")
+            self.narrative_engine = NarrativeEngine(llm, language=lang)
 
             # IntentParser: use fast model in v3 mode for speed
             if self._use_v3:
@@ -1124,18 +1138,23 @@ class GameEngine:
 
         # Generate a concise aftermath from resource changes + key events
         aftermath_parts = []
+        is_en = getattr(self, "_scenario_language", "zh") == "en"
         if resource_changes.get("food_delta", 0) != 0:
             sign = "+" if resource_changes["food_delta"] > 0 else ""
-            aftermath_parts.append(f"粮草{sign}{resource_changes['food_delta']}")
+            label = "Food" if is_en else "粮草"
+            aftermath_parts.append(f"{label}{sign}{resource_changes['food_delta']}")
         if resource_changes.get("tax_revenue", 0) != 0:
             sign = "+" if resource_changes["tax_revenue"] > 0 else ""
-            aftermath_parts.append(f"资金{sign}{resource_changes['tax_revenue']}")
+            label = "Gold" if is_en else "资金"
+            aftermath_parts.append(f"{label}{sign}{resource_changes['tax_revenue']}")
         if resource_changes.get("strength_delta", 0) != 0:
             sign = "+" if resource_changes["strength_delta"] > 0 else ""
-            aftermath_parts.append(f"兵力{sign}{resource_changes['strength_delta']}")
+            label = "Troops" if is_en else "兵力"
+            aftermath_parts.append(f"{label}{sign}{resource_changes['strength_delta']}")
         if resource_changes.get("morale_delta", 0) != 0:
             sign = "+" if resource_changes["morale_delta"] > 0 else ""
-            aftermath_parts.append(f"民心{sign}{resource_changes['morale_delta']}")
+            label = "Morale" if is_en else "民心"
+            aftermath_parts.append(f"{label}{sign}{resource_changes['morale_delta']}")
 
         # Extract the last 2-3 sentences of narrative as summary
         if narrative_text:
@@ -1146,10 +1165,13 @@ class GameEngine:
             summary_sentences = sentences[-2:] if len(sentences) > 2 else sentences[-1:]
             aftermath_text = "。".join(summary_sentences) + "。"
         else:
-            aftermath_text = "局势已定，天下大势尽在掌握。\n"
+            aftermath_text = "The realm is calm, all is under control.\n" if is_en else "局势已定，天下大势尽在掌握。\n"
 
         if aftermath_parts:
-            aftermath_text = "本回合：" + "，".join(aftermath_parts) + "。" + "\n\n" + aftermath_text
+            prefix = "This turn: " if is_en else "本回合："
+            sep = ", " if is_en else "，"
+            suffix = ". " if is_en else "。"
+            aftermath_text = prefix + sep.join(aftermath_parts) + suffix + "\n\n" + aftermath_text
 
         result = {
             "narrative": narrative_text,
@@ -1184,7 +1206,10 @@ class GameEngine:
         if player and self.history_engine:
             try:
                 if ws.player_deviation > 0.0:
-                    result["aftermath"] = f"【史官注：历史偏离度 {ws.player_deviation:.2f}】\n\n" + result["aftermath"]
+                    if is_en:
+                        result["aftermath"] = f"[Historian's Note: Historical Deviation {ws.player_deviation:.2f}]\n\n" + result["aftermath"]
+                    else:
+                        result["aftermath"] = f"【史官注：历史偏离度 {ws.player_deviation:.2f}】\n\n" + result["aftermath"]
             except Exception:
                 pass
 
@@ -1849,7 +1874,9 @@ class GameEngine:
                 if narr:
                     narrative_parts.append(f"⚡ {narr}")
 
-        narrative_text = "\n\n".join(narrative_parts) if narrative_parts else "天下大势，波澜不惊。\n"
+        narrative_text = "\n\n".join(narrative_parts) if narrative_parts else (
+            "All is quiet across the realm.\n" if getattr(self, "_scenario_language", "zh") == "en" else "天下大势，波澜不惊。\n"
+        )
 
         # Generate plan suggestions
         if ws.turn_number <= 1:
@@ -1865,17 +1892,28 @@ class GameEngine:
         # Step 8: Aftermath (from actual faction state, not stale baseline)
         pf = ws.factions.get(ws.player_faction_id)
         parts = []
+        is_en = getattr(self, "_scenario_language", "zh") == "en"
         if pf:
-            parts.append(f"资金:{pf.treasury}")
-            parts.append(f"粮草:{pf.food}")
-            parts.append(f"民心:{getattr(pf, 'morale_actual', '?')}")
-            territories = list(pf.territories) if pf.territories else []
-            parts.append(f"领地:{len(territories)}")
-        aftermath = "本季度：" + "，".join(parts) + "。"
+            if is_en:
+                parts.append(f"Gold:{pf.treasury}")
+                parts.append(f"Food:{pf.food}")
+                parts.append(f"Morale:{getattr(pf, 'morale_actual', '?')}")
+                territories = list(pf.territories) if pf.territories else []
+                parts.append(f"Territories:{len(territories)}")
+            else:
+                parts.append(f"资金:{pf.treasury}")
+                parts.append(f"粮草:{pf.food}")
+                parts.append(f"民心:{getattr(pf, 'morale_actual', '?')}")
+                territories = list(pf.territories) if pf.territories else []
+                parts.append(f"领地:{len(territories)}")
+        aftermath = "This quarter: " if is_en else "本季度："
+        sep = ", " if is_en else "，"
+        aftermath += sep.join(parts) + ("." if is_en else "。")
 
         # Add LLM narrative summary if available
         if narrative_parts and len(narrative_parts) > 1:
-            aftermath += f" {narrative_parts[0].replace('### ', '')}。"
+            suffix = "." if is_en else "。"
+            aftermath += f" {narrative_parts[0].replace('### ', '')}{suffix}"
 
         # Knowledge cards
         kcards = []
@@ -2419,7 +2457,7 @@ class GameEngine:
         """Offline narrative from turn result."""
         from ..llm.narrative import NarrativeEngine
 
-        dummy = NarrativeEngine(None)
+        dummy = NarrativeEngine(None, language=getattr(self, "_scenario_language", "zh"))
         return dummy._offline_narrative(turn_result)
 
 
