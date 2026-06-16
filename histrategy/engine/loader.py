@@ -34,8 +34,9 @@ from histrategy_engine.world import (
 _SCENARIO_ID_MAP: dict[str, str] = {
     "207": "three-kingdoms",
     "three-kingdoms": "three-kingdoms",
-    "caesar-44bc": "caesar-44bc",
-    "44bc": "caesar-44bc",
+    "caesar-44bc": "rome-triumvirate",
+    "44bc": "rome-triumvirate",
+    "rome-triumvirate": "rome-triumvirate",
 }
 
 

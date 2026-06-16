@@ -55,10 +55,13 @@ def _normalise_scenario_id(scenario_id: str) -> str:
     """Map legacy numeric scenario IDs to directory names.
 
     "207" / "" → "three-kingdoms"
+    "caesar-44bc" / "44bc" → "rome-triumvirate"
     Everything else is passed through unchanged.
     """
     if scenario_id in ("", "207", "three-kingdoms"):
         return "three-kingdoms"
+    if scenario_id in ("caesar-44bc", "44bc", "rome-triumvirate"):
+        return "rome-triumvirate"
     return scenario_id
 
 

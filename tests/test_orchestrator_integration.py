@@ -29,7 +29,7 @@ def room_id():
     result = create_room(
         host_user_id="integration_test",
         host_name="Integration Test",
-        scenario="caesar-44bc",
+        scenario="rome-triumvirate",
         pre_assigned={"octavian": "TestPlayer"},
     )
     assert result["ok"], f"Room creation failed: {result}"
@@ -67,14 +67,14 @@ class TestScenariosAPI:
         from histrategy.engine.scenario_loader import ScenarioLoader
 
         result = ScenarioLoader.list_scenarios()
-        assert len(result) >= 2  # at least three-kingdoms + caesar-44bc
+        assert len(result) >= 2  # at least three-kingdoms + rome-triumvirate
 
     def test_caesar_factions_are_playable(self):
         from histrategy.engine.scenario_loader import ScenarioLoader
 
         result = ScenarioLoader.list_scenarios()
-        assert "caesar-44bc" in result
-        loader = ScenarioLoader("caesar-44bc")
+        assert "rome-triumvirate" in result
+        loader = ScenarioLoader("rome-triumvirate")
         factions = loader.load_factions()
         # All 4 factions should be playable (npc_only: false)
         playable = {fid for fid, f in factions.items() if not f.get("npc_only", False)}
@@ -83,7 +83,7 @@ class TestScenariosAPI:
     def test_caesar_factions_have_display_names(self):
         from histrategy.engine.scenario_loader import ScenarioLoader
 
-        loader = ScenarioLoader("caesar-44bc")
+        loader = ScenarioLoader("rome-triumvirate")
         factions = loader.load_factions()
         for fid, f in factions.items():
             assert f.get("name") or f.get("name_en"), f"Faction {fid} has no display name"
