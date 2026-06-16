@@ -107,6 +107,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
     prev_quarter = room.quarter_number
 
     # 1. 提交决策 → 同步 resolve（submit_decision 内部调用 _resolve_and_advance）
+    from histrategy.server.room_manager import _trigger_npc_decisions
     submit_result = submit_decision(game_id, human_fid, decision)
     if not submit_result.get("ok"):
         return {"ok": False, "error": submit_result.get("error", "提交决策失败")}
@@ -118,9 +119,18 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
         return {"ok": False, "error": "游戏在推演中丢失"}
 
     if room.quarter_number <= prev_quarter:
-        # resolve 失败了（异常被 submit_decision 吞掉）
-        logger.warning(f"Room {game_id}: quarter unchanged ({prev_quarter}) after resolve")
-        return {"ok": False, "error": "推演失败，请重试"}
+        # NPC 决策可能还没生成完（异步线程延迟）
+        # 尝试同步触发 NPC 决策并 resolve
+        logger.info(f"Room {game_id}: quarter unchanged ({prev_quarter}) — triggering NPC decisions sync")
+        try:
+            _trigger_npc_decisions(room)
+            submit_decision(game_id, human_fid, decision)
+        except Exception as e:
+            logger.warning(f"Room {game_id}: sync NPC trigger failed: {e}")
+        
+        room = _get_room(game_id)
+        if not room or room.quarter_number <= prev_quarter:
+            return {"ok": False, "error": "推演失败，请重试"}
 
     # 3. 读取推演结果
     narratives = getattr(room, "_last_narratives", {})
