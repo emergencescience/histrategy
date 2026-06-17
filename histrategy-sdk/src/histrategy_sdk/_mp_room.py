@@ -56,9 +56,8 @@ class MultiplayerRoom:
         cls,
         client: ServerClient,
         pre_assigned: dict[str, str] | None = None,
-        scenario: str = "three-kingdoms",
+        scenario: str = "207",
         metadata: dict[str, str] | None = None,
-        lang: str = "zh-CN",
     ) -> dict:
         """Host creates a multiplayer room.
 
@@ -66,9 +65,8 @@ class MultiplayerRoom:
             client: ServerClient instance pointing at the histrategy server
             pre_assigned: Dict mapping faction display names to player names,
                 e.g. {"caocao": "曹操", "liubei": "刘备"}
-            scenario: Scenario ID (e.g. "three-kingdoms", "rome-triumvirate")
+            scenario: Scenario ID (e.g. "207", "rome-triumvirate")
             metadata: Optional metadata (e.g. {"lang": "en"})
-            lang: Language code ("zh-CN" or "en"). Merged into metadata.
 
         Returns:
             Dict with keys: room_id, host_token, phase, human_factions,
@@ -78,7 +76,6 @@ class MultiplayerRoom:
             pre_assigned=pre_assigned,
             scenario=scenario,
             metadata=metadata,
-            lang=lang,
         )
 
     @classmethod
