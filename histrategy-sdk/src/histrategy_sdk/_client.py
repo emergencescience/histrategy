@@ -263,6 +263,7 @@ class ServerClient:
         room_id: str,
         faction: str = "",
         player_token: str = "",
+        user_id: str = "",
     ) -> dict:
         """Enter a multiplayer room.
 
@@ -270,6 +271,7 @@ class ServerClient:
             room_id: Room ID from create_room
             faction: Faction display name (e.g. "caocao", "liubei", "sunquan")
             player_token: Player token from pre-assigned room creation
+            user_id: User ID (for host: use host_user_id from create_room)
 
         Returns:
             Dict with ok, role, user_id, faction, player_token, room
@@ -279,6 +281,8 @@ class ServerClient:
             body["faction"] = faction
         if player_token:
             body["player_token"] = player_token
+        if user_id:
+            body["user_id"] = user_id
         return self._post(f"/api/rooms/{room_id}/enter", body)
 
     def submit_room_decision(

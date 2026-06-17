@@ -88,6 +88,7 @@ class MultiplayerRoom:
         room_id: str,
         faction: str,
         player_token: str = "",
+        user_id: str = "",
     ) -> MultiplayerRoom:
         """Player joins a multiplayer room.
 
@@ -96,6 +97,7 @@ class MultiplayerRoom:
             room_id: Room ID from create()
             faction: Faction display name (e.g. "caocao", "liubei", "sunquan")
             player_token: Token from the player_links in create() response
+            user_id: User ID (for host: use host_user_id from create() response)
 
         Returns:
             MultiplayerRoom instance ready for gameplay
@@ -104,6 +106,7 @@ class MultiplayerRoom:
             room_id=room_id,
             faction=faction,
             player_token=player_token,
+            user_id=user_id,
         )
         if not resp.get("ok"):
             raise RuntimeError(f"Failed to join room: {resp.get('error', 'unknown error')}")

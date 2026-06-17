@@ -193,6 +193,7 @@ def create_room(
     result = {
         "ok": True,
         "room_id": room.id,
+        "host_user_id": host_user_id,
         "phase": "waiting",
         "human_factions": display_factions,
         "faction_names": fnames,
