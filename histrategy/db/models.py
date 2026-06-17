@@ -41,8 +41,8 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
             """UPDATE game_room SET
                 year = ?, season = ?, quarter_number = ?, phase = ?,
                 world_state = ?, slots = ?, turn_summaries = ?,
-                updated_at = ?
-            WHERE id = ?""",
+                is_public = ?, updated_at = ?
+            WHERE id = ?"""",
             (
                 room.year,
                 room.season,
@@ -51,6 +51,7 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
                 ws_json,
                 slots_json,
                 summaries_json,
+                1 if room.is_public else 0,
                 now,
                 room.id,
             ),
@@ -179,6 +180,7 @@ def load_room(room_id: str) -> GameRoom | None:
         phase=RoomPhase(row.get("phase", "lobby")),
         decision_timeout=row.get("decision_timeout", 300),
         turn_summaries=turn_summaries,
+        is_public=bool(row.get("is_public", 0)),
     )
     room.slots = slots
 

@@ -1233,6 +1233,64 @@ def create_app(llm_provider: str | None = None) -> Any:
             "factions": factions,
         }
 
+    # Publish / Unpublish
+    @app.patch("/api/rooms/{room_id}/publish")
+    def api_publish_room(room_id: str, body: dict = Body(...)):
+        """Toggle room public/private. { public: true | false }"""
+        from fastapi.responses import JSONResponse
+
+        from histrategy.db.connection import execute
+        from histrategy.server.room_manager import _get_room
+
+        room = _get_room(room_id)
+        if not room:
+            return JSONResponse(status_code=404, content={"error": "Room not found"})
+
+        is_public = bool(body.get("public", False))
+        room.is_public = is_public
+        execute(
+            "UPDATE game_room SET is_public = ? WHERE id = ?",
+            (1 if is_public else 0, room_id),
+        )
+        return {"ok": True, "room_id": room_id, "is_public": is_public}
+
+    # List rooms by user
+    @app.get("/api/rooms")
+    def api_list_rooms(
+        user_id: str = "",
+        x_user_id: str = Header(default="", alias="X-User-Id"),
+    ):
+        """List rooms for a user. Uses X-User-Id if present, else user_id param."""
+        from histrategy.db.connection import execute
+
+        uid = x_user_id or user_id
+        if not uid:
+            return {"rooms": [], "count": 0}
+
+        rows = execute(
+            "SELECT id, host_user_id, scenario, year, season, quarter_number, "
+            "phase, is_public, metadata, created_at, updated_at "
+            "FROM game_room WHERE host_user_id = ? "
+            "ORDER BY updated_at DESC LIMIT 50",
+            (uid,),
+        )
+        rooms = []
+        for r in rows:
+            rooms.append({
+                "id": r["id"],
+                "host_user_id": r["host_user_id"],
+                "scenario": r["scenario"],
+                "year": r["year"],
+                "season": r["season"],
+                "quarter_number": r["quarter_number"],
+                "phase": r["phase"],
+                "is_public": bool(r.get("is_public", 0)),
+                "metadata": r.get("metadata", "{}"),
+                "created_at": r.get("created_at", ""),
+                "updated_at": r.get("updated_at", ""),
+            })
+        return {"rooms": rooms, "count": len(rooms)}
+
     @app.get("/api/single-player/{game_id}/status")
     def api_sp_status(game_id: str):
         """单人模式 — 获取游戏状态。"""
