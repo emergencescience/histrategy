@@ -126,6 +126,12 @@ def init_db():
                 conn.commit()
             except Exception:
                 pass
+            # Add is_public column to game_room (H18h publish feature)
+            try:
+                conn.execute("ALTER TABLE game_room ADD COLUMN is_public INTEGER DEFAULT 0")
+                conn.commit()
+            except Exception:
+                pass
         else:
             # PostgreSQL: execute statements individually (psycopg2 doesn't support multi-statement)
             with conn.cursor() as cur:
@@ -195,6 +201,15 @@ def init_db():
                         cur.execute("ALTER TABLE game_room ADD COLUMN metadata TEXT DEFAULT '{}'")
                     else:
                         cur.execute("ALTER TABLE game_room ADD COLUMN IF NOT EXISTS metadata TEXT DEFAULT '{}'")
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                # Add is_public column to game_room (H18h publish feature)
+                try:
+                    if _IS_SQLITE:
+                        cur.execute("ALTER TABLE game_room ADD COLUMN is_public INTEGER DEFAULT 0")
+                    else:
+                        cur.execute("ALTER TABLE game_room ADD COLUMN IF NOT EXISTS is_public INTEGER DEFAULT 0")
                     conn.commit()
                 except Exception:
                     conn.rollback()
@@ -314,6 +329,7 @@ CREATE TABLE IF NOT EXISTS game_room (
     turn_summaries  TEXT DEFAULT '[]',
     metadata        TEXT DEFAULT '{}',
     engine_version  TEXT DEFAULT '',
+    is_public       INTEGER DEFAULT 0,
     created_at      TEXT DEFAULT '',
     updated_at      TEXT DEFAULT ''
 );
