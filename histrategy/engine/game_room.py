@@ -65,6 +65,9 @@ class GameRoom:
     # 元数据（设备平台、语言偏好等）
     metadata: dict = field(default_factory=dict)
 
+    # 公开房间（发布后所有人可通过 shared URL 观战）
+    is_public: bool = False
+
     def __post_init__(self):
         if isinstance(self.phase, str):
             self.phase = RoomPhase(self.phase)
@@ -144,6 +147,7 @@ class GameRoom:
         return {
             "id": self.id,
             "host_user_id": self.host_user_id,
+            "is_public": self.is_public,
             "scenario": self.scenario,
             "year": self.year,
             "season": self.season,
@@ -160,6 +164,7 @@ class GameRoom:
         room = cls(
             id=data["id"],
             host_user_id=data.get("host_user_id"),
+            is_public=data.get("is_public", False),
             scenario=data.get("scenario", "207"),
             year=data.get("year", 207),
             season=data.get("season", "春"),
