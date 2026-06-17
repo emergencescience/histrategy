@@ -230,13 +230,15 @@ class MultiplayerRoom:
             submitted = current.get("submitted", [])
             pending = current.get("pending", [])
 
-            # Resolution detected: phase back to waiting AND quarter advanced,
-            # OR phase is waiting and both submitted and pending are empty
-            # (meaning all have been processed and we're in a fresh waiting state)
+            # Resolution detected when:
+            # - phase is back to "waiting" (not "resolving")
+            # - quarter has advanced
+            # - our faction is NOT in "submitted" for the new quarter
+            #   (NPCs may have already submitted Q2, so "not pending" is too strict)
             is_resolved = (
                 phase == "waiting"
                 and quarter > initial_quarter
-                and not pending
+                and self.faction not in submitted
             )
 
             if is_resolved:
