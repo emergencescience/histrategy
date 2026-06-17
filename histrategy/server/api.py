@@ -1028,7 +1028,10 @@ def create_app(llm_provider: str | None = None) -> Any:
     from fastapi import Body
 
     @app.post("/api/rooms")
-    def api_create_room(body: dict = Body(...)):
+    def api_create_room(
+        body: dict = Body(...),
+        x_user_id: str = Header(default="", alias="X-User-Id"),
+    ):
         """创建房间。
 
         新流程（推荐）: pre_assigned = {"caocao": "张三", "liubei": "李四"}
@@ -1036,13 +1039,18 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         旧流程: human_faction_ids = ["cao", "shu", "wu"]
         → 势力设为 OPEN 等待玩家手动加入。
+
+        Orchestrator proxy 注入 X-User-Id 头部（真实 user UUID）。
         """
         from histrategy.server.room_manager import create_room
+
+        # Prefer X-User-Id (injected by orchestrator proxy) over body user_id
+        host_user_id = x_user_id or body.get("user_id", "")
 
         pre_assigned = body.get("pre_assigned")
         if pre_assigned:
             result = create_room(
-                host_user_id=body.get("user_id", ""),
+                host_user_id=host_user_id,
                 host_name=body.get("display_name", ""),
                 scenario=body.get("scenario", "207"),
                 pre_assigned=pre_assigned,
@@ -1051,7 +1059,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         else:
             human_faction_ids = body.get("human_faction_ids") or None
             result = create_room(
-                host_user_id=body.get("user_id", ""),
+                host_user_id=host_user_id,
                 host_name=body.get("display_name", ""),
                 scenario=body.get("scenario", "207"),
                 human_faction_ids=human_faction_ids,
@@ -1240,7 +1248,10 @@ def create_app(llm_provider: str | None = None) -> Any:
         return command(game_id, body.get("decision", ""), lang=body.get("lang", "zh"))
 
     @app.post("/api/single-player/start")
-    def api_sp_start(body: dict = Body(...)):
+    def api_sp_start(
+        body: dict = Body(...),
+        x_user_id: str = Header(default="", alias="X-User-Id"),
+    ):
         """单人模式 — 开始新游戏。"""
         from histrategy.server.single_player import start
 
@@ -1249,6 +1260,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             scenario=body.get("scenario", "207"),
             language_style=body.get("language_style", "vernacular"),
             lang=body.get("lang", "zh"),
+            host_user_id=x_user_id or body.get("user_id", ""),
         )
 
     @app.get("/api/scenarios")

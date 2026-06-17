@@ -28,7 +28,7 @@ RESOLVE_TIMEOUT = 180.0  # 秒（LLM 最长等待时间）
 # ── Public API ────────────────────────────────────────────────────────────────
 
 
-def start(faction: str, scenario: str = "207", language_style: str = "vernacular", lang: str = "zh") -> dict:
+def start(faction: str, scenario: str = "207", language_style: str = "vernacular", lang: str = "zh", host_user_id: str = "") -> dict:
     """创建单人游戏。
 
     内部：创建 1人类+2AI 房间 → 初始化世界 → 触发 NPC → 返回 intro
@@ -38,6 +38,7 @@ def start(faction: str, scenario: str = "207", language_style: str = "vernacular
         scenario: 剧本 (默认 207)
         language_style: 语言风格 (classical | vernacular)
         lang: 界面语言 (zh | en)
+        host_user_id: 真实用户 UUID (从 orchestrator X-User-Id 头部提取)
 
     Returns:
         GameCreatedResponse 格式:
@@ -52,7 +53,7 @@ def start(faction: str, scenario: str = "207", language_style: str = "vernacular
     display_fid = FACTION_KEY_TO_DISPLAY.get(faction, faction)
 
     # 1. 创建房间：1 个人类（用 pre_assigned）+ AI NPC 自动填充
-    result = create_room(host_user_id="system", scenario=scenario, pre_assigned={display_fid: "Player"}, metadata={"lang": lang})
+    result = create_room(host_user_id=host_user_id or "system", scenario=scenario, pre_assigned={display_fid: "Player"}, metadata={"lang": lang})
 
     if not result.get("ok"):
         return {"ok": False, "error": result.get("error", "创建房间失败")}
