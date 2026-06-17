@@ -56,6 +56,8 @@ class MultiplayerRoom:
         cls,
         client: ServerClient,
         pre_assigned: dict[str, str] | None = None,
+        scenario: str = "207",
+        metadata: dict[str, str] | None = None,
     ) -> dict:
         """Host creates a multiplayer room.
 
@@ -63,12 +65,18 @@ class MultiplayerRoom:
             client: ServerClient instance pointing at the histrategy server
             pre_assigned: Dict mapping faction display names to player names,
                 e.g. {"caocao": "曹操", "liubei": "刘备"}
+            scenario: Scenario ID (e.g. "207", "rome-triumvirate")
+            metadata: Optional metadata (e.g. {"lang": "en"})
 
         Returns:
             Dict with keys: room_id, host_token, phase, human_factions,
             player_links (list of {faction, player_name, player_token, url})
         """
-        return client.create_room(pre_assigned=pre_assigned)
+        return client.create_room(
+            pre_assigned=pre_assigned,
+            scenario=scenario,
+            metadata=metadata,
+        )
 
     @classmethod
     def join(
@@ -125,6 +133,52 @@ class MultiplayerRoom:
             decision=decision,
             player_token=self.player_token,
         )
+
+    def wait_for_npc_readiness(self, timeout: int = 180) -> dict:
+        """Poll until all AI NPC factions have submitted their decisions.
+
+        Call this BEFORE submitting your own decision. Once all NPCs are ready,
+        your submission will immediately trigger the quarter resolution.
+
+        Args:
+            timeout: Maximum seconds to wait (default 3 min)
+
+        Returns:
+            Room status dict when all NPCs have submitted (or timeout)
+
+        Raises:
+            TimeoutError: If NPCs don't submit within the timeout
+        """
+        start_time = time.monotonic()
+
+        while True:
+            elapsed = time.monotonic() - start_time
+            if elapsed > timeout:
+                raise TimeoutError(
+                    f"NPC decisions not ready for room {self.room_id} within {timeout}s"
+                )
+
+            current = self.status()
+
+            # Guard against error responses from the server
+            if not current.get("ok"):
+                # If the server returns an error, wait and retry
+                time.sleep(2.0)
+                continue
+
+            slots = current.get("slots", {})
+            pending = current.get("pending", [])
+
+            # Check if any AI NPC still hasn't submitted
+            npc_pending = []
+            for fid, slot in slots.items():
+                if slot.get("occupant_type") == "ai_npc" and fid in pending:
+                    npc_pending.append(fid)
+
+            if not npc_pending:
+                return current
+
+            time.sleep(2.0)
 
     def status(self) -> dict:
         """Get current room status.

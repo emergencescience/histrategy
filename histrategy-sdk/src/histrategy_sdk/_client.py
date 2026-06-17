@@ -231,19 +231,28 @@ class ServerClient:
 
     # ── Multiplayer Room API ──────────────────────────────
 
-    def create_room(self, pre_assigned: dict[str, str] | None = None) -> dict:
+    def create_room(
+        self,
+        pre_assigned: dict[str, str] | None = None,
+        scenario: str = "207",
+        metadata: dict[str, str] | None = None,
+    ) -> dict:
         """Create a multiplayer room.
 
         Args:
             pre_assigned: Dict of faction_display_name -> player_name,
                 e.g. {"caocao": "张三", "liubei": "李四"}
+            scenario: Scenario ID (e.g. "207", "rome-triumvirate")
+            metadata: Optional metadata (e.g. {"lang": "en"})
 
         Returns:
             Dict with ok, room_id, host_token, phase, human_factions, player_links
         """
-        body: dict[str, Any] = {}
+        body: dict[str, Any] = {"scenario": scenario}
         if pre_assigned:
             body["pre_assigned"] = pre_assigned
+        if metadata:
+            body["metadata"] = metadata
         return self._post("/api/rooms", body)
 
     def enter_room(
