@@ -192,6 +192,128 @@ class NarrativeEngine:
         except Exception:
             return self._offline_faction_narrative(fname, baseline, macro_delta or {}, name_en=fname_en)
 
+    def generate_global_narrative(
+        self,
+        ws,
+        faction_decisions: dict[str, str],
+        baseline,
+        macro_delta: dict | None = None,
+        history_events: list | None = None,
+        room_id: str = "",
+        scenario: str = "",
+    ) -> str:
+        """Generate a single global narrative covering ALL factions for the quarter."""
+        if not self.llm_available or not self.llm:
+            return self._offline_global_narrative(ws, faction_decisions)
+
+        is_en = self._language == "en"
+        from .prompt_loader import GLOBAL_NARRATIVE_SYSTEM, GLOBAL_NARRATIVE_SYSTEM_EN
+
+        system_prompt = GLOBAL_NARRATIVE_SYSTEM_EN if is_en else GLOBAL_NARRATIVE_SYSTEM
+
+        # Build context
+        lines: list[str] = []
+        year = ws.year
+        season = getattr(ws.season, "cn", str(ws.season)) if hasattr(ws, "season") else "?"
+        scenario_label = f"Scenario: {scenario}" if scenario else ""
+
+        lines.append(f"Year: {year} | Season: {season}")
+        if scenario_label:
+            lines.append(scenario_label)
+        lines.append("")
+
+        # Faction decisions
+        lines.append("## Faction Decisions This Quarter")
+        for fid, decision in faction_decisions.items():
+            faction = ws.factions.get(fid)
+            if faction:
+                fname = getattr(faction, "name_en", "") if (is_en and getattr(faction, "name_en", "")) else faction.name
+            else:
+                fname = fid
+            lines.append(f"- {fname} ({fid}): {decision[:200]}")
+        lines.append("")
+
+        # Baseline results
+        lines.append("## Baseline Results")
+        lines.append(str(baseline))
+        lines.append("")
+
+        # Macro adjustments
+        if macro_delta:
+            lines.append("## Macro Adjustments")
+            lines.append(str(macro_delta))
+            lines.append("")
+
+        # Faction snapshots
+        lines.append("## Faction Snapshots")
+        for fid in faction_decisions:
+            faction = ws.factions.get(fid)
+            if not faction:
+                continue
+            fname = getattr(faction, "name_en", "") if (is_en and getattr(faction, "name_en", "")) else faction.name
+            troops = getattr(faction, "strength_actual", 0)
+            territories = list(getattr(faction, "territories", []))
+            territory_names = []
+            for tid in territories:
+                t = ws.territories.get(tid) if hasattr(ws, "territories") else None
+                territory_names.append(t.name if t and hasattr(t, "name") else str(tid))
+            lines.append(
+                f"- {fname}: troops={troops:,} food={faction.food:,.0f} "
+                f"treasury={faction.treasury:,.0f} morale={getattr(faction, 'morale_actual', 50)} "
+                f"territories={territory_names}"
+            )
+        lines.append("")
+
+        # History events
+        if history_events:
+            lines.append("## Historical Events Triggered")
+            for evt in history_events:
+                title = evt.get("title", str(evt))
+                desc = evt.get("description", "")
+                lines.append(f"- {title}: {desc}"[:200])
+            lines.append("")
+
+        user_prompt = "\n".join(lines)
+
+        try:
+            result = self.llm.chat(
+                [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
+                temperature=0.7,
+                max_tokens=2048,
+                metadata={"category": "global_narrative", "room_id": room_id, "scenario": scenario},
+            )
+            return result.strip()
+        except Exception:
+            return self._offline_global_narrative(ws, faction_decisions)
+
+    def _offline_global_narrative(self, ws, faction_decisions: dict[str, str]) -> str:
+        """Deterministic fallback when LLM is unavailable."""
+        is_en = self._language == "en"
+        year = ws.year
+        season = getattr(ws.season, "cn", str(ws.season)) if hasattr(ws, "season") else "?"
+        season_label = f"{season} {year}" if is_en else f"{year}年{season}"
+
+        lines = []
+        header = f"### {season_label} · {'Annals' if is_en else '大事纪'}"
+        lines.append(header)
+        lines.append("")
+
+        for fid, decision in faction_decisions.items():
+            faction = ws.factions.get(fid)
+            if faction:
+                fname = getattr(faction, "name_en", "") if (is_en and getattr(faction, "name_en", "")) else faction.name
+            else:
+                fname = fid
+            troops = getattr(faction, "strength_actual", 0) if faction else 0
+            if is_en:
+                lines.append(f"{fname}: {decision[:120]}. Troops: {troops:,}, "
+                           f"Treasury: {faction.treasury:,.0f if faction else '?'}, Food: {faction.food:,.0f if faction else '?'}.")
+            else:
+                lines.append(f"{fname}：{decision[:120]}。兵力{troops:,}，"
+                           f"府库{faction.treasury:,.0f if faction else '?'}，存粮{faction.food:,.0f if faction else '?'}。")
+
+        return "\n".join(lines)
+
     def _offline_faction_narrative(
         self,
         faction_name: str,

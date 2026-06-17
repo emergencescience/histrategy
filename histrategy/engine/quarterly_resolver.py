@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import logging
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING
 
 from .decision_bus import DecisionResult
@@ -292,40 +291,35 @@ class QuarterlyResolver:
         macro_delta,
         room,
     ) -> dict[str, str]:
-        """并行生成每个 faction 视角的叙事。"""
+        """Generate a single global narrative covering all factions.
+
+        Replaces the old per-faction ThreadPoolExecutor approach with ONE LLM call.
+        All factions receive the same global narrative (with backward-compat dict keys).
+        """
         narratives: dict[str, str] = {}
-
-        def _narrate_one(faction_id: str) -> tuple[str, str]:
-            try:
-                narrative = self.narrative_engine.generate_faction_narrative(
-                    ws,
-                    faction_id,
-                    baseline,
-                    macro_delta,
-                    decision=all_decisions.get(faction_id, ""),
-                    commands=all_commands.get(faction_id, []),
-                    room_id=room.id,
-                )
-                if not narrative or not narrative.strip():
-                    faction = ws.factions.get(faction_id)
-                    fname = faction.name if faction else faction_id
-                    fname_en = getattr(faction, "name_en", "") or ""
-                    narrative = self.narrative_engine._offline_faction_narrative(
-                        fname, baseline, macro_delta or {}, name_en=fname_en
-                    )
-                return faction_id, narrative or ""
-            except Exception as e:
-                logger.warning(f"Narrative failed for {faction_id}: {e}")
-                return faction_id, ""
-
         factions = list(all_decisions.keys())
-        if not factions:
+        if not factions or not self.narrative_engine:
             return narratives
-        with ThreadPoolExecutor(max_workers=min(len(factions), 4)) as executor:
-            futures = {executor.submit(_narrate_one, fid): fid for fid in factions}
-            for future in as_completed(futures):
-                fid, narrative = future.result()
-                narratives[fid] = narrative
+
+        global_narrative = self.narrative_engine.generate_global_narrative(
+            ws=ws,
+            faction_decisions=all_decisions,
+            baseline=baseline,
+            macro_delta=macro_delta,
+            history_events=getattr(self, "_last_history_events", None),
+            room_id=room.id,
+            scenario=getattr(room, "scenario", ""),
+        )
+
+        if not global_narrative or not global_narrative.strip():
+            global_narrative = self.narrative_engine._offline_global_narrative(
+                ws, all_decisions
+            )
+
+        # Store under "global" key + backward-compat per-faction keys
+        narratives["global"] = global_narrative
+        for fid in factions:
+            narratives[fid] = global_narrative
 
         return narratives
 

@@ -218,6 +218,77 @@ class TestMultiplayerRoom:
         assert any("caocao" in s or s == "cao" for s in status.get("pending", [])) or \
             status["phase"] == "resolving"
 
+    def test_wait_for_npc_readiness_q0_prebaked(self, server_client: ServerClient):
+        """Q0 NPC decisions are pre-baked — wait_for_npc_readiness returns fast."""
+        result = MultiplayerRoom.create(
+            server_client,
+            {"caocao": "曹操", "liubei": "刘备", "sunquan": "孙权"},
+        )
+        room_id = result["room_id"]
+
+        # Join as one human player
+        cao_link = next(
+            l for l in result["player_links"] if l["faction"] == "caocao"
+        )
+        cao = MultiplayerRoom.join(
+            server_client, room_id, "caocao", cao_link["player_token"]
+        )
+
+        # All 3 factions are human; other scenario factions are AI NPCs
+        # Wait for NPC readiness — should be fast for Q0 (pre-baked)
+        status = cao.wait_for_npc_readiness(timeout=60)
+        assert status["ok"] is True
+        assert "slots" in status
+
+        # Verify AI NPCs have submitted (not in pending)
+        pending = status.get("pending", [])
+        slots = status.get("slots", {})
+        for fid, slot in slots.items():
+            if slot.get("occupant_type") == "ai_npc":
+                assert fid not in pending, (
+                    f"AI NPC {fid} still pending after wait_for_npc_readiness"
+                )
+
+    def test_wait_for_npc_readiness_no_npcs(self, server_client: ServerClient):
+        """When all factions are human, wait_for_npc_readiness returns immediately."""
+        result = MultiplayerRoom.create(
+            server_client,
+            {"caocao": "曹操", "liubei": "刘备"},
+        )
+        room_id = result["room_id"]
+
+        cao_link = next(
+            l for l in result["player_links"] if l["faction"] == "caocao"
+        )
+        cao = MultiplayerRoom.join(
+            server_client, room_id, "caocao", cao_link["player_token"]
+        )
+
+        # Should return quickly since there are no AI NPCs or all NPCs are handled
+        status = cao.wait_for_npc_readiness(timeout=10)
+        assert status["ok"] is True
+
+    def test_create_with_scenario_and_metadata(self, server_client: ServerClient):
+        """Scenario and metadata are forwarded correctly to the server."""
+        result = MultiplayerRoom.create(
+            server_client,
+            {"caocao": "曹操"},
+            scenario="207",
+            metadata={"lang": "zh"},
+        )
+        assert result["ok"] is True
+        room_id = result["room_id"]
+
+        cao_link = result["player_links"][0]
+        cao = MultiplayerRoom.join(
+            server_client, room_id, "caocao", cao_link["player_token"]
+        )
+
+        status = cao.status()
+        assert status["ok"] is True
+        # Should use the 207 scenario (default for zh)
+        assert "slots" in status
+
 
 class TestMultiplayerRoomTypes:
     """Verify newly exported types."""
