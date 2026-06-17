@@ -42,7 +42,7 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
                 year = ?, season = ?, quarter_number = ?, phase = ?,
                 world_state = ?, slots = ?, turn_summaries = ?,
                 is_public = ?, updated_at = ?
-            WHERE id = ?"""",
+            WHERE id = ?""",
             (
                 room.year,
                 room.season,
