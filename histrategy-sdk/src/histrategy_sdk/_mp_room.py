@@ -88,6 +88,7 @@ class MultiplayerRoom:
         room_id: str,
         faction: str,
         player_token: str = "",
+        user_id: str = "",
     ) -> MultiplayerRoom:
         """Player joins a multiplayer room.
 
@@ -96,6 +97,7 @@ class MultiplayerRoom:
             room_id: Room ID from create()
             faction: Faction display name (e.g. "caocao", "liubei", "sunquan")
             player_token: Token from the player_links in create() response
+            user_id: User ID (for host: use host_user_id from create() response)
 
         Returns:
             MultiplayerRoom instance ready for gameplay
@@ -104,6 +106,7 @@ class MultiplayerRoom:
             room_id=room_id,
             faction=faction,
             player_token=player_token,
+            user_id=user_id,
         )
         if not resp.get("ok"):
             raise RuntimeError(f"Failed to join room: {resp.get('error', 'unknown error')}")
@@ -227,13 +230,15 @@ class MultiplayerRoom:
             submitted = current.get("submitted", [])
             pending = current.get("pending", [])
 
-            # Resolution detected: phase back to waiting AND quarter advanced,
-            # OR phase is waiting and both submitted and pending are empty
-            # (meaning all have been processed and we're in a fresh waiting state)
+            # Resolution detected when:
+            # - phase is back to "waiting" (not "resolving")
+            # - quarter has advanced
+            # - our faction is NOT in "submitted" for the new quarter
+            #   (NPCs may have already submitted Q2, so "not pending" is too strict)
             is_resolved = (
                 phase == "waiting"
                 and quarter > initial_quarter
-                and not pending
+                and self.faction not in submitted
             )
 
             if is_resolved:
