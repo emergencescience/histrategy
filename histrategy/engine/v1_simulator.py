@@ -530,12 +530,9 @@ def save_v1_state_to_db(
     """
     try:
         from histrategy.db.models import save_game_state, save_policy_state, save_turn_delta
-        from histrategy.engine.faction_slot import LLM_NPC_FACTIONS
 
         for fid, data in v1_result.get("factions", {}).items():
-            # Only save tracked factions (cao/shu/wu + player's faction)
-            if fid not in LLM_NPC_FACTIONS and fid not in (old_state or {}):
-                continue
+            # Skip factions not present in the actual WorldState (regardless of scenario)
             faction = ws.factions.get(fid)
             if not faction:
                 continue

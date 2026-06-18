@@ -801,6 +801,19 @@ def _init_world_state(room: GameRoom):
         else:
             room.season = "spring"
 
+    # ── Defensive check: after fallback, verify slot factions exist in WorldState ──
+    if room.world_state is not None and room.scenario not in ("", "207", "three-kingdoms"):
+        ws_factions = set(room.world_state.factions.keys()) if hasattr(room.world_state, "factions") else set()
+        slot_factions = set(room.slots.keys())
+        missing = slot_factions - ws_factions
+        if missing:
+            logger.warning(
+                "Room %s: FACTION MISMATCH after fallback! scenario=%s, "
+                "slot factions=%s, WorldState factions=%s, missing=%s. "
+                "WorldState was built from wrong scenario data.",
+                room.id, room.scenario, list(slot_factions), list(ws_factions), list(missing),
+            )
+
 
 def _save_initial_state_to_db(room: GameRoom):
     """写入所有势力的初始状态到 game_state 表 (quarter=0)。"""
@@ -967,7 +980,13 @@ def _resolve_and_advance(room: GameRoom):
     for fid, dr in decisions.items():
         if room.slots.get(fid) and room.slots[fid].is_ai():
             faction = ws.factions.get(fid) if ws else None
-            name = faction.name if faction else fid
+            if faction:
+                if lang and lang.startswith("en") and getattr(faction, "name_en", ""):
+                    name = faction.name_en
+                else:
+                    name = faction.name
+            else:
+                name = fid
             npc_actions.append(f"{name}: {dr.decision_text[:80]}")
     room._last_npc_actions = npc_actions
 
@@ -1063,6 +1082,10 @@ def _resolve_v1(room, ws, decisions, llm):
 
     # 将 V1 结果应用到 WorldState
     _apply_v1_state_to_world(ws, v1_factions)
+
+    # V1 does not use TurnController (which advances season for V2/V3).
+    # Advance season manually so year/season progress across quarters.
+    _advance_season(ws)
 
     # 写入 DB（传入旧状态以计算 delta）
     # Note: room.quarter_number hasn't been incremented yet — save with next quarter
