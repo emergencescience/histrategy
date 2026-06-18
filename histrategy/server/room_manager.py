@@ -17,6 +17,7 @@ from __future__ import annotations
 import json as _json
 import logging
 import os
+import time
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -25,6 +26,17 @@ logger = logging.getLogger("histrategy.room_manager")
 
 if TYPE_CHECKING:
     from histrategy.engine.game_room import GameRoom
+
+# ── Billing exceptions ────────────────────────────────────────
+
+class CreditInsufficientError(Exception):
+    """Raised when user has insufficient credits for a turn."""
+    pass
+
+
+class RateLimitError(Exception):
+    """Raised when user exceeds turn rate limit."""
+    pass
 
 # 内存中的房间 {room_id: GameRoom}
 _rooms: dict[str, GameRoom] = {}
@@ -450,6 +462,12 @@ def submit_decision(room_id: str, faction_id: str, decision: str) -> dict:
         # 同步执行（调试用 — 若卡住请检查服务器日志）
         try:
             _resolve_and_advance(room)
+        except CreditInsufficientError as exc:
+            logger.warning("Room %s blocked: insufficient credits", room.id)
+            return {"ok": False, "error": str(exc), "code": "insufficient_credits"}
+        except RateLimitError as exc:
+            logger.warning("Room %s blocked: rate limit", room.id)
+            return {"ok": False, "error": str(exc), "code": "rate_limited"}
         except Exception as exc:
             logger.error("Room %s resolve failed: %s", room.id, exc)
             room.phase = type(room.phase).WAITING  # reset on error
@@ -834,6 +852,53 @@ def _save_initial_state_to_db(room: GameRoom):
         logger.warning(f"Failed to save initial state for room {room.id}: {e}")
 
 
+# ── Rate limiting: per-room timestamps ──
+_LAST_TURN_TIME: dict[str, float] = {}
+_MIN_TURN_INTERVAL_SECONDS = 30
+
+
+def _check_rate_limit(room_id: str) -> bool:
+    """Prevent scripted abuse: minimum interval between turns for the same room."""
+    now = time.time()
+    last = _LAST_TURN_TIME.get(room_id, 0)
+    if now - last < _MIN_TURN_INTERVAL_SECONDS:
+        return False
+    _LAST_TURN_TIME[room_id] = now
+    return True
+
+
+def _check_credit_before_turn(room) -> bool:
+    """Call orchestrator GET /games/histrategy/credit-check before resolving.
+
+    Returns True if host has sufficient credits (or billing is not configured).
+    """
+    import urllib.request
+
+    orch_url = os.environ.get('ORCHESTRATOR_URL', 'https://api.emergence.science').rstrip('/')
+    internal_key = os.environ.get('HISTRATEGY_BILL_INTERNAL_KEY', '')
+    if not internal_key:
+        # No billing configured → allow all
+        return True
+
+    try:
+        url = f'{orch_url}/games/histrategy/credit-check?room_id={room.id}'
+        req = urllib.request.Request(url, headers={'X-Internal-Key': internal_key}, method='GET')
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            result = _json.loads(resp.read())
+        sufficient = result.get('sufficient', True)
+        if not sufficient:
+            balance = result.get('balance', '?')
+            cost = result.get('estimated_cost', '?')
+            logger.warning(
+                f'Credit check failed: room={room.id} balance={balance} estimated_cost={cost}'
+            )
+        return sufficient
+    except Exception as e:
+        # If orchestrator is unreachable, allow the turn (fail-open for availability)
+        logger.warning(f'Credit check call failed (fail-open): {e}')
+        return True
+
+
 def _resolve_and_advance(room: GameRoom):
     from histrategy.engine.decision_bus import collect_all_decisions
     from histrategy.engine.engine_switch import EngineMode, detect_engine_mode
@@ -841,6 +906,22 @@ def _resolve_and_advance(room: GameRoom):
 
     if room.phase.value == "resolving":
         return
+
+    # ── Pre-turn credit check (blocks if insufficient balance) ──
+    if not _check_credit_before_turn(room):
+        room.phase = RoomPhase.DECISION  # Reset phase so user can retry later
+        raise CreditInsufficientError(
+            "余额不足，无法开始新回合。请充值后再试。\n"
+            "Insufficient credits. Please top up and try again."
+        )
+
+    # ── Rate limit: minimum 30s between turns ──
+    if not _check_rate_limit(room.id):
+        room.phase = RoomPhase.DECISION
+        raise RateLimitError(
+            "操作过快，请等待 30 秒后再试。\n"
+            "Too fast. Please wait 30 seconds between turns."
+        )
 
     room.phase = RoomPhase.RESOLVING
     ws = room.world_state

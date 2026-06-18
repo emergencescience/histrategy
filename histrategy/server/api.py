@@ -860,6 +860,48 @@ def create_app(llm_provider: str | None = None) -> Any:
             "llm_available": _llm_provider is not None,
         }
 
+    @app.get("/api/balance")
+    def api_balance(room_id: str = ""):
+        """Return the host user's credit balance for lobby display.
+
+        Calls orchestrator GET /games/histrategy/balance via internal key.
+        If billing is not configured, returns a placeholder.
+        """
+        import logging as _logging
+        import os as _os
+
+        _logger = _logging.getLogger(__name__)
+
+        internal_key = _os.environ.get('HISTRATEGY_BILL_INTERNAL_KEY', '')
+        if not internal_key or not room_id:
+            return {
+                "ok": True,
+                "micro_credits": 0,
+                "credits_display": "—",
+                "estimated_turns_remaining": "—",
+                "low_balance": False,
+                "reason": "billing not configured"
+            }
+
+        try:
+            import json as _json_local
+            import urllib.request
+            orch_url = _os.environ.get('ORCHESTRATOR_URL', 'https://api.emergence.science').rstrip('/')
+            url = f'{orch_url}/games/histrategy/balance?room_id={room_id}'
+            req = urllib.request.Request(url, headers={'X-Internal-Key': internal_key}, method='GET')
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                return _json_local.loads(resp.read())
+        except Exception as e:
+            _logger.warning(f"Balance check failed: {e}")
+            return {
+                "ok": False,
+                "micro_credits": 0,
+                "credits_display": "—",
+                "estimated_turns_remaining": "—",
+                "low_balance": False,
+                "reason": f"unavailable: {e}"
+            }
+
     @app.post("/api/games/{game_id}/summary")
     def get_game_summary(game_id: str):
         """Generate/fetch endgame summary (chronicle) for a game."""
