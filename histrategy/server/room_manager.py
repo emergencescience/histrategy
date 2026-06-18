@@ -53,7 +53,7 @@ def _try_save(room: GameRoom, ws_dict: dict | None = None):
 
         save_room(room, ws_dict)
     except Exception as e:
-        logger.warning(f"Room save failed (non-fatal): {e}")
+        logger.warning("[room=%s] Room save failed (non-fatal): %s", room.id, e)
 
 
 # ── Room CRUD ────────────────────────────────────────
@@ -469,7 +469,7 @@ def submit_decision(room_id: str, faction_id: str, decision: str) -> dict:
             logger.warning("Room %s blocked: rate limit", room.id)
             return {"ok": False, "error": str(exc), "code": "rate_limited"}
         except Exception as exc:
-            logger.error("Room %s resolve failed: %s", room.id, exc)
+            logger.error("[room=%s] resolve failed: %s", room.id, exc)
             room.phase = type(room.phase).WAITING  # reset on error
 
     status = "resolving" if not pending else "waiting"
@@ -678,7 +678,7 @@ def _trigger_npc_decisions(room: GameRoom):
                 room.slots[fid].submit_decision(dr.decision_text, dr.commands)
         logger.info(f"Room {room.id}: NPC decisions ready — {list(decisions.keys())}")
     except Exception as e:
-        logger.error(f"Room {room.id}: NPC decision trigger failed: {e}")
+        logger.error("[room=%s] NPC decision trigger failed: %s", room.id, e)
 
 
 def _get_room(room_id: str) -> GameRoom | None:
@@ -849,7 +849,7 @@ def _save_initial_state_to_db(room: GameRoom):
             )
         logger.info(f"Saved initial state: {len(tracked)} factions → game_state (Q0, room={room.id})")
     except Exception as e:
-        logger.warning(f"Failed to save initial state for room {room.id}: {e}")
+        logger.warning("[room=%s] Failed to save initial state: %s", room.id, e)
 
 
 # ── Rate limiting: per-room timestamps ──

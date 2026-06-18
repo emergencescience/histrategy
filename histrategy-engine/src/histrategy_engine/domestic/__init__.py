@@ -437,6 +437,17 @@ class DomesticEngine:
             tax_rev = self.calculate_tax_revenue(territory, tax_rate, gov_pol)
             morale_change = self.calculate_tax_morale_impact(tax_rate)
 
+            # ── Positive morale sources (previously missing) ──
+            # Food surplus: well-fed territories are happier
+            if food_delta > 0:
+                morale_change += 1
+            # Bumper harvest: celebration-worthy
+            if climate == ClimateEvent.BUMPER_HARVEST:
+                morale_change += 2
+            # Low unrest: stable governance
+            if territory.unrest < 25:
+                morale_change += 1
+
             # Calculate unrest and fortification changes
             food_ratio = min(1.0, max(0.0, food_prod / max(1.0, food_cons)))
             unrest_delta = int(

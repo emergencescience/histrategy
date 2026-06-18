@@ -96,7 +96,7 @@ class QuarterlyResolver:
                     parsed = self.intent_parser.parse(dr.decision_text, faction_id)
                     all_commands[faction_id] = parsed
                 except Exception as e:
-                    logger.warning(f"Intent parse failed for {faction_id}: {e}")
+                    logger.warning("[room=%s] Intent parse failed for %s: %s", room.id, faction_id, e)
                     all_commands[faction_id] = []
 
         # ── Step 2: 确定性基线 ──
@@ -109,7 +109,7 @@ class QuarterlyResolver:
                     room,
                 )
             except Exception as e:
-                logger.error(f"TurnController failed: {e}")
+                logger.error("[room=%s] TurnController failed: %s", room.id, e)
                 baseline = _empty_baseline(world_state)
 
         # ── Step 3: 黑天鹅事件 ──
@@ -137,7 +137,7 @@ class QuarterlyResolver:
                     for p in proposals
                 ]
             except Exception as e:
-                logger.warning(f"BlackSwanInjector failed: {e}")
+                logger.warning("[room=%s] BlackSwanInjector failed: %s", room.id, e)
 
         # ── Step 4: LLM 宏观模拟 ──
         macro_delta = {}
@@ -152,7 +152,7 @@ class QuarterlyResolver:
                     room,
                 )
             except Exception as e:
-                logger.error(f"MacroPolicyEngine failed: {e}")
+                logger.error("[room=%s] MacroPolicyEngine failed: %s", room.id, e)
 
         # ── Step 5: Guardrail 验证 + 状态应用 ──
         if macro_delta and self.guardrail_validator:
@@ -162,13 +162,13 @@ class QuarterlyResolver:
                     world_state,
                 )
             except Exception as e:
-                logger.warning(f"GuardrailValidator failed: {e}")
+                logger.warning("[room=%s] GuardrailValidator failed: %s", room.id, e)
 
         if macro_delta and self.state_applier:
             try:
                 self.state_applier.apply(macro_delta, world_state)
             except Exception as e:
-                logger.error(f"StateApplier failed: {e}")
+                logger.error("[room=%s] StateApplier failed: %s", room.id, e)
 
         # ── Step 6: Per-faction 叙事生成 ──
         if self.narrative_engine:
@@ -182,11 +182,16 @@ class QuarterlyResolver:
                     room,
                 )
             except Exception as e:
-                logger.error(f"Narrative generation failed: {e}")
+                logger.error("[room=%s] Narrative generation failed: %s", room.id, e)
 
         # ── Step 7: 状态收集 ──
         results.state_changes = _extract_state_changes(world_state, decisions)
         results.total_latency_ms = (time.time() - t_start) * 1000
+
+        # ── Step 7.5: 季节推进安全网 ──
+        # TurnController.execute_turn() 可能静默失败回退到 _empty_baseline()，
+        # 导致季节永不推进。此安全网保证至少推进一季。
+        _ensure_season_advance(world_state, room.id)
 
         # ── Step 8: 回合摘要 ──
         results.turn_summary = _build_turn_summary(
@@ -367,6 +372,66 @@ def _empty_baseline(ws: WorldState):
         population_delta={},
         morale_delta={},
     )
+
+
+def _ensure_season_advance(ws: WorldState, room_id: str = "?") -> None:
+    """安全网：无条件推进一季，防止 TurnController 静默失败导致季节卡住。
+
+    同时支持 Season enum 和字符串 season（反序列化后可能是字符串）。
+    """
+    try:
+        from histrategy_engine.world import Season
+
+        # 支持 Season enum 和字符串
+        _SEASON_ORDER = ["spring", "summer", "autumn", "winter"]
+        _SEASON_ENUM_MAP = {
+            "spring": Season.SPRING,
+            "summer": Season.SUMMER,
+            "autumn": Season.AUTUMN,
+            "winter": Season.WINTER,
+        }
+
+        current = ws.season
+        # 规范化当前 season 为字符串
+        if hasattr(current, "value"):
+            current_str = current.value
+        elif hasattr(current, "cn"):
+            # Season enum 有 .cn 属性
+            current_str = current.cn if current.cn in ("春", "夏", "秋", "冬") else _SEASON_ORDER[0]
+            # 中文 → 英文映射
+            _CN_TO_EN = {"春": "spring", "夏": "summer", "秋": "autumn", "冬": "winter"}
+            current_str = _CN_TO_EN.get(current_str, current_str)
+        else:
+            current_str = str(current).lower()
+
+        if current_str not in _SEASON_ORDER:
+            logger.warning("[room=%s] Unknown season '%s', defaulting to spring", room_id, current_str)
+            current_str = "spring"
+
+        idx = _SEASON_ORDER.index(current_str)
+        next_idx = (idx + 1) % 4
+        next_str = _SEASON_ORDER[next_idx]
+
+        # 设置新 season（优先使用 Season enum）
+        if next_str in _SEASON_ENUM_MAP:
+            ws.season = _SEASON_ENUM_MAP[next_str]
+        else:
+            ws.season = next_str
+
+        if next_idx == 0:
+            ws.year += 1
+        ws.turn_number = getattr(ws, 'turn_number', 0) + 1
+        logger.info(
+            "[room=%s] Season advanced: %s → %s (year=%s, turn=%s)",
+            room_id, current_str, next_str, ws.year, ws.turn_number,
+        )
+    except Exception as e:
+        logger.error("[room=%s] Season advance failed: %s", room_id, e)
+
+
+def _log_exc(room_id: str, context: str, exc: Exception) -> None:
+    """结构化异常日志：统一前缀 [room=X]，方便 grep/日志平台过滤。"""
+    logger.error("[room=%s] %s: %s", room_id, context, exc)
 
 
 def _extract_state_changes(

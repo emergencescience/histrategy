@@ -184,6 +184,14 @@ def load_room(room_id: str) -> GameRoom | None:
     )
     room.slots = slots
 
+    # Restore metadata (lang, etc.) — survives server restart
+    metadata_raw = row.get("metadata")
+    if metadata_raw:
+        try:
+            room.metadata = json_loads(metadata_raw) or {}
+        except Exception:
+            room.metadata = {}
+
     # Restore world_state from DB (survives server restart)
     ws_data = json_loads(row.get("world_state"))
     if ws_data:

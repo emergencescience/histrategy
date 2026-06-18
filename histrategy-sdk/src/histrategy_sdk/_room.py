@@ -53,6 +53,7 @@ class Room:
         scenario: str = "207",
         llm_api_key: str | None = None,
         llm_provider: str | None = None,
+        lang: str = "zh",
     ) -> Room:
         """Create a new game room.
 
@@ -62,6 +63,7 @@ class Room:
             scenario: Scenario ID, currently only "207"
             llm_api_key: API key for LLM (auto-detected from env if unset)
             llm_provider: "deepseek", "openai", "tongyi" (auto-detected)
+            lang: Language for narratives ("zh" or "en")
 
         Returns:
             Room with engine initialized and initial state saved to disk.
@@ -80,6 +82,7 @@ class Room:
             faction=faction,
             llm_api_key=llm_api_key,
             llm_provider=llm_provider,
+            lang=lang,
         )
 
         room = cls(
@@ -100,6 +103,7 @@ class Room:
         *,
         llm_api_key: str | None = None,
         llm_provider: str | None = None,
+        lang: str = "zh",
     ) -> Room:
         """Load an existing room from disk.
 
@@ -107,6 +111,7 @@ class Room:
             name: Room name (same as used in create())
             llm_api_key: API key for LLM (auto-detected if unset)
             llm_provider: Override provider
+            lang: Language for narratives ("zh" or "en")
 
         Returns:
             Room with engine restored from saved world_state.
@@ -135,6 +140,7 @@ class Room:
             world_state,
             llm_api_key=llm_api_key,
             llm_provider=llm_provider,
+            lang=lang,
         )
 
         return cls(

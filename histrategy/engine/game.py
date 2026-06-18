@@ -830,14 +830,23 @@ class GameEngine:
         ]
 
         narrative = (
-            f"### 天下大势\n"
-            f"建安{ws.year - 196}年（公元{ws.year}年），汉室倾颓，诸侯并起。\n"
-            f"曹操迎天子于许昌，挟天子以令诸侯，已据中原大半。\n"
-            f"孙权继父兄之业，稳坐江东。\n\n"
-            f"### 主公处境\n"
+            f"### 天下大势\\n"
+            f"建安{ws.year - 196}年（公元{ws.year}年），汉室倾颓，诸侯并起。\\n"
+            f"曹操迎天子于许昌，挟天子以令诸侯，已据中原大半。\\n"
+            f"孙权继父兄之业，稳坐江东。\\n\\n"
+            f"### 主公处境\\n"
             f"你，{player.name}，以{capital_name}为根基，"
-            f"麾下兵卒{player.strength_actual}，粮草{player.food}，资金{player.treasury}。\n"
+            f"麾下兵卒{player.strength_actual}，粮草{player.food}，资金{player.treasury}。\\n"
             f"当审时度势，谋定而后动。"
+        ) if getattr(self, "_scenario_language", "zh") != "en" else (
+            f"### The Realm\\n"
+            f"Year {ws.year - 196} of Jian'an (AD {ws.year}). The Han dynasty crumbles; warlords rise across the land.\\n"
+            f"Cao Cao holds the Emperor at Xuchang, commanding the realm in name, and controls most of the Central Plains.\\n"
+            f"Sun Quan, heir to his father and brother's legacy, rules firmly over Jiangdong.\\n\\n"
+            f"### Your Position\\n"
+            f"You are {player.name}, ruling from {capital_name}. "
+            f"You command {player.strength_actual} troops, with {player.food} bushels of grain and {player.treasury} gold in the treasury.\\n"
+            f"Survey the realm and plan your next move."
         )
 
         npc_actions = []
@@ -955,7 +964,7 @@ class GameEngine:
                 )
 
         if self.llm is not None:
-            gm = GameMaster(self.llm)
+            gm = GameMaster(self.llm, lang=getattr(self, "_scenario_language", "zh"))
             return gm.generate_plan_mode(self.world_state, pressure_hint=pressure_hint)
         else:
             return self._fallback_plan_data()

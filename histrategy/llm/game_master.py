@@ -27,8 +27,11 @@ from ..state.world_state import (
 from .adapter import LLMAdapter
 from .prompt_loader import (
     GAMEMASTER_COMMAND_SYSTEM,
+    GAMEMASTER_COMMAND_SYSTEM_EN,
     GAMEMASTER_INTRO_SYSTEM,
+    GAMEMASTER_INTRO_SYSTEM_EN,
     GAMEMASTER_PLAN_SYSTEM,
+    GAMEMASTER_PLAN_SYSTEM_EN,
 )
 
 # ─── System Prompts ─────────────────────────────────────────
@@ -244,8 +247,13 @@ class GameMaster:
       2. Command Mode — execution results (bureaucracy + consequences + seeds)
     """
 
-    def __init__(self, llm: LLMAdapter):
+    def __init__(self, llm: LLMAdapter, lang: str = "zh"):
         self.llm = llm
+        self._lang = lang
+
+    def _gm_prompt(self, cn_prompt: str, en_prompt: str) -> str:
+        """Return the appropriate gamemaster prompt for the current language."""
+        return en_prompt if self._lang == "en" else cn_prompt
 
     # ─── Intro Mode ─────────────────────────────────────────
 
@@ -254,6 +262,8 @@ class GameMaster:
         player = state.get_player_faction()
         if not player:
             return self._fallback_intro()
+
+        intro_sys = self._gm_prompt(GAMEMASTER_INTRO_SYSTEM, GAMEMASTER_INTRO_SYSTEM_EN)
 
         intro_context = (
             f"## 游戏开局\n\n"
@@ -276,7 +286,7 @@ class GameMaster:
         )
 
         messages = [
-            {"role": "system", "content": GAMEMASTER_INTRO_SYSTEM},
+            {"role": "system", "content": intro_sys},
             {"role": "user", "content": intro_context},
         ]
 
@@ -371,7 +381,7 @@ class GameMaster:
         else:
             framing = FREEFORM_PLAN_FRAMING
 
-        system_content = GAMEMASTER_PLAN_SYSTEM + "\n" + framing
+        system_content = self._gm_prompt(GAMEMASTER_PLAN_SYSTEM, GAMEMASTER_PLAN_SYSTEM_EN) + "\n" + framing
         if pressure_hint:
             system_content += f"\n\n## 叙事方向牵引指示（请在剧情推演中自然引导，但不要强行套用）：\n{pressure_hint}"
 
@@ -450,7 +460,7 @@ class GameMaster:
         else:
             framing = FREEFORM_COMMAND_FRAMING
 
-        system_content = GAMEMASTER_COMMAND_SYSTEM + "\n" + framing
+        system_content = self._gm_prompt(GAMEMASTER_COMMAND_SYSTEM, GAMEMASTER_COMMAND_SYSTEM_EN) + "\n" + framing
         if pressure_hint:
             system_content += f"\n\n## 叙事方向牵引指示（请在剧情推演中自然引导，但不要强行套用）：\n{pressure_hint}"
 

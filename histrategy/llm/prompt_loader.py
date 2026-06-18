@@ -17,8 +17,20 @@ def load_prompt(filename: str, default: str | None = None) -> str | None:
 ADVISOR_SYSTEM_PROMPT = load_prompt("advisor.md")
 ALIGNMENT_SYSTEM_PROMPT = load_prompt("alignment.md")
 GAMEMASTER_INTRO_SYSTEM = load_prompt("gamemaster_intro.md")
+GAMEMASTER_INTRO_SYSTEM_EN = load_prompt(
+    "gamemaster_intro_en.md",
+    default=GAMEMASTER_INTRO_SYSTEM,  # fallback to Chinese if English not found
+)
 GAMEMASTER_PLAN_SYSTEM = load_prompt("gamemaster_plan.md")
+GAMEMASTER_PLAN_SYSTEM_EN = load_prompt(
+    "gamemaster_plan_en.md",
+    default=GAMEMASTER_PLAN_SYSTEM,
+)
 GAMEMASTER_COMMAND_SYSTEM = load_prompt("gamemaster_command.md")
+GAMEMASTER_COMMAND_SYSTEM_EN = load_prompt(
+    "gamemaster_command_en.md",
+    default=GAMEMASTER_COMMAND_SYSTEM,
+)
 NARRATIVE_SYSTEM = load_prompt("narrative.md")
 NARRATIVE_SYSTEM_EN = load_prompt("narrative_en.md")
 GLOBAL_NARRATIVE_SYSTEM = load_prompt("global_narrative.md")

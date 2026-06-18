@@ -33,6 +33,7 @@ class DirectEngine:
         faction: str = "shu",
         llm_api_key: str | None = None,
         llm_provider: str | None = None,
+        lang: str = "zh",
     ):
         """Create a new game engine.
 
@@ -41,6 +42,7 @@ class DirectEngine:
             faction: Player faction ("shu", "cao", "wu")
             llm_api_key: API key for LLM provider (auto-detected if unset)
             llm_provider: Override provider detection ("deepseek", "openai", "tongyi")
+            lang: Language for narratives and NPC decisions ("zh" or "en")
         """
         self._ensure_engine_available()
 
@@ -59,6 +61,13 @@ class DirectEngine:
 
         self._engine = GameEngine(scenario=scenario, new_game=True, llm=llm)
         self._engine.set_player_faction(faction)
+        # Override scenario language (e.g. "en" for English narratives)
+        if lang and lang in ("zh", "en"):
+            self._engine._scenario_language = lang
+            # Re-initialize NarrativeEngine with correct language
+            if hasattr(self._engine, 'narrative_engine') and self._engine.narrative_engine:
+                from histrategy.llm.narrative import NarrativeEngine
+                self._engine.narrative_engine = NarrativeEngine(llm, language=lang)
         self._game_id = self._engine.world_state_v2.player_faction_id if self._engine._use_v2 else "local"
 
     @staticmethod
@@ -194,6 +203,7 @@ class DirectEngine:
         data: dict,
         llm_api_key: str | None = None,
         llm_provider: str | None = None,
+        lang: str = "zh",
     ) -> DirectEngine:
         """Restore a game from a previously saved world_state dict.
 
@@ -201,6 +211,7 @@ class DirectEngine:
             data: Full world_state dict (from to_dict())
             llm_api_key: API key for LLM provider
             llm_provider: Override provider detection
+            lang: Language for narratives ("zh" or "en")
 
         Returns:
             DirectEngine with restored game state.
@@ -221,6 +232,12 @@ class DirectEngine:
             llm = None
 
         engine = GameEngine.from_dict(data, llm=llm)
+        if lang and lang in ("zh", "en"):
+            engine._scenario_language = lang
+            # Re-initialize NarrativeEngine with correct language
+            from histrategy.llm.narrative import NarrativeEngine
+            if hasattr(engine, 'narrative_engine'):
+                engine.narrative_engine = NarrativeEngine(llm, language=lang)
         instance = cls.__new__(cls)
         instance._engine = engine
         instance._game_id = engine.world_state_v2.player_faction_id
