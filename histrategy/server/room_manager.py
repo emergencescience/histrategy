@@ -776,9 +776,20 @@ def _init_world_state(room: GameRoom):
             if room.world_state is not None:
                 room.year = room.world_state.year
                 room.season = str(room.world_state.season.value) if hasattr(room.world_state.season, 'value') else str(room.world_state.season)
+            logger.info(
+                "Scenario WorldState built: scenario=%s player=%s factions=%s year=%s",
+                room.scenario, player_faction,
+                list(room.world_state.factions.keys()) if room.world_state else "None",
+                room.year if room.world_state else "N/A",
+            )
             return
-        except Exception:
-            pass  # Fall through to default
+        except Exception as exc:
+            logger.error(
+                "Scenario WorldState build FAILED for scenario=%s player=%s — "
+                "falling back to Three Kingdoms: %s",
+                room.scenario, player_faction, exc, exc_info=True,
+            )
+            # Fall through to default Three Kingdoms create_initial_world()
 
     room.world_state = create_initial_world(player_faction)
     if room.world_state is not None:
@@ -805,6 +816,11 @@ def _save_initial_state_to_db(room: GameRoom):
         for fid in tracked:
             faction = ws.factions.get(fid)
             if not faction:
+                logger.warning(
+                    "Room %s: slot faction '%s' not found in WorldState factions (%s) — "
+                    "scenario=%s. WorldState was likely built from wrong scenario!",
+                    room.id, fid, list(ws.factions.keys()), room.scenario,
+                )
                 continue
             territories = []
             for tid in getattr(faction, "territories", []) or []:
