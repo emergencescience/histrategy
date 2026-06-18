@@ -1144,6 +1144,12 @@ def _resolve_v1(room, ws, decisions, llm):
                 f"【{fname}方纪】是季，{fname}拥兵{troops:,}，积粟{food:,}斛，"
                 f"据{territory_str}。" if global_narrative else
                 f"【{fname}】是季，{fname}拥兵{troops:,}，积粟{food:,}斛，据{territory_str}。"
+            ) if lang != "en" else (
+                f"{global_narrative}\n\n"
+                f"[{fname}] This quarter, {fname} commands {troops:,} troops, "
+                f"stores {food:,} grain, holds {territory_str}." if global_narrative else
+                f"[{fname}] This quarter, {fname} commands {troops:,} troops, "
+                f"stores {food:,} grain, holds {territory_str}."
             )
 
     return V1Result(

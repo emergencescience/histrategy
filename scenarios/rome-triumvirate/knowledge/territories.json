@@ -2,6 +2,7 @@
   {
     "id": "roma",
     "name": "罗马",
+    "name_en": "Rome",
     "region": "latium",
     "terrain": "urban",
     "base_population": 500000,
@@ -13,6 +14,7 @@
   {
     "id": "cisalpine_gaul",
     "name": "山南高卢",
+    "name_en": "Cisalpine Gaul",
     "region": "cisalpine_gaul",
     "terrain": "plains",
     "base_population": 200000,
@@ -23,6 +25,7 @@
   {
     "id": "transalpine_gaul",
     "name": "山北高卢",
+    "name_en": "Transalpine Gaul",
     "region": "transalpine_gaul",
     "terrain": "plains",
     "base_population": 300000,
@@ -33,6 +36,7 @@
   {
     "id": "sicilia",
     "name": "西西里",
+    "name_en": "Sicily",
     "region": "sicilia",
     "terrain": "hills",
     "base_population": 200000,
@@ -45,6 +49,7 @@
   {
     "id": "sardinia",
     "name": "撒丁尼亚",
+    "name_en": "Sardinia",
     "region": "sardinia",
     "terrain": "hills",
     "base_population": 60000,
@@ -55,6 +60,7 @@
   {
     "id": "hispania_citerior",
     "name": "近西班牙",
+    "name_en": "Hispania Citerior",
     "region": "hispania_citerior",
     "terrain": "plains",
     "base_population": 180000,
@@ -66,6 +72,7 @@
   {
     "id": "narbonensis",
     "name": "纳尔旁高卢",
+    "name_en": "Narbonensis",
     "region": "narbonensis",
     "terrain": "plains",
     "base_population": 120000,
@@ -76,6 +83,7 @@
   {
     "id": "africa",
     "name": "阿非利加",
+    "name_en": "Africa",
     "region": "africa",
     "terrain": "plains",
     "base_population": 200000,
@@ -87,6 +95,7 @@
   {
     "id": "macedonia",
     "name": "马其顿",
+    "name_en": "Macedonia",
     "region": "macedonia",
     "terrain": "mountain",
     "base_population": 150000,
@@ -98,6 +107,7 @@
   {
     "id": "syria",
     "name": "叙利亚",
+    "name_en": "Syria",
     "region": "syria",
     "terrain": "desert",
     "base_population": 250000,
@@ -109,6 +119,7 @@
   {
     "id": "asia",
     "name": "亚细亚",
+    "name_en": "Asia",
     "region": "asia",
     "terrain": "hills",
     "base_population": 350000,
@@ -120,6 +131,7 @@
   {
     "id": "graecia",
     "name": "希腊",
+    "name_en": "Graecia",
     "region": "graecia",
     "terrain": "hills",
     "base_population": 150000,
@@ -130,6 +142,7 @@
   {
     "id": "aegyptus",
     "name": "埃及",
+    "name_en": "Egypt",
     "region": "aegyptus",
     "terrain": "river_valley",
     "base_population": 400000,
@@ -141,6 +154,7 @@
   {
     "id": "cyprus",
     "name": "塞浦路斯",
+    "name_en": "Cyprus",
     "region": "cyprus",
     "terrain": "hills",
     "base_population": 60000,
@@ -152,6 +166,7 @@
   {
     "id": "illyria",
     "name": "伊利里亚",
+    "name_en": "Illyria",
     "region": "illyria",
     "terrain": "mountain",
     "base_population": 80000,
@@ -162,6 +177,7 @@
   {
     "id": "mesopotamia",
     "name": "美索不达米亚",
+    "name_en": "Mesopotamia",
     "region": "mesopotamia",
     "terrain": "river_valley",
     "base_population": 300000,
