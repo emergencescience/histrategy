@@ -103,6 +103,10 @@ _NPC_DECISION_SYSTEM_DEFAULT = load_prompt(
     "npc_decision.md",
     default="你是《三國志略》中的一位诸侯，请根据当前天下形势制定本季度战略决策。",
 )
+_NPC_DECISION_SYSTEM_EN = load_prompt(
+    "npc_decision_en.md",
+    default="You are a warlord in the Three Kingdoms. Formulate this quarter's strategic decision based on the current situation.",
+)
 
 
 def _load_npc_prompt(scenario: str | None, language: str = "zh-CN") -> str:
@@ -115,6 +119,9 @@ def _load_npc_prompt(scenario: str | None, language: str = "zh-CN") -> str:
     4. Fall back to module-level default (Three Kingdoms)
     """
     if not scenario or scenario in ("207", "three-kingdoms", ""):
+        # For Three Kingdoms, support English prompt
+        if language and language.startswith("en"):
+            return _NPC_DECISION_SYSTEM_EN
         return _NPC_DECISION_SYSTEM_DEFAULT
 
     cache_key = (scenario, language)
@@ -169,6 +176,9 @@ class NPCDecisionEngine:
         self.llm = llm
         self.llm_available = llm is not None and llm.is_available
         self.scenario = scenario
+        # Normalize language: room metadata uses "zh"/"en", engine uses "zh-CN"/"en"
+        if language == "zh":
+            language = "zh-CN"
         self.language = language
 
     def generate(
