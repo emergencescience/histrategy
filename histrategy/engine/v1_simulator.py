@@ -531,7 +531,31 @@ def save_v1_state_to_db(
     try:
         from histrategy.db.models import save_game_state, save_policy_state, save_turn_delta
 
-        for fid, data in v1_result.get("factions", {}).items():
+        v1_factions = v1_result.get("factions", {})
+        if not v1_factions:
+            # V1 prompt may use "state_changes" instead of "factions"
+            # (e.g. rome-triumvirate prompt). Fall back to WorldState data.
+            v1_factions = {}
+            for fid, faction in ws.factions.items():
+                if not faction.is_active:
+                    continue
+                troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
+                morale = getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50) or 50
+                v1_factions[fid] = {
+                    "population": getattr(faction, "population", 0),
+                    "troops": troops,
+                    "food": faction.food,
+                    "treasury": faction.treasury,
+                    "morale": morale,
+                    "territories": [
+                        {"id": tid, "name": ws.territories[tid].name if tid in ws.territories else tid}
+                        for tid in faction.territories
+                    ],
+                    "policies": getattr(faction, "policies", {}),
+                    "is_active": True,
+                }
+
+        for fid, data in v1_factions.items():
             # Skip factions not present in the actual WorldState (regardless of scenario)
             faction = ws.factions.get(fid)
             if not faction:

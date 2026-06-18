@@ -1069,9 +1069,12 @@ def _resolve_v1(room, ws, decisions, llm):
     # ── 先捕获旧状态（用于 turn_delta 计算）──
     old_state = {}
     v1_factions = v1_result.get("factions", {})
-    for fid in v1_factions:
-        faction = ws.factions.get(fid)
-        if faction:
+    if not v1_factions:
+        # V1 prompt may use "state_changes" instead of "factions"
+        # (e.g. rome-triumvirate). Use WorldState factions as fallback.
+        for fid, faction in ws.factions.items():
+            if not faction.is_active:
+                continue
             old_state[fid] = {
                 "population": getattr(faction, "population", 0),
                 "troops": getattr(faction, "strength_actual", 0),
@@ -1079,6 +1082,17 @@ def _resolve_v1(room, ws, decisions, llm):
                 "treasury": faction.treasury,
                 "morale": getattr(faction, "morale_actual", 50),
             }
+    else:
+        for fid in v1_factions:
+            faction = ws.factions.get(fid)
+            if faction:
+                old_state[fid] = {
+                    "population": getattr(faction, "population", 0),
+                    "troops": getattr(faction, "strength_actual", 0),
+                    "food": faction.food,
+                    "treasury": faction.treasury,
+                    "morale": getattr(faction, "morale_actual", 50),
+                }
 
     # 将 V1 结果应用到 WorldState
     _apply_v1_state_to_world(ws, v1_factions)
