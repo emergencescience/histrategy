@@ -760,32 +760,6 @@ def create_app(llm_provider: str | None = None) -> Any:
             import json as _json
 
             print(f"[HISTRATEGY_LOG] {_json.dumps(log_entry, ensure_ascii=False)}", flush=True)
-            # Also POST to orchestrator Postgres
-            try:
-                _jwt = _game_meta.get(game_id, {}).get("jwt_token", "")
-                import httpx as _httpx
-
-                _orch_url = _os.environ.get("ORCHESTRATOR_URL", "https://api.emergence.science").rstrip("/")
-                _httpx.post(
-                    f"{_orch_url}/games/histrategy/api/log/batch",
-                    json={
-                        "session_id": session_id,
-                        "turn_number": status.get("turn", 1),
-                        "llm_calls": [
-                            {
-                                "call_type": "macro_simulate",
-                                "provider": "deepseek",
-                                "model": _os.environ.get("LLM_MODEL", "deepseek-v4-flash"),
-                                "total_tokens": _sim_tokens,
-                            }
-                        ],
-                        "sim_events": [],
-                    },
-                    headers={"Authorization": f"Bearer {_jwt}"} if _jwt else {},
-                    timeout=5.0,
-                )
-            except Exception:
-                pass  # Non-blocking
 
         return response_data
 
@@ -859,48 +833,6 @@ def create_app(llm_provider: str | None = None) -> Any:
             "estimated_turns_per_credit": round(1_000_000 / estimated_cost_micro, 1),
             "llm_available": _llm_provider is not None,
         }
-
-    @app.get("/api/balance")
-    def api_balance(room_id: str = ""):
-        """Return the host user's credit balance for lobby display.
-
-        Calls orchestrator GET /games/histrategy/balance via internal key.
-        If billing is not configured, returns a placeholder.
-        """
-        import logging as _logging
-        import os as _os
-
-        _logger = _logging.getLogger(__name__)
-
-        internal_key = _os.environ.get('HISTRATEGY_BILL_INTERNAL_KEY', '')
-        if not internal_key or not room_id:
-            return {
-                "ok": True,
-                "micro_credits": 0,
-                "credits_display": "—",
-                "estimated_turns_remaining": "—",
-                "low_balance": False,
-                "reason": "billing not configured"
-            }
-
-        try:
-            import json as _json_local
-            import urllib.request
-            orch_url = _os.environ.get('ORCHESTRATOR_URL', 'https://api.emergence.science').rstrip('/')
-            url = f'{orch_url}/games/histrategy/balance?room_id={room_id}'
-            req = urllib.request.Request(url, headers={'X-Internal-Key': internal_key}, method='GET')
-            with urllib.request.urlopen(req, timeout=5) as resp:
-                return _json_local.loads(resp.read())
-        except Exception as e:
-            _logger.warning(f"Balance check failed: {e}")
-            return {
-                "ok": False,
-                "micro_credits": 0,
-                "credits_display": "—",
-                "estimated_turns_remaining": "—",
-                "low_balance": False,
-                "reason": f"unavailable: {e}"
-            }
 
     @app.post("/api/games/{game_id}/summary")
     def get_game_summary(game_id: str):
@@ -1027,7 +959,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         """Auto-save: persist game state to Orchestrator slot 0.
 
         Requires Authorization Bearer JWT.
-        Degrades gracefully if no JWT or ORCHESTRATOR_URL not set.
+        Degrades gracefully if no JWT.
         """
         engine = _get_engine(game_id)
         if not engine:
