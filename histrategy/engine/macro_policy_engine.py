@@ -31,12 +31,24 @@ _MACRO_SIM_DEFAULT = load_prompt(
     "macro_simulator.md",
     default="你是《三國志略》的太史令（Macro Historical Simulator）。",
 )
+_MACRO_SIM_EN = load_prompt(
+    "macro_simulator_en.md",
+    default=(
+        "You are the Grand Historian of Histrategy (Macro Historical Simulator). "
+        "Based on the current world state and all factions' decisions, simulate this "
+        "quarter's outcomes. Output structured JSON with battle_results, "
+        "diplomatic_reactions, economic_changes, character_events, and turn_summary. "
+        "All narrative text MUST be in English."
+    ),
+)
 _MACRO_PROMPT_CACHE: dict[tuple, str] = {}
 
 
 def _load_macro_prompt(scenario: str | None, lang: str = "zh") -> str:
     """Load scenario-specific macro simulator prompt with language selection."""
     if not scenario or scenario in ("207", "three-kingdoms", ""):
+        if lang == "en":
+            return _MACRO_SIM_EN
         return _MACRO_SIM_DEFAULT
     cache_key = (scenario, lang)
     if cache_key in _MACRO_PROMPT_CACHE:
