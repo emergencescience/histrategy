@@ -136,6 +136,11 @@ class LLMAdapter:
         # Override log directory (e.g. for room-scoped logging)
         self._data_dir_override = data_dir
 
+        # Room context for billing/logging (set via set_room_context before resolution)
+        self.current_room_id: str | None = None
+        self.current_quarter: int = 0
+        self.current_scenario: str | None = None
+
         self._logger.info(
             "LLMAdapter init: provider=%s model=%s base=%s available=%s",
             self.provider_name, self.model,
@@ -160,6 +165,16 @@ class LLMAdapter:
     def is_available(self) -> bool:
         """Check if API is configured and ready."""
         return bool(self.api_key) and self.client is not None
+
+    def set_room_context(self, room_id: str, quarter_number: int, scenario: str = "") -> None:
+        """Set the current room context for billing/logging.
+
+        Call this at the start of each turn resolution so all LLM calls
+        within the turn are automatically attributed to the correct room.
+        """
+        self.current_room_id = room_id
+        self.current_quarter = quarter_number
+        self.current_scenario = scenario
 
     def chat(
         self,
@@ -481,8 +496,8 @@ class LLMAdapter:
 
             print(f"[Warning] Failed to write LLM log: {e}", file=sys.stderr)
 
-    @staticmethod
     def _log_llm_call_to_db(
+        self,
         messages: list[dict],
         response_content: str,
         stats: dict,
@@ -495,14 +510,11 @@ class LLMAdapter:
             from histrategy.db.models import log_llm_call
 
             meta = metadata or {}
-            room_id = meta.get("room_id")
+            room_id = meta.get("room_id") or self.current_room_id
             if not room_id or room_id == "unknown":
-                # Skip DB write — no valid room to associate with
-                # NPC baseline decisions and other non-room calls legitimately
-                # have no room context. The FK to game_room would fail.
                 return
-            quarter_number = meta.get("quarter_number", 0)
-            call_type = meta.get("category", "unknown")
+            quarter_number = meta.get("quarter_number", self.current_quarter)
+            call_type = meta.get("category", meta.get("call_type", "unknown"))
             faction_id = meta.get("faction_id")
             system_prompt_type = meta.get("system_prompt_type")
 
@@ -688,7 +700,7 @@ class LLMAdapter:
                 f.writelines(log_entry)
 
             # 3. Write to database llm_call_log (H14b) — error case
-            LLMAdapter._log_llm_call_to_db(
+            self._log_llm_call_to_db(
                 messages,
                 response_content=response_body if response_body else "",
                 stats={

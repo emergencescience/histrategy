@@ -850,6 +850,9 @@ def _resolve_and_advance(room: GameRoom):
 
     engine_mode = detect_engine_mode()
     llm = _get_llm()
+    # Set room context on adapter so all LLM calls in this turn are logged
+    if hasattr(llm, 'set_room_context'):
+        llm.set_room_context(room.id, room.quarter_number + 1, room.scenario)
     lang = getattr(room, 'metadata', {}).get('lang', 'zh')
     decisions = collect_all_decisions(room, ws, llm=llm, turn_memory=room.turn_summaries, lang=lang)
 
