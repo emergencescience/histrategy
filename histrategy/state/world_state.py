@@ -101,6 +101,17 @@ class FactionState:
     is_active: bool = True
     personality_applied: str = ""  # last personality-driven narrative tag
 
+    # ── V2/V3 compatibility ─────────────────────────────────────────
+    # V2/V3 engine accesses faction.strength_actual / morale_actual.
+    # V1 uses strength / morale. Provide aliases.
+    @property
+    def strength_actual(self) -> int:
+        return self.strength
+
+    @property
+    def morale_actual(self) -> int:
+        return self.morale
+
 
 @dataclass
 class CharacterState:
@@ -114,6 +125,23 @@ class CharacterState:
     location: str = ""
     role: str = "general"  # general, advisor, spy, governor
     recent_actions: list[str] = field(default_factory=list)
+
+
+# ── V2/V3 engine compatibility helper ──────────────────────────────
+# V2/V3 code expects ws.season to be an object with .value and .cn
+# attributes (like a Season enum). V1 WorldState uses season_index (int).
+# This adapter bridges the gap when V3 engine operates on V1 WorldState.
+
+
+class _SeasonCompat:
+    """Lightweight Season-enum-compatible object for V1 → V3 bridging."""
+
+    def __init__(self, value: str, cn: str):
+        self.value = value
+        self.cn = cn
+
+    def __str__(self) -> str:
+        return self.value
 
 
 @dataclass
@@ -181,6 +209,21 @@ class WorldState:
 
     SEASONS = ["spring", "summer", "autumn", "winter"]
     SEASON_CN = {"spring": "春季", "summer": "夏季", "autumn": "秋季", "winter": "冬季"}
+
+    # ── V2/V3 engine compatibility ──────────────────────────────────
+    # V2/V3 expect ws.turn_number (int) and ws.season (obj with .cn).
+    # V1 uses turn (int) and season_index (int). Provide aliases so
+    # the V3 engine (quarterly_resolver, turn_controller, etc.) can
+    # operate on V1 WorldState without crashing.
+
+    @property
+    def turn_number(self) -> int:
+        return self.turn
+
+    @property
+    def season(self):
+        """Compatibility: return an object with .value and .cn for V2/V3."""
+        return _SeasonCompat(self.current_season, self.current_season_cn)
 
     @property
     def current_season(self) -> str:
