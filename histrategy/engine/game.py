@@ -2131,10 +2131,14 @@ class GameEngine:
 
         # ── Collect NPC actions for response ──
         npc_actions = []
+        is_en = getattr(self, "_scenario_language", "zh") == "en"
         for fid, dr in decisions.items():
             if fid != faction_id:
                 faction = ws.factions.get(fid)
-                name = faction.name if faction else fid
+                if faction:
+                    name = faction.name_en if is_en and faction.name_en else faction.name
+                else:
+                    name = fid
                 npc_actions.append(f"{name}: {dr.decision_text[:80]}")
 
         # ── Advance season/year ──

@@ -79,7 +79,7 @@ class NPCInterpreter:
                 messages,
                 response_format={"type": "json_object"},
                 temperature=0.60,
-                max_tokens=1200,
+                max_tokens=2048,
                 metadata=metadata,
             )
             updates = {}

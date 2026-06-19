@@ -265,7 +265,7 @@ class NPCDecisionEngine:
             messages,
             response_format={"type": "json_object"},
             temperature=temperature,
-            max_tokens=2048,
+            max_tokens=4096,
             metadata={
                 "category": "npc_decision",
                 "faction_id": faction_id,
