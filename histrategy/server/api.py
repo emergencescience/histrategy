@@ -1390,17 +1390,7 @@ def create_app(llm_provider: str | None = None) -> Any:
     def serve_multiplayer_page():
         import os as _os
 
-        from fastapi.responses import FileResponse, PlainTextResponse
-
-        # Block public access: mp/ is for local dev only.
-        # Production traffic should go through orchestrator at
-        # https://emergence.science/en/play/histrategy/shared/{room_id}
-        if _os.environ.get("HISTRATEGY_ENV") == "production":
-            return PlainTextResponse(
-                "mp/ is disabled in production. Use the shared game page at "
-                "https://emergence.science/en/play/histrategy/shared/{room_id}",
-                status_code=403,
-            )
+        from fastapi.responses import FileResponse
 
         web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
         return FileResponse(_os.path.join(web_dir, "mp.html"))
