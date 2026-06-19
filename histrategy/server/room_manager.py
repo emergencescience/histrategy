@@ -1097,13 +1097,14 @@ def _resolve_v1(room, ws, decisions, llm):
     # 将 V1 结果应用到 WorldState
     _apply_v1_state_to_world(ws, v1_factions)
 
-    # V1 does not use TurnController (which advances season for V2/V3).
-    # Advance season manually so year/season progress across quarters.
-    _advance_season(ws)
-
     # 写入 DB（传入旧状态以计算 delta）
     # Note: room.quarter_number hasn't been incremented yet — save with next quarter
     save_v1_state_to_db(room.id, room.quarter_number + 1, ws, v1_result, old_state=old_state)
+
+    # V1 does not use TurnController (which advances season for V2/V3).
+    # Advance season AFTER saving so Q1 is recorded with the correct starting season
+    # (e.g. Rome 44 BC starts in spring, Q1 should be spring, not summer).
+    _advance_season(ws)
 
     # 构建兼容 result 对象
     @dataclass
