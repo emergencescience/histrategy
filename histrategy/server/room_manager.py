@@ -1153,10 +1153,33 @@ def _resolve_v1(room, ws, decisions, llm):
                 f"stores {food:,} grain, holds {territory_str}."
             )
 
+    # 构建丰富的回合摘要，供 NPC 下回合参考
+    # 提取关键事件：谁打了谁，结果如何
+    battle_events = []
+    for fid in decisions:
+        dr = decisions.get(fid)
+        if dr and dr.commands:
+            for cmd in dr.commands:
+                if isinstance(cmd, dict) and cmd.get("type") == "attack":
+                    target = cmd.get("params", {}).get("target_territory", "?")
+                    battle_events.append(f"{fid}→{target}")
+    battle_str = " | ".join(battle_events) if battle_events else ""
+
+    v1_summary = {
+        "quarter": room.quarter_number + 1,
+        "engine": "v1",
+        "outcome_summary": (
+            f"[{ws.year}年{getattr(ws, 'current_season', '?')}] "
+            f"{battle_str or '各方休整'}"
+        ) if battle_str else (
+            f"[{ws.year}年{getattr(ws, 'current_season', '?')}] 各方休整，蓄力待发"
+        ),
+    }
+
     return V1Result(
         narratives=narratives,
         state_changes={},
-        turn_summary={"quarter": room.quarter_number + 1, "engine": "v1"},
+        turn_summary=v1_summary,
     )
 
 

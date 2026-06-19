@@ -61,9 +61,11 @@ _NPC_LABELS = {
         "morale_est": "民心≈",
         "recent_events": "近期大事",
         "make_decision": "制定决策",
-        "decision_instruction": "基于以上信息，制定本季度（三个月）的战略决策。",
+        "decision_instruction": "基于以上信息，制定本季度（三个月）的战略决策。不要重复上一回合已经失败的行动——如果攻城未克，考虑围城、外交、或转攻他处。",
         "json_output": "输出 JSON 包含 decision（自然语言描述）和 commands（结构化命令数组）。",
         "not_active": "该势力已不存在，无需决策。",
+        "strategic_reminder": "策略提醒",
+        "failed_attack": "⚠️ 上一回合你攻打 {target} 未克。考虑：1）围城断粮 2）外交谈判 3）转攻其他目标 4）巩固后方。盲目重复失败的行动是战略大忌。",
     },
     "en": {
         "current_time": "Current Time",
@@ -92,9 +94,11 @@ _NPC_LABELS = {
         "morale_est": "Morale ≈",
         "recent_events": "Recent Events",
         "make_decision": "Make Your Decision",
-        "decision_instruction": "Based on the above intelligence, formulate this quarter's (three month) strategic decision.",
+        "decision_instruction": "Based on the above intelligence, formulate this quarter's (three month) strategic decision. Do not repeat an action that already failed last turn — if your assault was repelled, consider siege, diplomacy, or a different target.",
         "json_output": "Output JSON with 'decision' (natural language description) and 'commands' (structured command array).",
         "not_active": "This faction no longer exists. No decision needed.",
+        "strategic_reminder": "Strategic Reminder",
+        "failed_attack": "⚠️  Your attack on {target} failed last turn. Consider: 1) Siege and starve them out 2) Diplomatic negotiation 3) Attack a different target 4) Consolidate your rear. Repeating a failed assault is a strategic blunder.",
     },
 }
 
@@ -401,18 +405,40 @@ class NPCDecisionEngine:
                 continue
             est_str = getattr(f, "strength_actual", 0)
             morale_est = getattr(f, "morale_actual", 50)
+            food_est = getattr(f, "food", 0)
+            treasury_est = getattr(f, "treasury", 0)
             ft = list(getattr(f, "territories", []))
-            lines.append(f"- {getattr(f, 'name', fid)} ({fid}): {L['troops_est']}{est_str:,}, {L['morale_est']}{morale_est}, {L['territories']}={ft}")
+            lines.append(
+                f"- {getattr(f, 'name', fid)} ({fid}): "
+                f"{L['troops_est']}{est_str:,}, {L['morale_est']}{morale_est}, "
+                f"粮≈{food_est:,}, 金≈{treasury_est:,}, "
+                f"{L['territories']}={ft}"
+            )
         lines.append("")
 
         # Historical memory
         if turn_memory:
             lines.append(f"## {L['recent_events']}")
+            last_attack_target = None
             for mem in turn_memory[-5:]:
                 summary = mem.get("outcome_summary", "")
                 if summary:
                     lines.append(f"- {summary}")
+                    # 检测上一回合是否有本势力的进攻
+                    arrow = f"{faction_id}→"
+                    if arrow in summary and "attack" in str(mem.get("quarter", "")) or arrow in summary:
+                        # Extract target from "antony→roma" pattern
+                        import re
+                        m = re.search(rf"{re.escape(faction_id)}→(\w+)", summary)
+                        if m:
+                            last_attack_target = m.group(1)
             lines.append("")
+
+            # 如果检测到上一回合本势力发动了进攻，添加策略提醒
+            if last_attack_target:
+                lines.append(f"## {L['strategic_reminder']}")
+                lines.append(L['failed_attack'].format(target=last_attack_target))
+                lines.append("")
 
         # Instructions
         lines.append(f"## {L['make_decision']}")
