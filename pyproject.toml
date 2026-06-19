@@ -1,6 +1,6 @@
 [project]
 name = "histrategy"
-version = "0.2.0"
+version = "0.2.1"
 description = "三國志略 - A text-based history strategy game powered by AI"
 requires-python = ">=3.10"
 dependencies = [
