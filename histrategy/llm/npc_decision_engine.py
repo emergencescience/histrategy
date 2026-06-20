@@ -359,14 +359,19 @@ class NPCDecisionEngine:
         turn = getattr(ws, "turn", 0)
         lines.append(f"## {L['current_time']}\n{ws.year}, {season_cn} | {L['quarter']} {turn}\n")
 
-        # Own state
+        # Own state — clearly mark current territory ownership
         lines.append(f"## {L['your_faction']}")
+        lines.append(f"### ⚠️ 当前实际控制（请勿用历史知识覆盖）")
         lines.append(f"{L['faction']}: {faction.name} ({faction_id})")
         lines.append(f"{L['ruler']}: {getattr(faction, 'ruler_id', '')}")
         lines.append(f"{L['troops']}: {getattr(faction, 'strength_actual', 0):,}")
         lines.append(f"{L['funds']}: {getattr(faction, 'treasury', 0):,} | {L['food']}: {getattr(faction, 'food', 0):,}")
         lines.append(f"{L['morale']}: {getattr(faction, 'morale_actual', 50)} | {L['tax_rate']}: {int(getattr(faction, 'tax_rate', 0.3) * 100)}%")
         territories = list(getattr(faction, 'territories', []))
+        if territories:
+            lines.append(f"🏰 **{L['territories']}**: {territories}")
+        else:
+            lines.append(f"🏰 **{L['territories']}**: [] （无固定领地，可能处于迁徙中或依附他方）")
         lines.append(f"{L['territories']}: {territories}")
         lines.append("")
 
