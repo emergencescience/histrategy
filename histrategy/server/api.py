@@ -430,8 +430,9 @@ def create_app(llm_provider: str | None = None) -> Any:
         except Exception as e:
             v2_error = f"{type(e).__name__}: {e}"
 
-        # Detect active engine mode from environment
-        config_engine = _os.environ.get("HISTRATEGY_ENGINE", "")
+        # Detect active engine mode from environment (safe — uses stdlib os)
+        import os as _stdlib_os
+        config_engine = _stdlib_os.environ.get("HISTRATEGY_ENGINE", "")
         if not config_engine:
             config_engine = "v2" if v2_available else "v1"
 
