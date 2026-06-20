@@ -108,9 +108,17 @@ class FactionState:
     def strength_actual(self) -> int:
         return self.strength
 
+    @strength_actual.setter
+    def strength_actual(self, value: int) -> None:
+        self.strength = value
+
     @property
     def morale_actual(self) -> int:
         return self.morale
+
+    @morale_actual.setter
+    def morale_actual(self, value: int) -> None:
+        self.morale = value
 
 
 @dataclass
