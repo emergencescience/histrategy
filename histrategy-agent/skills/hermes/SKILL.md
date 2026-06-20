@@ -77,9 +77,22 @@ room.status()
 4. 渲染结果：叙事 + 地图 + 状态卡片 + 建议选项
 5. 重复步骤 2-4，直到游戏结束
 
-### 2. 多人模式
+### 2. 多人模式 ⚠️ 需要运行中的 histrategy 服务器
 
-使用 `histrategy_sdk.MultiplayerRoom`:
+多人模式使用 `histrategy_sdk.MultiplayerRoom` 调用 **histrategy HTTP 服务器 API**。
+不同于单人模式（纯本地 SQLite），多人模式必须有一个运行中的服务器实例。
+
+```bash
+# 在服务器上启动 histrategy（如果尚未运行）
+HISTRATEGY_ENGINE=v1 uvicorn 'histrategy.server.api:create_app' --factory --host 0.0.0.0 --port 8080
+```
+
+Agent 使用 `ServerClient` 连接服务器：
+
+```python
+from histrategy_sdk import ServerClient, MultiplayerRoom
+
+client = ServerClient(base_url="http://localhost:8080")  # 或生产地址
 
 #### 房主创建房间 (`/histrategy host caocao=张三 liubei=李四`)
 
