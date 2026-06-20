@@ -1,32 +1,28 @@
 """
 Debug Logger — collects LLM call records and simulation events
-during a turn, then fires a single batch POST to the orchestrator.
+during a turn for local logging.
 
 Usage per turn:
     from .debug_logger import TurnLogCollector
-    log = TurnLogCollector(session_id, turn_number, orchestrator_url, jwt_token)
+    log = TurnLogCollector(session_id, turn_number)
     log.llm("macro_simulate", "deepseek", "deepseek-chat", 1200, 3500, 4700, 28000, ...)
     log.event("black_swan", {"event_id": "liubiao_death_208", ...})
-    log.flush()  # fire-and-forget
+    log.flush()  # logs locally
 """
 
 from __future__ import annotations
 
 import logging
-import os
-import threading
 from typing import Any
-
-import httpx
 
 _logger = logging.getLogger("histrategy.debug_logger")
 
 
 class TurnLogCollector:
-    """Collects log records in memory and flushes to orchestrator.
+    """Collects log records in memory. flush() logs locally.
 
-    Fire-and-forget: flush() spawns a daemon thread so it never
-    blocks the game turn if the orchestrator is slow/unreachable.
+    No longer POSTs to orchestrator — dependency arrow is
+    unilateral: orchestrator → histrategy, never reverse.
     """
 
     def __init__(
@@ -38,8 +34,8 @@ class TurnLogCollector:
     ):
         self.session_id = session_id
         self.turn_number = turn_number
-        self.orchestrator_url = (orchestrator_url or os.environ.get("ORCHESTRATOR_URL", "")).rstrip("/")
-        self.jwt_token = jwt_token
+        # orchestrator_url + jwt_token accepted for backward compat but ignored.
+        # Dependency arrow is unilateral: orchestrator → histrategy, never reverse.
         self._llm_calls: list[dict[str, Any]] = []
         self._sim_events: list[dict[str, Any]] = []
 
@@ -86,43 +82,22 @@ class TurnLogCollector:
         )
 
     def flush(self) -> None:
-        """Fire-and-forget POST to orchestrator. Never blocks."""
+        """Log collected records locally. No longer POSTs to orchestrator.
+
+        Dependency arrow is unilateral: orchestrator → histrategy.
+        Histrategy does NOT call back to the orchestrator.
+        """
         if not self._llm_calls and not self._sim_events:
             return
-        if not self.orchestrator_url:
-            _logger.warning("DebugLogger: no orchestrator_url, skipping flush")
-            return
 
-        payload = {
-            "session_id": self.session_id,
-            "turn_number": self.turn_number,
-            "llm_calls": self._llm_calls,
-            "sim_events": self._sim_events,
-        }
-
-        # Clear local buffers immediately (even if POST fails)
         llm_count = len(self._llm_calls)
         sim_count = len(self._sim_events)
+
+        # Clear local buffers
         self._llm_calls = []
         self._sim_events = []
 
-        url = f"{self.orchestrator_url}/games/histrategy/api/log/batch"
-        headers = {"Content-Type": "application/json"}
-        if self.jwt_token:
-            headers["Authorization"] = f"Bearer {self.jwt_token}"
-
-        _logger.info(f"Flushing {llm_count} LLM calls + {sim_count} sim events to {url}")
-
-        def _post():
-            try:
-                with httpx.Client(timeout=5.0) as client:
-                    resp = client.post(url, json=payload, headers=headers)
-                    if resp.status_code >= 400:
-                        _logger.warning(f"Log batch POST {resp.status_code}: {resp.text[:200]}")
-                    else:
-                        _logger.info(f"Log batch POST OK: {resp.json()}")
-            except Exception as e:
-                _logger.warning(f"Log batch POST failed: {e}")
-
-        t = threading.Thread(target=_post, daemon=True)
-        t.start()
+        _logger.info(
+            f"Turn {self.turn_number}: collected {llm_count} LLM calls + "
+            f"{sim_count} sim events (not POSTing to orchestrator)"
+        )

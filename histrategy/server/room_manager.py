@@ -898,35 +898,13 @@ def _check_rate_limit(room_id: str) -> bool:
 
 
 def _check_credit_before_turn(room) -> bool:
-    """Call orchestrator GET /games/histrategy/credit-check before resolving.
+    """Credit check is handled by the orchestrator before calling histrategy.
 
-    Returns True if host has sufficient credits (or billing is not configured).
+    The dependency arrow is unilateral: orchestrator → histrategy.
+    Histrategy does NOT call back to the orchestrator.
+    Always returns True (fail-open).
     """
-    import urllib.request
-
-    orch_url = os.environ.get('ORCHESTRATOR_URL', 'https://api.emergence.science').rstrip('/')
-    internal_key = os.environ.get('HISTRATEGY_BILL_INTERNAL_KEY', '')
-    if not internal_key:
-        # No billing configured → allow all
-        return True
-
-    try:
-        url = f'{orch_url}/games/histrategy/credit-check?room_id={room.id}'
-        req = urllib.request.Request(url, headers={'X-Internal-Key': internal_key}, method='GET')
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            result = _json.loads(resp.read())
-        sufficient = result.get('sufficient', True)
-        if not sufficient:
-            balance = result.get('balance', '?')
-            cost = result.get('estimated_cost', '?')
-            logger.warning(
-                f'Credit check failed: room={room.id} balance={balance} estimated_cost={cost}'
-            )
-        return sufficient
-    except Exception as e:
-        # If orchestrator is unreachable, allow the turn (fail-open for availability)
-        logger.warning(f'Credit check call failed (fail-open): {e}')
-        return True
+    return True
 
 
 def _resolve_and_advance(room: GameRoom):

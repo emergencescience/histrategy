@@ -312,12 +312,9 @@ class OrchestratorAdapter(PersistenceAdapter):
 
 
 def create_persistence_adapter(jwt_token: str = "") -> PersistenceAdapter:
-    """Create the appropriate persistence adapter based on environment.
+    """Create the persistence adapter.
 
-    If ORCHESTRATOR_URL is set → OrchestratorAdapter (PostgreSQL via HTTP).
-    Otherwise → LocalFileAdapter (JSON files, no dependencies).
+    Always uses LocalFileAdapter (JSON files, no dependencies).
+    Orchestrator handles DB persistence; histrategy does not call back.
     """
-    orchestrator_url = os.environ.get("ORCHESTRATOR_URL", "").strip()
-    if orchestrator_url:
-        return OrchestratorAdapter(orchestrator_url, jwt_token)
     return LocalFileAdapter()
