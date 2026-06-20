@@ -1046,7 +1046,14 @@ def _resolve_v1(room, ws, decisions, llm):
 
     fd = {}
     for fid, dr in decisions.items():
-        fd[fid] = {"decision": dr.decision_text, "commands": dr.commands}
+        fd[fid] = {"decision": dr.decision_text, "commands": dr.commands, "source": dr.source}
+    # Backfill from slots: ensure human decisions are preserved even if
+    # DecisionResult objects lost their text during async collection
+    for slot in room.human_slots():
+        if slot.faction_id not in fd or not fd[slot.faction_id].get("decision"):
+            decision_text = slot.pending_decision or ""
+            commands = slot.pending_commands or []
+            fd[slot.faction_id] = {"decision": decision_text, "commands": commands, "source": "human"}
 
     # Run V1 simulation with a timeout (80s < Cloudflare 100s)
     _TIMEOUT = 80
@@ -1112,6 +1119,7 @@ def _resolve_v1(room, ws, decisions, llm):
         narratives: dict
         state_changes: dict
         turn_summary: dict | None
+        faction_decisions: dict | None = None  # V1 pass-through for _save_quarter
 
     narratives = {}
     # LLM returns "narratives" (prompt key), not "faction_narratives" (bug H16)
@@ -1180,6 +1188,7 @@ def _resolve_v1(room, ws, decisions, llm):
         narratives=narratives,
         state_changes={},
         turn_summary=v1_summary,
+        faction_decisions=fd,
     )
 
 
@@ -1484,6 +1493,15 @@ def _save_quarter(room, decisions, result):
             fid: {"decision": dr.decision_text, "commands": dr.commands, "source": dr.source}
             for fid, dr in decisions.items()
         }
+        # Fallback: if _resolve_v1 attached faction_decisions to result,
+        # use it to backfill any empty human decisions (V1 pass-through fix)
+        v1_fd = getattr(result, "faction_decisions", None)
+        if v1_fd:
+            for fid, entry in fd.items():
+                if not entry["decision"] and fid in v1_fd:
+                    entry["decision"] = v1_fd[fid].get("decision", "")
+                    if not entry["commands"]:
+                        entry["commands"] = v1_fd[fid].get("commands", [])
         # Collect per-turn token usage from llm_call_log
         token_usage = _collect_quarter_tokens(room.id, room.quarter_number)
         save_quarter_turn(
