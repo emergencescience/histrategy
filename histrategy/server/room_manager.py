@@ -1317,6 +1317,11 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
     success_count = 0
     error_count = 0
 
+    # quarter_number 策略：resolve 在 advance_quarter() 之前执行（见 resolve() line ~1014）。
+    # room.quarter_number 是「即将过去的季度」。写入时使用 +1 表示「刚产出的新季度」。
+    # 与 V1 save_v1_state_to_db 的 room.quarter_number + 1 策略一致。
+    next_quarter = room.quarter_number + 1
+
     for fid, faction in ws.factions.items():
         try:
             if not faction.is_active:
@@ -1341,9 +1346,13 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
                 policies = {}
 
             # ── 保存完整状态快照 (game_state) ──
+            # 使用 quarter_number + 1：V1 一致策略。
+            # resolve 在 advance_quarter() 之前执行，当前 quarter 尚未递增。
+            # 写入的 quarter 是「这个 resolve 产出的数据对应的新季度」。
+            next_quarter = room.quarter_number + 1
             save_game_state(
                 room_id=room.id,
-                quarter_number=room.quarter_number,  # 当前季度（resolve 在 advance_quarter 之前）
+                quarter_number=next_quarter,
                 faction_id=fid,
                 population=_safe_int(getattr(faction, "population", 0)),
                 troops=_safe_int(getattr(faction, "strength_actual", 0)),
@@ -1362,7 +1371,7 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
                         if isinstance(policy_info, dict):
                             save_policy_state(
                                 room_id=room.id,
-                                quarter_number=room.quarter_number,
+                                quarter_number=next_quarter,
                                 faction_id=fid,
                                 policy_type=policy_info.get("type", "law"),
                                 policy_name=policy_name,
@@ -1392,7 +1401,7 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
                             continue
                         save_turn_delta(
                             room_id=room.id,
-                            quarter_number=room.quarter_number,
+                            quarter_number=next_quarter,
                             faction_id=fid,
                             delta_type=delta_type,
                             old_value=old_val,

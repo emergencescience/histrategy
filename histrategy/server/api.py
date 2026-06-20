@@ -1213,7 +1213,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         """Toggle room public/private. { public: true | false }"""
         from fastapi.responses import JSONResponse
 
-        from histrategy.db.connection import execute
+        from histrategy.db.connection import execute_write
         from histrategy.server.room_manager import _get_room
 
         room = _get_room(room_id)
@@ -1222,7 +1222,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         is_public = bool(body.get("public", False))
         room.is_public = is_public
-        execute(
+        execute_write(
             "UPDATE game_room SET is_public = ? WHERE id = ?",
             (1 if is_public else 0, room_id),
         )
