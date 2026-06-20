@@ -190,7 +190,8 @@ def create_room(
     # 立即初始化世界状态并开始游戏
     _init_world_state(room)
     room.phase = RoomPhase.WAITING
-    _try_save(room)
+    ws_dict = room.world_state.to_dict() if hasattr(room.world_state, 'to_dict') else None
+    _try_save(room, ws_dict)  # 传入 ws_dict 防止 DB 中 world_state 被写为 NULL
     _save_initial_state_to_db(room)  # 写入 game_state (quarter=0) — MUST be after _try_save (FK to game_room)
 
     # AI NPC 马上开始生成决策

@@ -39,9 +39,19 @@ FACTION_DISPLAY_TO_ID: dict[str, str] = {
 FACTION_ID_TO_DISPLAY: dict[str, str] = {v: k for k, v in FACTION_DISPLAY_TO_ID.items()}
 
 # 三大势力（cao/shu/wu 作为内部 ID，caocao/liubei/sunquan 作为显示名）
-# 只有这三大势力使用 LLM 独立决策
+# 只有这三大势力使用 LLM 独立决策（Three Kingdoms 默认）
 LLM_NPC_FACTIONS = {"cao", "shu", "wu", "liuzhang"}
 LLM_NPC_DISPLAY = {"caocao", "liubei", "sunquan"}
+
+# 场景感知的 NPC 势力映射（非 TK 场景的 NPC 势力从场景配置动态加载，
+# 此映射仅作为 room_manager 中 create_room 的 fallback）
+SCENARIO_NPC_FACTIONS: dict[str, set[str]] = {
+    "rome-triumvirate": {"senate", "octavian", "antony", "cleopatra"},
+}
+
+def get_npc_factions(scenario: str) -> set[str]:
+    """返回指定场景的 LLM NPC 势力集合（场景感知）。"""
+    return SCENARIO_NPC_FACTIONS.get(scenario, LLM_NPC_FACTIONS)
 
 # 用户可见的势力列表（全名）
 PLAYABLE_FACTIONS = ["caocao", "liubei", "sunquan"]
@@ -119,7 +129,7 @@ class FactionSlot:
 
     @classmethod
     def from_dict(cls, data: dict) -> FactionSlot:
-        return cls(
+        slot = cls(
             faction_id=data["faction_id"],
             occupant_type=OccupantType(data.get("occupant_type", "open")),
             occupant_id=data.get("occupant_id"),
@@ -127,6 +137,10 @@ class FactionSlot:
             ai_temperature=data.get("ai_temperature", 0.7),
             is_active=data.get("is_active", True),
         )
+        # 恢复已提交的决策（服务器重启后不丢失 NPC/人类提交的决策）
+        slot.pending_decision = data.get("pending_decision")
+        slot.pending_commands = data.get("pending_commands")
+        return slot
 
     def __repr__(self) -> str:
         occupant = f"{self.occupant_type.value}:{self.occupant_id or '?'}"
