@@ -1050,12 +1050,10 @@ def _resolve_v1(room, ws, decisions, llm):
     # Backfill from slots: ensure human decisions are preserved even if
     # DecisionResult objects lost their text during async collection
     for slot in room.human_slots():
-        logger.warning(f"V1 backfill: slot={slot.faction_id}, pending_decision={repr(slot.pending_decision[:60]) if slot.pending_decision else 'None'}, has_submitted={slot.has_submitted()}")
         if slot.faction_id not in fd or not fd[slot.faction_id].get("decision"):
             decision_text = slot.pending_decision or ""
             commands = slot.pending_commands or []
             fd[slot.faction_id] = {"decision": decision_text, "commands": commands, "source": "human"}
-            logger.warning(f"V1 backfill: SET fd[{slot.faction_id}] = {repr(decision_text[:60])}")
 
     # Run V1 simulation with a timeout (80s < Cloudflare 100s)
     _TIMEOUT = 80
@@ -1495,12 +1493,10 @@ def _save_quarter(room, decisions, result):
             fid: {"decision": dr.decision_text, "commands": dr.commands, "source": dr.source}
             for fid, dr in decisions.items()
         }
-        logger.warning(f"_save_quarter: decisions keys={list(decisions.keys())}, wu_decision_text={repr(decisions.get('wu', type('x',(),{'decision_text':None})).decision_text[:60]) if decisions.get('wu') else 'NO_WU_KEY'}")
         # Fallback: if _resolve_v1 attached faction_decisions to result,
         # use it to backfill any empty human decisions (V1 pass-through fix)
         v1_fd = getattr(result, "faction_decisions", None)
         if v1_fd:
-            logger.warning(f"_save_quarter: v1_fd keys={list(v1_fd.keys())}, wu={repr(v1_fd.get('wu',{}).get('decision','')[:60])}")
             for fid, entry in fd.items():
                 if not entry["decision"] and fid in v1_fd:
                     entry["decision"] = v1_fd[fid].get("decision", "")
