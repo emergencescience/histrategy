@@ -528,93 +528,133 @@ def save_v1_state_to_db(
         old_state: 仿真前的状态快照 {fid: {population, troops, food, treasury, morale}}
                    用于计算 turn_delta。若为 None 则跳过 delta 写入。
     """
-    try:
-        from histrategy.db.models import save_game_state, save_policy_state, save_turn_delta
+    from histrategy.db.models import save_game_state, save_policy_state, save_turn_delta
 
-        v1_factions = v1_result.get("factions", {})
-        if not v1_factions:
-            # V1 prompt may use "state_changes" instead of "factions"
-            # (e.g. rome-triumvirate prompt). Fall back to WorldState data.
-            v1_factions = {}
-            for fid, faction in ws.factions.items():
-                if not faction.is_active:
-                    continue
-                troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
-                morale = getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50) or 50
-                v1_factions[fid] = {
-                    "population": getattr(faction, "population", 0),
-                    "troops": troops,
-                    "food": faction.food,
-                    "treasury": faction.treasury,
-                    "morale": morale,
-                    "territories": [
-                        {"id": tid, "name": ws.territories[tid].name if tid in ws.territories else tid}
-                        for tid in faction.territories
-                    ],
-                    "policies": getattr(faction, "policies", {}),
-                    "is_active": True,
-                }
+    v1_factions = v1_result.get("factions", {})
+    # Input validation: LLM may return factions as a list
+    if isinstance(v1_factions, list):
+        logger.warning(f"V1 DB save: factions is a list, not dict. Converting. room={room_id}")
+        # Try to convert list of {id, ...} dicts to {id: data} dict
+        _fixed = {}
+        for item in v1_factions:
+            if isinstance(item, dict) and "id" in item:
+                _fixed[item["id"]] = item
+        v1_factions = _fixed
 
-        for fid, data in v1_factions.items():
+    if not v1_factions or not isinstance(v1_factions, dict):
+        # V1 prompt may use "state_changes" instead of "factions"
+        # (e.g. rome-triumvirate prompt). Fall back to WorldState data.
+        logger.info(f"V1 DB save: no factions in LLM output, building from WorldState. room={room_id}")
+        v1_factions = {}
+        for fid, faction in ws.factions.items():
+            if not faction.is_active:
+                continue
+            troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
+            morale = getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50) or 50
+            v1_factions[fid] = {
+                "population": getattr(faction, "population", 0),
+                "troops": troops,
+                "food": faction.food,
+                "treasury": faction.treasury,
+                "morale": morale,
+                "territories": [
+                    {"id": tid, "name": ws.territories[tid].name if tid in ws.territories else tid}
+                    for tid in faction.territories
+                ],
+                "policies": getattr(faction, "policies", {}),
+                "is_active": True,
+            }
+
+    success_count = 0
+    error_count = 0
+    for fid, data in v1_factions.items():
+        try:
             # Skip factions not present in the actual WorldState (regardless of scenario)
             faction = ws.factions.get(fid)
             if not faction:
+                logger.debug(f"V1 DB save: skipping unknown faction '{fid}' (not in WorldState). room={room_id}")
                 continue
+
+            # Coerce numeric fields (LLM may return strings or non-numeric values)
+            def _safe_int(val, default=0):
+                try:
+                    return int(val)
+                except (ValueError, TypeError):
+                    return default
+
+            def _safe_float(val, default=0.0):
+                try:
+                    return float(val)
+                except (ValueError, TypeError):
+                    return default
 
             # ── 保存完整状态快照 (game_state) ──
             save_game_state(
                 room_id=room_id,
                 quarter_number=quarter_number,
                 faction_id=fid,
-                population=data.get("population", 0),
-                troops=data.get("troops", 0),
-                food=data.get("food", 0),
-                treasury=data.get("treasury", 0),
-                morale=data.get("morale", 50),
-                territories=data.get("territories", []),
-                policies=data.get("policies", {}),
-                is_active=data.get("is_active", True),
+                population=_safe_int(data.get("population", 0)),
+                troops=_safe_int(data.get("troops", 0)),
+                food=_safe_float(data.get("food", 0)),
+                treasury=_safe_float(data.get("treasury", 0)),
+                morale=_safe_int(data.get("morale", 50)),
+                territories=data.get("territories", []) if isinstance(data.get("territories"), list) else [],
+                policies=data.get("policies", {}) if isinstance(data.get("policies"), dict) else {},
+                is_active=bool(data.get("is_active", True)),
             )
 
             # ── 保存五项增量 (turn_delta) ──
             if old_state and fid in old_state:
-                old = old_state[fid]
-                delta_map = [
-                    ("population", old.get("population", 0), data.get("population", 0)),
-                    ("troops", old.get("troops", 0), data.get("troops", 0)),
-                    ("food", old.get("food", 0), data.get("food", 0)),
-                    ("treasury", old.get("treasury", 0), data.get("treasury", 0)),
-                    ("morale", old.get("morale", 50), data.get("morale", 50)),
-                ]
-                for delta_type, old_val, new_val in delta_map:
-                    if old_val == new_val:
-                        continue  # 跳过无变化项
-                    save_turn_delta(
-                        room_id=room_id,
-                        quarter_number=quarter_number,
-                        faction_id=fid,
-                        delta_type=delta_type,
-                        old_value=old_val,
-                        new_value=new_val,
-                        reason="V1 LLM simulation",
-                        source="llm",
-                    )
-
-            # ── 保存政策变更 (policy_state) ──
-            policies = data.get("policies", {})
-            if policies:
-                for policy_name, policy_info in policies.items():
-                    if isinstance(policy_info, dict):
-                        save_policy_state(
+                try:
+                    old = old_state[fid]
+                    delta_map = [
+                        ("population", _safe_int(old.get("population", 0)), _safe_int(data.get("population", 0))),
+                        ("troops", _safe_int(old.get("troops", 0)), _safe_int(data.get("troops", 0))),
+                        ("food", _safe_float(old.get("food", 0)), _safe_float(data.get("food", 0))),
+                        ("treasury", _safe_float(old.get("treasury", 0)), _safe_float(data.get("treasury", 0))),
+                        ("morale", _safe_int(old.get("morale", 50)), _safe_int(data.get("morale", 50))),
+                    ]
+                    for delta_type, old_val, new_val in delta_map:
+                        if old_val == new_val:
+                            continue
+                        save_turn_delta(
                             room_id=room_id,
                             quarter_number=quarter_number,
                             faction_id=fid,
-                            policy_type=policy_info.get("type", "law"),
-                            policy_name=policy_name,
-                            policy_level=policy_info.get("level", 1),
-                            params=policy_info.get("params", {}),
-                            status=policy_info.get("status", "active"),
+                            delta_type=delta_type,
+                            old_value=old_val,
+                            new_value=new_val,
+                            reason="V1 LLM simulation",
+                            source="llm",
                         )
+                except Exception as delta_err:
+                    logger.warning(f"V1 DB save: turn_delta failed for {fid}: {delta_err}", exc_info=True)
 
-    except Exception as e:
-        logger.warning(f"V1 DB save failed (non-fatal): {e}")
+            # ── 保存政策变更 (policy_state) ──
+            policies = data.get("policies", {})
+            if policies and isinstance(policies, dict):
+                for policy_name, policy_info in policies.items():
+                    try:
+                        if isinstance(policy_info, dict):
+                            save_policy_state(
+                                room_id=room_id,
+                                quarter_number=quarter_number,
+                                faction_id=fid,
+                                policy_type=policy_info.get("type", "law"),
+                                policy_name=policy_name,
+                                policy_level=policy_info.get("level", 1),
+                                params=policy_info.get("params", {}),
+                                status=policy_info.get("status", "active"),
+                            )
+                    except Exception as policy_err:
+                        logger.warning(f"V1 DB save: policy_state failed for {fid}/{policy_name}: {policy_err}", exc_info=True)
+
+            success_count += 1
+        except Exception as faction_err:
+            error_count += 1
+            logger.warning(f"V1 DB save failed for faction '{fid}': {faction_err}", exc_info=True)
+
+    if error_count > 0:
+        logger.warning(f"V1 DB save: {success_count} factions saved, {error_count} failed. room={room_id} q={quarter_number}")
+    elif success_count > 0:
+        logger.info(f"V1 DB save: {success_count} factions saved successfully. room={room_id} q={quarter_number}")
