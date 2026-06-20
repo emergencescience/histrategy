@@ -40,7 +40,7 @@ FACTION_ID_TO_DISPLAY: dict[str, str] = {v: k for k, v in FACTION_DISPLAY_TO_ID.
 
 # 三大势力（cao/shu/wu 作为内部 ID，caocao/liubei/sunquan 作为显示名）
 # 只有这三大势力使用 LLM 独立决策
-LLM_NPC_FACTIONS = {"cao", "shu", "wu"}
+LLM_NPC_FACTIONS = {"cao", "shu", "wu", "liuzhang"}
 LLM_NPC_DISPLAY = {"caocao", "liubei", "sunquan"}
 
 # 用户可见的势力列表（全名）

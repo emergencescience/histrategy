@@ -61,7 +61,7 @@ _NPC_LABELS = {
         "morale_est": "民心≈",
         "recent_events": "近期大事",
         "make_decision": "制定决策",
-        "decision_instruction": "基于以上信息，制定本季度（三个月）的战略决策。不要重复上一回合已经失败的行动——如果攻城未克，考虑围城、外交、或转攻他处。",
+        "decision_instruction": "基于以上信息，制定本季度（三个月）的战略决策。不要重复上一回合已经失败的行动——如果攻城未克，考虑围城、外交、或转攻他处。**注意其他势力的领土变化**——如果某势力突然扩张，应立即评估威胁并做出反应。如果你有盟友，注意他们是否在抢你的战略目标（如益州）。",
         "json_output": "输出 JSON 包含 decision（自然语言描述）和 commands（结构化命令数组）。",
         "not_active": "该势力已不存在，无需决策。",
         "strategic_reminder": "策略提醒",
@@ -368,6 +368,18 @@ class NPCDecisionEngine:
         lines.append(f"{L['morale']}: {getattr(faction, 'morale_actual', 50)} | {L['tax_rate']}: {int(getattr(faction, 'tax_rate', 0.3) * 100)}%")
         territories = list(getattr(faction, 'territories', []))
         lines.append(f"{L['territories']}: {territories}")
+        lines.append("")
+
+        # Terrain / strategic geography
+        lines.append("## 战略地理 (Strategic Geography)")
+        if "jiangling" in territories or "baiti" in territories or "cd" in territories:
+            lines.append("- 三峡天险: 溯江攻蜀需经三峡(白帝→巴郡→成都)，水急滩险，一季最多推进至白帝城")
+            lines.append("- 蜀道难行: 益州山地栈道崎岖，从白帝到成都需约6个月")
+        # Check for Hefei-related proximity
+        for t in territories:
+            if t in ("jianye", "chaishang", "lujiang", "wujun"):
+                lines.append("- **合肥(hefei)**: 曹操从合肥渡淮南下可直逼建业，是东线牵制的关键")
+                break
         lines.append("")
 
         # Personality params
