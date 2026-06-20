@@ -1294,15 +1294,40 @@ def _resolve_v3(room, ws, decisions, llm):
 
 
 def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
-    """将 V3 仿真结果写入 game_state + turn_delta 表。"""
-    try:
-        from histrategy.db.models import save_game_state, save_policy_state, save_turn_delta
+    """将 V3 仿真结果写入 game_state + policy_state + turn_delta 表。
 
-        for fid, faction in ws.factions.items():
+    使用逐势力 try/except 保障：单个势力故障不影响其他势力持久化。
+    保持与原 V1 fix 一致的 _safe_int/_safe_float 数值强制模式。
+    """
+    from histrategy.db.models import save_game_state, save_policy_state, save_turn_delta
+
+    # ── 数值强制辅助（LLM/规则引擎可能返回非数值） ──
+    def _safe_int(val, default=0):
+        try:
+            return int(val)
+        except (ValueError, TypeError):
+            return default
+
+    def _safe_float(val, default=0.0):
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return default
+
+    success_count = 0
+    error_count = 0
+
+    # quarter_number 策略：resolve 在 advance_quarter() 之前执行（见 resolve() line ~1014）。
+    # room.quarter_number 是「即将过去的季度」。写入时使用 +1 表示「刚产出的新季度」。
+    # 与 V1 save_v1_state_to_db 的 room.quarter_number + 1 策略一致。
+    next_quarter = room.quarter_number + 1
+
+    for fid, faction in ws.factions.items():
+        try:
             if not faction.is_active:
                 continue
 
-            # 城池列表
+            # ── 城池列表 ──
             territories_list = []
             for tid in faction.territories:
                 t = ws.territories.get(tid)
@@ -1310,65 +1335,105 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
                     {"id": tid, "name": t.name if t else tid}
                 )
 
-            # 政策字典
+            # ── 政策字典（输入验证） ──
             policies = getattr(faction, "policies", {}) or {}
+            if not isinstance(policies, dict):
+                logger.warning(
+                    f"V3 DB save: policies is not a dict for {fid} "
+                    f"(type={type(policies).__name__}), falling back to empty dict. "
+                    f"room={room.id}"
+                )
+                policies = {}
 
-            # 写入 game_state
+            # ── 保存完整状态快照 (game_state) ──
+            # 使用 quarter_number + 1：V1 一致策略。
+            # resolve 在 advance_quarter() 之前执行，当前 quarter 尚未递增。
+            # 写入的 quarter 是「这个 resolve 产出的数据对应的新季度」。
+            next_quarter = room.quarter_number + 1
             save_game_state(
                 room_id=room.id,
-                quarter_number=room.quarter_number,
+                quarter_number=next_quarter,
                 faction_id=fid,
-                population=getattr(faction, "population", 0),
-                troops=getattr(faction, "strength_actual", 0),
-                food=faction.food,
-                treasury=faction.treasury,
-                morale=getattr(faction, "morale_actual", 50),
-                territories=territories_list,
+                population=_safe_int(getattr(faction, "population", 0)),
+                troops=_safe_int(getattr(faction, "strength_actual", 0)),
+                food=_safe_float(faction.food),
+                treasury=_safe_float(faction.treasury),
+                morale=_safe_int(getattr(faction, "morale_actual", 50)),
+                territories=territories_list if isinstance(territories_list, list) else [],
                 policies=policies,
-                is_active=faction.is_active,
+                is_active=bool(faction.is_active),
             )
 
-            # 写入 policy_state（逐条政策独立持久化）
+            # ── 保存政策变更 (policy_state) ──
             if policies:
                 for policy_name, policy_info in policies.items():
-                    if isinstance(policy_info, dict):
-                        save_policy_state(
-                            room_id=room.id,
-                            quarter_number=room.quarter_number,
-                            faction_id=fid,
-                            policy_type=policy_info.get("type", "law"),
-                            policy_name=policy_name,
-                            policy_level=policy_info.get("level", 1),
-                            params=policy_info.get("params", {}),
-                            status=policy_info.get("status", "active"),
+                    try:
+                        if isinstance(policy_info, dict):
+                            save_policy_state(
+                                room_id=room.id,
+                                quarter_number=next_quarter,
+                                faction_id=fid,
+                                policy_type=policy_info.get("type", "law"),
+                                policy_name=policy_name,
+                                policy_level=policy_info.get("level", 1),
+                                params=policy_info.get("params", {}),
+                                status=policy_info.get("status", "active"),
+                            )
+                    except Exception as policy_err:
+                        logger.warning(
+                            f"V3 DB save: policy_state failed for {fid}/{policy_name}: {policy_err}",
+                            exc_info=True,
                         )
 
-            # 写入 turn_delta（五项）
-            if fid not in old_state:
-                continue
-            old = old_state[fid]
-            delta_map = [
-                ("population", old.get("population", 0), getattr(faction, "population", 0)),
-                ("troops", old.get("troops", 0), getattr(faction, "strength_actual", 0)),
-                ("food", old.get("food", 0), faction.food),
-                ("treasury", old.get("treasury", 0), faction.treasury),
-                ("morale", old.get("morale", 50), getattr(faction, "morale_actual", 50)),
-            ]
-            for delta_type, old_val, new_val in delta_map:
-                if old_val == new_val:
-                    continue
-                save_turn_delta(
-                    room_id=room.id,
-                    quarter_number=room.quarter_number,
-                    faction_id=fid,
-                    delta_type=delta_type,
-                    old_value=old_val,
-                    new_value=new_val,
-                    reason="V3 hybrid simulation",
-                    source="llm",
-                )
-    except Exception as e:
-        logger.warning(f"V3 DB save failed (non-fatal): {e}")
+            # ── 保存五项增量 (turn_delta) ──
+            if fid in old_state:
+                try:
+                    old = old_state[fid]
+                    delta_map = [
+                        ("population", _safe_int(old.get("population", 0)), _safe_int(getattr(faction, "population", 0))),
+                        ("troops", _safe_int(old.get("troops", 0)), _safe_int(getattr(faction, "strength_actual", 0))),
+                        ("food", _safe_float(old.get("food", 0)), _safe_float(faction.food)),
+                        ("treasury", _safe_float(old.get("treasury", 0)), _safe_float(faction.treasury)),
+                        ("morale", _safe_int(old.get("morale", 50)), _safe_int(getattr(faction, "morale_actual", 50))),
+                    ]
+                    for delta_type, old_val, new_val in delta_map:
+                        if old_val == new_val:
+                            continue
+                        save_turn_delta(
+                            room_id=room.id,
+                            quarter_number=next_quarter,
+                            faction_id=fid,
+                            delta_type=delta_type,
+                            old_value=old_val,
+                            new_value=new_val,
+                            reason="V3 hybrid simulation",
+                            source="llm",
+                        )
+                except Exception as delta_err:
+                    logger.warning(
+                        f"V3 DB save: turn_delta failed for {fid}: {delta_err}",
+                        exc_info=True,
+                    )
+
+            success_count += 1
+
+        except Exception as faction_err:
+            error_count += 1
+            logger.warning(
+                f"V3 DB save failed for faction '{fid}': {faction_err}",
+                exc_info=True,
+            )
+
+    if error_count > 0:
+        logger.warning(
+            f"V3 DB save: {success_count} factions saved, {error_count} failed. "
+            f"room={room.id} q={room.quarter_number}"
+        )
+    elif success_count > 0:
+        logger.info(
+            f"V3 DB save: {success_count} factions saved successfully. "
+            f"room={room.id} q={room.quarter_number}"
+        )
 
 
 def _get_llm():
