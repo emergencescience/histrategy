@@ -261,19 +261,21 @@ def _build_diplomatic_context(ws: WorldState, lang: str = "zh") -> str:
             continue
         has_territory = bool(getattr(faction, "territories", []))
         troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
+        govt = getattr(faction, "government", "")
         if not has_territory:
-            # Infer overlord: who controls this faction's former territories
-            overlord = None
-            for other_fid, other_f in ws.factions.items():
-                if other_fid == fid:
-                    continue
-                other_territories = getattr(other_f, "territories", [])
-                if other_territories:
-                    overlord = other_f.name
-                    break
-            if overlord:
-                lines.append(f"- {faction.name} ({fid}): ⚠️ {L['lost_territory']} {overlord}")
-            else:
+            # Only mark as "client of X" if faction is explicitly a vassal/client/ally of someone
+            # Otherwise just mark as exile — they're an independent force without land
+            found_overlord = False
+            allies = getattr(faction, "allies", []) or []
+            if "client" in str(govt).lower() or "vassal" in str(govt).lower():
+                for other_fid, other_f in ws.factions.items():
+                    if other_fid == fid:
+                        continue
+                    if getattr(other_f, "territories", []):
+                        lines.append(f"- {faction.name} ({fid}): ⚠️ {L['lost_territory']} {other_f.name}")
+                        found_overlord = True
+                        break
+            if not found_overlord:
                 lines.append(f"- {faction.name} ({fid}): ⚠️ {L['exile']} {troops})")
         # Detect extreme power imbalance (likely de facto vassal)
         elif troops < 1000:

@@ -181,6 +181,19 @@ def create_room(
         if fid not in room.slots:
             room.slots[fid] = create_ai_slot(fid)
 
+    # Also add npc_only minor factions as AI (heuristic) — they have 0 territories
+    # but real troops/treasury and political relationships
+    try:
+        npc_only_factions = []
+        for fid, fdata in all_factions.items():
+            if fdata.get("npc_only", False) and fid not in room.slots:
+                npc_only_factions.append(fid)
+                room.slots[fid] = create_ai_slot(fid)
+        if npc_only_factions:
+            logger.info(f"Room {room.id}: added {len(npc_only_factions)} npc_only minor factions as AI: {npc_only_factions}")
+    except NameError:
+        pass  # fallback scenario — no npc_only to add
+
     # 标记这些为场景的主要 NPC（用于 LLM 决策生成）
     room.major_npc_ids = set(npc_factions)
 
@@ -1170,7 +1183,7 @@ def _resolve_v1(room, ws, decisions, llm):
             )
 
     # 构建丰富的回合摘要，供 NPC 下回合参考
-    # 提取关键事件：谁打了谁，结果如何
+    # 提取关键事件：谁打了谁，结果如何，以及 LLM 生成的事件
     battle_events = []
     for fid in decisions:
         dr = decisions.get(fid)
@@ -1179,7 +1192,27 @@ def _resolve_v1(room, ws, decisions, llm):
                 if isinstance(cmd, dict) and cmd.get("type") == "attack":
                     target = cmd.get("params", {}).get("target_territory", "?")
                     battle_events.append(f"{fid}→{target}")
-    battle_str = " | ".join(battle_events) if battle_events else ""
+    # Also check V1 LLM's events and battles for richer summary
+    v1_events = v1_result.get("events", [])
+    v1_battles = v1_result.get("battles", [])
+    if v1_battles:
+        for b in v1_battles[:3]:
+            atk = b.get("attacker", "?")
+            dfd = b.get("defender", "?")
+            loc = b.get("location", "")
+            battle_events.append(f"{atk}⚔{dfd}@{loc}")
+    if v1_events and not battle_events:
+        # Use first event as summary if no battles
+        evt = v1_events[0]
+        if isinstance(evt, str) and len(evt) < 60:
+            battle_events.append(evt[:40])
+    # Also try LLM's turn_summary
+    ts = v1_result.get("turn_summary", {})
+    if isinstance(ts, dict):
+        key_evt = ts.get("key_event", "")
+        if key_evt and key_evt not in battle_events:
+            battle_events.append(str(key_evt)[:40])
+    battle_str = " | ".join(battle_events[:3]) if battle_events else ""
 
     v1_summary = {
         "quarter": room.quarter_number + 1,

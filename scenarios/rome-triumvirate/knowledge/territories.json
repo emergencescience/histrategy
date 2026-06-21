@@ -152,6 +152,17 @@
     "grain_bonus": 30
   },
   {
+    "id": "cyrenaica",
+    "name": "昔兰尼加",
+    "name_en": "Cyrenaica",
+    "region": "cyrenaica",
+    "terrain": "desert",
+    "base_population": 80000,
+    "base_development": 30,
+    "strategic_value": 4,
+    "has_port": true
+  },
+  {
     "id": "cyprus",
     "name": "塞浦路斯",
     "name_en": "Cyprus",
@@ -184,5 +195,16 @@
     "base_development": 55,
     "strategic_value": 8,
     "parthia_heartland": true
+  },
+  {
+    "id": "italia",
+    "name": "意大利",
+    "name_en": "Italia",
+    "region": "italia",
+    "terrain": "plains",
+    "base_population": 800000,
+    "base_development": 55,
+    "strategic_value": 9,
+    "has_port": true
   }
 ]

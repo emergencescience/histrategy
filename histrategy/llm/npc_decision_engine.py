@@ -648,22 +648,25 @@ class NPCDecisionEngine:
         if turn_memory:
             lines.append(f"## {L['recent_events']}")
             last_attack_target = None
+            last_attack_quarter = -1
             for mem in turn_memory[-5:]:
                 summary = mem.get("outcome_summary", "")
+                qnum = mem.get("quarter", 0)
                 if summary:
                     lines.append(f"- {summary}")
                     # 检测上一回合是否有本势力的进攻
                     arrow = f"{faction_id}→"
-                    if arrow in summary and "attack" in str(mem.get("quarter", "")) or arrow in summary:
-                        # Extract target from "antony→roma" pattern
+                    if arrow in summary:
                         import re
                         m = re.search(rf"{re.escape(faction_id)}→(\w+)", summary)
-                        if m:
+                        if m and qnum > last_attack_quarter:
                             last_attack_target = m.group(1)
+                            last_attack_quarter = qnum
             lines.append("")
 
-            # 如果检测到上一回合本势力发动了进攻，添加策略提醒
-            if last_attack_target:
+            # 只在最近一回合有进攻行为时显示策略提醒（避免死循环）
+            current_quarter = getattr(ws, "turn", 0) or 0
+            if last_attack_target and last_attack_quarter >= current_quarter - 1:
                 lines.append(f"## {L['strategic_reminder']}")
                 lines.append(L['failed_attack'].format(target=last_attack_target))
                 lines.append("")
