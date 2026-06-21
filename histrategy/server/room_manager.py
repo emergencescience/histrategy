@@ -653,6 +653,11 @@ def _trigger_npc_decisions(room: GameRoom):
 
     # Extract language from room metadata (default zh)
     lang = getattr(room, 'metadata', {}).get('lang', 'zh')
+    # Normalize: room metadata uses "zh-CN" or "zh", pre-baked decisions use "zh"
+    if lang and lang.startswith("zh"):
+        lang = "zh"
+    elif lang and lang.startswith("en"):
+        lang = "en"
 
     # ── Quarter 0: check for pre-baked repo decisions ──
     if room.quarter_number == 0:
