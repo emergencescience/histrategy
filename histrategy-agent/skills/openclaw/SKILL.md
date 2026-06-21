@@ -20,7 +20,7 @@ metadata:
     category: gaming
     min_version: "1.0.0"
     clawhub_id: histrategy
-    requires: histrategy-sdk>=0.3.0
+    requires: histrategy-sdk>=0.3.2
   tags: [gaming, strategy, three-kingdoms, rome, multiplayer, history, feishu, im]
 ---
 
