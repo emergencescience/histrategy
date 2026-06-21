@@ -156,6 +156,7 @@ class GameRoom:
             "slots": {fid: s.to_dict() for fid, s in self.slots.items()},
             "decision_timeout": self.decision_timeout,
             "turn_summaries": self.turn_summaries,
+            "major_npc_ids": list(getattr(self, "major_npc_ids", [])) if getattr(self, "major_npc_ids", None) else [],
         }
 
     @classmethod
@@ -180,6 +181,10 @@ class GameRoom:
             slot.pending_decision = None
             slot.pending_commands = None
             room.slots[fid] = slot
+        # Restore scenario-specific major NPC IDs (survives DB roundtrip)
+        major_ids = data.get("major_npc_ids", [])
+        if major_ids:
+            room.major_npc_ids = set(major_ids)
         return room
 
     def __repr__(self) -> str:
