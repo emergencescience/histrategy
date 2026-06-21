@@ -534,7 +534,10 @@ class GameMaster:
                 "short_term": {"changes": {}},
                 "seeds": [],
                 "npc_reactions": ["各方势力继续行动，天下纷争不休。"],
-                "aftermath": f"政令「{player_decision[:60]}」已下达，各部正在执行中。",
+                "aftermath": (
+                    f"政令「{player_decision[:200]}"
+                    f"{'...' if len(player_decision) > 200 else ''}」已下达，各部正在执行中。"
+                ),
                 "state_changes": {},
                 "world_state": state,
             }

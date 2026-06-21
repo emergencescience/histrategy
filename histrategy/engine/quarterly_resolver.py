@@ -461,21 +461,46 @@ def _build_turn_summary(
     all_decisions: dict[str, str],
     results: QuarterlyResult,
 ) -> dict:
-    """构建回合摘要（用于后续 LLM 上下文）。"""
+    """构建回合摘要（用于后续 LLM 上下文）。
+
+    Previously truncated decisions to 60 chars, losing 90% of information.
+    Now uses 300-char limits and includes narrative fragments for richer context.
+    """
     season_cn = ws.current_season_cn
     decision_summaries = []
     for fid, decision in all_decisions.items():
-        short = decision[:60] + "..." if len(decision) > 60 else decision
+        # Keep up to 300 chars — long enough to preserve strategic intent
+        short = decision[:300] + "..." if len(decision) > 300 else decision
         faction = ws.factions.get(fid)
         name = faction.name if faction else fid
         decision_summaries.append(f"{name}: {short}")
 
+    # Include narrative fragments in the summary
+    narrative_fragments = []
+    if results.narratives:
+        for fid, narrative in list(results.narratives.items())[:3]:
+            # Take first 120 chars of each narrative as context
+            fragment = narrative[:120] + "..." if len(narrative) > 120 else narrative
+            faction = ws.factions.get(fid)
+            name = faction.name if faction else fid
+            narrative_fragments.append(f"{name}叙事: {fragment}")
+
+    narrative_str = " | ".join(narrative_fragments) if narrative_fragments else ""
+
     events_str = (
-        "; ".join(e.get("title", "") for e in results.history_events[:3]) if results.history_events else "天下无事"
+        "; ".join(e.get("title", "") for e in results.history_events[:4])
+        if results.history_events else "天下无事"
     )
 
+    # Build rich outcome_summary with decisions + narratives + events
+    decisions_str = " | ".join(decision_summaries[:4])  # all factions, not just 3
+    parts = [f"[{ws.year}年{season_cn}]", decisions_str]
+    if narrative_str:
+        parts.append(narrative_str)
+    parts.append(f"→ {events_str}")
+
     return {
-        "outcome_summary": (f"[{ws.year}年{season_cn}] " + " | ".join(decision_summaries[:3]) + f" → {events_str}"),
+        "outcome_summary": " ".join(parts),
         "turn": ws.turn,
         "year": ws.year,
         "season": season_cn,

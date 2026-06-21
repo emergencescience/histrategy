@@ -2023,7 +2023,11 @@ class GameEngine:
         season_val = ws.season.cn if hasattr(ws.season, "cn") else ws.season
         self._turn_summaries.append(
             {
-                "outcome_summary": f"[{ws.year}年{season_val}] {player_decision[:80]} → {summary_text[:150]}",
+                "outcome_summary": (
+                    f"[{ws.year}年{season_val}] "
+                    f"{player_decision[:200]}{'...' if len(player_decision) > 200 else ''}"
+                    f" → {summary_text[:300]}{'...' if len(summary_text) > 300 else ''}"
+                ),
                 "turn": ws.turn_number,
             }
         )

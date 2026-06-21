@@ -16,13 +16,31 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from histrategy.engine.faction_slot import LLM_NPC_FACTIONS, FactionSlot
+from histrategy.engine.faction_slot import FactionSlot
 from histrategy.llm.prompt_loader import load_prompt
 
 logger = logging.getLogger("histrategy.npc")
+
+# ── Retry configuration ─────────────────────────────────────
+NPC_LLM_MAX_RETRIES = 3
+NPC_LLM_RETRY_BASE_DELAY = 1.5  # seconds; exponential backoff: 1.5, 3, 6
+NPC_LLM_RETRYABLE_ERRORS = (
+    "timeout",
+    "connection",
+    "rate_limit",
+    "server_error",
+    "Service Unavailable",
+    "503",
+    "502",
+    "504",
+    "429",
+    "timed out",
+    "connection reset",
+)
 
 if TYPE_CHECKING:
     from histrategy_engine.world import WorldState
@@ -166,6 +184,28 @@ NPC_COMMAND_TYPES = [
 ]
 
 
+def _resolve_border(ws: WorldState, faction_id: str, neighbor_id: str) -> str | None:
+    """Find the border territory between two factions.
+
+    Returns the territory ID of the faction that borders the neighbor, or None.
+    """
+    faction = ws.factions.get(faction_id)
+    neighbor = ws.factions.get(neighbor_id)
+    if not faction or not neighbor:
+        return None
+
+    my_territories = set(getattr(faction, "territories", []))
+    neighbor_territories = set(getattr(neighbor, "territories", []))
+
+    for tid in my_territories:
+        territory = ws.territories.get(tid)
+        if territory and hasattr(territory, "neighbors"):
+            for nid in territory.neighbors:
+                if nid in neighbor_territories:
+                    return tid
+    return None
+
+
 class NPCDecisionEngine:
     """为一个 NPC faction 生成独立季度决策。
 
@@ -216,32 +256,62 @@ class NPCDecisionEngine:
             L = _NPC_LABELS.get(self.language, _NPC_LABELS["zh-CN"])
             return L["not_active"], []
 
-        # Minor factions use heuristic rules
-        faction_set = set(getattr(slot, "__dict__", {}))
-        if faction_id not in LLM_NPC_FACTIONS and faction_id not in (slot.faction_id if slot else ""):
-            pass  # 继续尝试 LLM 或 heuristic
-
         # Use LLM for major factions; fall back to heuristic for minor
         use_llm = self.llm_available and self.llm is not None
 
         if not use_llm:
             return self._generate_heuristic(world_state, faction_id)
 
-        try:
-            return self._generate_llm(
-                world_state,
-                faction_id,
-                faction,
-                turn_memory or [],
-                slot,
-                room_id,
-                quarter_number,
-                scenario or self.scenario,
-            )
-        except Exception as e:
-            # LLM 失败时回退到启发式
-            logger.warning(f"NPCDecisionEngine LLM failed for {faction_id}, falling back to heuristic: {e}")
-            return self._generate_heuristic(world_state, faction_id)
+        # ── Retry loop with exponential backoff ──────────────────
+        last_error: Exception | None = None
+        for attempt in range(1, NPC_LLM_MAX_RETRIES + 1):
+            try:
+                return self._generate_llm(
+                    world_state,
+                    faction_id,
+                    faction,
+                    turn_memory or [],
+                    slot,
+                    room_id,
+                    quarter_number,
+                    scenario or self.scenario,
+                )
+            except Exception as e:
+                last_error = e
+                error_str = str(e).lower()
+                is_retryable = any(
+                    keyword.lower() in error_str
+                    for keyword in NPC_LLM_RETRYABLE_ERRORS
+                )
+
+                if not is_retryable:
+                    # Non-retryable error (e.g. JSON parse error, bad request)
+                    logger.warning(
+                        f"NPCDecisionEngine non-retryable LLM error for {faction_id} "
+                        f"(attempt {attempt}/{NPC_LLM_MAX_RETRIES}): {e}"
+                    )
+                    break
+
+                if attempt < NPC_LLM_MAX_RETRIES:
+                    delay = NPC_LLM_RETRY_BASE_DELAY * (2 ** (attempt - 1))
+                    logger.warning(
+                        f"NPCDecisionEngine LLM error for {faction_id} "
+                        f"(attempt {attempt}/{NPC_LLM_MAX_RETRIES}, "
+                        f"retrying in {delay:.1f}s): {e}"
+                    )
+                    time.sleep(delay)
+                else:
+                    logger.error(
+                        f"NPCDecisionEngine LLM failed after {NPC_LLM_MAX_RETRIES} "
+                        f"attempts for {faction_id}: {e}"
+                    )
+
+        # All retries exhausted or non-retryable error → fall back to heuristic
+        logger.warning(
+            f"NPCDecisionEngine falling back to heuristic for {faction_id} "
+            f"(last error: {last_error})"
+        )
+        return self._generate_heuristic(world_state, faction_id)
 
     def _generate_llm(
         self,
@@ -298,7 +368,15 @@ class NPCDecisionEngine:
         ws: WorldState,
         faction_id: str,
     ) -> tuple[str, list]:
-        """启发式规则生成决策（次要势力或LLM不可用时）。Language-aware via self.language."""
+        """启发式规则生成决策（次要势力或LLM不可用时）。
+
+        Now significantly more context-aware:
+        - Considers neighbor threats (troop ratios, hostile relations)
+        - Strategic defense when outnumbered
+        - Opportunistic attack when stronger than neighbors
+        - Development when at peace
+        - Tax/economic management
+        """
         faction = ws.factions.get(faction_id)
         if not faction:
             return "休整" if self.language == "zh-CN" else "Rest", []
@@ -307,40 +385,173 @@ class NPCDecisionEngine:
         commands: list[dict] = []
         decision_parts: list[str] = []
 
-        # 1. 招募/Recruit：兵力不足时
+        def _cmd(type_: str, params: dict, reasoning: str) -> dict:
+            return {
+                "type": type_,
+                "params": params,
+                "reasoning": reasoning,
+                "faction_id": faction_id,
+            }
+
         strength = getattr(faction, "strength_actual", 0)
-        if strength < 10000 and faction.treasury > 2000:
-            commands.append(
-                {
-                    "type": "conscript",
-                    "params": {"amount": 3000},
-                    "reasoning": "兵力薄弱，扩充军备以自保" if not is_en else "Troops weak, expanding military for self-defense",
-                }
-            )
-            decision_parts.append("征兵三千" if not is_en else "Conscript 3,000")
+        treasury = getattr(faction, "treasury", 0)
+        food = getattr(faction, "food", 0)
+        morale = getattr(faction, "morale_actual", 50)
+        territories = list(getattr(faction, "territories", []))
+        capital = getattr(faction, "capital", territories[0] if territories else None)
+        aggression = getattr(faction, "aggression", 0.5)
+        diplomacy = getattr(faction, "diplomacy", 0.5)
+        relations = getattr(faction, "relations", {})
 
-        # 2. 发展/Develop：稳定期开发领地
-        if faction.treasury > 5000 and faction.food > 3000:
-            capital = faction.capital or (faction.territories[0] if faction.territories else None)
-            if capital:
-                commands.append(
-                    {
-                        "type": "develop",
-                        "params": {"territory": capital},
-                        "reasoning": "发展领地经济" if not is_en else f"Develop {capital} economy",
-                    }
-                )
-                decision_parts.append(f"开发{capital}" if not is_en else f"Develop {capital}")
-
-        # 3. 外交：与相邻势力保持和平
+        # ── Analyze neighbors ──────────────────────────────────
         neighbors = self._get_neighbors(ws, faction_id)
-        for nid in neighbors:
-            if nid in faction.relations and faction.relations[nid] > -50:
-                continue
-        # 不主动进攻
+        hostile_neighbors = []
+        friendly_neighbors = []
+        total_neighbor_strength = 0
 
-        default = "休整观望，静待时机。" if not is_en else "Resting and observing, awaiting the right moment."
-        decision_text = "、".join(decision_parts) + "。" if decision_parts and not is_en else ", ".join(decision_parts) + "." if decision_parts and is_en else default
+        for nid in neighbors:
+            nf = ws.factions.get(nid)
+            if nf is None or not getattr(nf, "is_active", True):
+                continue
+            n_strength = getattr(nf, "strength_actual", 0)
+            total_neighbor_strength += n_strength
+
+            rel = relations.get(nid, 0)
+            if rel < -30:
+                hostile_neighbors.append((nid, nf, n_strength))
+            elif rel > 30:
+                friendly_neighbors.append((nid, nf, n_strength))
+
+        # ── Priority 1: Emergency conscription if critically weak ──
+        if strength < 3000 and treasury > 1000:
+            amount = min(5000, treasury // 2)
+            if amount >= 1000:
+                commands.append(
+                    _cmd("conscript", {"amount": amount},
+                         "危急存亡之秋，紧急扩军备战" if not is_en
+                         else "Emergency conscription, nation in peril")
+                )
+                decision_parts.append(
+                    f"紧急征兵{amount}" if not is_en else f"Emergency draft of {amount}"
+                )
+
+        # ── Priority 2: Recruitment if below threshold ──
+        elif strength < 10000 and treasury > 2000:
+            amount = min(5000, treasury // 2)
+            commands.append(
+                _cmd("conscript", {"amount": amount},
+                     "兵力薄弱，扩充军备以自保" if not is_en
+                     else "Troops weak, expanding military for self-defense")
+            )
+            decision_parts.append(
+                f"征兵{amount}" if not is_en else f"Conscript {amount}"
+            )
+
+        # ── Priority 3: Attack weak hostile neighbor ──
+        attack_made = False
+        if hostile_neighbors and aggression > 0.3:
+            # Sort by strength ascending — target the weakest hostile neighbor
+            hostile_neighbors.sort(key=lambda x: x[2])
+            for nid, nf, n_strength in hostile_neighbors:
+                # Only attack if we have 1.5x troops or more
+                if strength > n_strength * 1.5 and strength > 5000:
+                    n_territories = list(getattr(nf, "territories", []))
+                    target = n_territories[0] if n_territories else None
+                    if target:
+                        commands.append(
+                            _cmd("attack", {"target": target, "target_faction": nid},
+                                 f"趁敌弱，先发制人进攻{nid}" if not is_en
+                                 else f"Preemptive strike on weaker {nid}")
+                        )
+                        decision_parts.append(
+                            f"出兵攻打{nid}" if not is_en else f"Attack {nid}"
+                        )
+                        attack_made = True
+                        break
+
+        # ── Priority 4: Defend against stronger hostile neighbors ──
+        if hostile_neighbors and not attack_made:
+            stronger_hostiles = [(nid, nf, s) for nid, nf, s in hostile_neighbors if s > strength]
+            if stronger_hostiles:
+                strongest = max(stronger_hostiles, key=lambda x: x[2])
+                border = _resolve_border(ws, faction_id, strongest[0])
+                commands.append(
+                    _cmd("defend", {"target": strongest[0], "border": border},
+                         f"敌强我弱，固守{border or '边境'}防御{strongest[0]}" if not is_en
+                         else f"Outnumbered, fortify {border or 'border'} against {strongest[0]}")
+                )
+                decision_parts.append(
+                    f"固守{border or '边境'}以御{strongest[0]}" if not is_en
+                    else f"Fortify border against {strongest[0]}"
+                )
+
+        # ── Priority 5: Develop economy during peace ──
+        if not attack_made and treasury > 3000 and food > 2000 and capital and not hostile_neighbors:
+            commands.append(
+                _cmd("develop", {"territory": capital},
+                     "天下太平，发展领地经济" if not is_en
+                     else f"Peacetime development of {capital}")
+            )
+            decision_parts.append(
+                f"开发{capital}" if not is_en else f"Develop {capital}"
+            )
+
+        # ── Priority 6: Tax adjustment ──
+        if morale < 30 and getattr(faction, "tax_rate", 0.3) > 0.25:
+            new_rate = max(0.15, getattr(faction, "tax_rate", 0.3) - 0.10)
+            commands.append(
+                _cmd("tax", {"tax_rate": round(new_rate, 2)},
+                     "民心低迷，轻徭薄赋以安民" if not is_en
+                     else "Morale low, reducing taxes to pacify populace")
+            )
+            decision_parts.append(
+                f"减税至{int(new_rate * 100)}%" if not is_en
+                else f"Reduce tax to {int(new_rate * 100)}%"
+            )
+        elif getattr(faction, "tax_rate", 0.3) > 0.35:
+            commands.append(
+                _cmd("tax", {"tax_rate": 0.30},
+                     "减轻民负，稳定统治" if not is_en
+                     else "Ease the people's burden")
+            )
+            decision_parts.append(
+                "降低税率至三成" if not is_en else "Reduce tax rate to 30%"
+            )
+
+        # ── Priority 7: Diplomacy with neutrals if warlike ──
+        if not attack_made and hostile_neighbors and aggression < 0.5 and diplomacy > 0.4:
+            neutral_neighbors = [
+                nid for nid in neighbors
+                if nid not in {h[0] for h in hostile_neighbors}
+                and nid not in {f[0] for f in friendly_neighbors}
+            ]
+            if neutral_neighbors and treasury > 2000:
+                target = neutral_neighbors[0]
+                commands.append(
+                    _cmd("diplomacy", {"target": target, "action": "improve_relations"},
+                         f"派出使者改善与{target}的关系" if not is_en
+                         else f"Send envoy to improve relations with {target}")
+                )
+                decision_parts.append(
+                    f"出使{target}改善邦交" if not is_en
+                    else f"Send envoy to {target}"
+                )
+
+        # ── Build final decision text ──
+        if is_en:
+            joiner = "; "
+            suffix = "."
+        else:
+            joiner = "；"
+            suffix = "。"
+
+        if decision_parts:
+            # Make it read like a coherent strategic assessment
+            decision_text = joiner.join(decision_parts) + suffix
+        else:
+            decision_text = ("休整观望，静待时机。" if not is_en
+                             else "Resting and observing, awaiting the right moment.")
+
         return decision_text, commands
 
     def _build_context(
@@ -361,7 +572,7 @@ class NPCDecisionEngine:
 
         # Own state — clearly mark current territory ownership
         lines.append(f"## {L['your_faction']}")
-        lines.append(f"### ⚠️ 当前实际控制（请勿用历史知识覆盖）")
+        lines.append("### ⚠️ 当前实际控制（请勿用历史知识覆盖）")
         lines.append(f"{L['faction']}: {faction.name} ({faction_id})")
         lines.append(f"{L['ruler']}: {getattr(faction, 'ruler_id', '')}")
         lines.append(f"{L['troops']}: {getattr(faction, 'strength_actual', 0):,}")

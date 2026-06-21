@@ -281,7 +281,15 @@ def _generate_heuristic_decision(
     ws: WorldState,
     faction_id: str,
 ) -> tuple[str, list]:
-    """启发式决策（用于次要NPC和LLM回退）。"""
+    """启发式决策（用于次要NPC和LLM回退）。
+
+    Context-aware heuristic that considers:
+    - Neighbor threats (troop ratios, hostile relations)
+    - Strategic defense when outnumbered
+    - Opportunistic attack when stronger
+    - Development during peace
+    - Tax/economic management
+    """
     faction = ws.factions.get(faction_id)
     if not faction or not faction.is_active:
         return "休整", []
@@ -293,32 +301,120 @@ def _generate_heuristic_decision(
         return {"type": type_, "params": params, "reasoning": reasoning, "faction_id": faction_id}
 
     strength = getattr(faction, "strength_actual", 0)
-    treasury = faction.treasury
-    food = faction.food
+    treasury = getattr(faction, "treasury", 0)
+    food = getattr(faction, "food", 0)
+    morale = getattr(faction, "morale_actual", 50)
+    territories = list(getattr(faction, "territories", []))
+    capital = getattr(faction, "capital", territories[0] if territories else None)
+    relations = getattr(faction, "relations", {})
 
-    # 招募：兵力低于10000且有资金
-    if strength < 10000 and treasury > 2000:
-        amount = min(3000, treasury // 2)
-        commands.append(
-            _cmd("conscript", {"amount": amount}, "补充兵力")
-        )
+    # ── Analyze neighbors ──────────────────────────────────
+    neighbors = _resolve_heuristic_neighbors(ws, faction_id)
+    hostile_neighbors = []
+    for nid in neighbors:
+        nf = ws.factions.get(nid)
+        if nf is None or not getattr(nf, "is_active", True):
+            continue
+        n_strength = getattr(nf, "strength_actual", 0)
+        rel = relations.get(nid, 0)
+        if rel < -30:
+            hostile_neighbors.append((nid, nf, n_strength))
+
+    # ── Priority 1: Emergency conscription ──
+    if strength < 3000 and treasury > 1000:
+        amount = min(5000, treasury // 2)
+        if amount >= 1000:
+            commands.append(
+                _cmd("conscript", {"amount": amount}, "危急存亡之秋，紧急扩军备战")
+            )
+            parts.append(f"紧急征兵{amount}")
+
+    # ── Priority 2: Standard recruitment ──
+    elif strength < 10000 and treasury > 2000:
+        amount = min(5000, treasury // 2)
+        commands.append(_cmd("conscript", {"amount": amount}, "补充兵力"))
         parts.append(f"征兵{amount}")
 
-    # 发展：资金充裕时开发首都
-    if treasury > 5000 and food > 3000:
-        capital = faction.capital or (faction.territories[0] if faction.territories else None)
-        if capital:
-            commands.append(
-                _cmd("develop", {"territory": capital}, "发展经济")
-            )
-            parts.append(f"开发{capital}")
+    # ── Priority 3: Attack weak hostile neighbor ──
+    attack_made = False
+    if hostile_neighbors:
+        hostile_neighbors.sort(key=lambda x: x[2])
+        for nid, nf, n_strength in hostile_neighbors:
+            if strength > n_strength * 1.5 and strength > 5000:
+                n_territories = list(getattr(nf, "territories", []))
+                target = n_territories[0] if n_territories else None
+                if target:
+                    commands.append(
+                        _cmd("attack", {"target": target, "target_faction": nid},
+                             f"趁敌弱，先发制人进攻{nid}")
+                    )
+                    parts.append(f"出兵攻打{nid}")
+                    attack_made = True
+                    break
 
-    # 税收到30%以上降低
-    if faction.tax_rate > 0.35:
+    # ── Priority 4: Defend against stronger hostiles ──
+    if hostile_neighbors and not attack_made:
+        stronger = [(nid, nf, s) for nid, nf, s in hostile_neighbors if s > strength]
+        if stronger:
+            strongest = max(stronger, key=lambda x: x[2])
+            border = _resolve_heuristic_border(ws, faction_id, strongest[0])
+            commands.append(
+                _cmd("defend", {"target": strongest[0], "border": border},
+                     f"敌强我弱，固守{border or '边境'}防御{strongest[0]}")
+            )
+            parts.append(f"固守{border or '边境'}以御{strongest[0]}")
+
+    # ── Priority 5: Development ──
+    if not attack_made and treasury > 3000 and food > 2000 and capital and not hostile_neighbors:
         commands.append(
-            _cmd("tax", {"tax_rate": 0.3}, "减轻民负")
+            _cmd("develop", {"territory": capital}, "发展经济")
         )
+        parts.append(f"开发{capital}")
+
+    # ── Priority 6: Tax adjustment ──
+    if morale < 30 and getattr(faction, "tax_rate", 0.3) > 0.25:
+        new_rate = max(0.15, getattr(faction, "tax_rate", 0.3) - 0.10)
+        commands.append(
+            _cmd("tax", {"tax_rate": round(new_rate, 2)}, "减税安民")
+        )
+        parts.append(f"减税至{int(new_rate * 100)}%")
+    elif getattr(faction, "tax_rate", 0.3) > 0.35:
+        commands.append(_cmd("tax", {"tax_rate": 0.3}, "减轻民负"))
         parts.append("降低税率至三成")
 
-    decision = "、".join(parts) + "。" if parts else "休整观望。"
+    decision = "；".join(parts) + "。" if parts else "休整观望，静待时机。"
     return decision, commands
+
+
+def _resolve_heuristic_neighbors(ws: WorldState, faction_id: str) -> list[str]:
+    """Get neighboring faction IDs for heuristic decisions."""
+    faction = ws.factions.get(faction_id)
+    if not faction:
+        return []
+    my_territories = set(getattr(faction, "territories", []))
+    neighbor_factions: set[str] = set()
+    for tid in my_territories:
+        territory = ws.territories.get(tid)
+        if territory and getattr(territory, "neighbors", None):
+            for nid in territory.neighbors:
+                nt = ws.territories.get(nid)
+                if nt and getattr(nt, "owner_id", "") != faction_id:
+                    neighbor_factions.add(getattr(nt, "owner_id", ""))
+    return [n for n in neighbor_factions if n]
+
+
+def _resolve_heuristic_border(ws: WorldState, faction_id: str, neighbor_id: str) -> str | None:
+    """Find the border territory between two factions."""
+    faction = ws.factions.get(faction_id)
+    neighbor = ws.factions.get(neighbor_id)
+    if not faction or not neighbor:
+        return None
+    my_territories = set(getattr(faction, "territories", []))
+    neighbor_territories = set(getattr(neighbor, "territories", []))
+    for tid in my_territories:
+        territory = ws.territories.get(tid)
+        if territory and hasattr(territory, "neighbors"):
+            for nid in territory.neighbors:
+                if nid in neighbor_territories:
+                    return tid
+    return None
