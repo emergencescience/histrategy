@@ -30,7 +30,9 @@
         "cleopatra": 0,
         "senate": 40,
         "sextus_pompey": -10,
-        "lepidus": 15
+        "lepidus": 15,
+        "decimus_brutus": 10,
+        "cassius_brutus": -20
       },
       "personality": {
         "aggression": 0.3,
@@ -67,7 +69,9 @@
         "cleopatra": 40,
         "senate": -60,
         "sextus_pompey": -40,
-        "lepidus": 30
+        "lepidus": 30,
+        "decimus_brutus": -80,
+        "cassius_brutus": -80
       },
       "personality": {
         "aggression": 0.6,
@@ -105,7 +109,9 @@
         "antony": 40,
         "senate": -30,
         "sextus_pompey": 0,
-        "lepidus": 0
+        "lepidus": 0,
+        "decimus_brutus": -20,
+        "cassius_brutus": -30
       },
       "personality": {
         "aggression": 0.4,
@@ -144,7 +150,9 @@
         "antony": -80,
         "cleopatra": -30,
         "sextus_pompey": -50,
-        "lepidus": -10
+        "lepidus": -10,
+        "decimus_brutus": 80,
+        "cassius_brutus": 80
       },
       "personality": {
         "aggression": 0.1,
@@ -155,6 +163,157 @@
         "mercy": 0.4
       },
       "political_capital": 80
+    },
+    "sextus_pompey": {
+      "name": "塞克斯图斯·庞培",
+      "name_en": "Sextus Pompey",
+      "ruler": "sextus_pompey",
+      "capital": "",
+      "territories": [],
+      "treasury": 5000,
+      "food": 3000,
+      "strength": 5000,
+      "prestige": 20,
+      "tax_rate": 0.0,
+      "morale_actual": 75,
+      "tech_levels": {
+        "infrastructure": 0,
+        "navy": 4,
+        "logistics": 1,
+        "propaganda": 1
+      },
+      "relations": {
+        "antony": -60,
+        "octavian": -40,
+        "senate": -30,
+        "cleopatra": 0,
+        "lepidus": -20,
+        "decimus_brutus": 20,
+        "cassius_brutus": 30
+      },
+      "personality": {
+        "aggression": 0.55,
+        "cunning": 0.7,
+        "caution": 0.4,
+        "diplomacy": 0.3,
+        "development": 0.2,
+        "mercy": 0.3
+      }
+    },
+    "lepidus": {
+      "name": "马尔库斯·雷必达",
+      "name_en": "Marcus Lepidus",
+      "ruler": "lepidus",
+      "capital": "hispania_citerior",
+      "territories": [
+        "hispania_citerior",
+        "narbonensis"
+      ],
+      "treasury": 10000,
+      "food": 8000,
+      "strength": 15000,
+      "prestige": 45,
+      "tax_rate": 0.25,
+      "morale_actual": 65,
+      "tech_levels": {
+        "infrastructure": 2,
+        "navy": 1,
+        "logistics": 2,
+        "propaganda": 1
+      },
+      "relations": {
+        "antony": 50,
+        "octavian": 10,
+        "senate": 10,
+        "cleopatra": 0,
+        "sextus_pompey": -20,
+        "decimus_brutus": 0,
+        "cassius_brutus": -10
+      },
+      "personality": {
+        "aggression": 0.25,
+        "cunning": 0.4,
+        "caution": 0.75,
+        "diplomacy": 0.55,
+        "development": 0.6,
+        "mercy": 0.6
+      }
+    },
+    "decimus_brutus": {
+      "name": "狄奇穆斯·布鲁图",
+      "name_en": "Decimus Brutus",
+      "ruler": "decimus_brutus",
+      "capital": "illyria",
+      "territories": [
+        "illyria"
+      ],
+      "treasury": 8000,
+      "food": 6000,
+      "strength": 15000,
+      "prestige": 35,
+      "tax_rate": 0.2,
+      "morale_actual": 55,
+      "tech_levels": {
+        "infrastructure": 1,
+        "navy": 1,
+        "logistics": 2,
+        "propaganda": 1
+      },
+      "relations": {
+        "senate": 80,
+        "antony": -80,
+        "octavian": 20,
+        "cleopatra": -10,
+        "lepidus": 0,
+        "sextus_pompey": 10,
+        "cassius_brutus": 60
+      },
+      "personality": {
+        "aggression": 0.4,
+        "cunning": 0.6,
+        "caution": 0.5,
+        "diplomacy": 0.45,
+        "development": 0.5,
+        "mercy": 0.45
+      }
+    },
+    "cassius_brutus": {
+      "name": "卡西乌斯与布鲁图斯",
+      "name_en": "Cassius & Brutus",
+      "ruler": "cassius",
+      "capital": "mesopotamia",
+      "territories": [
+        "mesopotamia"
+      ],
+      "treasury": 15000,
+      "food": 10000,
+      "strength": 20000,
+      "prestige": 55,
+      "tax_rate": 0.2,
+      "morale_actual": 60,
+      "tech_levels": {
+        "infrastructure": 1,
+        "navy": 2,
+        "logistics": 3,
+        "propaganda": 2
+      },
+      "relations": {
+        "senate": 80,
+        "antony": -80,
+        "octavian": -30,
+        "cleopatra": -30,
+        "lepidus": -10,
+        "sextus_pompey": 30,
+        "decimus_brutus": 60
+      },
+      "personality": {
+        "aggression": 0.5,
+        "cunning": 0.7,
+        "caution": 0.4,
+        "diplomacy": 0.35,
+        "development": 0.45,
+        "mercy": 0.5
+      }
     }
   },
   "territories": {
@@ -291,6 +450,32 @@
       "population": 150000,
       "development": 50,
       "terrain": "hills",
+      "has_port": true
+    },
+    "illyria": {
+      "name": "伊利里亚",
+      "name_en": "Illyria",
+      "owner": "decimus_brutus",
+      "population": 80000,
+      "development": 30,
+      "terrain": "mountain",
+      "has_port": true
+    },
+    "mesopotamia": {
+      "name": "美索不达米亚",
+      "name_en": "Mesopotamia",
+      "owner": "cassius_brutus",
+      "population": 300000,
+      "development": 55,
+      "terrain": "river_valley"
+    },
+    "italia": {
+      "name": "意大利",
+      "name_en": "Italia",
+      "owner": "",
+      "population": 800000,
+      "development": 55,
+      "terrain": "plains",
       "has_port": true
     }
   },
