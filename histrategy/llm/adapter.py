@@ -7,6 +7,12 @@ import os
 import re
 
 import httpx
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+)
 
 from .prompt_loader import KNOWN_PROMPTS
 
@@ -183,7 +189,7 @@ class LLMAdapter:
         max_tokens: int = 16384,
         metadata: dict | None = None,
     ) -> str:
-        """Send a chat completion request."""
+        """Send a chat completion request with exponential backoff retry."""
         if not self.is_available:
             raise RuntimeError(
                 "No API key configured. Set DEEPSEEK_API_KEY, OPENAI_API_KEY, or TONGYI_API_KEY environment variable."
@@ -191,14 +197,15 @@ class LLMAdapter:
 
         import time
 
-        start_time = time.perf_counter()
-        response = None
-        try:
-            self._logger.info(
-                "LLM chat: provider=%s model=%s prompt_chars=%d max_tokens=%d",
-                self.provider_name, self.model, len(str(messages)), max_tokens,
-            )
-            response = self.client.post(
+        @retry(
+            retry=retry_if_exception_type((httpx.TimeoutException, httpx.HTTPStatusError)),
+            wait=wait_exponential(multiplier=1, min=2, max=30),
+            stop=stop_after_attempt(3),
+            reraise=True,
+        )
+        def _do_chat():
+            start = time.perf_counter()
+            resp = self.client.post(
                 "/chat/completions",
                 json={
                     "model": self.model,
@@ -207,9 +214,19 @@ class LLMAdapter:
                     "max_tokens": max_tokens,
                 },
             )
-            latency = time.perf_counter() - start_time
-            self._logger.info("LLM chat response: status=%d latency=%.1fs", response.status_code, latency)
-            response.raise_for_status()
+            latency = time.perf_counter() - start
+            self._logger.info("LLM chat response: status=%d latency=%.1fs", resp.status_code, latency)
+            resp.raise_for_status()
+            return resp, latency
+
+        start_time = time.perf_counter()
+        response = None
+        try:
+            self._logger.info(
+                "LLM chat: provider=%s model=%s prompt_chars=%d max_tokens=%d",
+                self.provider_name, self.model, len(str(messages)), max_tokens,
+            )
+            response, latency = _do_chat()
             data = response.json()
 
             self._record_stats_and_log(messages, data, latency, metadata=metadata)
@@ -219,7 +236,7 @@ class LLMAdapter:
             latency = time.perf_counter() - start_time
             status = getattr(response, "status_code", "N/A") if response else "N/A"
             self._logger.error(
-                "LLM chat FAILED: provider=%s model=%s latency=%.1fs status=%s error=%s",
+                "LLM chat FAILED after retries: provider=%s model=%s latency=%.1fs status=%s error=%s",
                 self.provider_name, self.model, latency, status, str(e)[:200],
             )
             self._record_error_and_log(messages, e, latency, response, metadata=metadata)

@@ -4,42 +4,40 @@
   "year": -44,
   "season": "spring",
   "player_faction": "octavian",
-  "description": "公元前44年3月。恺撒倒在庞培剧院的血泊中。屋大维从希腊返回，安东尼控制了罗马和军团，克利奥帕特拉在亚历山大里亚观望，元老院在恐慌中寻找出路。四股力量将在这十五年内决定罗马的命运。",
-  "description_en": "March 44 BC. Caesar lies dead on the floor of Pompey's Theatre. Octavian returns from Greece, Antony controls Rome and the legions, Cleopatra watches from Alexandria, and the Senate scrambles for direction. Four forces will decide Rome's fate over the next fifteen years.",
+  "description": "公元前44年3月15日。恺撒倒在庞培剧院的血泊中。安东尼作为执政官控制着罗马城和恺撒的国库，屋大维尚在从希腊返回的途中，克利奥帕特拉刚刚逃离罗马回到亚历山大里亚，元老院在刺杀与内战之间艰难寻找平衡。四股力量尚未兵戎相见——政治博弈、老兵争夺、合法性之战正在罗马城内无声展开。",
+  "description_en": "March 15, 44 BC. Caesar lies dead on the floor of Pompey's Theatre. Antony as consul controls Rome and Caesar's treasury, Octavian is still en route from Greece, Cleopatra has just fled Rome for Alexandria, and the Senate struggles to find balance between assassination and civil war. The four forces have not yet drawn swords — a silent war of political maneuvering, veteran courting, and legitimacy unfolds within Rome itself.",
   "factions": {
     "octavian": {
       "name": "屋大维",
       "name_en": "Octavian",
       "ruler": "octavian",
-      "capital": "roma",
-      "territories": [
-        "roma"
-      ],
-      "treasury": 5000,
-      "food": 3000,
-      "strength": 3000,
-      "prestige": 25,
-      "tax_rate": 0.2,
-      "morale_actual": 85,
+      "capital": "",
+      "territories": [],
+      "treasury": 1000,
+      "food": 500,
+      "strength": 1000,
+      "prestige": 15,
+      "tax_rate": 0.0,
+      "morale_actual": 90,
       "tech_levels": {
-        "infrastructure": 1,
+        "infrastructure": 0,
         "navy": 0,
-        "logistics": 1,
-        "propaganda": 0
+        "logistics": 0,
+        "propaganda": 2
       },
       "relations": {
-        "antony": -50,
-        "cleopatra": -10,
-        "senate": 30,
-        "sextus_pompey": -30,
-        "lepidus": 20
+        "antony": -20,
+        "cleopatra": 0,
+        "senate": 40,
+        "sextus_pompey": -10,
+        "lepidus": 15
       },
       "personality": {
-        "aggression": 0.55,
+        "aggression": 0.3,
         "cunning": 0.9,
-        "caution": 0.6,
-        "diplomacy": 0.7,
-        "development": 0.65,
+        "caution": 0.7,
+        "diplomacy": 0.8,
+        "development": 0.5,
         "mercy": 0.35
       }
     },
@@ -49,33 +47,33 @@
       "ruler": "antony",
       "capital": "roma",
       "territories": [
-        "cisalpine_gaul",
-        "transalpine_gaul"
+        "roma",
+        "cisalpine_gaul"
       ],
-      "treasury": 20000,
-      "food": 15000,
-      "strength": 25000,
+      "treasury": 25000,
+      "food": 8000,
+      "strength": 12000,
       "prestige": 70,
-      "tax_rate": 0.4,
+      "tax_rate": 0.3,
       "morale_actual": 70,
       "tech_levels": {
         "infrastructure": 3,
-        "navy": 2,
-        "logistics": 3,
-        "propaganda": 1
+        "navy": 1,
+        "logistics": 2,
+        "propaganda": 2
       },
       "relations": {
-        "octavian": -50,
+        "octavian": -20,
         "cleopatra": 40,
-        "senate": -80,
+        "senate": -60,
         "sextus_pompey": -40,
         "lepidus": 30
       },
       "personality": {
-        "aggression": 0.75,
+        "aggression": 0.6,
         "cunning": 0.5,
-        "caution": 0.25,
-        "diplomacy": 0.4,
+        "caution": 0.3,
+        "diplomacy": 0.5,
         "development": 0.45,
         "mercy": 0.4
       }
@@ -163,7 +161,7 @@
     "roma": {
       "name": "罗马",
       "name_en": "Rome",
-      "owner": "octavian",
+      "owner": "antony",
       "population": 500000,
       "development": 80,
       "terrain": "urban",

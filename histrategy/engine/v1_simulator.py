@@ -423,7 +423,7 @@ class V1Simulator:
             logger.warning(f"Failed to log sim events to DB: {e}")
 
     def _parse_response(self, response: str) -> dict:
-        """解析 LLM 输出的 JSON。"""
+        """解析 LLM 输出的 JSON，带 json_repair 回退。"""
         # 尝试提取 JSON（可能被 markdown 代码块包裹）
         text = response.strip()
 
@@ -435,28 +435,40 @@ class V1Simulator:
         try:
             return json.loads(text)
         except json.JSONDecodeError:
-            # 尝试提取第一个完整的 JSON 对象
-            brace_start = text.find("{")
-            brace_count = 0
-            for i in range(brace_start, len(text)):
-                if text[i] == "{":
-                    brace_count += 1
-                elif text[i] == "}":
-                    brace_count -= 1
-                    if brace_count == 0:
-                        try:
-                            return json.loads(text[brace_start : i + 1])
-                        except json.JSONDecodeError:
-                            break
-            logger.warning(f"V1: failed to parse LLM response (len={len(response)}), using fallback")
-            return {
-                "narrative": "V1 解析失败",
-                "factions": {},
-                "events": [],
-                "battles": [],
-                "diplomacy": [],
-                "knowledge_cards": [],
-            }
+            pass
+
+        # 尝试提取第一个完整的 JSON 对象（brace counting）
+        brace_start = text.find("{")
+        brace_count = 0
+        for i in range(brace_start, len(text)):
+            if text[i] == "{":
+                brace_count += 1
+            elif text[i] == "}":
+                brace_count -= 1
+                if brace_count == 0:
+                    extracted = text[brace_start : i + 1]
+                    try:
+                        return json.loads(extracted)
+                    except json.JSONDecodeError:
+                        break
+
+        # json_repair 回退 — 修复 LLM 输出的格式偏差（缺失引号、尾部逗号等）
+        try:
+            from json_repair import repair_json
+            repaired = repair_json(text)
+            return json.loads(repaired)
+        except Exception:
+            pass
+
+        logger.warning(f"V1: failed to parse LLM response (len={len(response)}), using fallback")
+        return {
+            "narrative": "V1 解析失败",
+            "factions": {},
+            "events": [],
+            "battles": [],
+            "diplomacy": [],
+            "knowledge_cards": [],
+        }
 
     def _fallback(self, ws: WorldState, faction_decisions: dict, lang: str = "zh") -> dict:
         """V1 不可用时的回退：简单确定性计算。"""

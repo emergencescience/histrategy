@@ -1,9 +1,9 @@
 [
   {
-    "year": -43,
+    "year": -44,
     "season": "spring",
     "title": "恺撒遇刺",
-    "description": "三月十五日，布鲁图斯、卡西乌斯等元老在庞培剧院刺杀恺撒。罗马陷入混乱，安东尼控制局势。",
+    "description": "三月十五日，布鲁图斯、卡西乌斯等元老在庞培剧院刺杀恺撒。罗马陷入混乱，安东尼以执政官身份控制局势。",
     "trigger": "game_start",
     "effects": {
       "caesar_dead": true,
@@ -12,24 +12,95 @@
     "is_historical": true
   },
   {
+    "year": -44,
+    "season": "spring",
+    "title": "安东尼控制国库与谈判",
+    "description": "安东尼夺取恺撒的国库和私人文件。与元老院达成妥协——赦免刺杀者，换取确认恺撒的法令继续有效。",
+    "trigger": "antony_consul",
+    "effects": {
+      "antony_has_treasury": true,
+      "senate_compromise": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -44,
+    "season": "spring",
+    "title": "恺撒葬礼演说",
+    "description": "安东尼在罗马广场发表恺撒葬礼演说，宣读遗嘱（每公民300塞斯特斯）。民众暴怒，布鲁图斯和卡西乌斯逃往东方。",
+    "trigger": "caesar_funeral",
+    "effects": {
+      "liberators_fled": true,
+      "public_rage": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -44,
+    "season": "spring",
+    "title": "屋大维抵达布林迪西",
+    "description": "4月，恺撒的养子屋大维从希腊阿波罗尼亚渡海抵达意大利布林迪西。公开宣布接受恺撒遗嘱中的收养。",
+    "trigger": "octavian_arrives_italy",
+    "effects": {
+      "octavian_in_italy": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -44,
+    "season": "summer",
+    "title": "屋大维抵达罗马，老兵争夺开始",
+    "description": "5月，屋大维抵达罗马，要求安东尼交出恺撒遗产遭拒。开始在坎帕尼亚自费招募恺撒老兵。安东尼和屋大维的老兵争夺战拉开序幕。",
+    "trigger": "octavian_arrives_rome",
+    "effects": {
+      "octavian_in_rome": true,
+      "veteran_contest": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -44,
+    "season": "autumn",
+    "title": "西塞罗发表反腓力演说",
+    "description": "9月起，西塞罗在元老院连续发表14篇反腓力演说（Philippics），将安东尼描绘为共和国的头号敌人，力主元老院与屋大维结盟。",
+    "trigger": "cicero_philippics",
+    "effects": {
+      "antony_isolated": true,
+      "octavian_senate_alliance": true
+    },
+    "is_historical": true
+  },
+  {
+    "year": -44,
+    "season": "autumn",
+    "title": "安东尼进军山南高卢",
+    "description": "11月，安东尼率军离开罗马，要求山南高卢总督Decimus Brutus交出该行省。Brutus拒绝，退守穆提纳城。这是恺撒遇刺后第一次军事对峙——但内战尚未全面爆发。",
+    "trigger": "antony_mutina_march",
+    "effects": {
+      "mutina_standoff": true
+    },
+    "is_historical": true
+  },
+  {
     "year": -43,
     "season": "spring",
-    "title": "屋大维抵达罗马",
-    "description": "恺撒的养子屋大维从希腊返回，宣布接受恺撒的遗嘱，要求继承权。",
-    "trigger": "time_-43_spring",
+    "title": "穆提纳战役",
+    "description": "屋大维与执政官Hirtius、Pansa率军救援穆提纳，与安东尼交战。两位执政官战死，安东尼败退。屋大维成为意大利最强大的军事力量。",
+    "trigger": "mutina_battle",
     "effects": {
-      "octavian_in_rome": true
+      "antony_retreats": true,
+      "octavian_strongest": true
     },
     "is_historical": true
   },
   {
     "year": -43,
     "season": "summer",
-    "title": "安东尼围攻穆提纳",
-    "description": "安东尼进攻山南高卢总督布鲁图斯（Decimus Brutus），元老院派屋大维与执政官讨伐安东尼。",
-    "trigger": "antony_vs_senate",
+    "title": "屋大维进军罗马",
+    "description": "19岁的屋大维率八个军团进军罗马，迫使元老院任命他为执政官。撤销对刺杀者的赦免令，设立特别法庭。",
+    "trigger": "octavian_marches_on_rome",
     "effects": {
-      "mutina_war": true
+      "octavian_consul": true
     },
     "is_historical": true
   },
@@ -37,7 +108,7 @@
     "year": -43,
     "season": "autumn",
     "title": "后三头同盟成立",
-    "description": "屋大维、安东尼、雷必达结成「后三头同盟」（Second Triumvirate），以法律形式瓜分罗马世界。",
+    "description": "屋大维、安东尼、雷必达结成「后三头同盟」（Second Triumvirate），以Lex Titia法律形式瓜分罗马世界。",
     "trigger": "octavian_antony_truce",
     "effects": {
       "triumvirate_formed": true
@@ -48,7 +119,7 @@
     "year": -43,
     "season": "winter",
     "title": "公敌宣告",
-    "description": "三巨头发布「公敌宣告」（Proscription），处决西塞罗等300元老和2000骑士，没收财产充军费。",
+    "description": "三巨头发布「公敌宣告」（Proscription），处决西塞罗等300元老和2000骑士，没收财产充军费。西塞罗的头和双手被钉在他曾发表反腓力演说的地方。",
     "trigger": "triumvirate_formed",
     "effects": {
       "proscriptions": true,

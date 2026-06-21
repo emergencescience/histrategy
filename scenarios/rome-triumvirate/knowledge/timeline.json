@@ -1,184 +1,281 @@
 [
   {
-    "year": -43,
+    "year": -44,
     "season": "spring",
     "event": "caesar_assassination",
     "title": "恺撒遇刺",
-    "description": "3月15日，布鲁图斯和卡西乌斯在庞培剧院刺杀尤利乌斯·恺撒"
+    "title_en": "Assassination of Caesar",
+    "description": "3月15日，布鲁图斯和卡西乌斯等60余名元老在庞培剧院刺杀尤利乌斯·恺撒。罗马陷入恐慌。",
+    "description_en": "March 15. Brutus, Cassius, and 60+ senators assassinate Julius Caesar in Pompey's Theatre. Rome plunges into panic."
+  },
+  {
+    "year": -44,
+    "season": "spring",
+    "event": "antony_seizes_treasury",
+    "title": "安东尼控制国库",
+    "title_en": "Antony Seizes Treasury",
+    "description": "安东尼以执政官身份夺取恺撒的国库和私人文件。元老院被迫与安东尼妥协——赦免刺杀者，换取确认恺撒的一切法令继续有效。",
+    "description_en": "Antony as consul seizes Caesar's treasury and personal papers. The Senate is forced to compromise — amnesty for the assassins in exchange for confirming all of Caesar's acts."
+  },
+  {
+    "year": -44,
+    "season": "spring",
+    "event": "caesar_funeral",
+    "title": "恺撒葬礼演说",
+    "title_en": "Caesar's Funeral Oration",
+    "description": "安东尼在罗马广场发表恺撒葬礼演说，展示恺撒血衣，宣读遗嘱（每位罗马公民获赠300塞斯特斯）。民众暴怒，布鲁图斯和卡西乌斯逃离罗马。",
+    "description_en": "Antony delivers Caesar's funeral oration in the Forum, displaying the bloodied toga and reading the will (300 sesterces to every citizen). The crowd riots; Brutus and Cassius flee Rome."
+  },
+  {
+    "year": -44,
+    "season": "spring",
+    "event": "octavian_returns",
+    "title": "屋大维抵达意大利",
+    "title_en": "Octavian Returns to Italy",
+    "description": "4月，屋大维从阿波罗尼亚渡海抵达布林迪西。他公开宣布接受恺撒遗嘱中的收养，从此以「盖乌斯·尤利乌斯·恺撒·屋大维安努斯」自称。",
+    "description_en": "April. Octavian crosses the Adriatic from Apollonia to Brundisium. He publicly accepts Caesar's will, calling himself 'Gaius Julius Caesar Octavianus' from this point forward."
+  },
+  {
+    "year": -44,
+    "season": "summer",
+    "event": "octavian_in_rome",
+    "title": "屋大维抵达罗马",
+    "title_en": "Octavian Arrives in Rome",
+    "description": "5月，屋大维抵达罗马，要求安东尼交出恺撒的遗产。安东尼轻蔑地拒绝了这个「男孩」。屋大维开始在坎帕尼亚自费招募恺撒老兵。",
+    "description_en": "May. Octavian arrives in Rome, demanding Antony hand over Caesar's inheritance. Antony contemptuously refuses the 'boy'. Octavian begins recruiting Caesar's veterans in Campania at his own expense."
+  },
+  {
+    "year": -44,
+    "season": "summer",
+    "event": "brutus_cassius_east",
+    "title": "布鲁图斯和卡西乌斯东逃",
+    "title_en": "Brutus and Cassius Flee East",
+    "description": "布鲁图斯和卡西乌斯前往希腊和马其顿，开始收编东方的军团和资源。元老院默许——他们需要刺杀者在东方作为制衡安东尼的力量。",
+    "description_en": "Brutus and Cassius depart for Greece and Macedonia, beginning to gather eastern legions and resources. The Senate tacitly approves — they need the assassins in the East as a counterweight to Antony."
+  },
+  {
+    "year": -44,
+    "season": "autumn",
+    "event": "cicero_philippics",
+    "title": "西塞罗发表反腓力演说",
+    "title_en": "Cicero's Philippics Begin",
+    "description": "9月2日，西塞罗在元老院发表第一篇反腓力演说，公开攻击安东尼为「新的喀提林、更危险的苏拉」。此后数月连续发表14篇演说，将安东尼塑造成共和国的头号敌人。",
+    "description_en": "September 2. Cicero delivers the First Philippic in the Senate, openly attacking Antony as 'a new Catiline, a more dangerous Sulla'. Over the following months he delivers 14 speeches, framing Antony as the Republic's greatest enemy."
+  },
+  {
+    "year": -44,
+    "season": "autumn",
+    "event": "antony_mutina",
+    "title": "安东尼进军山南高卢",
+    "title_en": "Antony Marches on Cisalpine Gaul",
+    "description": "11月，安东尼率军离开罗马前往山南高卢，要求当时的总督Decimus Brutus交出该行省。Decimus Brutus拒绝，退守穆提纳城。这是恺撒遇刺后第一次军事对峙。",
+    "description_en": "November. Antony leaves Rome with his army for Cisalpine Gaul, demanding governor Decimus Brutus surrender the province. Brutus refuses and withdraws into Mutina. This is the first military standoff since Caesar's assassination."
+  },
+  {
+    "year": -44,
+    "season": "winter",
+    "event": "octavian_senate_alliance",
+    "title": "屋大维与元老院结盟",
+    "title_en": "Octavian Allies with Senate",
+    "description": "12月，西塞罗说服元老院正式接纳屋大维为同盟，授予他代行执政官之权，命其与执政官Hirtius和Pansa一同解救被困穆提纳的Decimus Brutus。屋大维的老兵军团终于获得合法身份。",
+    "description_en": "December. Cicero persuades the Senate to formally accept Octavian as an ally, granting him propraetorian authority to join consuls Hirtius and Pansa in relieving Decimus Brutus at Mutina. Octavian's veteran legions finally gain legal standing."
   },
   {
     "year": -43,
     "season": "spring",
-    "event": "octavian_returns",
-    "title": "屋大维返回意大利",
-    "description": "屋大维从阿波罗尼亚渡海返回，宣布接受恺撒遗嘱"
+    "event": "mutina_battle",
+    "title": "穆提纳战役",
+    "title_en": "Battle of Mutina",
+    "description": "4月，屋大维联军在穆提纳城外与安东尼交战。两位执政官Hirtius和Pansa双双战死，安东尼败退至高卢。屋大维成为意大利最强大的军事力量——但他拒绝与Decimus Brutus（刺杀恺撒者之一）合作。",
+    "description_en": "April. Octavian's coalition battles Antony outside Mutina. Both consuls Hirtius and Pansa are killed; Antony retreats to Gaul. Octavian is now the strongest military force in Italy — but refuses to cooperate with Decimus Brutus, one of Caesar's assassins."
   },
   {
     "year": -43,
     "season": "summer",
-    "event": "antony_senate_split",
-    "title": "安东尼与元老院决裂",
-    "description": "安东尼与元老院就高卢行省分配发生冲突"
+    "event": "octavian_consul",
+    "title": "屋大维成为执政官",
+    "title_en": "Octavian Becomes Consul",
+    "description": "8月，屋大维率八个军团进军罗马，元老院被迫任命年仅19岁的他为执政官。他立即撤销了对刺杀者的赦免令，设立特别法庭审判恺撒的刺客。",
+    "description_en": "August. Octavian marches on Rome with eight legions. The Senate is forced to appoint him consul at age 19. He immediately revokes the amnesty for the assassins and establishes a special tribunal to try Caesar's killers."
   },
   {
     "year": -43,
     "season": "autumn",
-    "event": "octavian_consul",
-    "title": "屋大维成为执政官",
-    "description": "屋大维以武力迫使元老院任命他为执政官"
-  },
-  {
-    "year": -43,
-    "season": "winter",
-    "event": "triumvirate_law",
-    "title": "后三头同盟立法",
-    "description": "Lex Titia 法律确认屋大维、安东尼、雷必达为「重建共和国的三头」"
+    "event": "triumvirate_formed",
+    "title": "后三头同盟成立",
+    "title_en": "Second Triumvirate Formed",
+    "description": "11月，屋大维、安东尼、雷必达在博诺尼亚会晤，达成协议组成「后三头同盟」。Lex Titia法律授予他们五年绝对权力以「重建共和国」。",
+    "description_en": "November. Octavian, Antony, and Lepidus meet at Bononia and agree to form the Second Triumvirate. The Lex Titia grants them absolute power for five years to 'reconstitute the Republic'."
   },
   {
     "year": -43,
     "season": "winter",
     "event": "proscriptions",
     "title": "公敌宣告",
-    "description": "三巨头处决西塞罗等政敌，没收财产充军费"
+    "title_en": "Proscriptions",
+    "description": "三巨头公布公敌名单，处决约300名元老和2000名骑士。西塞罗名列榜首，被安东尼的士兵斩首，他的头和双手被钉在罗马广场的演讲台上——他曾在那里发表反腓力演说的地方。",
+    "description_en": "The triumvirs publish proscription lists, executing ~300 senators and 2,000 equites. Cicero tops the list; Antony's soldiers behead him and nail his head and hands to the Rostra — where he had delivered the Philippics."
   },
   {
     "year": -42,
     "season": "spring",
     "event": "caesar_deified",
     "title": "恺撒封神",
-    "description": "元老院正式宣布恺撒为神——屋大维从此自称 divi filius（神之子）"
+    "title_en": "Caesar Deified",
+    "description": "元老院正式宣布恺撒为神。屋大维从此自称 'divi filius'（神之子）——这成为他最重要的政治资产。",
+    "description_en": "The Senate formally deifies Caesar. Octavian now calls himself 'divi filius' (Son of the Divine) — his most important political asset."
   },
   {
     "year": -42,
     "season": "autumn",
-    "event": "philippi_first",
-    "title": "腓立比第一战",
-    "description": "屋大维部队被布鲁图斯击退，但安东尼击败卡西乌斯"
-  },
-  {
-    "year": -42,
-    "season": "autumn",
-    "event": "philippi_second",
-    "title": "腓立比第二战",
-    "description": "三周后联军击败布鲁图斯。布鲁图斯和卡西乌斯先后自杀"
+    "event": "philippi",
+    "title": "腓立比战役",
+    "title_en": "Battle of Philippi",
+    "description": "10月，安东尼和屋大维率军东征，在马其顿的腓立比两次击败布鲁图斯和卡西乌斯。卡西乌斯和布鲁图斯先后自杀。恺撒的刺杀者被彻底消灭。",
+    "description_en": "October. Antony and Octavian march east and defeat Brutus and Cassius in two battles at Philippi in Macedonia. Both assassins commit suicide. Caesar's killers are annihilated."
   },
   {
     "year": -41,
     "season": "autumn",
     "event": "perusine_war",
     "title": "佩鲁西亚战争",
-    "description": "安东尼的弟弟和妻子在意大利起兵反对屋大维"
+    "title_en": "Perusine War",
+    "description": "安东尼的弟弟Lucius Antonius和妻子富尔维娅在意大利起兵反对屋大维的土地分配政策。屋大维围困佩鲁西亚。",
+    "description_en": "Antony's brother Lucius Antonius and wife Fulvia raise an army in Italy against Octavian's land distribution policies. Octavian besieges Perusia."
   },
   {
     "year": -40,
     "season": "spring",
     "event": "perusia_falls",
     "title": "佩鲁西亚陷落",
-    "description": "屋大维攻陷佩鲁西亚，富尔维娅流亡希腊"
+    "title_en": "Perusia Falls",
+    "description": "屋大维攻陷佩鲁西亚。富尔维娅流亡希腊并很快病逝。",
+    "description_en": "Octavian takes Perusia. Fulvia flees to Greece and soon dies of illness."
   },
   {
     "year": -40,
     "season": "autumn",
     "event": "brundisium",
     "title": "布林迪西条约",
-    "description": "屋大维与安东尼重新划分势力范围，安东尼娶屋大维娅"
+    "title_en": "Treaty of Brundisium",
+    "description": "屋大维与安东尼在布林迪西达成新协议，重新划分势力范围：安东尼取东方，屋大维取西方，雷必达取非洲。安东尼迎娶屋大维的姐姐屋大维娅以巩固联盟。",
+    "description_en": "Octavian and Antony reach a new agreement at Brundisium, redividing the empire: Antony takes the East, Octavian the West, Lepidus Africa. Antony marries Octavian's sister Octavia to cement the alliance."
   },
   {
     "year": -39,
     "season": "spring",
     "event": "misenum",
     "title": "米塞努姆条约",
-    "description": "屋大维与塞克斯图斯·庞培达成和平协议"
+    "title_en": "Treaty of Misenum",
+    "description": "屋大维与塞克斯图斯·庞培达成和平协议，承认他对西西里、撒丁尼亚和科西嘉的控制，以换取恢复罗马粮食供应。",
+    "description_en": "Octavian reaches a peace agreement with Sextus Pompey, recognizing his control of Sicily, Sardinia, and Corsica in exchange for restoring Rome's grain supply."
   },
   {
     "year": -38,
     "season": "spring",
     "event": "sicilian_war_start",
     "title": "西西里战争爆发",
-    "description": "屋大维撕毁米塞努姆条约，进攻西西里"
+    "title_en": "Sicilian War Begins",
+    "description": "屋大维撕毁米塞努姆条约，对塞克斯图斯·庞培发动进攻。",
+    "description_en": "Octavian breaks the Treaty of Misenum and launches an attack on Sextus Pompey."
   },
   {
     "year": -36,
     "season": "summer",
     "event": "naulochus",
     "title": "瑙洛库斯海战",
-    "description": "阿格里帕大败塞克斯图斯·庞培，"
+    "title_en": "Battle of Naulochus",
+    "description": "阿格里帕的舰队在西西里外海决定性地击败塞克斯图斯·庞培。庞培逃亡东方，次年被安东尼处决。",
+    "description_en": "Agrippa's fleet decisively defeats Sextus Pompey off Sicily. Pompey flees east and is executed by Antony the following year."
   },
   {
     "year": -36,
     "season": "summer",
     "event": "lepidus_sidelined",
     "title": "雷必达被废",
-    "description": "雷必达试图夺取西西里失败，被屋大维剥夺三头权力"
+    "title_en": "Lepidus Sidelined",
+    "description": "雷必达试图夺取西西里失败。屋大维剥夺其三头权力（但保留大祭司职位），雷必达从此退出政治舞台。",
+    "description_en": "Lepidus tries to seize Sicily but fails. Octavian strips him of triumviral power (but allows him to keep the office of Pontifex Maximus). Lepidus exits the political stage."
   },
   {
     "year": -36,
-    "season": "summer",
+    "season": "autumn",
     "event": "antony_parthia_fail",
     "title": "安东尼帕提亚远征失败",
-    "description": "安东尼在亚美尼亚被帕提亚重创，损失惨重"
+    "title_en": "Antony's Parthian Campaign Fails",
+    "description": "安东尼率大军远征帕提亚帝国，但在亚美尼亚山区损失惨重（约2万人）。这是他军事生涯最严重的挫折。",
+    "description_en": "Antony leads a massive campaign against the Parthian Empire but suffers severe losses (~20,000 men) in the Armenian mountains. The worst military setback of his career."
   },
   {
     "year": -34,
     "season": "autumn",
     "event": "alexandria_donations",
     "title": "亚历山大里亚赠礼",
-    "description": "安东尼将罗马东部行省赠予克利奥帕特拉及其子女"
+    "title_en": "Donations of Alexandria",
+    "description": "安东尼在亚历山大里亚举行盛大仪式，将罗马东部行省（叙利亚、西里西亚、亚美尼亚等）赠予克利奥帕特拉及其子女。这一举动在罗马被视为叛国。",
+    "description_en": "Antony holds a grand ceremony in Alexandria, giving Rome's eastern provinces (Syria, Cilicia, Armenia, etc.) to Cleopatra and her children. This act is seen as treason in Rome."
   },
   {
     "year": -33,
     "season": "winter",
     "event": "propaganda_war",
     "title": "宣传战白热化",
-    "description": "屋大维和安东尼互相公开指责，屋大维娅被安东尼休弃"
+    "title_en": "Propaganda War Intensifies",
+    "description": "屋大维和安东尼互相公开指责。安东尼休弃屋大维娅，正式承认与克利奥帕特拉的关系。屋大维在罗马散布安东尼已被埃及女王「迷惑和奴役」的宣传。",
+    "description_en": "Octavian and Antony trade public accusations. Antony divorces Octavia and formally acknowledges his relationship with Cleopatra. Octavian spreads propaganda in Rome that Antony has been 'bewitched and enslaved' by the Egyptian queen."
   },
   {
     "year": -32,
     "season": "spring",
     "event": "war_declared",
     "title": "对克利奥帕特拉宣战",
-    "description": "屋大维在元老院公布安东尼遗嘱，向克利奥帕特拉宣战"
+    "title_en": "War Declared on Cleopatra",
+    "description": "屋大维强行闯入维斯塔神庙获取安东尼的遗嘱并公之于众——遗嘱确认了亚历山大里亚赠礼并要求葬在埃及。元老院对克利奥帕特拉宣战（巧妙的措辞：不是对安东尼，而是对「外国女王」）。",
+    "description_en": "Octavian forcibly enters the Temple of Vesta to seize Antony's will and makes it public — it confirms the Donations of Alexandria and requests burial in Egypt. The Senate declares war on Cleopatra (clever phrasing: not on Antony, but on the 'foreign queen')."
   },
   {
     "year": -32,
     "season": "summer",
     "event": "oath_of_italy",
     "title": "意大利宣誓效忠",
-    "description": "全意大利城镇向屋大维宣誓效忠"
+    "title_en": "Oath of Italy",
+    "description": "全意大利的城镇和殖民地自发向屋大维宣誓效忠，拥戴他为对抗东方威胁的领袖。这是屋大维最重要的政治胜利——他不再只是恺撒的继承人，他是意大利的守护者。",
+    "description_en": "Towns and colonies across Italy spontaneously swear loyalty to Octavian, acclaiming him as leader against the Eastern threat. This is Octavian's greatest political victory — he is no longer just Caesar's heir, he is Italy's protector."
   },
   {
     "year": -31,
     "season": "spring",
     "event": "actium_campaign",
-    "title": "亚克兴战役开始",
-    "description": "屋大维和阿格里帕的舰队跨海进攻希腊"
-  },
-  {
-    "year": -31,
-    "season": "summer",
-    "event": "actium_battle",
-    "title": "亚克兴海战",
-    "description": "9月2日，阿格里帕海军决定性地击败安东尼和克利奥帕特拉的舰队"
+    "title": "亚克兴战役",
+    "title_en": "Battle of Actium",
+    "description": "9月2日，阿格里帕的舰队在希腊西海岸的亚克兴角决定性击败安东尼和克利奥帕特拉的联合舰队。克利奥帕特拉率先撤退，安东尼追随。二人逃回亚历山大里亚。",
+    "description_en": "September 2. Agrippa's fleet decisively defeats the combined fleet of Antony and Cleopatra at Actium off the west coast of Greece. Cleopatra retreats first, Antony follows. They flee to Alexandria."
   },
   {
     "year": -30,
     "season": "spring",
     "event": "alexandria_fall",
     "title": "亚历山大里亚陷落",
-    "description": "屋大维进军埃及，安东尼自杀"
+    "title_en": "Fall of Alexandria",
+    "description": "屋大维进军埃及。安东尼兵败自刎（传说倒在克利奥帕特拉怀中）。",
+    "description_en": "Octavian advances into Egypt. Antony's forces are defeated and he commits suicide by falling on his sword (legend says in Cleopatra's arms)."
   },
   {
     "year": -30,
     "season": "summer",
     "event": "cleopatra_death",
     "title": "克利奥帕特拉之死",
-    "description": "克利奥帕特拉自杀，埃及成为罗马行省"
+    "title_en": "Death of Cleopatra",
+    "description": "克利奥帕特拉自杀（传说被角蝰咬死，但更可能是毒药）。埃及成为罗马行省。",
+    "description_en": "Cleopatra commits suicide (legend says by asp bite; more likely poison). Egypt becomes a Roman province."
   },
   {
     "year": -30,
     "season": "autumn",
-    "event": "end_of_republic",
-    "title": "共和国终结",
-    "description": "屋大维成为罗马世界唯一主宰，共和国向帝国过渡"
+    "event": "empire_begins",
+    "title": "帝国开始",
+    "title_en": "The Empire Begins",
+    "description": "屋大维成为罗马世界唯一主宰。共和国终结，帝国时代开始。公元前27年，元老院授予他「奥古斯都」称号。",
+    "description_en": "Octavian becomes the sole master of the Roman world. The Republic ends and the Empire begins. In 27 BC, the Senate grants him the title 'Augustus'."
   }
 ]
