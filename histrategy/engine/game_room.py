@@ -104,8 +104,17 @@ class GameRoom:
         return [s for s in self.slots.values() if s.is_ai() and s.is_active and s.faction_id in npc_set]
 
     def minor_ai_slots(self) -> list[FactionSlot]:
-        """所有 AI NPC 都是主要势力（不再区分主次）。"""
-        return []
+        """Minor AI NPC factions — use heuristic, not LLM.
+
+        Returns all AI slots NOT in major_npc_ids. These are typically
+        npc_only scenario factions like sextus_pompey or lepidus that
+        should participate in the game but don't warrant LLM calls.
+        """
+        major_ids = getattr(self, "major_npc_ids", None) or set()
+        return [
+            s for s in self.slots.values()
+            if s.is_ai() and s.is_active and s.faction_id not in major_ids
+        ]
 
     def active_slots(self) -> list[FactionSlot]:
         """所有活跃槽位（无论人类/AI）。"""
