@@ -200,6 +200,10 @@ _DIP_LABELS = {
         "de_facto_vassal": "），实质附庸",
         "troops_vs": "兵力",
         "vs": "vs",
+        "allies_header": "🤝 当前盟友关系",
+        "ally_with": "与",
+        "ally": "结盟",
+        "no_allies": "无盟友",
     },
     "en": {
         "destroyed": "DESTROYED",
@@ -209,6 +213,10 @@ _DIP_LABELS = {
         "de_facto_vassal": "), de facto vassal",
         "troops_vs": "Troops",
         "vs": "vs",
+        "allies_header": "🤝 Current Alliances",
+        "ally_with": "allied with",
+        "ally": "alliance",
+        "no_allies": "No alliances",
     },
 }
 
@@ -219,9 +227,34 @@ def _build_diplomatic_context(ws: WorldState, lang: str = "zh") -> str:
     Detection rules (deterministic, not LLM-dependent):
     - Faction territories=0 and is_active=True -> surrendered/vassal (infer overlord)
     - Faction is_active=False -> destroyed
+    - Also includes explicit ally relationships from WorldState
     """
     L = _DIP_LABELS.get(lang, _DIP_LABELS["zh"])
     lines: list[str] = []
+
+    # ── Allies section ──
+    lines.append(f"{L['allies_header']}:")
+    any_allies = False
+    for _fid, faction in ws.factions.items():
+        if not faction.is_active:
+            continue
+        allies = getattr(faction, "allies", []) or []
+        if allies:
+            any_allies = True
+            ally_names = []
+            for aid in allies:
+                ally_f = ws.factions.get(aid)
+                ally_names.append(ally_f.name if ally_f else aid)
+            lines.append(f"- {faction.name} {L['ally_with']} " + "、".join(ally_names))
+    if not any_allies:
+        lines.append(f"- {L['no_allies']}")
+    lines.append(
+        "\n**重要约束**: 盟友之间各自保留独立兵力。"
+        "盟友的部队绝不可合并——各势力兵力独立计算，"
+        "即使共同作战也只是配合作战，兵力分开管理。"
+    )
+
+    # ── Status section ──
     for fid, faction in ws.factions.items():
         if not faction.is_active:
             lines.append(f"- {faction.name} ({fid}): 💀 {L['destroyed']}")
@@ -470,7 +503,12 @@ def _apply_v1_state_to_world(ws: WorldState, v1_factions: dict) -> WorldState:
 
     V1 输出的是 JSON dict，需要小心地映射回 WorldState 对象。
     只更新数值字段，不改变结构。
+
+    边界守卫: 兵力单季度变化不超过 ±30%（与 v1_simulator.md 提示词一致）。
+    超过边界时 clamp 并记录警告。
     """
+    _MAX_TROOP_CHANGE_RATIO = 0.30
+
     for fid, data in v1_factions.items():
         if fid not in ws.factions:
             continue
@@ -481,11 +519,28 @@ def _apply_v1_state_to_world(ws: WorldState, v1_factions: dict) -> WorldState:
             if hasattr(faction, "population"):
                 faction.population = data["population"]
         if "troops" in data:
+            new_troops = int(data["troops"])
+            old_troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
+            # ── 边界守卫: clamp ±30% except for the very first turn (Q0→Q1) ──
+            if old_troops > 0 and new_troops != old_troops:
+                ratio = abs(new_troops - old_troops) / old_troops
+                if ratio > _MAX_TROOP_CHANGE_RATIO:
+                    if new_troops > old_troops:
+                        clamped = int(old_troops * (1 + _MAX_TROOP_CHANGE_RATIO))
+                    else:
+                        clamped = int(old_troops * (1 - _MAX_TROOP_CHANGE_RATIO))
+                    logger.warning(
+                        f"V1 guardrail: {faction.name} ({fid}) troops "
+                        f"{old_troops}→{new_troops} "
+                        f"({ratio:.0%} change) exceeds ±{_MAX_TROOP_CHANGE_RATIO:.0%}, "
+                        f"clamping to {clamped}"
+                    )
+                    new_troops = clamped
             # V2 engine uses strength_actual, V1 legacy uses strength
             if hasattr(faction, "strength_actual"):
-                faction.strength_actual = data["troops"]
+                faction.strength_actual = new_troops
             elif hasattr(faction, "strength"):
-                faction.strength = data["troops"]
+                faction.strength = new_troops
         if "food" in data:
             faction.food = data["food"]
         if "treasury" in data:

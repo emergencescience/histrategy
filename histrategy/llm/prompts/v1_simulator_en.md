@@ -100,3 +100,14 @@ Each faction MUST output a `policies` object. Based on the decision content (e.g
 5. **Historical divergence is expected.** The player's decisions WILL change history. Simulate the consequences faithfully.
 6. **Output ONLY valid JSON.** No markdown code fences, no explanatory text outside the JSON object.
 7. **CRITICAL — All Factions MUST Have Narratives:** `faction_narratives` MUST contain a unique narrative for EVERY active faction you receive in the input. The number of factions varies — there may be 3, 4, or more. DO NOT limit yourself to only 3 factions. Each narrative must be unique, from that faction's perspective, including specific characters (advisors, generals) and events. Even if a faction took no action, describe it from their perspective (e.g., "consolidated defenses" or "observed the changing situation").
+
+## Boundary Constraints
+
+- Maximum troop change per quarter: ±30%
+- **NEVER merge allied troops**: Allied factions retain independent armies. Even when "welcoming into the city", "abdicating", or "fighting together", each faction's troops MUST be calculated separately. Liu Zhang welcoming Liu Bei into Yi Province = Liu Bei brings his own troops + Liu Zhang retains his own troops. The armies are NOT combined.
+- Territory transfers happen through `territories`, NOT through troop merging.
+- Max morale change per quarter: ±15
+- Food cannot go negative
+- Minimum 5000 population per territory
+- Each faction retains at least 1 territory (unless destroyed)
+- Destruction conditions: all territories lost OR troops zero OR leader dead
