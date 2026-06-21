@@ -1,7 +1,7 @@
 ---
 name: histrategy
 description: "三國志略 / Histrategy — AI-powered historical strategy game. Supports Three Kingdoms and Rome Triumvirate scenarios. Command armies through natural language. Multiplayer via IM."
-version: 2.0.0
+version: 2.0.1
 author: Emergence Science
 license: MIT
 homepage: https://github.com/emergencescience/histrategy

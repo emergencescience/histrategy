@@ -1,7 +1,7 @@
 ---
 name: histrategy
 description: "三國志略 / Histrategy — AI 驱动的历史策略游戏。支持三國和罗马双剧本。在飞书/Discord/Telegram 中用自然语言指挥千军万马。"
-version: 2.0.0
+version: 2.0.1
 author: Emergence Science
 license: MIT
 homepage: https://github.com/emergencescience/histrategy
