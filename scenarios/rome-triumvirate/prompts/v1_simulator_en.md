@@ -31,19 +31,25 @@ Provide a JSON object with:
   "narratives": {
     "faction_id": "Historical narrative of what happened to this faction this quarter (2-4 sentences, Roman historian style)"
   },
-  "state_changes": {
+  "factions": {
     "faction_id": {
-      "territories_changed": ["territory_id gained/lost"],
-      "strength_delta": -2000,
-      "treasury_delta": -500,
-      "morale_delta": 5,
-      "political_delta": 10,
-      "events": ["event descriptions"]
+      "population": 900000,
+      "troops": 8000,
+      "food": 5000,
+      "treasury": 15000,
+      "morale": 45,
+      "territories": [
+        {"id": "macedonia", "name": "Macedonia"},
+        {"id": "graecia", "name": "Greece"}
+      ],
+      "policies": {"tax_rate": 0.3},
+      "is_active": true
     }
   },
-  "global_events": [
-    "Major events affecting multiple factions"
-  ],
+  "events": ["Major events affecting multiple factions"],
+  "battles": [],
+  "diplomacy": [],
+  "knowledge_cards": [],
   "turn_summary": {
     "quarter": 1,
     "key_event": "One-line summary of the most important development"

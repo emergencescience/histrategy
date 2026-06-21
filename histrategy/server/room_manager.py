@@ -1055,6 +1055,35 @@ def _resolve_v1(room, ws, decisions, llm):
     # ── 先捕获旧状态（用于 turn_delta 计算）──
     old_state = {}
     v1_factions = v1_result.get("factions", {})
+    state_changes = v1_result.get("state_changes", {})
+    if not v1_factions and state_changes:
+        # Rome scenario prompt uses "state_changes" (delta format) instead of
+        # absolute "factions". Convert deltas to absolute values by applying
+        # them to current WorldState. Fixes #64.
+        for fid, delta in state_changes.items():
+            faction = ws.factions.get(fid)
+            if not faction or not faction.is_active:
+                continue
+            troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
+            morale = getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50) or 50
+            v1_factions[fid] = {
+                "population": getattr(faction, "population", 0),
+                "troops": troops + delta.get("strength_delta", 0),
+                "food": faction.food,
+                "treasury": faction.treasury + delta.get("treasury_delta", 0),
+                "morale": morale + delta.get("morale_delta", 0),
+                "territories": [
+                    {"id": t, "name": ws.territories[t].name if t in ws.territories else t}
+                    for t in faction.territories
+                ],
+                "policies": getattr(faction, "policies", {}),
+                "is_active": True,
+            }
+        if v1_factions:
+            logger.info(
+                f"V1: converted state_changes→factions for {list(v1_factions.keys())} "
+                f"(Rome delta format)"
+            )
     if not v1_factions:
         # V1 prompt may use "state_changes" instead of "factions"
         # (e.g. rome-triumvirate). Use WorldState factions as fallback.
