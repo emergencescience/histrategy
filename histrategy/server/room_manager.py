@@ -141,14 +141,20 @@ def create_room(
     _players[room.id] = {}
 
     # 人类势力 → OPEN（等待玩家加入）或 HUMAN（预分配）
+    # 特殊处理：player_name == "AI" 的预分配势力应作为 AI 势力
+    from histrategy.engine.faction_slot import create_human_slot, create_ai_slot as _make_ai
     player_links = []
     for fid in internal_ids:
         if internal_map:
-            # 预分配：直接设为 HUMAN，occupant_id = faction_id（内部服务，无需 token）
-            from histrategy.engine.faction_slot import create_human_slot
-            slot = create_human_slot(fid, fid)
-            room.slots[fid] = slot
             player_name = internal_map[fid]
+            if player_name == "AI":
+                # AI 标签 → 创建 AI slot，不占用人类槽位
+                slot = _make_ai(fid)
+                room.slots[fid] = slot
+            else:
+                # 预分配：直接设为 HUMAN，occupant_id = faction_id（内部服务，无需 token）
+                slot = create_human_slot(fid, fid)
+                room.slots[fid] = slot
             # Use fid directly — frontend resolves display names from /api/scenarios
             display_fid = fid
             player_links.append({
