@@ -6,298 +6,154 @@
   "decisions": {
     "octavian": {
       "en": {
-        "decision_text": "In the consulship of Mark Antony and Publius Cornelius Dolabella, Gaius Octavius, heir to the divine Caesar, sees the storm gathering. With Antony massed in Gaul and the Senate wavering, Octavian moves to consolidate his fragile base. He summons Caesar’s veterans to the standards, raising fresh legions in Rome, and orders improvements to the city’s grain stores to forestall famine. To isolate Antony, he dispatches envoys to the Senate and to Lepidus, hoping to weave a net of alliances that will grant him legitimacy and time to grow strong.",
+        "decision_text": "In the consulship of Mark Antony and Publius Cornelius Dolabella, Gaius Octavius, heir to the divine Caesar, sees the storm gathering. With Antony massed in Gaul and the Senate wavering, Octavian moves to consolidate his fragile base. He summons Caesar's veterans to the standards, raising fresh legions in Rome, and orders improvements to the city's grain stores to forestall famine. To isolate Antony, he dispatches envoys to the Senate and to Lepidus, hoping to weave a net of alliances that will grant him legitimacy and time to grow strong.",
         "commands": [
-          {
-            "type": "recruit",
-            "params": {
-              "territory": "roma",
-              "amount": 2000,
-              "unit_type": "legion"
-            },
-            "reasoning": "With only 3,000 troops, Octavian must expand his army to deter Antony and project strength. Recruiting 2,000 legionaries leverages Caesar’s name to attract veterans, increasing force to 5,000 while remaining affordable from the treasury.",
-            "faction_id": "octavian"
-          },
-          {
-            "type": "develop",
-            "params": {
-              "territory": "roma"
-            },
-            "reasoning": "Rome’s grain supply is critical for popular support and feeding the growing army. Investment in agricultural infrastructure will boost food production and long-term economic resilience.",
-            "faction_id": "octavian"
-          },
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "senate",
-              "action": "ally"
-            },
-            "reasoning": "The Senate holds symbolic legitimacy and commands 8,000 troops in the East. An alliance would isolate Antony politically and provide a counterweight against his military dominance, while also legitimizing Octavian’s claim as Caesar’s heir.",
-            "faction_id": "octavian"
-          },
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "lepidus",
-              "action": "ally"
-            },
-            "reasoning": "Lepidus, with a neutral disposition (+20), controls Hispania and parts of Gaul. An alliance with him would outflank Antony from the west, creating a two-front threat and securing another source of troops and provisions.",
-            "faction_id": "octavian"
-          }
+          {"type": "recruit", "params": {"territory": "roma", "amount": 2000, "unit_type": "legion"}, "reasoning": "With only 3,000 troops, Octavian must expand his army to deter Antony and project strength. Recruiting 2,000 legionaries leverages Caesar's name to attract veterans, increasing force to 5,000 while remaining affordable from the treasury.", "faction_id": "octavian"},
+          {"type": "develop", "params": {"territory": "roma"}, "reasoning": "Rome's grain supply is critical for popular support and feeding the growing army. Investment in agricultural infrastructure will boost food production and long-term economic resilience.", "faction_id": "octavian"},
+          {"type": "diplomacy", "params": {"target_faction": "senate", "action": "ally"}, "reasoning": "The Senate holds symbolic legitimacy and commands 8,000 troops in the East. An alliance would isolate Antony politically and provide a counterweight against his military dominance, while also legitimizing Octavian's claim as Caesar's heir.", "faction_id": "octavian"},
+          {"type": "diplomacy", "params": {"target_faction": "lepidus", "action": "ally"}, "reasoning": "Lepidus, with a neutral disposition (+20), controls Hispania and parts of Gaul. An alliance with him would outflank Antony from the west, creating a two-front threat and securing another source of troops and provisions.", "faction_id": "octavian"}
         ]
       },
       "zh": {
-        "decision_text": "Octavian, leveraging his status as Caesar's adopted heir, moves to consolidate power in Rome. He dispatches envoys to the Senate, seeking an alliance against the threat of Mark Antony, and to Lepidus, hoping to secure neutrality or support. Meanwhile, he begins recruiting Caesar's veterans and new legions in Rome, while also investing in the city's economic development to fund future campaigns.",
+        "decision_text": "屋大维，恺撒的养子和继承人，眼见风暴将至。安东尼在高卢秣马厉兵，元老院摇摆不定。屋大维决意巩固孱弱根基——他以恺撒之名召集老兵重新入伍，在罗马城中扩编军团，并下令修缮城中粮仓以防饥馑。为孤立安东尼，他遣使前往元老院和雷必达，欲编织联盟之网，争取合法性，为积蓄力量争取时间。",
         "commands": [
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "senate",
-              "action": "ally"
-            },
-            "reasoning": "Octavian needs the Senate's legitimacy and support to counter Antony's military superiority. An alliance would isolate Antony politically and potentially provide access to the Senate's resources and troops.",
-            "faction_id": "octavian"
-          },
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "lepidus",
-              "action": "non_aggression"
-            },
-            "reasoning": "Lepidus controls significant forces in Narbonese Gaul and has ties to Caesar's legacy. A non-aggression pact secures his flank and prevents him from joining Antony, while leaving the door open for future cooperation.",
-            "faction_id": "octavian"
-          },
-          {
-            "type": "recruit",
-            "params": {
-              "territory": "roma",
-              "amount": 3000,
-              "unit_type": "legion"
-            },
-            "reasoning": "With only 3,000 men, Octavian is dangerously exposed. Recruiting 3,000 more legionaries from Caesar's veterans and the urban poor of Rome doubles his army, providing a credible defense and the foundation for future offensives.",
-            "faction_id": "octavian"
-          },
-          {
-            "type": "develop",
-            "params": {
-              "territory": "roma"
-            },
-            "reasoning": "Investing in Rome's economic infrastructure will increase tax revenue and grain supply over time, essential to sustain a growing army and maintain popular support.",
-            "faction_id": "octavian"
-          }
+          {"type": "diplomacy", "params": {"target_faction": "senate", "action": "ally"}, "reasoning": "屋大维需要元老院的合法性和支持以抗衡安东尼的军事优势。同盟可在政治上孤立安东尼，并可能获取元老院的资源和兵力。", "faction_id": "octavian"},
+          {"type": "diplomacy", "params": {"target_faction": "lepidus", "action": "non_aggression"}, "reasoning": "雷必达在纳尔榜高卢控制重兵，与恺撒遗产有渊源。互不侵犯协定可确保侧翼安全，防止其倒向安东尼，同时为日后合作留有余地。", "faction_id": "octavian"},
+          {"type": "recruit", "params": {"territory": "roma", "amount": 3000, "unit_type": "legion"}, "reasoning": "仅3000兵力，屋大维危如累卵。从恺撒老兵和罗马城中招募3000军团可倍增兵力，提供可靠的防御和未来进攻的基础。", "faction_id": "octavian"},
+          {"type": "develop", "params": {"territory": "roma"}, "reasoning": "投资罗马经济基础设施将逐步增加税收和粮食供应，对维持日益增长的军队和民心支持至关重要。", "faction_id": "octavian"}
         ]
       }
     },
     "antony": {
       "en": {
-        "decision_text": "Develop roma.",
+        "decision_text": "Consul Antony, seeing Octavian weak in Rome with only 3,000 troops, decides to crush him before he grows strong. He leads the legions south from Cisalpine Gaul to seize the Eternal City. He sends envoys to Cleopatra, seeking to strengthen their alliance with Egypt's fleet and grain. Meanwhile, he orders fresh levies raised in Transalpine Gaul to guard against the Senate or Sextus Pompey.",
         "commands": [
-          {
-            "type": "develop",
-            "params": {
-              "territory": "roma"
-            },
-            "reasoning": "Develop roma economy"
-          }
+          {"type": "attack", "params": {"target_territory": "roma", "from_territory": "cisalpine_gaul", "amount": 15000}, "reasoning": "屋大维仅3000兵力，我以五倍之众突袭罗马，可速战速决，夺取意大利政治核心，奠定合法地位。", "faction_id": "antony"},
+          {"type": "recruit", "params": {"territory": "transalpine_gaul", "amount": 5000, "unit_type": "legion"}, "reasoning": "补充兵力，加强后方守备，以应对可能的元老院干涉或庞培威胁。", "faction_id": "antony"},
+          {"type": "diplomacy", "params": {"target_faction": "cleopatra", "action": "ally"}, "reasoning": "克利奥帕特拉关系友好，且掌控东方粮仓与海军，结盟可确保东方无虞，并获取关键资源。", "faction_id": "antony"},
+          {"type": "tax", "params": {"tax_rate": 0.3}, "reasoning": "适当降低税率至三成，可提升民心，稳固高卢基地，为长期内战蓄积民力。", "faction_id": "antony"}
         ]
       },
       "zh": {
         "decision_text": "在公元前44年春季，安东尼见屋大维在罗马根基未固，麾下兵微将寡，决意趁此良机亲率大军南下，一举攻取罗马，将这座永恒之城纳入掌控。他遣密使赴亚历山大里亚，加强与克利奥帕特拉的同盟，欲借埃及的舰队与粮秣支持。同时，他谕令在山外高卢广募兵士，以备东方元老院或塞克斯图斯·庞培来犯。",
         "commands": [
-          {
-            "type": "attack",
-            "params": {
-              "target_territory": "roma",
-              "from_territory": "cisalpine_gaul",
-              "amount": 15000
-            },
-            "reasoning": "屋大维仅3000兵力，我以五倍之众突袭罗马，可速战速决，夺取意大利政治核心，奠定合法地位。",
-            "faction_id": "antony"
-          },
-          {
-            "type": "recruit",
-            "params": {
-              "territory": "transalpine_gaul",
-              "amount": 5000,
-              "unit_type": "legion"
-            },
-            "reasoning": "补充兵力，加强后方守备，以应对可能的元老院干涉或庞培威胁。",
-            "faction_id": "antony"
-          },
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "cleopatra",
-              "action": "ally"
-            },
-            "reasoning": "克利奥帕特拉关系友好，且掌控东方粮仓与海军，结盟可确保东方无虞，并获取关键资源。",
-            "faction_id": "antony"
-          },
-          {
-            "type": "tax",
-            "params": {
-              "tax_rate": 0.3
-            },
-            "reasoning": "适当降低税率至三成，可提升民心，稳固高卢基地，为长期内战蓄积民力。",
-            "faction_id": "antony"
-          }
+          {"type": "attack", "params": {"target_territory": "roma", "from_territory": "cisalpine_gaul", "amount": 15000}, "reasoning": "屋大维仅3000兵力，我以五倍之众突袭罗马，可速战速决，夺取意大利政治核心，奠定合法地位。", "faction_id": "antony"},
+          {"type": "recruit", "params": {"territory": "transalpine_gaul", "amount": 5000, "unit_type": "legion"}, "reasoning": "补充兵力，加强后方守备，以应对可能的元老院干涉或庞培威胁。", "faction_id": "antony"},
+          {"type": "diplomacy", "params": {"target_faction": "cleopatra", "action": "ally"}, "reasoning": "克利奥帕特拉关系友好，且掌控东方粮仓与海军，结盟可确保东方无虞，并获取关键资源。", "faction_id": "antony"},
+          {"type": "tax", "params": {"tax_rate": 0.3}, "reasoning": "适当降低税率至三成，可提升民心，稳固高卢基地，为长期内战蓄积民力。", "faction_id": "antony"}
         ]
       }
     },
     "cleopatra": {
       "en": {
-        "decision_text": "In the aftermath of Caesar's assassination, Cleopatra wisely consolidates her power. She dispatches her most trusted minister to Antony, offering a formal alliance and hinting at future... benefits. At home, she orders the irrigation canals of the Nile repaired and expanded, aiming for bumper harvests. Recognizing the importance of sea power, she commands the shipwrights of Alexandria to construct a new fleet of swift triremes. Finally, she sends a detachment of loyal troops to Cyrenaica to strengthen the defenses against any westward ambitions.",
+        "decision_text": "In the aftermath of Caesar's assassination, Cleopatra wisely consolidates her power. She dispatches her most trusted minister to Antony, offering a formal alliance and hinting at future benefits. At home, she orders the irrigation canals of the Nile repaired and expanded, aiming for bumper harvests. Recognizing the importance of sea power, she commands the shipwrights of Alexandria to construct a new fleet of swift triremes. Finally, she sends a detachment of loyal troops to Cyrenaica to strengthen the defenses against any westward ambitions.",
         "commands": [
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "antony",
-              "action": "ally"
-            },
-            "reasoning": "Antony is powerful and friendly; an alliance deters the hostile Senate and secures our eastern interests.",
-            "faction_id": "cleopatra"
-          },
-          {
-            "type": "develop",
-            "params": {
-              "territory": "aegyptus"
-            },
-            "reasoning": "Investing in Egypt's agriculture boosts food supply and income, ensuring long-term stability.",
-            "faction_id": "cleopatra"
-          },
-          {
-            "type": "recruit",
-            "params": {
-              "territory": "aegyptus",
-              "amount": 3000,
-              "unit_type": "trireme"
-            },
-            "reasoning": "A strong navy protects Cyprus and the vital grain trade from pirates and rivals like Sextus Pompey.",
-            "faction_id": "cleopatra"
-          },
-          {
-            "type": "move",
-            "params": {
-              "from_territory": "aegyptus",
-              "to_territory": "cyrenaica",
-              "amount": 2000
-            },
-            "reasoning": "Reinforcing Cyrenaica guards against potential incursions from the west while maintaining a reserve in Egypt.",
-            "faction_id": "cleopatra"
-          }
+          {"type": "diplomacy", "params": {"target_faction": "antony", "action": "ally"}, "reasoning": "Antony is powerful and friendly; an alliance deters the hostile Senate and secures our eastern interests.", "faction_id": "cleopatra"},
+          {"type": "develop", "params": {"territory": "aegyptus"}, "reasoning": "Investing in Egypt's agriculture boosts food supply and income, ensuring long-term stability.", "faction_id": "cleopatra"},
+          {"type": "recruit", "params": {"territory": "aegyptus", "amount": 3000, "unit_type": "trireme"}, "reasoning": "A strong navy protects Cyprus and the vital grain trade from pirates and rivals like Sextus Pompey.", "faction_id": "cleopatra"},
+          {"type": "move", "params": {"from_territory": "aegyptus", "to_territory": "cyrenaica", "amount": 2000}, "reasoning": "Reinforcing Cyrenaica guards against potential incursions from the west while maintaining a reserve in Egypt.", "faction_id": "cleopatra"}
         ]
       },
       "zh": {
-        "decision_text": "In the spring of 44 BC, as the news of Caesar's assassination ripples across the Mediterranean, Cleopatra VII, Pharaoh of Egypt, surveys her domain with a cautious eye. The balance of power in Rome is shattered, and while her heart mourns Caesar, her mind calculates the path forward. She orders the strengthening of Egypt's economic foundations and the recruitment of additional legions to safeguard her realm. Above all, she resolves to bind her fate to Mark Antony, Caesar's loyal lieutenant who now commands the legions of Gaul, by sending envoys to propose a full alliance, thus ensuring a powerful friend in the coming struggles.",
+        "decision_text": "恺撒遇刺的消息传遍地中海，克利奥帕特拉七世，埃及的法老，以审慎的目光巡视疆域。罗马的权力平衡已经破碎——虽然她的心为恺撒哀悼，但她的头脑在计算前路。她下令加强埃及经济根基，招募新军团以拱卫王国。最重要的是，她决意将命运与马克·安东尼绑在一起——他是恺撒最忠诚的副将，现在手握高卢重兵。她遣使亚历山大里亚赴安东尼大营，提议正式结盟，确保在这场即将到来的风暴中有一个强大的朋友。",
         "commands": [
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "antony",
-              "action": "ally"
-            },
-            "reasoning": "With Caesar dead, Cleopatra seeks a new protector in Rome. Mark Antony, who holds Gaul and has shown past favor, is the natural choice. A formal alliance will secure military backing, legitimize her position, and open the door to future cooperation against common foes like the Senate or Octavian.",
-            "faction_id": "cleopatra"
-          },
-          {
-            "type": "develop",
-            "params": {
-              "territory": "aegyptus"
-            },
-            "reasoning": "Egypt's wealth is the foundation of Cleopatra's power. Improving agriculture along the Nile will increase grain reserves, boost trade income, and raise the populace's loyalty, all essential for sustaining a prolonged war effort.",
-            "faction_id": "cleopatra"
-          },
-          {
-            "type": "recruit",
-            "params": {
-              "territory": "aegyptus",
-              "amount": 3000,
-              "unit_type": "legion"
-            },
-            "reasoning": "Although not immediately threatened, the kingdom's forces must be expanded to deter aggression and project power. Recruiting 3000 legionaries in Egypt will bolster the army without straining the treasury, given the current healthy finances and grain surplus.",
-            "faction_id": "cleopatra"
-          }
+          {"type": "diplomacy", "params": {"target_faction": "antony", "action": "ally"}, "reasoning": "恺撒已死，克利奥帕特拉需要罗马的新保护者。掌控高卢的安东尼是自然选择。正式同盟可获得军事支持，合法化埃及地位，为未来对抗元老院或屋大维铺路。", "faction_id": "cleopatra"},
+          {"type": "develop", "params": {"territory": "aegyptus"}, "reasoning": "埃及的财富是克利奥帕特拉权力的根基。投资尼罗河农业可增加粮储、提升贸易收入和民众忠诚度——这些都是维持持久战争不可或缺的。", "faction_id": "cleopatra"},
+          {"type": "recruit", "params": {"territory": "aegyptus", "amount": 3000, "unit_type": "legion"}, "reasoning": "虽然尚未受到直接威胁，但王国的军力必须扩充以威慑侵略并投射力量。在埃及招募3000军团不会过度消耗国库，可增强军队而不扰动财政健康。", "faction_id": "cleopatra"}
         ]
       }
     },
     "senate": {
       "en": {
-        "decision_text": "Conscript 3,000, Develop graecia.",
+        "decision_text": "Consul Cicero, perceiving the gathering storm, resolved to strengthen the Senate's hand through diplomacy and preparation. Envoys were dispatched to Rome to sound out Octavian for an alliance against the lawless Antonius. Meanwhile, in Macedonia and Graecia, levees were held to swell the legions, while taxes were eased to quiet the provincials. A detachment from Asia was ordered to the Macedonian frontier, and resources allotted to fortify that bulwark.",
         "commands": [
-          {
-            "type": "conscript",
-            "params": {
-              "amount": 3000
-            },
-            "reasoning": "Troops weak, expanding military for self-defense"
-          },
-          {
-            "type": "develop",
-            "params": {
-              "territory": "graecia"
-            },
-            "reasoning": "Develop graecia economy"
-          }
+          {"type": "diplomacy", "params": {"target_faction": "octavian", "action": "ally"}, "reasoning": "Octavian holds Rome and great popularity; an alliance would legitimize our cause against Antony and strengthen our position in Italy.", "faction_id": "senate"},
+          {"type": "recruit", "params": {"territory": "macedonia", "amount": 3000, "unit_type": "legion"}, "reasoning": "Macedonia is the frontier against Antony; fresh legions are vital to deter his aggression.", "faction_id": "senate"},
+          {"type": "recruit", "params": {"territory": "graecia", "amount": 2000, "unit_type": "legion"}, "reasoning": "Graecia serves as the strategic reserve; additional cohorts will provide depth to our defenses.", "faction_id": "senate"},
+          {"type": "tax", "params": {"tax_rate": 0.1}, "reasoning": "Reducing the tax burden will improve public order in our eastern provinces, securing our base.", "faction_id": "senate"},
+          {"type": "develop", "params": {"territory": "macedonia"}, "reasoning": "Improving Macedonia's economy and agriculture will sustain a prolonged defensive campaign.", "faction_id": "senate"},
+          {"type": "move", "params": {"from_territory": "asia", "to_territory": "macedonia", "amount": 1000}, "reasoning": "Concentrating forces from Asia to Macedonia reinforces the main defensive line without denuding the east.", "faction_id": "senate"}
         ]
       },
       "zh": {
-        "decision_text": "Consul Cicero, perceiving the gathering storm, resolved to strengthen the Senate's hand through diplomacy and preparation. Envoys were dispatched to Rome to sound out Octavian for an alliance against the lawless Antonius. Meanwhile, in Macedonia and Graecia, levees were held to swell the legions, while taxes were eased to quiet the provincials. A detachment from Asia was ordered to the Macedonian frontier, and resources allotted to fortify that bulwark.",
+        "decision_text": "执政官西塞罗洞察风暴将临，决意以外交和准备加强元老院之手。他遣使前往罗马探询屋大维结盟共抗无法无天的安东尼之意。与此同时，在马其顿和希腊，征兵令如雪片般发出以充实军团；减税之策安抚了东方行省。一支从亚细亚抽调的部队奉命开赴马其顿前线，资源被拨付以加固这道壁垒。",
         "commands": [
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "octavian",
-              "action": "ally"
-            },
-            "reasoning": "Octavian holds Rome and great popularity; an alliance would legitimize our cause against Antony and strengthen our position in Italy.",
-            "faction_id": "senate"
-          },
-          {
-            "type": "recruit",
-            "params": {
-              "territory": "macedonia",
-              "amount": 3000,
-              "unit_type": "legion"
-            },
-            "reasoning": "Macedonia is the frontier against Antony; fresh legions are vital to deter his aggression.",
-            "faction_id": "senate"
-          },
-          {
-            "type": "recruit",
-            "params": {
-              "territory": "graecia",
-              "amount": 2000,
-              "unit_type": "legion"
-            },
-            "reasoning": "Graecia serves as the strategic reserve; additional cohorts will provide depth to our defenses.",
-            "faction_id": "senate"
-          },
-          {
-            "type": "tax",
-            "params": {
-              "tax_rate": 0.1
-            },
-            "reasoning": "Reducing the tax burden will improve public order in our eastern provinces, securing our base.",
-            "faction_id": "senate"
-          },
-          {
-            "type": "develop",
-            "params": {
-              "territory": "macedonia"
-            },
-            "reasoning": "Improving Macedonia's economy and agriculture will sustain a prolonged defensive campaign.",
-            "faction_id": "senate"
-          },
-          {
-            "type": "move",
-            "params": {
-              "from_territory": "asia",
-              "to_territory": "macedonia",
-              "amount": 1000
-            },
-            "reasoning": "Concentrating forces from Asia to Macedonia reinforces the main defensive line without denuding the east.",
-            "faction_id": "senate"
-          }
+          {"type": "diplomacy", "params": {"target_faction": "octavian", "action": "ally"}, "reasoning": "屋大维据有罗马且广得民心；同盟可使我们对抗安东尼的事业合法化，并加强我们在意大利的地位。", "faction_id": "senate"},
+          {"type": "recruit", "params": {"territory": "macedonia", "amount": 3000, "unit_type": "legion"}, "reasoning": "马其顿是抵御安东尼的前线；新军团对威慑其侵略至关重要。", "faction_id": "senate"},
+          {"type": "recruit", "params": {"territory": "graecia", "amount": 2000, "unit_type": "legion"}, "reasoning": "希腊为战略预备队所在地；额外的步队将加深我方防御纵深。", "faction_id": "senate"},
+          {"type": "tax", "params": {"tax_rate": 0.1}, "reasoning": "减轻税负可改善东方行省的公共秩序，稳固我们的后方。", "faction_id": "senate"},
+          {"type": "develop", "params": {"territory": "macedonia"}, "reasoning": "改善马其顿经济和农业将支撑持久的防御战役。", "faction_id": "senate"},
+          {"type": "move", "params": {"from_territory": "asia", "to_territory": "macedonia", "amount": 1000}, "reasoning": "将亚细亚兵力集中到马其顿可加强主防线而不削弱东方。", "faction_id": "senate"}
+        ]
+      }
+    },
+    "sextus_pompey": {
+      "en": {
+        "decision_text": "Son of Pompey the Great patrols the Sicilian waters with his fleet, watching the Caesarian vultures tear at each other. He dispatches swift Liburnian galleys to raid grain shipments bound for Rome, starving the Caesarian cause while enriching his own coffers. His captains are ordered to recruit veteran sailors in Sardinia and Sicily, expanding his naval dominance.",
+        "commands": [
+          {"type": "recruit", "params": {"territory": "sicilia", "amount": 2000, "unit_type": "navy"}, "reasoning": "A stronger fleet is the foundation of Pompeian power — without ships, we are nothing.", "faction_id": "sextus_pompey"},
+          {"type": "develop", "params": {"territory": "sicilia"}, "reasoning": "Sicily's grain fields can feed our crews and provide trade goods to fund the fleet.", "faction_id": "sextus_pompey"}
+        ]
+      },
+      "zh": {
+        "decision_text": "庞培之子巡弋于西西里海域，冷眼旁观恺撒派的群鸦争夺罗马尸骸。他派出快速利布尼亚战船劫掠运往罗马的粮船——既使恺撒派饿殍遍野，又为自己充实府库。他命船长在西西里和撒丁尼亚招募退伍水手，令庞培舰队重新成为地中海不可忽视的力量。",
+        "commands": [
+          {"type": "recruit", "params": {"territory": "sicilia", "amount": 2000, "unit_type": "navy"}, "reasoning": "更强舰队是庞培派安身立命之本——无战舰则无一切。", "faction_id": "sextus_pompey"},
+          {"type": "develop", "params": {"territory": "sicilia"}, "reasoning": "西西里谷仓可养舰队和水手，亦可贸易换取军资。", "faction_id": "sextus_pompey"}
+        ]
+      }
+    },
+    "lepidus": {
+      "en": {
+        "decision_text": "Marcus Lepidus, Master of Horse to the dead Caesar, surveys his Spanish provinces with cautious ambition. He orders the silver mines of Hispania Citerior worked at double pace to fill his war chest. A legion is raised from the Iberian veterans who served Caesar in Gaul. Envoys ride north to Narbonensis to secure the loyalty of the cities along the Via Domitia, and east to sound out Antony's intentions — friend or rival?",
+        "commands": [
+          {"type": "recruit", "params": {"territory": "hispania_citerior", "amount": 3000, "unit_type": "legion"}, "reasoning": "Strengthening the Spanish legions secures the power base and deters rivals.", "faction_id": "lepidus"},
+          {"type": "develop", "params": {"territory": "hispania_citerior"}, "reasoning": "The silver mines are the financial backbone — accelerating production funds future campaigns.", "faction_id": "lepidus"},
+          {"type": "diplomacy", "params": {"target_faction": "antony", "action": "ally"}, "reasoning": "Antony is my natural ally among the Caesarians. A pact secures my flank and opens the road to Rome.", "faction_id": "lepidus"}
+        ]
+      },
+      "zh": {
+        "decision_text": "马尔库斯·雷必达，已故恺撒的骑兵长官，以审慎的野心打量着西班牙的行省。他命近西班牙的银矿日夜赶工，为将来的战争填满府库。一个军团从随恺撒在高卢征战的伊比利亚老兵中征募。他的使者北上纳尔榜高卢，确保多米提亚大道沿线城市的效忠；另一路向东——试探安东尼的态度：是友？是敌？",
+        "commands": [
+          {"type": "recruit", "params": {"territory": "hispania_citerior", "amount": 3000, "unit_type": "legion"}, "reasoning": "加强西班牙军团可巩固权力基础并威慑各路人马。", "faction_id": "lepidus"},
+          {"type": "develop", "params": {"territory": "hispania_citerior"}, "reasoning": "银矿乃财政支柱——加速开采可为日后征伐提供资金。", "faction_id": "lepidus"},
+          {"type": "diplomacy", "params": {"target_faction": "antony", "action": "ally"}, "reasoning": "安东尼是恺撒派中的天然盟友。同盟可确保侧翼安全并打开通往罗马之路。", "faction_id": "lepidus"}
+        ]
+      }
+    },
+    "decimus_brutus": {
+      "en": {
+        "decision_text": "Decimus Brutus, governor of Cisalpine Gaul and one of Caesar's assassins, fortifies his position in Illyria. Three veteran legions dig in along the mountain passes that guard the road to Italy. He dispatches riders to Cicero and the Senate, pledging his sword to the Republican cause. Recruiting agents work the Dalmatian coast for auxiliaries, while his engineers strengthen the fortifications of the Illyrian ports.",
+        "commands": [
+          {"type": "defend", "params": {"territory": "illyria"}, "reasoning": "Antony will come for blood — the mountain passes must be held at all costs.", "faction_id": "decimus_brutus"},
+          {"type": "diplomacy", "params": {"target_faction": "senate", "action": "ally"}, "reasoning": "Cicero and the Senate are our natural allies — Republican legitimacy strengthens our cause.", "faction_id": "decimus_brutus"},
+          {"type": "recruit", "params": {"territory": "illyria", "amount": 2000, "unit_type": "legion"}, "reasoning": "Three legions may not be enough against Antony's veterans — more men are needed.", "faction_id": "decimus_brutus"}
+        ]
+      },
+      "zh": {
+        "decision_text": "狄奇穆斯·布鲁图，山南高卢总督、恺撒的刺杀者之一，在伊利里亚筑起防线。三个久经沙场的军团掘壕据守，封锁通往意大利的山口。他遣快马致信西塞罗和元老院，将剑盾献予共和事业。募兵官在达尔马提亚海岸招揽辅军；工兵加固伊利里亚港口的城防——若安东尼前来复仇，他需要一条退路。",
+        "commands": [
+          {"type": "defend", "params": {"territory": "illyria"}, "reasoning": "安东尼必将前来复仇——山口防线必须寸土不让。", "faction_id": "decimus_brutus"},
+          {"type": "diplomacy", "params": {"target_faction": "senate", "action": "ally"}, "reasoning": "西塞罗和元老院是我们天然的盟友——共和合法性可壮大声威。", "faction_id": "decimus_brutus"},
+          {"type": "recruit", "params": {"territory": "illyria", "amount": 2000, "unit_type": "legion"}, "reasoning": "三个军团面对安东尼的老兵可能不够——需要更多兵力。", "faction_id": "decimus_brutus"}
+        ]
+      }
+    },
+    "cassius_brutus": {
+      "en": {
+        "decision_text": "Gaius Cassius and Marcus Junius Brutus, the lead assassins of the tyrant Caesar, rally Republican forces in the East. Cassius assumes command of the Syrian legions while Brutus raises fresh cohorts in Mesopotamia. They issue a proclamation: the Senate is the sole legitimate authority of Rome, and all governors must pledge their allegiance to the Republic.",
+        "commands": [
+          {"type": "recruit", "params": {"territory": "syria", "amount": 4000, "unit_type": "legion"}, "reasoning": "The eastern legions must be expanded to match Antony's growing power in the west.", "faction_id": "cassius_brutus"},
+          {"type": "diplomacy", "params": {"target_faction": "senate", "action": "ally"}, "reasoning": "We are the Senate's sword arm in the East — formal alliance solidifies Republican legitimacy.", "faction_id": "cassius_brutus"},
+          {"type": "develop", "params": {"territory": "mesopotamia"}, "reasoning": "Mesopotamia's fertile river valleys can fund and feed the Republican war machine.", "faction_id": "cassius_brutus"}
+        ]
+      },
+      "zh": {
+        "decision_text": "盖乌斯·卡西乌斯与马尔库斯·尤尼乌斯·布鲁图斯，刺死僭主恺撒的主导者，在东方集结共和派力量。卡西乌斯接管叙利亚军团，布鲁图斯在美索不达米亚征募新军。他们发布公告：元老院是罗马唯一合法权威，所有总督必须宣誓效忠共和国。募兵官奔赴东方各行省，将克拉苏远征帕提亚时的老兵召回军旗之下。",
+        "commands": [
+          {"type": "recruit", "params": {"territory": "syria", "amount": 4000, "unit_type": "legion"}, "reasoning": "东方军团必须扩编以抗衡安东尼在西方日益增长的兵力。", "faction_id": "cassius_brutus"},
+          {"type": "diplomacy", "params": {"target_faction": "senate", "action": "ally"}, "reasoning": "我们是元老院在东方的剑——正式同盟可巩固共和合法性。", "faction_id": "cassius_brutus"},
+          {"type": "develop", "params": {"territory": "mesopotamia"}, "reasoning": "美索不达米亚的肥沃河谷可为共和战车提供粮饷。", "faction_id": "cassius_brutus"}
         ]
       }
     }
