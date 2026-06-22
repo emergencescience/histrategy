@@ -225,9 +225,12 @@ def create_single_player_room(
     room.slots[faction_id] = create_human_slot(faction_id, user_id)
 
     # 其他主要势力 → AI NPC
+    major_npc_ids = set()
     for fid in LLM_NPC_FACTIONS:
         if fid != faction_id:
             room.slots[fid] = create_ai_slot(fid)
+            major_npc_ids.add(fid)
+    room.major_npc_ids = major_npc_ids
 
     room.phase = RoomPhase.WAITING
     return room
