@@ -1019,11 +1019,9 @@ def create_app(llm_provider: str | None = None) -> Any:
     ):
         """创建房间。
 
-        新流程（推荐）: pre_assigned = {"caocao": "张三", "liubei": "李四"}
+        pre_assigned = {"caocao": "张三", "liubei": "李四"}
         → Host 预分配势力，每个玩家获得专属链接。
-
-        旧流程: human_faction_ids = ["cao", "shu", "wu"]
-        → 势力设为 OPEN 等待玩家手动加入。
+        → 未分配的势力自动变 AI NPC。
 
         Orchestrator proxy 注入 X-User-Id 头部（真实 user UUID）。
         """
@@ -1033,23 +1031,19 @@ def create_app(llm_provider: str | None = None) -> Any:
         host_user_id = x_user_id or body.get("user_id", "")
 
         pre_assigned = body.get("pre_assigned")
-        if pre_assigned:
-            result = create_room(
-                host_user_id=host_user_id,
-                host_name=body.get("display_name", ""),
-                scenario=body.get("scenario", "207"),
-                pre_assigned=pre_assigned,
-                metadata=body.get("metadata"),
-            )
-        else:
-            human_faction_ids = body.get("human_faction_ids") or None
-            result = create_room(
-                host_user_id=host_user_id,
-                host_name=body.get("display_name", ""),
-                scenario=body.get("scenario", "207"),
-                human_faction_ids=human_faction_ids,
-                metadata=body.get("metadata"),
-            )
+        if not pre_assigned:
+            return {
+                "ok": False,
+                "error": "pre_assigned is required — e.g. {\"caocao\": \"张三\", \"liubei\": \"李四\"}",
+            }
+
+        result = create_room(
+            host_user_id=host_user_id,
+            host_name=body.get("display_name", ""),
+            scenario=body.get("scenario", "207"),
+            pre_assigned=pre_assigned,
+            metadata=body.get("metadata"),
+        )
         return result
 
     @app.post("/api/rooms/{room_id}/enter")

@@ -67,24 +67,20 @@ def create_room(
     host_user_id: str = "",
     host_name: str = "",
     scenario: str = "207",
-    human_faction_ids: list[str] | None = None,
     pre_assigned: dict[str, str] | None = None,
     metadata: dict | None = None,
 ) -> dict:
     """创建房间并立即开始游戏。
 
-    Host 预分配势力（推荐）：pre_assigned = {"caocao": "张三", "liubei": "李四"}
+    Host 预分配势力：pre_assigned = {"caocao": "张三", "liubei": "李四"}
     → 每个玩家获得专属链接 /mp?room=xxx&faction=caocao
     → 未分配的势力自动变 AI NPC
-
-    兼容旧 API：human_faction_ids = ["caocao", "liubei"] → 设为 OPEN 等待加入
 
     Returns:
         {"ok": True, "room_id": str, "player_links": [{faction, url}], ...}
     """
     from histrategy.engine.faction_slot import (
         create_ai_slot,
-        create_open_slot,
     )
     from histrategy.engine.game_room import GameRoom, RoomPhase
 
@@ -99,7 +95,6 @@ def create_room(
 
         faction_display_to_id: dict[str, str] = FACTION_DISPLAY_TO_ID
         fallback_npc_factions: list[str] = list(LLM_NPC_FACTIONS)
-        playable_display_ids: list[str] = list(PLAYABLE_FACTIONS)
     else:
         from histrategy.engine.scenario_loader import ScenarioLoader
 
@@ -109,25 +104,20 @@ def create_room(
         faction_display_to_id = {
             f.get("name", f.get("name_en", fid)): fid for fid, f in all_factions.items() if not f.get("npc_only", False)
         }
-        playable_display_ids = list(faction_display_to_id.keys())
         fallback_npc_factions = list(faction_display_to_id.values())
 
     # 翻译显示名 → 内部 ID（caocao→cao, liubei→shu, sunquan→wu）
-    if pre_assigned:
-        # 新流程：Host 预分配势力到具体玩家
-        # Also map internal_id → itself for pre_assigned with internal format
-        display_to_id = dict(faction_display_to_id)
-        for fid in all_factions if not use_fallback else PLAYABLE_FACTIONS:
-            if fid not in display_to_id:
-                display_to_id[fid] = fid
-        internal_map = {}
-        for display_fid, player_name in pre_assigned.items():
-            internal_fid = display_to_id.get(display_fid, display_fid)
-            internal_map[internal_fid] = player_name
-        internal_ids = list(internal_map.keys())
-    else:
-        internal_ids = [faction_display_to_id.get(f, f) for f in (human_faction_ids or playable_display_ids)]
-        internal_map = None
+    # Host 预分配势力到具体玩家
+    # Also map internal_id → itself for pre_assigned with internal format
+    display_to_id = dict(faction_display_to_id)
+    for fid in all_factions if not use_fallback else PLAYABLE_FACTIONS:
+        if fid not in display_to_id:
+            display_to_id[fid] = fid
+    internal_map = {}
+    for display_fid, player_name in pre_assigned.items():
+        internal_fid = display_to_id.get(display_fid, display_fid)
+        internal_map[internal_fid] = player_name
+    internal_ids = list(internal_map.keys())
 
     if not internal_ids:
         internal_ids = ["cao", "shu", "wu"]
@@ -151,29 +141,26 @@ def create_room(
 
     player_links = []
     for fid in internal_ids:
-        if internal_map:
-            player_name = internal_map[fid]
-            if player_name == "AI":
-                # AI 标签 → 创建 AI slot，不占用人类槽位
-                slot = _make_ai(fid)
-                room.slots[fid] = slot
-            else:
-                # 预分配：直接设为 HUMAN，occupant_id = faction_id（内部服务，无需 token）
-                slot = create_human_slot(fid, fid)
-                room.slots[fid] = slot
-            # Use fid directly — frontend resolves display names from /api/scenarios
-            display_fid = fid
-            player_links.append(
-                {
-                    "faction": display_fid,
-                    "player_name": player_name,
-                    "url": f"/mp?room={room.id}&faction={display_fid}",
-                }
-            )
-            # 注册玩家
-            _enter_player(room.id, fid, "player", player_name)
+        player_name = internal_map[fid]
+        if player_name == "AI":
+            # AI 标签 → 创建 AI slot，不占用人类槽位
+            slot = _make_ai(fid)
+            room.slots[fid] = slot
         else:
-            room.slots[fid] = create_open_slot(fid)
+            # 预分配：直接设为 HUMAN，occupant_id = faction_id（内部服务，无需 token）
+            slot = create_human_slot(fid, fid)
+            room.slots[fid] = slot
+        # Use fid directly — frontend resolves display names from /api/scenarios
+        display_fid = fid
+        player_links.append(
+            {
+                "faction": display_fid,
+                "player_name": player_name,
+                "url": f"/mp?room={room.id}&faction={display_fid}",
+            }
+        )
+        # 注册玩家
+        _enter_player(room.id, fid, "player", player_name)
 
     # 未指定的势力 → AI NPC（从场景数据动态获取，只加载可扮演势力）
     try:
