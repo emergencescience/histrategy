@@ -11,12 +11,12 @@ import sys
 import time
 
 # Use V3 engine for realistic macro simulation
-os.environ["HISTRATEGY_MACRO"] = "1"
+os.environ["HISTRATEGY_ENGINE"] = "v3"
 
 sys.path.insert(0, "/opt/data/repos/histrategy")
 
-from histrategy.llm.adapter import LLMAdapter
 from histrategy.engine.game import GameEngine
+from histrategy.llm.adapter import LLMAdapter
 
 llm = LLMAdapter()
 print(f"LLM available: {llm.is_available}  provider: {getattr(llm, 'provider', 'unknown')}")
@@ -193,7 +193,7 @@ print(f"\nTotal tokens: {total_tokens}  Total time: {total_time:.1f}s")
 if quarterly_data:
     first = quarterly_data[0]
     last = quarterly_data[-1]
-    print(f"\nStrategy Assessment:")
+    print("\nStrategy Assessment:")
     print(f"  Treasury change: {first['treasury']} → {last['treasury']} "
           f"({'+' if last['treasury'] >= first['treasury'] else ''}{last['treasury'] - first['treasury']})")
     print(f"  Territory change: {first['territories']} → {last['territories']} "
@@ -203,11 +203,11 @@ if quarterly_data:
 
     # Optimal strategy check
     if last['territories'] >= first['territories'] and last['treasury'] >= first['treasury'] * 0.5:
-        print(f"  Verdict: ✅ OPTIMAL — Egypt maintained or grew without catastrophic loss")
+        print("  Verdict: ✅ OPTIMAL — Egypt maintained or grew without catastrophic loss")
     elif last['territories'] >= first['territories']:
-        print(f"  Verdict: ⚠️ MODERATE — Held territory but economic pressure")
+        print("  Verdict: ⚠️ MODERATE — Held territory but economic pressure")
     else:
-        print(f"  Verdict: ❌ SUBOPTIMAL — Lost territory")
+        print("  Verdict: ❌ SUBOPTIMAL — Lost territory")
 
 print(f"\n{'=' * 60}")
 print("E2E TEST RESULT: " + ("PASS" if all_pass else "FAIL"))

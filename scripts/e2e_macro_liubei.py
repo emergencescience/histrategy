@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """E2E test: Liu Bei (Shu) macro historical engine — 5 quarters."""
-import os, sys, time
+import os
+import sys
+import time
 
-os.environ["HISTRATEGY_MACRO"] = "1"
+os.environ["HISTRATEGY_ENGINE"] = "v3"
 sys.path.insert(0, "/opt/data/repos/histrategy")
 
-from histrategy.llm.adapter import LLMAdapter
 from histrategy.engine.game import GameEngine
+from histrategy.llm.adapter import LLMAdapter
 
 llm = LLMAdapter()
 print("LLM available:", llm.is_available)
@@ -18,7 +20,7 @@ DECISIONS = [
     "听从诸葛亮《隆中对》：联吴抗曹！派诸葛亮出使柴桑与孙权结盟，共商抗曹大计。同时派糜竺出使襄阳缓和与刘表关系，请求借道江陵暂驻。",
     # Q3: 207 autumn — desperate expansion
     "趁刘表病重（据报），以'保卫汉室'之名出兵占领江口（jiangkou），打通与东吴的直接联系通道。命赵云为先锋，轻骑突进。",
-    # Q4: 207 winter — seize opportunity  
+    # Q4: 207 winter — seize opportunity
     "刘表已逝，刘琮献荆州于曹操！趁曹操大军未至，火速南下占领襄阳（xiangyang）和江陵（jiangling），收编荆州水军。打出'刘皇叔'旗号收拢人心。",
     # Q5: 208 spring — race against time
     "在襄阳整编新军，收容刘表旧部。若曹操来攻，则与孙权（柴桑方向）前后夹击。推行《蜀科》新法，取信荆州士族民心。",
@@ -86,4 +88,4 @@ for fid, f in ws.factions.items():
         print(f"  {fid} ({f.name}): 兵{strength} 钱{f.treasury} "
               f"粮{f.food} 民心{morale} 领地({len(t)})={t}")
 
-print(f"\nLogs at: ~/.histrategy/rooms/*/logs/llm_usage.log")
+print("\nLogs at: ~/.histrategy/rooms/*/logs/llm_usage.log")

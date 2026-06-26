@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """E2E test: 5-quarters of Cao Cao macro historical engine."""
-import os, sys, time
+import os
+import sys
+import time
 
-os.environ["HISTRATEGY_MACRO"] = "1"
+os.environ["HISTRATEGY_ENGINE"] = "v3"
 
 sys.path.insert(0, "/opt/data/repos/histrategy")
 
-from histrategy.llm.adapter import LLMAdapter
 from histrategy.engine.game import GameEngine
+from histrategy.llm.adapter import LLMAdapter
 
 llm = LLMAdapter()
 
@@ -85,4 +87,4 @@ for fid, f in ws.factions.items():
         print(f"  {fid} ({f.name}): 兵{strength} 钱{f.treasury} "
               f"粮{f.food} 民心{morale} 领地({len(t)})={t}")
 
-print(f"\nLogs at: ~/.histrategy/rooms/*/logs/llm_usage.log")
+print("\nLogs at: ~/.histrategy/rooms/*/logs/llm_usage.log")

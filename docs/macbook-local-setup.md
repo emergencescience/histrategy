@@ -43,8 +43,8 @@ export MACRO_PARSER_MODEL='deepseek-v4-flash' # 指令解析（默认 deepseek-v
 ## 3. 启动游戏
 
 ```bash
-# === 宏观引擎模式（推荐） ===
-export HISTRATEGY_MACRO=1
+# === 混合引擎模式 V3（推荐） ===
+export HISTRATEGY_ENGINE=v3
 histrategy                    # Rich TUI 界面
 
 # === 纯文本 Dev 模式（调试推荐） ===

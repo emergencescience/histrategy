@@ -6,7 +6,7 @@ Usage:
     HISTRATEGY_ENGINE=v2   → V2 确定性引擎 (默认)
     HISTRATEGY_ENGINE=v3   → V3 混合引擎 (确定性基线 + LLM 非线性层，合并了旧 v3+macro)
 
-旧环境变量 HISTRATEGY_MACRO 和 HISTRATEGY_V3 仍然兼容，均映射到 V3。
+旧环境变量 HISTRATEGY_V3 仍然兼容，映射到 V3。
 """
 
 from __future__ import annotations
@@ -39,10 +39,7 @@ def detect_engine_mode() -> EngineMode:
     if engine in mode_map:
         return mode_map[engine]
 
-    # 兼容旧环境变量 (HISTRATEGY_MACRO / HISTRATEGY_V3 → V3)
-    if os.environ.get("HISTRATEGY_MACRO") == "1":
-        logger.info("HISTRATEGY_MACRO=1 detected → V3 (merged V3+Macro)")
-        return EngineMode.V3
+    # 兼容旧环境变量 (HISTRATEGY_V3 → V3)
     if os.environ.get("HISTRATEGY_V3") == "1":
         logger.info("HISTRATEGY_V3=1 detected → V3 (merged V3+Macro)")
         return EngineMode.V3

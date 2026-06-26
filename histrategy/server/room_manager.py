@@ -29,14 +29,18 @@ if TYPE_CHECKING:
 
 # ── Billing exceptions ────────────────────────────────────────
 
+
 class CreditInsufficientError(Exception):
     """Raised when user has insufficient credits for a turn."""
+
     pass
 
 
 class RateLimitError(Exception):
     """Raised when user exceeds turn rate limit."""
+
     pass
+
 
 # 内存中的房间 {room_id: GameRoom}
 _rooms: dict[str, GameRoom] = {}
@@ -92,18 +96,18 @@ def create_room(
             LLM_NPC_FACTIONS,
             PLAYABLE_FACTIONS,
         )
+
         faction_display_to_id: dict[str, str] = FACTION_DISPLAY_TO_ID
         fallback_npc_factions: list[str] = list(LLM_NPC_FACTIONS)
         playable_display_ids: list[str] = list(PLAYABLE_FACTIONS)
     else:
         from histrategy.engine.scenario_loader import ScenarioLoader
+
         loader = ScenarioLoader(scenario)
         all_factions = loader.load_factions()
         # Build display_name → internal_id mapping (e.g. "屋大维" → "octavian")
         faction_display_to_id = {
-            f.get("name", f.get("name_en", fid)): fid
-            for fid, f in all_factions.items()
-            if not f.get("npc_only", False)
+            f.get("name", f.get("name_en", fid)): fid for fid, f in all_factions.items() if not f.get("npc_only", False)
         }
         playable_display_ids = list(faction_display_to_id.keys())
         fallback_npc_factions = list(faction_display_to_id.values())
@@ -142,7 +146,9 @@ def create_room(
 
     # 人类势力 → OPEN（等待玩家加入）或 HUMAN（预分配）
     # 特殊处理：player_name == "AI" 的预分配势力应作为 AI 势力
-    from histrategy.engine.faction_slot import create_human_slot, create_ai_slot as _make_ai
+    from histrategy.engine.faction_slot import create_ai_slot as _make_ai
+    from histrategy.engine.faction_slot import create_human_slot
+
     player_links = []
     for fid in internal_ids:
         if internal_map:
@@ -157,11 +163,13 @@ def create_room(
                 room.slots[fid] = slot
             # Use fid directly — frontend resolves display names from /api/scenarios
             display_fid = fid
-            player_links.append({
-                "faction": display_fid,
-                "player_name": player_name,
-                "url": f"/mp?room={room.id}&faction={display_fid}",
-            })
+            player_links.append(
+                {
+                    "faction": display_fid,
+                    "player_name": player_name,
+                    "url": f"/mp?room={room.id}&faction={display_fid}",
+                }
+            )
             # 注册玩家
             _enter_player(room.id, fid, "player", player_name)
         else:
@@ -174,6 +182,7 @@ def create_room(
             scenario_faction_ids = {fid for fid, f in all_factions.items() if not f.get("npc_only", False)}
         else:
             from histrategy.engine.scenario_loader import ScenarioLoader
+
             loader = ScenarioLoader(room.scenario)
             all_factions = loader.load_factions()
             scenario_faction_ids = {fid for fid, f in all_factions.items() if not f.get("npc_only", False)}
@@ -196,7 +205,9 @@ def create_room(
                 npc_only_factions.append(fid)
                 room.slots[fid] = create_ai_slot(fid)
         if npc_only_factions:
-            logger.info(f"Room {room.id}: added {len(npc_only_factions)} npc_only minor factions as AI: {npc_only_factions}")
+            logger.info(
+                f"Room {room.id}: added {len(npc_only_factions)} npc_only minor factions as AI: {npc_only_factions}"
+            )
     except NameError:
         pass  # fallback scenario — no npc_only to add
 
@@ -209,7 +220,7 @@ def create_room(
     # 立即初始化世界状态并开始游戏
     _init_world_state(room)
     room.phase = RoomPhase.WAITING
-    ws_dict = room.world_state.to_dict() if hasattr(room.world_state, 'to_dict') else None
+    ws_dict = room.world_state.to_dict() if hasattr(room.world_state, "to_dict") else None
     _try_save(room, ws_dict)  # 传入 ws_dict 防止 DB 中 world_state 被写为 NULL
     _save_initial_state_to_db(room)  # 写入 game_state (quarter=0) — MUST be after _try_save (FK to game_room)
 
@@ -217,7 +228,7 @@ def create_room(
     _trigger_npc_decisions(room)
 
     # 返回显示名列表供前端展示（动态从场景数据获取）
-    lang = getattr(room, 'metadata', {}).get('lang', 'zh') if getattr(room, 'metadata', None) else 'zh'
+    lang = getattr(room, "metadata", {}).get("lang", "zh") if getattr(room, "metadata", None) else "zh"
     fnames = _get_faction_names(room, lang=lang)
     display_factions = [fnames.get(f, f) for f in internal_ids]
 
@@ -449,6 +460,7 @@ def submit_decision(room_id: str, faction_id: str, decision: str) -> dict:
 
     # 自动修复：如果 room 有 world_state 但 phase 还是 lobby
     from histrategy.engine.game_room import RoomPhase
+
     if room.phase == RoomPhase.LOBBY and room.world_state is not None:
         logger.warning(f"Room {room_id} has world_state but phase=lobby — auto-advancing to WAITING")
         room.phase = RoomPhase.WAITING
@@ -459,6 +471,7 @@ def submit_decision(room_id: str, faction_id: str, decision: str) -> dict:
 
     # 翻译显示名 → 内部 ID
     from histrategy.engine.faction_slot import FACTION_DISPLAY_TO_ID
+
     faction_id = FACTION_DISPLAY_TO_ID.get(faction_id, faction_id)
 
     if faction_id not in room.slots:
@@ -508,17 +521,13 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
         return {"ok": False, "error": "房间不存在"}
 
     # Dynamic faction names from scenario data (not hardcoded Three Kingdoms)
-    lang = getattr(room, 'metadata', {}).get('lang', 'zh') if getattr(room, 'metadata', None) else 'zh'
+    lang = getattr(room, "metadata", {}).get("lang", "zh") if getattr(room, "metadata", None) else "zh"
     fnames = _get_faction_names(room, lang=lang)
     _display = lambda fid: fnames.get(fid, fid)
 
     room_players = _players.get(room_id, {})
-    submitted = [
-        _display(fid) for fid, s in room.slots.items() if s.is_active and s.has_submitted()
-    ]
-    pending = [
-        _display(fid) for fid, s in room.slots.items() if s.is_active and not s.has_submitted()
-    ]
+    submitted = [_display(fid) for fid, s in room.slots.items() if s.is_active and s.has_submitted()]
+    pending = [_display(fid) for fid, s in room.slots.items() if s.is_active and not s.has_submitted()]
 
     status = {
         "ok": True,
@@ -563,13 +572,15 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
             for row in reversed(db_turns):
                 narratives_raw = row.get("narratives")
                 narratives = _json.loads(narratives_raw) if isinstance(narratives_raw, str) else (narratives_raw or {})
-                history.append({
-                    "quarter": row["quarter_number"],
-                    "year": row.get("year", 207),
-                    "season": row.get("season", "春"),
-                    "narratives": narratives,
-                    "npc_actions": [],  # NPC actions not in quarter_turn table
-                })
+                history.append(
+                    {
+                        "quarter": row["quarter_number"],
+                        "year": row.get("year", 207),
+                        "season": row.get("season", "春"),
+                        "narratives": narratives,
+                        "npc_actions": [],  # NPC actions not in quarter_turn table
+                    }
+                )
             # Cache for subsequent calls
             room._narrative_history = history
         except Exception:
@@ -592,16 +603,22 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
                 + (row.get("treasury") or 0) / 1000
                 + (row.get("morale") or 0) / 100
             )
-            ranking.append({
-                "faction_id": fid,
-                "display_name": _display(fid),
-                "troops": row.get("troops", 0),
-                "population": row.get("population", 0),
-                "treasury": row.get("treasury", 0),
-                "territories": len(_json.loads(row.get("territories", "[]")) if isinstance(row.get("territories"), str) else (row.get("territories") or [])),
-                "composite": round(composite, 1),
-                "is_active": bool(row.get("is_active", 1)),
-            })
+            ranking.append(
+                {
+                    "faction_id": fid,
+                    "display_name": _display(fid),
+                    "troops": row.get("troops", 0),
+                    "population": row.get("population", 0),
+                    "treasury": row.get("treasury", 0),
+                    "territories": len(
+                        _json.loads(row.get("territories", "[]"))
+                        if isinstance(row.get("territories"), str)
+                        else (row.get("territories") or [])
+                    ),
+                    "composite": round(composite, 1),
+                    "is_active": bool(row.get("is_active", 1)),
+                }
+            )
         ranking.sort(key=lambda x: x["composite"], reverse=True)
         status["power_ranking"] = ranking
     except Exception:
@@ -619,10 +636,7 @@ def _load_repo_npc_decisions(scenario: str) -> dict | None:
     Looks for scenarios/{scenario}/npc_decisions_q0.json.
     Returns the parsed dict or None if not found.
     """
-    path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "scenarios",
-        scenario, "npc_decisions_q0.json"
-    )
+    path = os.path.join(os.path.dirname(__file__), "..", "..", "scenarios", scenario, "npc_decisions_q0.json")
     if not os.path.isfile(path):
         return None
     try:
@@ -658,7 +672,7 @@ def _trigger_npc_decisions(room: GameRoom):
     logger.info(f"Room {room.id} Q{room.quarter_number}: triggering NPC decisions for {list(ai_only.keys())}")
 
     # Extract language from room metadata (default zh)
-    lang = getattr(room, 'metadata', {}).get('lang', 'zh')
+    lang = getattr(room, "metadata", {}).get("lang", "zh")
     # Normalize: room metadata uses "zh-CN" or "zh", pre-baked decisions use "zh"
     if lang and lang.startswith("zh"):
         lang = "zh"
@@ -675,17 +689,12 @@ def _trigger_npc_decisions(room: GameRoom):
                 faction_decisions = decisions_data.get(fid, {})
                 lang_data = faction_decisions.get(lang)
                 if lang_data and lang_data.get("decision_text"):
-                    room.slots[fid].submit_decision(
-                        lang_data["decision_text"], lang_data.get("commands", [])
-                    )
+                    room.slots[fid].submit_decision(lang_data["decision_text"], lang_data.get("commands", []))
                 else:
                     all_cached = False
 
             if all_cached:
-                logger.info(
-                    f"Room {room.id}: NPC Q0 decisions loaded from repo — "
-                    f"{list(ai_only.keys())}"
-                )
+                logger.info(f"Room {room.id}: NPC Q0 decisions loaded from repo — {list(ai_only.keys())}")
                 return
             else:
                 logger.warning(
@@ -800,29 +809,36 @@ def _init_world_state(room: GameRoom):
             room.world_state = loader.build_world_state(player_faction)
             if room.world_state is not None:
                 room.year = room.world_state.year
-                room.season = str(room.world_state.season.value) if hasattr(room.world_state.season, 'value') else str(room.world_state.season)
+                room.season = (
+                    str(room.world_state.season.value)
+                    if hasattr(room.world_state.season, "value")
+                    else str(room.world_state.season)
+                )
             logger.info(
                 "Scenario WorldState built: scenario=%s player=%s factions=%s year=%s",
-                room.scenario, player_faction,
+                room.scenario,
+                player_faction,
                 list(room.world_state.factions.keys()) if room.world_state else "None",
                 room.year if room.world_state else "N/A",
             )
             return
         except Exception as exc:
             logger.error(
-                "Scenario WorldState build FAILED for scenario=%s player=%s — "
-                "falling back to Three Kingdoms: %s",
-                room.scenario, player_faction, exc, exc_info=True,
+                "Scenario WorldState build FAILED for scenario=%s player=%s — falling back to Three Kingdoms: %s",
+                room.scenario,
+                player_faction,
+                exc,
+                exc_info=True,
             )
             # Fall through to default Three Kingdoms create_initial_world()
 
     room.world_state = create_initial_world(player_faction)
     if room.world_state is not None:
-        room.year = getattr(room.world_state, 'year', 207)
+        room.year = getattr(room.world_state, "year", 207)
         # Old WorldState (v1) doesn't have 'season' — default to spring
-        if hasattr(room.world_state, 'season'):
+        if hasattr(room.world_state, "season"):
             ws_season = room.world_state.season
-            room.season = str(ws_season.value) if hasattr(ws_season, 'value') else str(ws_season)
+            room.season = str(ws_season.value) if hasattr(ws_season, "value") else str(ws_season)
         else:
             room.season = "spring"
 
@@ -836,7 +852,11 @@ def _init_world_state(room: GameRoom):
                 "Room %s: FACTION MISMATCH after fallback! scenario=%s, "
                 "slot factions=%s, WorldState factions=%s, missing=%s. "
                 "WorldState was built from wrong scenario data.",
-                room.id, room.scenario, list(slot_factions), list(ws_factions), list(missing),
+                room.id,
+                room.scenario,
+                list(slot_factions),
+                list(ws_factions),
+                list(missing),
             )
 
 
@@ -857,7 +877,10 @@ def _save_initial_state_to_db(room: GameRoom):
                 logger.warning(
                     "Room %s: slot faction '%s' not found in WorldState factions (%s) — "
                     "scenario=%s. WorldState was likely built from wrong scenario!",
-                    room.id, fid, list(ws.factions.keys()), room.scenario,
+                    room.id,
+                    fid,
+                    list(ws.factions.keys()),
+                    room.scenario,
                 )
                 continue
             territories = []
@@ -866,12 +889,14 @@ def _save_initial_state_to_db(room: GameRoom):
                 # Look up actual territory object from ws.territories
                 tid_str = getattr(tid, "id", None) or str(tid)
                 t_obj = ws.territories.get(tid_str) if hasattr(ws, "territories") else None
-                territories.append({
-                    "id": tid_str,
-                    "name": getattr(t_obj, "name", tid_str) if t_obj else tid_str,
-                    "population": getattr(t_obj, "population", 0) if t_obj else 0,
-                    "development": getattr(t_obj, "development", 50) if t_obj else 50,
-                })
+                territories.append(
+                    {
+                        "id": tid_str,
+                        "name": getattr(t_obj, "name", tid_str) if t_obj else tid_str,
+                        "population": getattr(t_obj, "population", 0) if t_obj else 0,
+                        "development": getattr(t_obj, "development", 50) if t_obj else 50,
+                    }
+                )
             policies = {}
             for p in getattr(faction, "policies", []) or []:
                 policies[getattr(p, "name", "unknown")] = {
@@ -879,9 +904,11 @@ def _save_initial_state_to_db(room: GameRoom):
                     "effect": getattr(p, "effect", ""),
                 }
             # FactionState uses 'strength' not 'strength_actual' at creation time
-            troops = (getattr(faction, "strength_actual", 0)
-                      or getattr(faction, "strength", 0)
-                      or getattr(faction, "troops", 0))
+            troops = (
+                getattr(faction, "strength_actual", 0)
+                or getattr(faction, "strength", 0)
+                or getattr(faction, "troops", 0)
+            )
             # Compute population from territory sum if faction has no population attr
             pop = getattr(faction, "population", 0)
             if pop == 0 and territories:
@@ -895,8 +922,7 @@ def _save_initial_state_to_db(room: GameRoom):
                 troops=troops,
                 food=getattr(faction, "food", 0),
                 treasury=getattr(faction, "treasury", 0),
-                morale=(getattr(faction, "morale_actual", 50)
-                        or getattr(faction, "morale", 50)),
+                morale=(getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50)),
                 territories=territories,
                 policies=policies,
                 is_active=getattr(faction, "is_active", True),
@@ -943,17 +969,13 @@ def _resolve_and_advance(room: GameRoom):
     if not _check_credit_before_turn(room):
         room.phase = RoomPhase.DECISION  # Reset phase so user can retry later
         raise CreditInsufficientError(
-            "余额不足，无法开始新回合。请充值后再试。\n"
-            "Insufficient credits. Please top up and try again."
+            "余额不足，无法开始新回合。请充值后再试。\nInsufficient credits. Please top up and try again."
         )
 
     # ── Rate limit: minimum 30s between turns ──
     if not _check_rate_limit(room.id):
         room.phase = RoomPhase.DECISION
-        raise RateLimitError(
-            "操作过快，请等待 30 秒后再试。\n"
-            "Too fast. Please wait 30 seconds between turns."
-        )
+        raise RateLimitError("操作过快，请等待 30 秒后再试。\nToo fast. Please wait 30 seconds between turns.")
 
     room.phase = RoomPhase.RESOLVING
     ws = room.world_state
@@ -964,9 +986,9 @@ def _resolve_and_advance(room: GameRoom):
     engine_mode = detect_engine_mode()
     llm = _get_llm()
     # Set room context on adapter so all LLM calls in this turn are logged
-    if hasattr(llm, 'set_room_context'):
+    if hasattr(llm, "set_room_context"):
         llm.set_room_context(room.id, room.quarter_number + 1, room.scenario)
-    lang = getattr(room, 'metadata', {}).get('lang', 'zh')
+    lang = getattr(room, "metadata", {}).get("lang", "zh")
     decisions = collect_all_decisions(room, ws, llm=llm, turn_memory=room.turn_summaries, lang=lang)
 
     # 根据引擎模式选择仿真器
@@ -996,13 +1018,15 @@ def _resolve_and_advance(room: GameRoom):
     # ── Accumulate narrative history for turn replay ──
     if not hasattr(room, "_narrative_history"):
         room._narrative_history = []
-    room._narrative_history.append({
-        "quarter": room.quarter_number + 1,  # upcoming quarter number
-        "year": room.year,
-        "season": room.season,
-        "narratives": dict(result.narratives),
-        "npc_actions": list(npc_actions),
-    })
+    room._narrative_history.append(
+        {
+            "quarter": room.quarter_number + 1,  # upcoming quarter number
+            "year": room.year,
+            "season": room.season,
+            "narratives": dict(result.narratives),
+            "npc_actions": list(npc_actions),
+        }
+    )
     # Keep last 20 turns in memory
     if len(room._narrative_history) > 20:
         room._narrative_history = room._narrative_history[-20:]
@@ -1030,6 +1054,7 @@ def _resolve_and_advance(room: GameRoom):
     # 下个季度 NPC 异步预生成决策（不阻塞人类玩家的响应）
     # 人类 think time (10-30s) > NPC 生成时间 (3-8s)，所以下个命令到达时 NPC 已准备好
     import threading
+
     threading.Thread(target=_trigger_npc_decisions, args=(room,), daemon=True).start()
 
     ws_dict = ws.to_dict() if hasattr(ws, "to_dict") else None
@@ -1060,13 +1085,18 @@ def _resolve_v1(room, ws, decisions, llm):
 
     # Run V1 simulation with a timeout (80s < Cloudflare 100s)
     _TIMEOUT = 80
-    lang = getattr(room, 'metadata', {}).get('lang', 'zh')
+    lang = getattr(room, "metadata", {}).get("lang", "zh")
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(
-                simulator.simulate, ws, fd, room.turn_summaries,
-                room_id=room.id, quarter_number=room.quarter_number + 1,
-                scenario=room.scenario, lang=lang,
+                simulator.simulate,
+                ws,
+                fd,
+                room.turn_summaries,
+                room_id=room.id,
+                quarter_number=room.quarter_number + 1,
+                scenario=room.scenario,
+                lang=lang,
             )
             v1_result = future.result(timeout=_TIMEOUT)
     except concurrent.futures.TimeoutError:
@@ -1097,17 +1127,13 @@ def _resolve_v1(room, ws, decisions, llm):
                 "treasury": faction.treasury + delta.get("treasury_delta", 0),
                 "morale": morale + delta.get("morale_delta", 0),
                 "territories": [
-                    {"id": t, "name": ws.territories[t].name if t in ws.territories else t}
-                    for t in faction.territories
+                    {"id": t, "name": ws.territories[t].name if t in ws.territories else t} for t in faction.territories
                 ],
                 "policies": getattr(faction, "policies", {}),
                 "is_active": True,
             }
         if v1_factions:
-            logger.info(
-                f"V1: converted state_changes→factions for {list(v1_factions.keys())} "
-                f"(Rome delta format)"
-            )
+            logger.info(f"V1: converted state_changes→factions for {list(v1_factions.keys())} (Rome delta format)")
     if not v1_factions:
         # V1 prompt may use "state_changes" instead of "factions"
         # (e.g. rome-triumvirate). Use WorldState factions as fallback.
@@ -1175,22 +1201,30 @@ def _resolve_v1(room, ws, decisions, llm):
                 fname = faction.name
             else:
                 fd = factions_data.get(fid, {})
-                fname = {"cao": "曹操", "shu": "刘备", "wu": "孙权"}.get(fid, factions_data.get(fid, {}).get("name", fid))
+                fname = {"cao": "曹操", "shu": "刘备", "wu": "孙权"}.get(
+                    fid, factions_data.get(fid, {}).get("name", fid)
+                )
                 troops = fd.get("troops", 0)
                 food = fd.get("food", 0)
                 territory_names = [t["name"] if isinstance(t, dict) else str(t) for t in fd.get("territories", [])]
                 territory_str = "、".join(territory_names[:3]) if territory_names else "无领地"
             narratives[fid] = (
-                f"{global_narrative}\n\n"
-                f"【{fname}方纪】是季，{fname}拥兵{troops:,}，积粟{food:,}斛，"
-                f"据{territory_str}。" if global_narrative else
-                f"【{fname}】是季，{fname}拥兵{troops:,}，积粟{food:,}斛，据{territory_str}。"
-            ) if lang != "en" else (
-                f"{global_narrative}\n\n"
-                f"[{fname}] This quarter, {fname} commands {troops:,} troops, "
-                f"stores {food:,} grain, holds {territory_str}." if global_narrative else
-                f"[{fname}] This quarter, {fname} commands {troops:,} troops, "
-                f"stores {food:,} grain, holds {territory_str}."
+                (
+                    f"{global_narrative}\n\n"
+                    f"【{fname}方纪】是季，{fname}拥兵{troops:,}，积粟{food:,}斛，"
+                    f"据{territory_str}。"
+                    if global_narrative
+                    else f"【{fname}】是季，{fname}拥兵{troops:,}，积粟{food:,}斛，据{territory_str}。"
+                )
+                if lang != "en"
+                else (
+                    f"{global_narrative}\n\n"
+                    f"[{fname}] This quarter, {fname} commands {troops:,} troops, "
+                    f"stores {food:,} grain, holds {territory_str}."
+                    if global_narrative
+                    else f"[{fname}] This quarter, {fname} commands {troops:,} troops, "
+                    f"stores {food:,} grain, holds {territory_str}."
+                )
             )
 
     # 构建丰富的回合摘要，供 NPC 下回合参考
@@ -1228,12 +1262,9 @@ def _resolve_v1(room, ws, decisions, llm):
     v1_summary = {
         "quarter": room.quarter_number + 1,
         "engine": "v1",
-        "outcome_summary": (
-            f"[{ws.year}年{getattr(ws, 'current_season', '?')}] "
-            f"{battle_str or '各方休整'}"
-        ) if battle_str else (
-            f"[{ws.year}年{getattr(ws, 'current_season', '?')}] 各方休整，蓄力待发"
-        ),
+        "outcome_summary": (f"[{ws.year}年{getattr(ws, 'current_season', '?')}] {battle_str or '各方休整'}")
+        if battle_str
+        else (f"[{ws.year}年{getattr(ws, 'current_season', '?')}] 各方休整，蓄力待发"),
     }
 
     return V1Result(
@@ -1316,8 +1347,10 @@ def _resolve_v3(room, ws, decisions, llm):
     # 创建临时 GameEngine 来获取所有子引擎
     try:
         import os
-        os.environ.setdefault("HISTRATEGY_MACRO", "1")
+
+        os.environ.setdefault("HISTRATEGY_ENGINE", "v3")
         from histrategy.engine.game import GameEngine
+
         engine = GameEngine(scenario=room.scenario, new_game=True, llm=llm)
         engine.world_state_v2 = ws
         engine._use_v2 = True
@@ -1344,10 +1377,10 @@ def _resolve_v3(room, ws, decisions, llm):
     )
     # Override language from room metadata on all LLM engines
     if resolver.macro_policy_engine:
-        lang = getattr(room, 'metadata', {}).get('lang', 'zh')
+        lang = getattr(room, "metadata", {}).get("lang", "zh")
         resolver.macro_policy_engine.lang = lang
     if resolver.narrative_engine:
-        lang = getattr(room, 'metadata', {}).get('lang', 'zh')
+        lang = getattr(room, "metadata", {}).get("lang", "zh")
         resolver.narrative_engine.lang = lang
     result = resolver.resolve(room, ws, decisions, llm=llm)
     _save_v3_state_to_db(room, ws, decisions, result, old_state)
@@ -1392,9 +1425,7 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
             territories_list = []
             for tid in faction.territories:
                 t = ws.territories.get(tid)
-                territories_list.append(
-                    {"id": tid, "name": t.name if t else tid}
-                )
+                territories_list.append({"id": tid, "name": t.name if t else tid})
 
             # ── 政策字典（输入验证） ──
             policies = getattr(faction, "policies", {}) or {}
@@ -1451,7 +1482,11 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
                 try:
                     old = old_state[fid]
                     delta_map = [
-                        ("population", _safe_int(old.get("population", 0)), _safe_int(getattr(faction, "population", 0))),
+                        (
+                            "population",
+                            _safe_int(old.get("population", 0)),
+                            _safe_int(getattr(faction, "population", 0)),
+                        ),
                         ("troops", _safe_int(old.get("troops", 0)), _safe_int(getattr(faction, "strength_actual", 0))),
                         ("food", _safe_float(old.get("food", 0)), _safe_float(faction.food)),
                         ("treasury", _safe_float(old.get("treasury", 0)), _safe_float(faction.treasury)),
@@ -1487,14 +1522,10 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
 
     if error_count > 0:
         logger.warning(
-            f"V3 DB save: {success_count} factions saved, {error_count} failed. "
-            f"room={room.id} q={room.quarter_number}"
+            f"V3 DB save: {success_count} factions saved, {error_count} failed. room={room.id} q={room.quarter_number}"
         )
     elif success_count > 0:
-        logger.info(
-            f"V3 DB save: {success_count} factions saved successfully. "
-            f"room={room.id} q={room.quarter_number}"
-        )
+        logger.info(f"V3 DB save: {success_count} factions saved successfully. room={room.id} q={room.quarter_number}")
 
 
 def _get_llm():
@@ -1574,6 +1605,7 @@ def _collect_quarter_tokens(room_id: str, quarter_number: int) -> dict | None:
     """Aggregate total_tokens from llm_call_log for a specific quarter."""
     try:
         from histrategy.db.connection import execute
+
         rows = execute(
             "SELECT SUM(total_tokens) as total, "
             "SUM(prompt_tokens) as prompt, "
@@ -1608,6 +1640,7 @@ def _get_faction_names(room, lang: str = "zh") -> dict[str, str]:
     # Try scenario faction data first
     try:
         from histrategy.engine.scenario_loader import ScenarioLoader
+
         loader = ScenarioLoader(room.scenario)
         factions = loader.load_factions()
         for fid, f in factions.items():

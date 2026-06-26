@@ -16,12 +16,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from histrategy.engine.engine_switch import detect_engine_mode, EngineMode
+from histrategy.engine.engine_switch import EngineMode, detect_engine_mode
 
 
 def test_v3_multi():
-    """V3 引擎：使用 GameEngine + HISTRATEGY_MACRO=1 模式，每个势力依次一回合。"""
-    os.environ["HISTRATEGY_MACRO"] = "1"
+    """V3 引擎：使用 GameEngine + HISTRATEGY_ENGINE=v3 模式，每个势力依次一回合。"""
+    os.environ["HISTRATEGY_ENGINE"] = "v3"
 
     from histrategy.engine.game import GameEngine
     from histrategy.llm.adapter import LLMAdapter
@@ -68,8 +68,8 @@ def test_v3_multi():
 
 def test_v1_multi():
     """V1 引擎：使用 V1Simulator 直接推演多势力。"""
-    from histrategy.engine.v1_simulator import V1Simulator, _apply_v1_state_to_world
     from histrategy.engine.game import GameEngine
+    from histrategy.engine.v1_simulator import V1Simulator
     from histrategy.llm.adapter import LLMAdapter
 
     llm = LLMAdapter()

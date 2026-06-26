@@ -9,14 +9,13 @@ Verifies the SDK multiplayer integration end-to-end:
   5. Submit human decisions → resolve triggers
   6. Turn history and game state persist to SQLite
 
-Engine: V3 (HISTRATEGY_ENGINE=v3 + HISTRATEGY_MACRO=1)
+Engine: V3 (HISTRATEGY_ENGINE=v3)
 Note: V3 macro resolution involves LLM calls and can take 60-300s.
 This test polls for resolution with a generous timeout.
 """
 
 from __future__ import annotations
 
-import json
 import os
 import shutil
 import socket
@@ -49,7 +48,6 @@ _load_env()
 # Force SQLite mode
 os.environ.pop("HISTRATEGY_DATABASE_URL", None)
 os.environ["HISTRATEGY_ENGINE"] = "v3"
-os.environ["HISTRATEGY_MACRO"] = "1"
 os.environ.setdefault("LLM_MODEL", "deepseek-v4-flash")
 
 TEST_DATA_DIR = os.path.join(str(REPO_ROOT), f"test-data-{uuid.uuid4().hex[:8]}")
@@ -75,6 +73,7 @@ def find_free_port() -> int:
 
 def start_server(host: str, port: int):
     import uvicorn
+
     from histrategy.server.api import create_app
     app = create_app(llm_provider="deepseek")
     uvicorn.run(app, host=host, port=port, log_level="error")
@@ -112,7 +111,7 @@ def main():
         print("  ❌ Server failed to start"); sys.exit(1)
     print("  ✅ Server healthy")
 
-    from histrategy_sdk import ServerClient, MultiplayerRoom
+    from histrategy_sdk import MultiplayerRoom, ServerClient
     client = ServerClient(base_url=base_url, timeout=300)
 
     # ── 2. Health check ──
@@ -243,9 +242,9 @@ def main():
     print("VERIFICATION SUMMARY")
     print(f"  Room:      {room_id}")
     print(f"  DB:        {db_path}")
-    print(f"  Scenario:  rome-triumvirate (en)")
-    print(f"  Engine:    V3 (macro)")
-    print(f"  DB Mode:   SQLite-only ✅")
+    print("  Scenario:  rome-triumvirate (en)")
+    print("  Engine:    V3 (macro)")
+    print("  DB Mode:   SQLite-only ✅")
 
     failures = [c for c in CHECKS if "❌" in c]
     print(f"\n  Checks: {len(CHECKS)} total, {len([c for c in CHECKS if '✅' in c])} pass, {len(failures)} fail")

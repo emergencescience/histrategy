@@ -5,12 +5,12 @@ import sys
 import time
 
 # Use macro engine for realistic simulation
-os.environ["HISTRATEGY_MACRO"] = "1"
+os.environ["HISTRATEGY_ENGINE"] = "v3"
 
 sys.path.insert(0, "/opt/data/repos/histrategy")
 
-from histrategy.llm.adapter import LLMAdapter
 from histrategy.engine.game import GameEngine
+from histrategy.llm.adapter import LLMAdapter
 
 llm = LLMAdapter()
 print(f"LLM available: {llm.is_available}  provider: {llm.provider if hasattr(llm, 'provider') else 'unknown'}")

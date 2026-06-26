@@ -256,8 +256,15 @@ class GameEngine:
         self._knowledge_base = None
 
         # Detect v3 early — needed before IntentParser init
-        self._use_v3 = os.environ.get("HISTRATEGY_V3", "").lower() in ("1", "true", "yes")
-        self._use_macro = os.environ.get("HISTRATEGY_MACRO", "").lower() in ("1", "true", "yes")
+        from ..engine.engine_switch import EngineMode, detect_engine_mode
+
+        engine_mode = detect_engine_mode()
+        self._use_v3 = engine_mode == EngineMode.V3 or os.environ.get("HISTRATEGY_V3", "").lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+        self._use_macro = self._use_v3
 
         if llm and llm.is_available:
             from ..llm.narrative import NarrativeEngine
@@ -774,6 +781,7 @@ class GameEngine:
         except FileNotFoundError:
             # Fall back to legacy loader for scenarios without scenario.toml
             from .loader import build_world_state
+
             self.world_state_v2 = build_world_state(mapped, scenario_id, self._knowledge_path)
 
         # Cache the loader for later use (prompts, format_year, etc.)
@@ -830,23 +838,27 @@ class GameEngine:
         ]
 
         narrative = (
-            f"### 天下大势\\n"
-            f"建安{ws.year - 196}年（公元{ws.year}年），汉室倾颓，诸侯并起。\\n"
-            f"曹操迎天子于许昌，挟天子以令诸侯，已据中原大半。\\n"
-            f"孙权继父兄之业，稳坐江东。\\n\\n"
-            f"### 主公处境\\n"
-            f"你，{player.name}，以{capital_name}为根基，"
-            f"麾下兵卒{player.strength_actual}，粮草{player.food}，资金{player.treasury}。\\n"
-            f"当审时度势，谋定而后动。"
-        ) if getattr(self, "_scenario_language", "zh") != "en" else (
-            f"### The Realm\\n"
-            f"Year {ws.year - 196} of Jian'an (AD {ws.year}). The Han dynasty crumbles; warlords rise across the land.\\n"
-            f"Cao Cao holds the Emperor at Xuchang, commanding the realm in name, and controls most of the Central Plains.\\n"
-            f"Sun Quan, heir to his father and brother's legacy, rules firmly over Jiangdong.\\n\\n"
-            f"### Your Position\\n"
-            f"You are {player.name}, ruling from {capital_name}. "
-            f"You command {player.strength_actual} troops, with {player.food} bushels of grain and {player.treasury} gold in the treasury.\\n"
-            f"Survey the realm and plan your next move."
+            (
+                f"### 天下大势\\n"
+                f"建安{ws.year - 196}年（公元{ws.year}年），汉室倾颓，诸侯并起。\\n"
+                f"曹操迎天子于许昌，挟天子以令诸侯，已据中原大半。\\n"
+                f"孙权继父兄之业，稳坐江东。\\n\\n"
+                f"### 主公处境\\n"
+                f"你，{player.name}，以{capital_name}为根基，"
+                f"麾下兵卒{player.strength_actual}，粮草{player.food}，资金{player.treasury}。\\n"
+                f"当审时度势，谋定而后动。"
+            )
+            if getattr(self, "_scenario_language", "zh") != "en"
+            else (
+                f"### The Realm\\n"
+                f"Year {ws.year - 196} of Jian'an (AD {ws.year}). The Han dynasty crumbles; warlords rise across the land.\\n"
+                f"Cao Cao holds the Emperor at Xuchang, commanding the realm in name, and controls most of the Central Plains.\\n"
+                f"Sun Quan, heir to his father and brother's legacy, rules firmly over Jiangdong.\\n\\n"
+                f"### Your Position\\n"
+                f"You are {player.name}, ruling from {capital_name}. "
+                f"You command {player.strength_actual} troops, with {player.food} bushels of grain and {player.treasury} gold in the treasury.\\n"
+                f"Survey the realm and plan your next move."
+            )
         )
 
         npc_actions = []
@@ -1219,9 +1231,14 @@ class GameEngine:
             try:
                 if ws.player_deviation > 0.0:
                     if is_en:
-                        result["aftermath"] = f"[Historian's Note: Historical Deviation {ws.player_deviation:.2f}]\n\n" + result["aftermath"]
+                        result["aftermath"] = (
+                            f"[Historian's Note: Historical Deviation {ws.player_deviation:.2f}]\n\n"
+                            + result["aftermath"]
+                        )
                     else:
-                        result["aftermath"] = f"【史官注：历史偏离度 {ws.player_deviation:.2f}】\n\n" + result["aftermath"]
+                        result["aftermath"] = (
+                            f"【史官注：历史偏离度 {ws.player_deviation:.2f}】\n\n" + result["aftermath"]
+                        )
             except Exception:
                 pass
 
@@ -1887,8 +1904,14 @@ class GameEngine:
                 if narr:
                     narrative_parts.append(f"⚡ {narr}")
 
-        narrative_text = "\n\n".join(narrative_parts) if narrative_parts else (
-            "All is quiet across the realm.\n" if getattr(self, "_scenario_language", "zh") == "en" else "天下大势，波澜不惊。\n"
+        narrative_text = (
+            "\n\n".join(narrative_parts)
+            if narrative_parts
+            else (
+                "All is quiet across the realm.\n"
+                if getattr(self, "_scenario_language", "zh") == "en"
+                else "天下大势，波澜不惊。\n"
+            )
         )
 
         # Generate plan suggestions
@@ -2108,7 +2131,7 @@ class GameEngine:
             ws,
             llm=llm,
             turn_memory=room.turn_summaries,
-            lang=getattr(room, 'metadata', {}).get('lang', 'zh'),
+            lang=getattr(room, "metadata", {}).get("lang", "zh"),
         )
 
         # ── Resolve quarter ──
