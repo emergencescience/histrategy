@@ -131,6 +131,12 @@ def init_db():
                 conn.commit()
             except Exception:
                 pass
+            # Add display_name to faction_slot (H19a remove in-memory state)
+            try:
+                conn.execute("ALTER TABLE faction_slot ADD COLUMN display_name TEXT DEFAULT ''")
+                conn.commit()
+            except Exception:
+                pass
         else:
             # PostgreSQL: execute statements individually (psycopg2 doesn't support multi-statement)
             with conn.cursor() as cur:
@@ -208,6 +214,15 @@ def init_db():
                         cur.execute("ALTER TABLE game_room ADD COLUMN is_public INTEGER DEFAULT 0")
                     else:
                         cur.execute("ALTER TABLE game_room ADD COLUMN IF NOT EXISTS is_public INTEGER DEFAULT 0")
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                # Add display_name to faction_slot (H19a remove in-memory state)
+                try:
+                    if _IS_SQLITE:
+                        cur.execute("ALTER TABLE faction_slot ADD COLUMN display_name TEXT DEFAULT ''")
+                    else:
+                        cur.execute("ALTER TABLE faction_slot ADD COLUMN IF NOT EXISTS display_name TEXT DEFAULT ''")
                     conn.commit()
                 except Exception:
                     conn.rollback()

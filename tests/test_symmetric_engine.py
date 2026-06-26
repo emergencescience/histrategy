@@ -602,22 +602,19 @@ class TestPreAssignedFlow:
         """A pre-assigned player can enter using faction_id."""
         from histrategy.engine.faction_slot import LLM_NPC_FACTIONS, create_ai_slot, create_human_slot
         from histrategy.engine.game_room import GameRoom, RoomPhase
-        from histrategy.server.room_manager import _players, _rooms, enter_room
-
-        _rooms.clear()
-        _players.clear()
+        from histrategy.db.models import save_room
+        from histrategy.server.room_manager import _enter_player, enter_room
 
         room = GameRoom(host_user_id="host-1", scenario="207")
         room.phase = RoomPhase.WAITING
-        room.slots["cao"] = create_human_slot("cao", "cao")
+        room.slots["cao"] = create_human_slot("cao", "cao", display_name="张三")
         for fid in LLM_NPC_FACTIONS:
             if fid not in room.slots:
                 room.slots[fid] = create_ai_slot(fid)
 
-        _rooms[room.id] = room
-        _players[room.id] = {
-            "cao": {"role": "player", "display_name": "张三"},
-        }
+        # Persist to DB — _get_room() loads from DB
+        save_room(room)
+        _enter_player(room.id, "cao", "player", "张三")
 
         # Player visits via share link
         enter_result = enter_room(
@@ -632,22 +629,18 @@ class TestPreAssignedFlow:
         """A player cannot take over a pre-assigned HUMAN slot via wrong faction."""
         from histrategy.engine.faction_slot import LLM_NPC_FACTIONS, create_ai_slot, create_human_slot
         from histrategy.engine.game_room import GameRoom, RoomPhase
-        from histrategy.server.room_manager import _players, _rooms, enter_room
-
-        _rooms.clear()
-        _players.clear()
+        from histrategy.db.models import save_room
+        from histrategy.server.room_manager import _enter_player, enter_room
 
         room = GameRoom(host_user_id="host-1", scenario="207")
         room.phase = RoomPhase.WAITING
-        room.slots["cao"] = create_human_slot("cao", "cao")
+        room.slots["cao"] = create_human_slot("cao", "cao", display_name="张三")
         for fid in LLM_NPC_FACTIONS:
             if fid not in room.slots:
                 room.slots[fid] = create_ai_slot(fid)
 
-        _rooms[room.id] = room
-        _players[room.id] = {
-            "cao": {"role": "player", "display_name": "张三"},
-        }
+        save_room(room)
+        _enter_player(room.id, "cao", "player", "张三")
 
         # Trying to enter cao succeeds — faction_id "cao" matches,
         # and the player is already registered (returns already_in)
@@ -665,26 +658,20 @@ class TestPreAssignedFlow:
 
     def test_faction_based_reconnect(self):
         """Faction-based reconnection works correctly."""
-        from histrategy.server.room_manager import _players, _rooms, enter_room
-
-        _rooms.clear()
-        _players.clear()
-
-        # Manually set up a room with a pre-assigned HUMAN slot
         from histrategy.engine.faction_slot import LLM_NPC_FACTIONS, create_ai_slot, create_human_slot
         from histrategy.engine.game_room import GameRoom, RoomPhase
+        from histrategy.db.models import save_room
+        from histrategy.server.room_manager import _enter_player, enter_room
 
         room = GameRoom(host_user_id="host-1", scenario="207")
         room.phase = RoomPhase.WAITING
-        room.slots["cao"] = create_human_slot("cao", "cao")
+        room.slots["cao"] = create_human_slot("cao", "cao", display_name="张三")
         for fid in LLM_NPC_FACTIONS:
             if fid not in room.slots:
                 room.slots[fid] = create_ai_slot(fid)
 
-        _rooms[room.id] = room
-        _players[room.id] = {
-            "cao": {"role": "player", "display_name": "张三"},
-        }
+        save_room(room)
+        _enter_player(room.id, "cao", "player", "张三")
 
         # Player reconnects with correct faction
         result = enter_room(

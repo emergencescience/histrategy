@@ -109,17 +109,19 @@ def _save_faction_slots(room: GameRoom):
         existing = execute_one("SELECT id FROM faction_slot WHERE id = ?", (slot_id,))
 
         commands_json = json_dumps(slot.pending_commands) if slot.pending_commands else None
+        display_name = getattr(slot, "display_name", "")
 
         if existing:
             execute_write(
                 """UPDATE faction_slot SET
-                    occupant_type = ?, occupant_id = ?,
+                    occupant_type = ?, occupant_id = ?, display_name = ?,
                     pending_decision = ?, pending_commands = ?,
                     is_active = ?, updated_at = ?
                 WHERE id = ?""",
                 (
                     slot.occupant_type.value,
                     slot.occupant_id,
+                    display_name,
                     slot.pending_decision,
                     commands_json,
                     1 if slot.is_active else 0,
@@ -130,16 +132,17 @@ def _save_faction_slots(room: GameRoom):
         else:
             execute_write(
                 """INSERT INTO faction_slot
-                    (id, room_id, faction_id, occupant_type, occupant_id,
+                    (id, room_id, faction_id, occupant_type, occupant_id, display_name,
                      ai_model, ai_temperature, pending_decision,
                      pending_commands, is_active, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     slot_id,
                     room.id,
                     faction_id,
                     slot.occupant_type.value,
                     slot.occupant_id,
+                    display_name,
                     slot.ai_model,
                     slot.ai_temperature,
                     slot.pending_decision,

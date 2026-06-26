@@ -42,10 +42,26 @@ class RateLimitError(Exception):
     pass
 
 
-# 内存中的房间 {room_id: GameRoom}
-_rooms: dict[str, GameRoom] = {}
-# 内存中的玩家 {room_id: {user_id: {role, display_name}}}
-_players: dict[str, dict[str, dict]] = {}
+# ── Player helper ────────────────────────────────────
+
+
+def _get_room_players(room: GameRoom) -> dict[str, dict]:
+    """Derive player info from room.slots and host_user_id (no in-memory cache).
+
+    Returns dict compatible with old _players format:
+        {user_id: {role, display_name}}
+    """
+    players: dict[str, dict] = {}
+    # Host
+    if room.host_user_id:
+        players[room.host_user_id] = {"role": "host", "display_name": room.host_user_id}
+    # Human players from slots
+    for _fid, s in room.slots.items():
+        if s.is_human() and s.occupant_id:
+            uid = s.occupant_id
+            if uid not in players:
+                players[uid] = {"role": "player", "display_name": getattr(s, "display_name", "") or uid}
+    return players
 
 
 def _try_save(room: GameRoom, ws_dict: dict | None = None):
@@ -131,10 +147,8 @@ def create_room(
     )
     if metadata:
         room.metadata = metadata
-    _rooms[room.id] = room
-    _players[room.id] = {}
 
-    # 人类势力 → OPEN（等待玩家加入）或 HUMAN（预分配）
+    # 人类势力 → HUMAN（预分配）
     # 特殊处理：player_name == "AI" 的预分配势力应作为 AI 势力
     from histrategy.engine.faction_slot import create_ai_slot as _make_ai
     from histrategy.engine.faction_slot import create_human_slot
@@ -148,7 +162,7 @@ def create_room(
             room.slots[fid] = slot
         else:
             # 预分配：直接设为 HUMAN，occupant_id = faction_id（内部服务，无需 token）
-            slot = create_human_slot(fid, fid)
+            slot = create_human_slot(fid, fid, player_name)
             room.slots[fid] = slot
         # Use fid directly — frontend resolves display names from /api/scenarios
         display_fid = fid
@@ -251,8 +265,7 @@ def enter_room(
     if not room:
         return {"ok": False, "error": "房间不存在"}
 
-    if room_id not in _players:
-        _players[room_id] = {}
+    room_players = _get_room_players(room)
 
     # 翻译显示名 → 内部 ID
     if faction:
@@ -282,8 +295,8 @@ def enter_room(
             return {"ok": False, "error": f"势力 {faction} 由AI控制"}
 
     # 如果已在房间里，返回当前状态
-    if user_id in _players[room_id]:
-        p = _players[room_id][user_id]
+    if user_id in room_players:
+        p = room_players[user_id]
         result = {
             "ok": True,
             "already_in": True,
@@ -314,18 +327,19 @@ def kick_player(room_id: str, host_user_id: str, target_user_id: str) -> dict:
     if not room:
         return {"ok": False, "error": "房间不存在"}
 
-    host = _players.get(room_id, {}).get(host_user_id, {})
+    room_players = _get_room_players(room)
+    host = room_players.get(host_user_id, {})
     if host.get("role") != "host":
         return {"ok": False, "error": "只有房主可以踢人"}
 
-    if target_user_id in _players.get(room_id, {}):
+    if target_user_id in room_players:
         # 释放该玩家占据的势力
         for slot in room.slots.values():
             if slot.is_human() and slot.occupant_id == target_user_id:
                 from histrategy.engine.faction_slot import create_open_slot
 
                 room.slots[slot.faction_id] = create_open_slot(slot.faction_id)
-        del _players[room_id][target_user_id]
+        _try_save(room)
 
     return {"ok": True}
 
@@ -340,7 +354,8 @@ def pick_faction(room_id: str, user_id: str, faction_id: str) -> dict:
     if not room:
         return {"ok": False, "error": "房间不存在"}
 
-    player = _players.get(room_id, {}).get(user_id)
+    room_players = _get_room_players(room)
+    player = room_players.get(user_id)
     if not player:
         return {"ok": False, "error": "请先进入房间"}
 
@@ -384,7 +399,7 @@ def start_game(room_id: str, user_id: str) -> dict:
     if not room:
         return {"ok": False, "error": "房间不存在"}
 
-    player = _players.get(room_id, {}).get(user_id, {})
+    player = _get_room_players(room).get(user_id, {})
     if player.get("role") != "host":
         return {"ok": False, "error": "只有房主可以开始游戏"}
 
@@ -512,7 +527,7 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
     fnames = _get_faction_names(room, lang=lang)
     _display = lambda fid: fnames.get(fid, fid)
 
-    room_players = _players.get(room_id, {})
+    room_players = _get_room_players(room)
     submitted = [_display(fid) for fid, s in room.slots.items() if s.is_active and s.has_submitted()]
     pending = [_display(fid) for fid, s in room.slots.items() if s.is_active and not s.has_submitted()]
 
@@ -703,16 +718,12 @@ def _trigger_npc_decisions(room: GameRoom):
 
 
 def _get_room(room_id: str) -> GameRoom | None:
-    if room_id in _rooms:
-        return _rooms[room_id]
+    """Load room from database (no in-memory cache — survives pod restart)."""
     try:
         from histrategy.db.models import load_room
 
         room = load_room(room_id)
         if room:
-            _rooms[room_id] = room
-            # 从 DB 恢复玩家注册（支持服务器重启后重新连接）
-            _restore_players_from_db(room_id)
             # 从 DB 恢复的房间如果处于 WAITING 阶段且有 AI NPC，
             # 需要立即触发 NPC 决策生成（from_dict 会清空 pending_decision）
             if room.phase.value == "waiting" and any(s.is_ai() and s.is_active for s in room.slots.values()):
@@ -725,51 +736,16 @@ def _get_room(room_id: str) -> GameRoom | None:
 
 
 def _enter_player(room_id: str, user_id: str, role: str, display_name: str):
-    if room_id not in _players:
-        _players[room_id] = {}
-    _players[room_id][user_id] = {
-        "role": role,
-        "display_name": display_name,
-    }
-    _save_player_to_db(room_id, user_id, role, display_name)
-
-
-def _save_player_to_db(room_id: str, user_id: str, role: str, display_name: str):
-    try:
-        from histrategy.db.connection import execute_write
-
-        pid = f"{room_id}_{user_id}"
-        execute_write(
-            """INSERT OR REPLACE INTO room_player (id, room_id, user_id, role, display_name)
-            VALUES (?, ?, ?, ?, ?)""",
-            (pid, room_id, user_id, role, display_name),
-        )
-    except Exception:
-        pass
-
-
-def _restore_players_from_db(room_id: str):
-    """从 room_player 表恢复玩家注册信息到内存（服务器重启后）。"""
-    try:
-        from histrategy.db.connection import execute
-
-        rows = execute(
-            "SELECT user_id, role, display_name FROM room_player WHERE room_id = ?",
-            (room_id,),
-        )
-        if rows:
-            if room_id not in _players:
-                _players[room_id] = {}
-            for row in rows:
-                uid = row["user_id"]
-                if uid not in _players[room_id]:
-                    _players[room_id][uid] = {
-                        "role": row["role"],
-                        "display_name": row["display_name"] or "",
-                    }
-            logger.info(f"Restored {len(rows)} players for room {room_id} from DB")
-    except Exception:
-        pass
+    """Register a player in the room. Updates the relevant FactionSlot display_name."""
+    room = _get_room(room_id)
+    if not room:
+        return
+    # Update slot display_name if this user occupies a faction
+    for _fid, s in room.slots.items():
+        if s.is_human() and s.occupant_id == user_id:
+            s.display_name = display_name
+            _try_save(room)
+            break
 
 
 def _room_summary(room: GameRoom) -> dict:

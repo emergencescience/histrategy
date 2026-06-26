@@ -72,6 +72,7 @@ class FactionSlot:
     faction_id: str  # "cao" | "shu" | "wu" | "liubiao" | ...
     occupant_type: OccupantType = OccupantType.OPEN
     occupant_id: str | None = None  # user_id (HUMAN) | None (AI/OPEN)
+    display_name: str = ""  # human-readable name (e.g. "张三")
 
     # AI NPC 配置
     ai_model: str | None = None  # LLM model override
@@ -122,6 +123,7 @@ class FactionSlot:
             "faction_id": self.faction_id,
             "occupant_type": self.occupant_type.value,
             "occupant_id": self.occupant_id,
+            "display_name": self.display_name,
             "ai_model": self.ai_model,
             "ai_temperature": self.ai_temperature,
             "is_active": self.is_active,
@@ -135,6 +137,7 @@ class FactionSlot:
             faction_id=data["faction_id"],
             occupant_type=OccupantType(data.get("occupant_type", "open")),
             occupant_id=data.get("occupant_id"),
+            display_name=data.get("display_name", ""),
             ai_model=data.get("ai_model"),
             ai_temperature=data.get("ai_temperature", 0.7),
             is_active=data.get("is_active", True),
@@ -153,12 +156,13 @@ class FactionSlot:
 # ── 工厂函数 ──────────────────────────────────────
 
 
-def create_human_slot(faction_id: str, user_id: str) -> FactionSlot:
+def create_human_slot(faction_id: str, user_id: str, display_name: str = "") -> FactionSlot:
     """创建一个人类玩家槽位。"""
     return FactionSlot(
         faction_id=faction_id,
         occupant_type=OccupantType.HUMAN,
         occupant_id=user_id,
+        display_name=display_name,
     )
 
 

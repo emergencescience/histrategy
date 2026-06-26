@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS faction_slot (
     faction_id      TEXT NOT NULL,
     occupant_type   TEXT NOT NULL DEFAULT 'open',  -- human | ai_npc | open
     occupant_id     TEXT,                          -- user_id (human) | NULL
+    display_name    TEXT DEFAULT '',               -- human-readable name (e.g. "张三")
     ai_model        TEXT,                          -- LLM model for NPC
     ai_temperature  REAL DEFAULT 0.7,
     pending_decision TEXT,                         -- 本季度已提交决策
