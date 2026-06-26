@@ -247,13 +247,32 @@ def _collect_ai_decisions_parallel(
                 error=str(e),
             )
 
+    _NPC_LLM_TIMEOUT = 60  # 每个 NPC 的 LLM 调用超时（秒）
     with ThreadPoolExecutor(max_workers=len(ai_slots)) as executor:
         futures = {executor.submit(_generate_one, slot): slot for slot in ai_slots}
         for future in as_completed(futures):
-            result = future.result()
+            slot = futures[future]
+            try:
+                result = future.result(timeout=_NPC_LLM_TIMEOUT)
+            except TimeoutError:
+                logger.error(
+                    f"NPC LLM call timed out ({_NPC_LLM_TIMEOUT}s) for {slot.faction_id} — "
+                    f"falling back to heuristic"
+                )
+                decision, commands = _generate_heuristic_decision(
+                    world_state,
+                    slot.faction_id,
+                )
+                result = DecisionResult(
+                    faction_id=slot.faction_id,
+                    decision_text=decision,
+                    commands=commands,
+                    source="heuristic_timeout",
+                    latency_ms=_NPC_LLM_TIMEOUT * 1000,
+                    error="LLM call timed out",
+                )
             results[result.faction_id] = result
             # 更新 slot
-            slot = futures[future]
             slot.submit_decision(result.decision_text, result.commands)
 
 

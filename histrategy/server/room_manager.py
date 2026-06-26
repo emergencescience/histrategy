@@ -190,12 +190,11 @@ def create_room(
     # 立即初始化世界状态并开始游戏
     _init_world_state(room)
     room.phase = RoomPhase.WAITING
+    # AI NPC 马上开始生成决策 — 必须在 _try_save 之前，确保 NPC 决策持久化
+    _trigger_npc_decisions(room)
     ws_dict = room.world_state.to_dict() if hasattr(room.world_state, "to_dict") else None
     _try_save(room, ws_dict)  # 传入 ws_dict 防止 DB 中 world_state 被写为 NULL
     _save_initial_state_to_db(room)  # 写入 game_state (quarter=0) — MUST be after _try_save (FK to game_room)
-
-    # AI NPC 马上开始生成决策
-    _trigger_npc_decisions(room)
 
     # 返回显示名列表供前端展示（动态从场景数据获取）
     lang = getattr(room, "metadata", {}).get("lang", "zh") if getattr(room, "metadata", None) else "zh"
@@ -223,6 +222,9 @@ def start_game(room_id: str) -> dict:
     Returns:
         {"ok": True, "phase": "waiting", "humans": [...], "ai_npcs": [...]}
     """
+    room = _get_room(room_id)
+    if not room:
+        return {"ok": False, "error": "房间不存在"}
     if room.phase.value != "lobby":
         return {"ok": False, "error": "只有房主可以开始游戏"}
 
@@ -249,10 +251,9 @@ def start_game(room_id: str) -> dict:
         return {"ok": False, "error": f"初始化世界状态失败: {e}"}
 
     room.start_game()
-    _try_save(room)
-
-    # NPC 立即下命令（不等人类提交）
+    # NPC 立即下命令（不等人类提交）— 必须在 _try_save 之前，确保 NPC 决策持久化
     _trigger_npc_decisions(room)
+    _try_save(room)
 
     humans = [s.faction_id for s in room.slots.values() if s.is_human()]
     ais = [s.faction_id for s in room.slots.values() if s.is_ai()]
@@ -525,8 +526,13 @@ def _trigger_npc_decisions(room: GameRoom):
 
     # 临时替换 room.slots 为只含 AI 的版本，避免 DecisionBus 等待人类
     # 使用 collect_all_decisions 为 AI 生成决策
+    # 90s 超时：每个 NPC LLM 调用 60s 超时 + 30s buffer
+    _NPC_TRIGGER_TIMEOUT = 90
     try:
-        decisions = collect_all_decisions(room, ws, llm=llm, turn_memory=room.turn_summaries, lang=lang)
+        decisions = collect_all_decisions(
+            room, ws, llm=llm, turn_memory=room.turn_summaries, lang=lang,
+            timeout=_NPC_TRIGGER_TIMEOUT,
+        )
         # 将 AI 决策写入对应的 slot
         for fid, dr in decisions.items():
             if fid in room.slots:
@@ -543,11 +549,24 @@ def _get_room(room_id: str) -> GameRoom | None:
 
         room = load_room(room_id)
         if room:
-            # 从 DB 恢复的房间如果处于 WAITING 阶段且有 AI NPC，
-            # 需要立即触发 NPC 决策生成（from_dict 会清空 pending_decision）
-            if room.phase.value == "waiting" and any(s.is_ai() and s.is_active for s in room.slots.values()):
-                logger.info(f"Room {room_id} loaded from DB (Q{room.quarter_number}), triggering NPC decisions")
-                _trigger_npc_decisions(room)
+            # 从 DB 恢复的房间如果处于 WAITING 阶段且有 AI NPC 未提交，
+            # 需要立即触发 NPC 决策生成。
+            # 正常情况下 NPC 决策已随 _resolve_and_advance 同步保存到 DB，
+            # 此处只处理异常情况（如 pod 在 _resolve_and_advance 前崩溃）。
+            ai_slots = [s for s in room.slots.values() if s.is_ai() and s.is_active]
+            if room.phase.value == "waiting" and ai_slots:
+                missing = [s.faction_id for s in ai_slots if not s.has_submitted()]
+                if missing:
+                    logger.info(
+                        f"Room {room_id} loaded from DB (Q{room.quarter_number}), "
+                        f"NPC decisions missing for {missing}, triggering generation"
+                    )
+                    _trigger_npc_decisions(room)
+                else:
+                    logger.debug(
+                        f"Room {room_id} loaded from DB (Q{room.quarter_number}), "
+                        f"NPC decisions already present for {[s.faction_id for s in ai_slots]}"
+                    )
             return room
     except Exception:
         pass
@@ -812,11 +831,10 @@ def _resolve_and_advance(room: GameRoom):
 
     room.world_state = ws
 
-    # 下个季度 NPC 异步预生成决策（不阻塞人类玩家的响应）
-    # 人类 think time (10-30s) > NPC 生成时间 (3-8s)，所以下个命令到达时 NPC 已准备好
-    import threading
-
-    threading.Thread(target=_trigger_npc_decisions, args=(room,), daemon=True).start()
+    # 下个季度 NPC 决策同步生成后保存到 DB，防止 DB 中 phase=WAITING 但 NPC 决策为空
+    # 之前用异步线程导致 race condition：_try_save 在线程提交决策前先执行，DB 为空。
+    # 后续 _get_room 加载时触发 _trigger_npc_decisions 重生成，可能因 LLM 失败导致 NPC 卡在 pending。
+    _trigger_npc_decisions(room)
 
     ws_dict = ws.to_dict() if hasattr(ws, "to_dict") else None
     _try_save(room, ws_dict)
