@@ -67,13 +67,12 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
     else:
         execute_write(
             """INSERT INTO game_room
-                (id, host_user_id, scenario, year, season, quarter_number,
+                (id, scenario, year, season, quarter_number,
                  phase, world_state, slots, decision_timeout,
                  turn_summaries, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 room.id,
-                room.host_user_id,
                 room.scenario,
                 room.year,
                 room.season,
@@ -96,59 +95,9 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
         except Exception:
             pass
 
-    # Save individual faction slots
-    _save_faction_slots(room)
 
 
-def _save_faction_slots(room: GameRoom):
-    """Save all FactionSlots for a room."""
-    now = datetime.now(timezone.utc).isoformat()
 
-    for faction_id, slot in room.slots.items():
-        slot_id = f"{room.id}_{faction_id}"
-        existing = execute_one("SELECT id FROM faction_slot WHERE id = ?", (slot_id,))
-
-        commands_json = json_dumps(slot.pending_commands) if slot.pending_commands else None
-
-        if existing:
-            execute_write(
-                """UPDATE faction_slot SET
-                    occupant_type = ?, occupant_id = ?,
-                    pending_decision = ?, pending_commands = ?,
-                    is_active = ?, updated_at = ?
-                WHERE id = ?""",
-                (
-                    slot.occupant_type.value,
-                    slot.occupant_id,
-                    slot.pending_decision,
-                    commands_json,
-                    1 if slot.is_active else 0,
-                    now,
-                    slot_id,
-                ),
-            )
-        else:
-            execute_write(
-                """INSERT INTO faction_slot
-                    (id, room_id, faction_id, occupant_type, occupant_id,
-                     ai_model, ai_temperature, pending_decision,
-                     pending_commands, is_active, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    slot_id,
-                    room.id,
-                    faction_id,
-                    slot.occupant_type.value,
-                    slot.occupant_id,
-                    slot.ai_model,
-                    slot.ai_temperature,
-                    slot.pending_decision,
-                    commands_json,
-                    1 if slot.is_active else 0,
-                    now,
-                    now,
-                ),
-            )
 
 
 def load_room(room_id: str) -> GameRoom | None:
@@ -172,7 +121,6 @@ def load_room(room_id: str) -> GameRoom | None:
 
     room = GameRoom(
         id=row["id"],
-        host_user_id=row.get("host_user_id"),
         scenario=row.get("scenario", "207"),
         year=row.get("year", 207),
         season=row.get("season", "春"),

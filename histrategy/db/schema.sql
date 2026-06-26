@@ -7,7 +7,6 @@
 -- ═══════════════════════════════════════════════════════════
 CREATE TABLE IF NOT EXISTS game_room (
     id              TEXT PRIMARY KEY,
-    host_user_id    TEXT,
     scenario        TEXT DEFAULT '207',
     year            INTEGER DEFAULT 207,
     season          TEXT DEFAULT '春',
@@ -23,24 +22,9 @@ CREATE TABLE IF NOT EXISTS game_room (
     updated_at      TEXT DEFAULT ''
 );
 
--- ═══════════════════════════════════════════════════════════
--- faction_slot: 每个势力槽位（对称：人类/AI 同一张表）
--- ═══════════════════════════════════════════════════════════
-CREATE TABLE IF NOT EXISTS faction_slot (
-    id              TEXT PRIMARY KEY,
-    room_id         TEXT NOT NULL REFERENCES game_room(id),
-    faction_id      TEXT NOT NULL,
-    occupant_type   TEXT NOT NULL DEFAULT 'open',  -- human | ai_npc | open
-    occupant_id     TEXT,                          -- user_id (human) | NULL
-    ai_model        TEXT,                          -- LLM model for NPC
-    ai_temperature  REAL DEFAULT 0.7,
-    pending_decision TEXT,                         -- 本季度已提交决策
-    pending_commands TEXT,                         -- JSON: 结构化命令
-    is_active       INTEGER DEFAULT 1,
-    created_at      TEXT DEFAULT '',
-    updated_at      TEXT DEFAULT '',
-    UNIQUE(room_id, faction_id)
-);
+-- faction_slot TABLE REMOVED in H20
+-- Slots are now stored as JSON in game_room.slots column.
+-- DROP TABLE IF EXISTS faction_slot;  -- handled by migration
 
 -- ═══════════════════════════════════════════════════════════
 -- quarter_turn: 每季度的完整记录
@@ -96,7 +80,7 @@ CREATE TABLE IF NOT EXISTS simulation_event_log (
 );
 
 -- Indexes
-CREATE INDEX IF NOT EXISTS idx_faction_slot_room ON faction_slot(room_id);
+-- idx_faction_slot_room REMOVED in H20
 CREATE INDEX IF NOT EXISTS idx_quarter_turn_room ON quarter_turn(room_id, quarter_number);
 CREATE INDEX IF NOT EXISTS idx_llm_call_log_room ON llm_call_log(room_id, quarter_number);
 CREATE INDEX IF NOT EXISTS idx_sim_event_room ON simulation_event_log(room_id, quarter_number);

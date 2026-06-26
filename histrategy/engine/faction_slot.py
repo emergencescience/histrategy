@@ -14,6 +14,9 @@ NPC数量限制：
     主要势力 (cao/shu/wu) 使用LLM独立决策
     次要势力 (liubiao/liuzhang/machao/zhanglu) 使用启发式规则
     防止过多LLM调用导致行为偏离历史和成本膨胀
+
+histrategy 不追踪 user_id —— 身份由 orchestrator 代理层处理。
+势力槽位仅通过 faction_id 识别「谁在控制这个势力」。
 """
 
 from __future__ import annotations
@@ -67,11 +70,14 @@ class FactionSlot:
     1. 等待决策 → pending_decision = None
     2. 提交决策 → pending_decision = "..." + pending_commands = [...]
     3. 季度执行 → 清空pending，推进到下一季度
+
+    histrategy 不追踪 user_id —— 身份由 orchestrator 处理。
+    势力槽位仅通过 faction_id 识别控制者。
     """
 
     faction_id: str  # "cao" | "shu" | "wu" | "liubiao" | ...
     occupant_type: OccupantType = OccupantType.OPEN
-    occupant_id: str | None = None  # user_id (HUMAN) | None (AI/OPEN)
+    display_name: str = ""  # human-readable name (e.g. "曹操")
 
     # AI NPC 配置
     ai_model: str | None = None  # LLM model override
@@ -121,7 +127,7 @@ class FactionSlot:
         return {
             "faction_id": self.faction_id,
             "occupant_type": self.occupant_type.value,
-            "occupant_id": self.occupant_id,
+            "display_name": self.display_name,
             "ai_model": self.ai_model,
             "ai_temperature": self.ai_temperature,
             "is_active": self.is_active,
@@ -134,7 +140,7 @@ class FactionSlot:
         slot = cls(
             faction_id=data["faction_id"],
             occupant_type=OccupantType(data.get("occupant_type", "open")),
-            occupant_id=data.get("occupant_id"),
+            display_name=data.get("display_name", ""),
             ai_model=data.get("ai_model"),
             ai_temperature=data.get("ai_temperature", 0.7),
             is_active=data.get("is_active", True),
@@ -145,7 +151,7 @@ class FactionSlot:
         return slot
 
     def __repr__(self) -> str:
-        occupant = f"{self.occupant_type.value}:{self.occupant_id or '?'}"
+        occupant = f"{self.occupant_type.value}"
         status = "⌛" if not self.has_submitted() else "✓"
         return f"FactionSlot({self.faction_id}, {occupant}, {status})"
 
@@ -153,12 +159,12 @@ class FactionSlot:
 # ── 工厂函数 ──────────────────────────────────────
 
 
-def create_human_slot(faction_id: str, user_id: str) -> FactionSlot:
-    """创建一个人类玩家槽位。"""
+def create_human_slot(faction_id: str, display_name: str = "") -> FactionSlot:
+    """创建一个人类玩家槽位。histrategy 不追踪 user_id。"""
     return FactionSlot(
         faction_id=faction_id,
         occupant_type=OccupantType.HUMAN,
-        occupant_id=user_id,
+        display_name=display_name,
     )
 
 

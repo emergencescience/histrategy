@@ -131,6 +131,12 @@ def init_db():
                 conn.commit()
             except Exception:
                 pass
+            # Drop faction_slot table (H20: slots now JSON in game_room)
+            try:
+                conn.execute("DROP TABLE IF EXISTS faction_slot")
+                conn.commit()
+            except Exception:
+                pass
         else:
             # PostgreSQL: execute statements individually (psycopg2 doesn't support multi-statement)
             with conn.cursor() as cur:
@@ -208,6 +214,15 @@ def init_db():
                         cur.execute("ALTER TABLE game_room ADD COLUMN is_public INTEGER DEFAULT 0")
                     else:
                         cur.execute("ALTER TABLE game_room ADD COLUMN IF NOT EXISTS is_public INTEGER DEFAULT 0")
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                # Add display_name to faction_slot (H19a remove in-memory state)
+                try:
+                    if _IS_SQLITE:
+                        cur.execute("ALTER TABLE faction_slot ADD COLUMN display_name TEXT DEFAULT ''")
+                    else:
+                        cur.execute("ALTER TABLE faction_slot ADD COLUMN IF NOT EXISTS display_name TEXT DEFAULT ''")
                     conn.commit()
                 except Exception:
                     conn.rollback()
@@ -315,7 +330,6 @@ def json_loads(text: str | None) -> Any:
 _EMBEDDED_SCHEMA = """
 CREATE TABLE IF NOT EXISTS game_room (
     id              TEXT PRIMARY KEY,
-    host_user_id    TEXT,
     scenario        TEXT DEFAULT '207',
     year            INTEGER DEFAULT 207,
     season          TEXT DEFAULT '春',
@@ -332,21 +346,8 @@ CREATE TABLE IF NOT EXISTS game_room (
     updated_at      TEXT DEFAULT ''
 );
 
-CREATE TABLE IF NOT EXISTS faction_slot (
-    id              TEXT PRIMARY KEY,
-    room_id         TEXT NOT NULL REFERENCES game_room(id),
-    faction_id      TEXT NOT NULL,
-    occupant_type   TEXT NOT NULL DEFAULT 'open',
-    occupant_id     TEXT,
-    ai_model        TEXT,
-    ai_temperature  REAL DEFAULT 0.7,
-    pending_decision TEXT,
-    pending_commands TEXT,
-    is_active       INTEGER DEFAULT 1,
-    created_at      TEXT DEFAULT '',
-    updated_at      TEXT DEFAULT '',
-    UNIQUE(room_id, faction_id)
-);
+-- faction_slot removed in H20: slots are now stored as JSON in game_room.slots
+-- DROP TABLE IF EXISTS faction_slot;  -- handled by migration below
 
 CREATE TABLE IF NOT EXISTS quarter_turn (
     id              TEXT PRIMARY KEY,
@@ -453,7 +454,7 @@ CREATE TABLE IF NOT EXISTS policy_state (
     UNIQUE(room_id, faction_id, policy_name, status)
 );
 
-CREATE INDEX IF NOT EXISTS idx_faction_slot_room ON faction_slot(room_id);
+-- idx_faction_slot_room removed in H20
 CREATE INDEX IF NOT EXISTS idx_quarter_turn_room ON quarter_turn(room_id, quarter_number);
 CREATE INDEX IF NOT EXISTS idx_llm_call_log_room ON llm_call_log(room_id, quarter_number);
 CREATE INDEX IF NOT EXISTS idx_sim_event_room ON simulation_event_log(room_id, quarter_number);

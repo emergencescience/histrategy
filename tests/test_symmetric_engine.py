@@ -27,10 +27,10 @@ class TestFactionSlot:
     """Test FactionSlot data model."""
 
     def test_create_human_slot(self):
-        slot = create_human_slot("cao", "user-1")
+        slot = create_human_slot("cao", display_name="曹操")
         assert slot.faction_id == "cao"
         assert slot.occupant_type == OccupantType.HUMAN
-        assert slot.occupant_id == "user-1"
+        assert slot.display_name == "曹操"
         assert slot.is_human()
         assert not slot.is_ai()
         assert not slot.is_open()
@@ -40,7 +40,6 @@ class TestFactionSlot:
         slot = create_ai_slot("wu", temperature=0.9)
         assert slot.faction_id == "wu"
         assert slot.occupant_type == OccupantType.AI_NPC
-        assert slot.occupant_id is None
         assert slot.is_ai()
         assert not slot.is_human()
         assert slot.ai_temperature == 0.9
@@ -96,9 +95,9 @@ class TestGameRoom:
         assert len(room.minor_ai_slots()) == 0  # no minor factions
 
     def test_create_multi_player_room(self):
-        room = create_multi_player_room("host-1", ["cao", "shu"])
+        room = create_multi_player_room(["cao", "shu"])
         assert room.phase == RoomPhase.LOBBY
-        assert room.host_user_id == "host-1"
+        assert room.scenario == "207"
         assert len(room.slots) == 4
         # cao and shu are OPEN, rest are AI
         assert room.slots["cao"].is_open()
@@ -139,7 +138,7 @@ class TestGameRoom:
         assert not room.all_slots_submitted()  # all cleared
 
     def test_start_game_idempotent(self):
-        room = create_multi_player_room("host", ["cao"])
+        room = create_multi_player_room(["cao"])
         assert room.phase == RoomPhase.LOBBY
         room.start_game()
         assert room.phase == RoomPhase.WAITING
@@ -513,7 +512,7 @@ class TestSymmetricEngineIntegration:
 
     def test_multi_player_room_open_slots(self):
         """Test multiplayer room with open slots waiting for players."""
-        room = create_multi_player_room("host-user", ["cao", "shu", "wu"])
+        room = create_multi_player_room(["cao", "shu", "wu"])
         assert room.phase == RoomPhase.LOBBY
         assert len(room.slots) == 4
 
@@ -565,7 +564,7 @@ class TestPreAssignedFlow:
             internal_map[internal_fid] = player_name
         internal_ids = list(internal_map.keys())
 
-        room = GameRoom(host_user_id="host-1", scenario="207")
+        room = GameRoom(scenario="207")
         player_links = []
 
         for fid in internal_ids:
@@ -598,115 +597,7 @@ class TestPreAssignedFlow:
             assert "url" in link
             assert "faction=" in link["url"]
 
-    def test_enter_room_by_faction(self):
-        """A pre-assigned player can enter using faction_id."""
-        from histrategy.engine.faction_slot import LLM_NPC_FACTIONS, create_ai_slot, create_human_slot
-        from histrategy.engine.game_room import GameRoom, RoomPhase
-        from histrategy.server.room_manager import _players, _rooms, enter_room
 
-        _rooms.clear()
-        _players.clear()
 
-        room = GameRoom(host_user_id="host-1", scenario="207")
-        room.phase = RoomPhase.WAITING
-        room.slots["cao"] = create_human_slot("cao", "cao")
-        for fid in LLM_NPC_FACTIONS:
-            if fid not in room.slots:
-                room.slots[fid] = create_ai_slot(fid)
 
-        _rooms[room.id] = room
-        _players[room.id] = {
-            "cao": {"role": "player", "display_name": "张三"},
-        }
 
-        # Player visits via share link
-        enter_result = enter_room(
-            room_id=room.id,
-            faction="caocao",
-            display_name="张三",
-        )
-        assert enter_result["ok"]
-        assert enter_result.get("already_in")  # Matched existing player by faction_id
-
-    def test_enter_room_wrong_player_blocked(self):
-        """A player cannot take over a pre-assigned HUMAN slot via wrong faction."""
-        from histrategy.engine.faction_slot import LLM_NPC_FACTIONS, create_ai_slot, create_human_slot
-        from histrategy.engine.game_room import GameRoom, RoomPhase
-        from histrategy.server.room_manager import _players, _rooms, enter_room
-
-        _rooms.clear()
-        _players.clear()
-
-        room = GameRoom(host_user_id="host-1", scenario="207")
-        room.phase = RoomPhase.WAITING
-        room.slots["cao"] = create_human_slot("cao", "cao")
-        for fid in LLM_NPC_FACTIONS:
-            if fid not in room.slots:
-                room.slots[fid] = create_ai_slot(fid)
-
-        _rooms[room.id] = room
-        _players[room.id] = {
-            "cao": {"role": "player", "display_name": "张三"},
-        }
-
-        # Trying to enter cao succeeds — faction_id "cao" matches,
-        # and the player is already registered (returns already_in)
-        # so it doesn't reach the blocking code path.
-        # Instead, test blocking for an AI-controlled slot:
-
-        # Try to enter as liubei when shu slot is AI-controlled
-        result2 = enter_room(
-            room_id=room.id,
-            faction="liubei",
-            display_name="入侵者",
-        )
-        assert not result2["ok"]
-        assert "AI" in result2.get("error", "")
-
-    def test_faction_based_reconnect(self):
-        """Faction-based reconnection works correctly."""
-        from histrategy.server.room_manager import _players, _rooms, enter_room
-
-        _rooms.clear()
-        _players.clear()
-
-        # Manually set up a room with a pre-assigned HUMAN slot
-        from histrategy.engine.faction_slot import LLM_NPC_FACTIONS, create_ai_slot, create_human_slot
-        from histrategy.engine.game_room import GameRoom, RoomPhase
-
-        room = GameRoom(host_user_id="host-1", scenario="207")
-        room.phase = RoomPhase.WAITING
-        room.slots["cao"] = create_human_slot("cao", "cao")
-        for fid in LLM_NPC_FACTIONS:
-            if fid not in room.slots:
-                room.slots[fid] = create_ai_slot(fid)
-
-        _rooms[room.id] = room
-        _players[room.id] = {
-            "cao": {"role": "player", "display_name": "张三"},
-        }
-
-        # Player reconnects with correct faction
-        result = enter_room(
-            room_id=room.id,
-            faction="caocao",
-            display_name="张三",
-        )
-        assert result["ok"]
-        assert result.get("already_in")  # Found by faction_id mapping
-
-        # Try to enter as liubei (AI-controlled slot) — should fail
-        result2 = enter_room(
-            room_id=room.id,
-            faction="liubei",
-            display_name="入侵者",
-        )
-        assert not result2["ok"]
-        assert "AI" in result2.get("error", "")
-
-        # Enter without faction — should work as spectator
-        result3 = enter_room(
-            room_id=room.id,
-            display_name="访客",
-        )
-        assert result3["ok"]  # Enters as spectator without faction claim

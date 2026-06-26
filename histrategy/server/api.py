@@ -1028,7 +1028,6 @@ def create_app(llm_provider: str | None = None) -> Any:
         from histrategy.server.room_manager import create_room
 
         # Prefer X-User-Id (injected by orchestrator proxy) over body user_id
-        host_user_id = x_user_id or body.get("user_id", "")
 
         pre_assigned = body.get("pre_assigned")
         if not pre_assigned:
@@ -1038,8 +1037,6 @@ def create_app(llm_provider: str | None = None) -> Any:
             }
 
         result = create_room(
-            host_user_id=host_user_id,
-            host_name=body.get("display_name", ""),
             scenario=body.get("scenario", "207"),
             pre_assigned=pre_assigned,
             metadata=body.get("metadata"),
@@ -1047,34 +1044,14 @@ def create_app(llm_provider: str | None = None) -> Any:
         return result
 
     @app.post("/api/rooms/{room_id}/enter")
-    def api_enter_room(room_id: str, body: dict = Body(...)):
-        """进入房间。histrategy 是内部服务，auth 由 orchestrator 代理层处理。"""
-        from histrategy.server.room_manager import enter_room
-
-        return enter_room(
-            room_id,
-            body.get("user_id", ""),
-            body.get("display_name", ""),
-            body.get("faction", ""),
-        )
-
     @app.post("/api/rooms/{room_id}/pick")
-    def api_pick_faction(room_id: str, body: dict = Body(...)):
-        """选择势力。"""
-        from histrategy.server.room_manager import pick_faction
-
-        return pick_faction(
-            room_id,
-            body.get("user_id", ""),
-            body.get("faction_id", ""),
-        )
-
     @app.post("/api/rooms/{room_id}/start")
-    def api_start_room(room_id: str, body: dict = Body(...)):
-        """host 开始游戏。"""
+    @app.post("/api/rooms/{room_id}/start")
+    def api_start_room(room_id: str):
+        """开始游戏。histrategy 不追踪 user_id，auth 由 orchestrator 处理。"""
         from histrategy.server.room_manager import start_game
 
-        return start_game(room_id, body.get("user_id", ""))
+        return start_game(room_id)
 
     @app.post("/api/rooms/{room_id}/decide")
     def api_submit_decision(room_id: str, body: dict = Body(...)):
@@ -1237,44 +1214,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         )
         return {"ok": True, "room_id": room_id, "is_public": is_public}
 
-    # List rooms by user
-    @app.get("/api/rooms")
-    def api_list_rooms(
-        user_id: str = "",
-        x_user_id: str = Header(default="", alias="X-User-Id"),
-    ):
-        """List rooms for a user. Uses X-User-Id if present, else user_id param."""
-        from histrategy.db.connection import execute
-
-        uid = x_user_id or user_id
-        if not uid:
-            return {"rooms": [], "count": 0}
-
-        rows = execute(
-            "SELECT id, host_user_id, scenario, year, season, quarter_number, "
-            "phase, is_public, metadata, created_at, updated_at "
-            "FROM game_room WHERE host_user_id = ? "
-            "ORDER BY updated_at DESC LIMIT 50",
-            (uid,),
-        )
-        rooms = []
-        for r in rows:
-            rooms.append(
-                {
-                    "id": r["id"],
-                    "host_user_id": r["host_user_id"],
-                    "scenario": r["scenario"],
-                    "year": r["year"],
-                    "season": r["season"],
-                    "quarter_number": r["quarter_number"],
-                    "phase": r["phase"],
-                    "is_public": bool(r.get("is_public", 0)),
-                    "metadata": r.get("metadata", "{}"),
-                    "created_at": r.get("created_at", ""),
-                    "updated_at": r.get("updated_at", ""),
-                }
-            )
-        return {"rooms": rooms, "count": len(rooms)}
+    # (GET /api/rooms removed in H20 — orchestrator has game_participation table)
 
     @app.get("/api/single-player/{game_id}/status")
     def api_sp_status(game_id: str):
@@ -1303,7 +1243,6 @@ def create_app(llm_provider: str | None = None) -> Any:
             scenario=body.get("scenario", "207"),
             language_style=body.get("language_style", "vernacular"),
             lang=body.get("lang", "zh"),
-            host_user_id=x_user_id or body.get("user_id", ""),
         )
 
     @app.get("/api/scenarios")

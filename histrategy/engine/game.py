@@ -2102,7 +2102,7 @@ class GameEngine:
         # Add human slot
         from ..engine.faction_slot import create_ai_slot, create_human_slot
 
-        room.slots[faction_id] = create_human_slot(faction_id, "player")
+        room.slots[faction_id] = create_human_slot(faction_id)
 
         # Add AI slots for other active factions
         for fid, f in ws.factions.items():

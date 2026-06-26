@@ -113,7 +113,6 @@ class RoomStatus(TypedDict):
 
     ok: bool
     room_id: str
-    host_user_id: str
     phase: str
     year: int
     season: str
