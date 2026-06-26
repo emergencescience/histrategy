@@ -88,12 +88,10 @@ select { cursor:pointer; }
   <!-- Join Room -->
   <div style="margin-top:24px; padding-top:16px; border-top:1px solid var(--border)">
     <h3>▸ 加入房间（玩家）</h3>
-    <p style="font-size:0.85em; color:var(--muted)">粘贴房主分享的链接，或手动输入房间号和势力：</p>
-    <input id="join-room-id" placeholder="房间 ID（从链接中复制）">
-    <div style="display:flex; gap:8px; margin-top:8px">
-      <select id="join-faction" style="flex:1"><option value="">加载中...</option></select>
-      <button class="btn primary" onclick="doJoinRoom()">进入</button>
-    </div>
+    <p style="font-size:0.85em; color:var(--muted)">
+      直接访问房主分享的链接即可加入：<br>
+      <code style="color:var(--gold)">/mp?room=房间ID&faction=势力名</code>
+    </p>
   </div>
 </div>
 
@@ -206,9 +204,7 @@ function fmtYear(y, epoch) {
   // Auto-join if URL has room + faction
   const { room, faction } = parseURL();
   if (room && faction) {
-    el('join-room-id').value = room;
-    el('join-faction').value = faction;
-    doJoinRoom();
+    doJoinRoom(room, faction);
   }
 })();
 
@@ -223,9 +219,6 @@ function selectScenario(sid) {
 
   // Render faction toggles
   renderFactionToggles();
-
-  // Update join faction dropdown
-  renderJoinDropdown();
 }
 
 function onScenarioChange() {
@@ -265,21 +258,6 @@ function renderFactionToggles() {
   });
 }
 
-function renderJoinDropdown() {
-  const sel = el('join-faction');
-  sel.innerHTML = '';
-  const factions = currentScenario.factions || [];
-  factions.forEach(f => {
-    const opt = document.createElement('option');
-    opt.value = f.id;
-    opt.textContent = f.name_cn || f.name || f.id;
-    sel.appendChild(opt);
-  });
-  if (factions.length === 0) {
-    sel.innerHTML = '<option value="">无可用势力</option>';
-  }
-}
-
 // Read room, faction from URL
 function parseURL() {
   const p = new URLSearchParams(location.search);
@@ -292,9 +270,15 @@ async function doCreateRoom() {
   const humanFactions = Array.from(toggles).map(t => t.dataset.fid);
   if (humanFactions.length < 1) { alert('至少选择一个人类势力'); return; }
 
+  // Build pre_assigned from toggle selections
+  const preAssigned = {};
+  humanFactions.forEach((fid, i) => {
+    preAssigned[fid] = `Player ${i + 1}`;
+  });
+
   const r = await api('POST', '/api/rooms', {
     user_id: myUserId,
-    human_faction_ids: humanFactions,
+    pre_assigned: preAssigned,
     scenario: currentScenario.id,
     language: lang,
     metadata: { device: devicePlatform, lang: lang },
@@ -348,13 +332,10 @@ async function doCreateRoom() {
 }
 
 // ── Join Room ───────────────────
-async function doJoinRoom() {
-  const rid = el('join-room-id').value.trim();
-  const fid = el('join-faction').value;
+async function doJoinRoom(rid, fid) {
   if (!rid) { alert('请输入房间 ID'); return; }
 
-  const body = { user_id: myUserId, faction: fid };
-  const r = await api('POST', `/api/rooms/${rid}/enter`, body);
+  const r = await api('POST', `/api/rooms/${rid}/enter`, { user_id: myUserId, faction: fid });
   if (!r.ok) { alert(r.error); return; }
 
   roomId = rid;
