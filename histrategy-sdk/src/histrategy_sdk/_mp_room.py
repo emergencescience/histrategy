@@ -160,9 +160,7 @@ class MultiplayerRoom:
         while True:
             elapsed = time.monotonic() - start_time
             if elapsed > timeout:
-                raise TimeoutError(
-                    f"NPC decisions not ready for room {self.room_id} within {timeout}s"
-                )
+                raise TimeoutError(f"NPC decisions not ready for room {self.room_id} within {timeout}s")
 
             current = self.status()
 
@@ -220,9 +218,7 @@ class MultiplayerRoom:
         while True:
             elapsed = time.monotonic() - start_time
             if elapsed > timeout:
-                raise TimeoutError(
-                    f"Room {self.room_id} did not resolve within {timeout}s"
-                )
+                raise TimeoutError(f"Room {self.room_id} did not resolve within {timeout}s")
 
             current = self.status()
             phase = current.get("phase", "")
@@ -235,11 +231,7 @@ class MultiplayerRoom:
             # - quarter has advanced
             # - our faction is NOT in "submitted" for the new quarter
             #   (NPCs may have already submitted Q2, so "not pending" is too strict)
-            is_resolved = (
-                phase == "waiting"
-                and quarter > initial_quarter
-                and self.faction not in submitted
-            )
+            is_resolved = phase == "waiting" and quarter > initial_quarter and self.faction not in submitted
 
             if is_resolved:
                 return current

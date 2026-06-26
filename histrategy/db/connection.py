@@ -114,8 +114,7 @@ def init_db():
             try:
                 conn.execute("DROP INDEX IF EXISTS idx_turn_delta_room")
                 conn.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_turn_delta_room "
-                    "ON turn_delta(room_id, quarter_number, faction_id)"
+                    "CREATE INDEX IF NOT EXISTS idx_turn_delta_room ON turn_delta(room_id, quarter_number, faction_id)"
                 )
                 conn.commit()
             except Exception:
@@ -169,8 +168,7 @@ def init_db():
                 # Fix llm_call_log.created_at: populate empty values
                 try:
                     cur.execute(
-                        "UPDATE llm_call_log SET created_at = NOW()::text "
-                        "WHERE created_at = '' OR created_at IS NULL"
+                        "UPDATE llm_call_log SET created_at = NOW()::text WHERE created_at = '' OR created_at IS NULL"
                     )
                     conn.commit()
                 except Exception:

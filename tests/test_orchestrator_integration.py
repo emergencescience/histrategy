@@ -11,7 +11,6 @@ Usage:
 
 import pytest
 
-
 # ═════════════════════════════════════════════════════════════
 # Fixtures
 # ═════════════════════════════════════════════════════════════
@@ -119,8 +118,18 @@ class TestRoomStatusAPI:
 
         status = get_room_status(room_id)
         # Fields that orchestrator's _format_shared_turn reads
-        required = ["ok", "room_id", "phase", "year", "season", "quarter",
-                     "faction_names", "slots", "submitted", "pending"]
+        required = [
+            "ok",
+            "room_id",
+            "phase",
+            "year",
+            "season",
+            "quarter",
+            "faction_names",
+            "slots",
+            "submitted",
+            "pending",
+        ]
         for field in required:
             assert field in status, f"orchestrator requires field '{field}'"
 
@@ -140,7 +149,6 @@ class TestRoomTurnsAPI:
     """GET /api/rooms/{id}/turns — used by orchestrator's shared session endpoint."""
 
     def test_returns_faction_names(self, room_id):
-        from histrategy.db.models import get_quarter_turns
         from histrategy.server.room_manager import _get_faction_names, _get_room
 
         room = _get_room(room_id)
@@ -156,11 +164,11 @@ class TestRoomTurnsAPI:
         # narratives, state_changes, token_usage
         if turns:
             turn = turns[0]
-            required = ["quarter_number", "year", "season",
-                        "faction_decisions", "narratives", "state_changes"]
+            required = ["quarter_number", "year", "season", "faction_decisions", "narratives", "state_changes"]
             for field in required:
-                assert field in turn.keys() if hasattr(turn, 'keys') else field in dict(turn), \
+                assert field in turn.keys() if hasattr(turn, "keys") else field in dict(turn), (
                     f"orchestrator requires turn field '{field}'"
+                )
 
 
 class TestCaesarYearAndSeason:

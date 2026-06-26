@@ -500,7 +500,9 @@ def _worldstate_from_dict(self, data: dict) -> None:
             cunning=fd.get("cunning", fd.get("personality", {}).get("cunning", 0.5)),
             caution=fd.get("caution", fd.get("personality", {}).get("caution", 0.5)),
             diplomacy=fd.get("diplomacy", fd.get("personality", {}).get("diplomacy", 0.5)),
-            development_focus=fd.get("development", fd.get("personality", {}).get("development", 0.5)),
+            development_focus=fd.get(
+                "development", fd.get("personality", {}).get("development", 0.5)
+            ),
             mercy=fd.get("mercy", fd.get("personality", {}).get("mercy", 0.5)),
         )
         self.factions[fid] = fs
@@ -509,7 +511,7 @@ def _worldstate_from_dict(self, data: dict) -> None:
 WorldState.from_dict = _worldstate_from_dict  # type: ignore[attr-defined]
 
 
-def _worldstate_get_player_faction(self) -> "FactionState | None":
+def _worldstate_get_player_faction(self) -> FactionState | None:
     """Backward-compat: return the player's faction."""
     return self.factions.get(self.player_faction_id)
 

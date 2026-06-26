@@ -154,7 +154,6 @@ class NarrativeEngine:
         Used by QuarterlyResolver to produce per-faction narratives for the
         shared timeline view. Falls back to deterministic text when LLM unavailable.
         """
-        from types import SimpleNamespace
 
         faction = ws.factions.get(faction_id)
         fname = faction.name if faction else faction_id
@@ -306,11 +305,15 @@ class NarrativeEngine:
                 fname = fid
             troops = getattr(faction, "strength_actual", 0) if faction else 0
             if is_en:
-                lines.append(f"{fname}: {decision[:120]}. Troops: {troops:,}, "
-                           f"Treasury: {faction.treasury:,.0f if faction else '?'}, Food: {faction.food:,.0f if faction else '?'}.")
+                lines.append(
+                    f"{fname}: {decision[:120]}. Troops: {troops:,}, "
+                    f"Treasury: {faction.treasury:,.0f if faction else '?'}, Food: {faction.food:,.0f if faction else '?'}."
+                )
             else:
-                lines.append(f"{fname}：{decision[:120]}。兵力{troops:,}，"
-                           f"府库{faction.treasury:,.0f if faction else '?'}，存粮{faction.food:,.0f if faction else '?'}。")
+                lines.append(
+                    f"{fname}：{decision[:120]}。兵力{troops:,}，"
+                    f"府库{faction.treasury:,.0f if faction else '?'}，存粮{faction.food:,.0f if faction else '?'}。"
+                )
 
         return "\n".join(lines)
 
@@ -325,9 +328,9 @@ class NarrativeEngine:
         display_name = name_en if (self._language == "en" and name_en) else faction_name
         parts = [f"{display_name} carried out their plans this quarter."]
         # Try to extract battle info from baseline
-        if hasattr(baseline, 'battles') and baseline.battles:
+        if hasattr(baseline, "battles") and baseline.battles:
             for b in baseline.battles:
-                if hasattr(b, 'attacker_id') and b.attacker_id == faction_name:
+                if hasattr(b, "attacker_id") and b.attacker_id == faction_name:
                     parts.append(f"They engaged in battle at {getattr(b, 'location', 'unknown')}.")
         return " ".join(parts)
 
@@ -513,10 +516,14 @@ class NarrativeEngine:
                 "cold_wave": "Cold Wave",
             }
             if is_en:
-                climate_desc = "; ".join(f"{tid} suffers {events_en.get(ev.value, ev.value)}" for tid, ev in not_normal.items())
+                climate_desc = "; ".join(
+                    f"{tid} suffers {events_en.get(ev.value, ev.value)}" for tid, ev in not_normal.items()
+                )
                 parts.append(f"\n### Climate\n{climate_desc}.")
             else:
-                climate_desc = "；".join(f"{tid}遭{events_cn.get(ev.value, ev.value)}" for tid, ev in not_normal.items())
+                climate_desc = "；".join(
+                    f"{tid}遭{events_cn.get(ev.value, ev.value)}" for tid, ev in not_normal.items()
+                )
                 parts.append(f"\n### 天时气候\n{climate_desc}。")
         else:
             if is_en:

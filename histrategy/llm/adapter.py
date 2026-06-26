@@ -9,9 +9,9 @@ import re
 import httpx
 from tenacity import (
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
 
 from .prompt_loader import KNOWN_PROMPTS
@@ -123,6 +123,7 @@ class LLMAdapter:
         data_dir: str | None = None,
     ):
         import logging
+
         self._logger = logging.getLogger("histrategy.llm")
 
         self.provider_config = detect_provider()
@@ -149,7 +150,8 @@ class LLMAdapter:
 
         self._logger.info(
             "LLMAdapter init: provider=%s model=%s base=%s available=%s",
-            self.provider_name, self.model,
+            self.provider_name,
+            self.model,
             self.api_base[:50] if self.api_base else "none",
             bool(self.api_key),
         )
@@ -224,7 +226,10 @@ class LLMAdapter:
         try:
             self._logger.info(
                 "LLM chat: provider=%s model=%s prompt_chars=%d max_tokens=%d",
-                self.provider_name, self.model, len(str(messages)), max_tokens,
+                self.provider_name,
+                self.model,
+                len(str(messages)),
+                max_tokens,
             )
             response, latency = _do_chat()
             data = response.json()
@@ -237,7 +242,11 @@ class LLMAdapter:
             status = getattr(response, "status_code", "N/A") if response else "N/A"
             self._logger.error(
                 "LLM chat FAILED after retries: provider=%s model=%s latency=%.1fs status=%s error=%s",
-                self.provider_name, self.model, latency, status, str(e)[:200],
+                self.provider_name,
+                self.model,
+                latency,
+                status,
+                str(e)[:200],
             )
             self._record_error_and_log(messages, e, latency, response, metadata=metadata)
             raise
@@ -504,9 +513,7 @@ class LLMAdapter:
                 f.writelines(log_entry)
 
             # 3. Write to database llm_call_log (H14b)
-            self._log_llm_call_to_db(
-                messages, content, stats, latency, metadata, error=None
-            )
+            self._log_llm_call_to_db(messages, content, stats, latency, metadata, error=None)
 
         except Exception as e:
             import sys
@@ -553,9 +560,7 @@ class LLMAdapter:
             user_prompt_parts = []
             for msg in messages:
                 if msg.get("role") != "system":
-                    user_prompt_parts.append(
-                        f"[{msg['role']}]: {msg.get('content', '')}"
-                    )
+                    user_prompt_parts.append(f"[{msg['role']}]: {msg.get('content', '')}")
             user_prompt = "\n".join(user_prompt_parts) if user_prompt_parts else None
 
             log_llm_call(
@@ -577,6 +582,7 @@ class LLMAdapter:
             )
         except Exception as e:
             import sys
+
             print(f"[Warning] Failed to write LLM call to DB: {e}", file=sys.stderr)
 
     def _record_error_and_log(

@@ -65,8 +65,9 @@ class DirectEngine:
         if lang and lang in ("zh", "en"):
             self._engine._scenario_language = lang
             # Re-initialize NarrativeEngine with correct language
-            if hasattr(self._engine, 'narrative_engine') and self._engine.narrative_engine:
+            if hasattr(self._engine, "narrative_engine") and self._engine.narrative_engine:
                 from histrategy.llm.narrative import NarrativeEngine
+
                 self._engine.narrative_engine = NarrativeEngine(llm, language=lang)
         self._game_id = self._engine.world_state_v2.player_faction_id if self._engine._use_v2 else "local"
 
@@ -236,7 +237,8 @@ class DirectEngine:
             engine._scenario_language = lang
             # Re-initialize NarrativeEngine with correct language
             from histrategy.llm.narrative import NarrativeEngine
-            if hasattr(engine, 'narrative_engine'):
+
+            if hasattr(engine, "narrative_engine"):
                 engine.narrative_engine = NarrativeEngine(llm, language=lang)
         instance = cls.__new__(cls)
         instance._engine = engine

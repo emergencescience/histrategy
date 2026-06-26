@@ -100,7 +100,7 @@ class TurnProcessor:
       Used when the SDK/GameEngine is not available (standalone agent).
     """
 
-    def __init__(self, room: "Any | None" = None):
+    def __init__(self, room: Any | None = None):
         """Initialize TurnProcessor.
 
         Args:
@@ -112,7 +112,7 @@ class TurnProcessor:
         self._has_room = room is not None and self._try_room_available(room)
 
     @staticmethod
-    def _try_room_available(room: "Any") -> bool:
+    def _try_room_available(room: Any) -> bool:
         """Verify the Room instance can actually play turns."""
         try:
             return hasattr(room, "play") and callable(room.play)
@@ -244,6 +244,7 @@ class TurnProcessor:
 
         # Build world snapshot from session state
         from .state_bridge import StateBridge
+
         bridge = StateBridge(session.world_state)
         world_snapshot = bridge.get_world_snapshot(session.player_faction_id)
 
@@ -323,7 +324,11 @@ class TurnProcessor:
                     break
             amount = self._extract_number(text) or 1000
             territory = self._extract_territory(text)
-            return {"action": "recruit", "target": territory, "params": {"unit_type": unit_type, "amount": amount, "territory": territory}}
+            return {
+                "action": "recruit",
+                "target": territory,
+                "params": {"unit_type": unit_type, "amount": amount, "territory": territory},
+            }
 
         if any(kw in text for kw in ["防守", "布防", "防御", "戒备", "镇守", "驻防", "保卫", "设防"]):
             target = self._extract_territory(text)

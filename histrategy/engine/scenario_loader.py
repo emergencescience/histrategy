@@ -25,9 +25,9 @@ files the loader falls back to the old histrategy-knowledge/ directory.
 from __future__ import annotations
 
 import json
-import tomllib
 from pathlib import Path
 
+import tomllib
 from histrategy_engine.world import (
     Army,
     Character,
@@ -41,15 +41,18 @@ from histrategy_engine.world import (
 
 from .loader import (
     TERRAIN_MAP,
-    _territory_from_json,
-    resolve_knowledge_path,
-    _find_scenarios_root,
-    load_characters as _legacy_load_characters,
     _default_characters,
     _default_factions,
+    _find_scenarios_root,
+    _territory_from_json,
+    resolve_knowledge_path,
+)
+from .loader import (
+    load_characters as _legacy_load_characters,
 )
 
 # ─── helpers ────────────────────────────────────────────────────────────────
+
 
 def _normalise_scenario_id(scenario_id: str) -> str:
     """Map legacy numeric scenario IDs to directory names.
@@ -81,6 +84,7 @@ def _coerce_factions_to_dict(data: list | dict) -> dict:
 
 
 # ─── ScenarioLoader ─────────────────────────────────────────────────────────
+
 
 class ScenarioLoader:
     """Load scenario data from scenarios/{id}/ directory.
@@ -154,6 +158,7 @@ class ScenarioLoader:
         # 3) Try old histrategy-knowledge/ scenario JSON
         try:
             from .loader import load_scenario as _legacy_load_scenario
+
             scenario = _legacy_load_scenario(self.scenario_id)
             if scenario and "factions" in scenario:
                 return scenario["factions"]
@@ -217,9 +222,7 @@ class ScenarioLoader:
                 pass
 
         if not territory_path.is_file():
-            raise FileNotFoundError(
-                f"Cannot find territories.json for scenario '{self.scenario_id}'"
-            )
+            raise FileNotFoundError(f"Cannot find territories.json for scenario '{self.scenario_id}'")
 
         with open(territory_path, encoding="utf-8") as f:
             data = json.load(f)
@@ -256,13 +259,12 @@ class ScenarioLoader:
         # Fallback: try old prompt_loader
         try:
             from histrategy.llm.prompt_loader import load_prompt as _load_prompt
+
             return _load_prompt(name)
         except Exception:
             pass
 
-        raise FileNotFoundError(
-            f"No prompt '{name}.md' in {self._dir / 'prompts'} and no fallback available"
-        )
+        raise FileNotFoundError(f"No prompt '{name}.md' in {self._dir / 'prompts'} and no fallback available")
 
     def load_rules(self) -> list[Path]:
         """List rules/*.yaml files in the scenario directory."""
@@ -286,9 +288,7 @@ class ScenarioLoader:
         # Try initial_state.json first (modern path)
         init = self.load_initial_state()
         if init and "factions" in init:
-            return self._build_from_initial_state(
-                init, player_faction_id, territories, characters
-            )
+            return self._build_from_initial_state(init, player_faction_id, territories, characters)
 
         # Legacy path: use old histrategy-knowledge/ scenario JSON
         from .loader import load_scenario as _legacy_load_scenario
@@ -296,9 +296,7 @@ class ScenarioLoader:
         scenario = _legacy_load_scenario(self.scenario_id)
         knowledge_path = resolve_knowledge_path()
 
-        return self._build_from_legacy_scenario(
-            scenario, player_faction_id, territories, characters, knowledge_path
-        )
+        return self._build_from_legacy_scenario(scenario, player_faction_id, territories, characters, knowledge_path)
 
     def _build_from_initial_state(
         self,
@@ -416,9 +414,7 @@ class ScenarioLoader:
             personality = fd.get("personality", {})
 
             # Support both `territories` (legacy) and `starting_territories` (caesar)
-            faction_territories = list(
-                fd.get("territories", fd.get("starting_territories", []))
-            )
+            faction_territories = list(fd.get("territories", fd.get("starting_territories", [])))
 
             factions[fid] = FactionState(
                 id=fid,
@@ -441,9 +437,7 @@ class ScenarioLoader:
                 aggression=personality.get("aggression", fd.get("aggression", 0.5)),
                 cunning=personality.get("cunning", fd.get("cunning", 0.5)),
                 caution=personality.get("caution", fd.get("caution", 0.5)),
-                diplomacy=personality.get(
-                    "diplomacy", fd.get("diplomacy_tendency", 0.5)
-                ),
+                diplomacy=personality.get("diplomacy", fd.get("diplomacy_tendency", 0.5)),
                 development_focus=personality.get("development", fd.get("development_focus", 0.5)),
                 mercy=personality.get("mercy", fd.get("mercy", 0.5)),
             )
@@ -512,10 +506,18 @@ class ScenarioLoader:
 
         # Month → season mapping for three-kingdoms format
         _MONTH_TO_SEASON = {
-            3: "spring", 4: "spring", 5: "spring",
-            6: "summer", 7: "summer", 8: "summer",
-            9: "autumn", 10: "autumn", 11: "autumn",
-            12: "winter", 1: "winter", 2: "winter",
+            3: "spring",
+            4: "spring",
+            5: "spring",
+            6: "summer",
+            7: "summer",
+            8: "summer",
+            9: "autumn",
+            10: "autumn",
+            11: "autumn",
+            12: "winter",
+            1: "winter",
+            2: "winter",
         }
 
         matches = []
@@ -557,6 +559,7 @@ class ScenarioLoader:
 
 
 # ─── character builder ──────────────────────────────────────────────────────
+
 
 def _character_from_dict(cd: dict) -> Character:
     """Build a Character from a JSON dict.

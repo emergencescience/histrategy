@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import json
 import os
-import warnings
 from pathlib import Path
 
 from histrategy_engine.world import (
@@ -43,6 +42,7 @@ _SCENARIO_ID_MAP: dict[str, str] = {
 def _normalise_scenario_id(scenario_id: str) -> str:
     """Map legacy scenario IDs to directory names."""
     return _SCENARIO_ID_MAP.get(scenario_id, scenario_id)
+
 
 TERRAIN_MAP: dict[str, TerrainType] = {
     "plains": TerrainType.PLAINS,
@@ -158,8 +158,7 @@ def load_territories(
 
     if territory_path is None:
         raise FileNotFoundError(
-            f"Cannot find territories.json for scenario '{scenario_id}' "
-            f"in scenarios/ or knowledge_path"
+            f"Cannot find territories.json for scenario '{scenario_id}' in scenarios/ or knowledge_path"
         )
 
     with open(territory_path, encoding="utf-8") as f:

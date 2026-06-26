@@ -432,6 +432,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         # Detect active engine mode from environment (safe — uses stdlib os)
         import os as _stdlib_os
+
         config_engine = _stdlib_os.environ.get("HISTRATEGY_ENGINE", "")
         if not config_engine:
             config_engine = "v2" if v2_available else "v1"
@@ -440,6 +441,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         try:
             from histrategy.db.connection import _IS_SQLITE as _sqlite_flag
             from histrategy.db.connection import DATABASE_URL as _db_url
+
             db_type = "sqlite" if _sqlite_flag else "postgres"
             db_host = _db_url.split("@")[-1].split("/")[0] if "@" in _db_url else "local"
         except Exception:
@@ -679,16 +681,18 @@ def create_app(llm_provider: str | None = None) -> Any:
         # ── Accumulate turn narrative history for resume/replay ──
         if game_id not in _game_turns:
             _game_turns[game_id] = []
-        _game_turns[game_id].append({
-            "turn": status.get("turn", 1),
-            "year": status.get("year", 207),
-            "season": status.get("season", "春"),
-            "narrative": result.get("narrative", ""),
-            "aftermath": result.get("aftermath", ""),
-            "npc_actions": result.get("npc_actions", result.get("npc_reactions", [])),
-            "events_occurred": _format_character_events(result.get("events_occurred", [])),
-            "player_decision": req.decision,
-        })
+        _game_turns[game_id].append(
+            {
+                "turn": status.get("turn", 1),
+                "year": status.get("year", 207),
+                "season": status.get("season", "春"),
+                "narrative": result.get("narrative", ""),
+                "aftermath": result.get("aftermath", ""),
+                "npc_actions": result.get("npc_actions", result.get("npc_reactions", [])),
+                "events_occurred": _format_character_events(result.get("events_occurred", [])),
+                "player_decision": req.decision,
+            }
+        )
         # Keep last 30 turns max
         if len(_game_turns[game_id]) > 30:
             _game_turns[game_id] = _game_turns[game_id][-30:]
@@ -1116,14 +1120,16 @@ def create_app(llm_provider: str | None = None) -> Any:
                 fid = d["faction_id"]
                 if fid not in deltas:
                     deltas[fid] = []
-                deltas[fid].append({
-                    "delta_type": d["delta_type"],
-                    "old_value": d["old_value"],
-                    "new_value": d["new_value"],
-                    "delta": d["delta"],
-                    "reason": d.get("reason", ""),
-                    "source": d.get("source", ""),
-                })
+                deltas[fid].append(
+                    {
+                        "delta_type": d["delta_type"],
+                        "old_value": d["old_value"],
+                        "new_value": d["new_value"],
+                        "delta": d["delta"],
+                        "reason": d.get("reason", ""),
+                        "source": d.get("source", ""),
+                    }
+                )
 
             # Fetch policies for this quarter
             raw_policies = get_policies_by_quarter(room_id, qn)
@@ -1157,7 +1163,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         # Build faction_names from room
         room = _get_room(room_id)
-        lang = getattr(room, 'metadata', {}).get('lang', 'zh') if getattr(room, 'metadata', None) else 'zh'
+        lang = getattr(room, "metadata", {}).get("lang", "zh") if getattr(room, "metadata", None) else "zh"
         fnames = _get_faction_names(room, lang=lang) if room else {}
 
         return {
@@ -1196,17 +1202,19 @@ def create_app(llm_provider: str | None = None) -> Any:
                     "status": p.get("status", "active"),
                 }
 
-            factions.append({
-                "faction_id": fid,
-                "population": row["population"],
-                "troops": row["troops"],
-                "food": row["food"],
-                "treasury": row["treasury"],
-                "morale": row["morale"],
-                "territories": _safe_json_loads(row.get("territories"), default=[]),
-                "policies": policies,
-                "is_active": bool(row.get("is_active", 1)),
-            })
+            factions.append(
+                {
+                    "faction_id": fid,
+                    "population": row["population"],
+                    "troops": row["troops"],
+                    "food": row["food"],
+                    "treasury": row["treasury"],
+                    "morale": row["morale"],
+                    "territories": _safe_json_loads(row.get("territories"), default=[]),
+                    "policies": policies,
+                    "is_active": bool(row.get("is_active", 1)),
+                }
+            )
 
         return {
             "room_id": room_id,
@@ -1257,19 +1265,21 @@ def create_app(llm_provider: str | None = None) -> Any:
         )
         rooms = []
         for r in rows:
-            rooms.append({
-                "id": r["id"],
-                "host_user_id": r["host_user_id"],
-                "scenario": r["scenario"],
-                "year": r["year"],
-                "season": r["season"],
-                "quarter_number": r["quarter_number"],
-                "phase": r["phase"],
-                "is_public": bool(r.get("is_public", 0)),
-                "metadata": r.get("metadata", "{}"),
-                "created_at": r.get("created_at", ""),
-                "updated_at": r.get("updated_at", ""),
-            })
+            rooms.append(
+                {
+                    "id": r["id"],
+                    "host_user_id": r["host_user_id"],
+                    "scenario": r["scenario"],
+                    "year": r["year"],
+                    "season": r["season"],
+                    "quarter_number": r["quarter_number"],
+                    "phase": r["phase"],
+                    "is_public": bool(r.get("is_public", 0)),
+                    "metadata": r.get("metadata", "{}"),
+                    "created_at": r.get("created_at", ""),
+                    "updated_at": r.get("updated_at", ""),
+                }
+            )
         return {"rooms": rooms, "count": len(rooms)}
 
     @app.get("/api/single-player/{game_id}/status")
@@ -1305,21 +1315,28 @@ def create_app(llm_provider: str | None = None) -> Any:
     @app.get("/api/scenarios")
     def api_list_scenarios():
         """列出所有可用场景，含势力列表（标记 playable/npc_only）。"""
-        from histrategy.engine.scenario_loader import ScenarioLoader
         from histrategy.engine.faction_slot import (
-            PLAYABLE_FACTIONS, LLM_NPC_FACTIONS,
-            FACTION_DISPLAY_TO_ID, FACTION_ID_TO_DISPLAY,
+            FACTION_DISPLAY_TO_ID,
+            FACTION_ID_TO_DISPLAY,
+            PLAYABLE_FACTIONS,
         )
+        from histrategy.engine.scenario_loader import ScenarioLoader
 
         # Known metadata for scenarios without scenario.toml
         _BUILTIN_META = {
             "three-kingdoms": {
-                "name": "三國志略", "name_cn": "三國志略",
-                "period": "公元207年 东汉末年", "start_year": 207, "epoch": "",
+                "name": "三國志略",
+                "name_cn": "三國志略",
+                "period": "公元207年 东汉末年",
+                "start_year": 207,
+                "epoch": "",
             },
             "shanhe-dingge": {
-                "name": "山河鼎革", "name_cn": "山河鼎革",
-                "period": "公元1644年 明末清初", "start_year": 1644, "epoch": "",
+                "name": "山河鼎革",
+                "name_cn": "山河鼎革",
+                "period": "公元1644年 明末清初",
+                "start_year": 1644,
+                "epoch": "",
             },
         }
 
@@ -1345,30 +1362,41 @@ def create_app(llm_provider: str | None = None) -> Any:
                 # Determine display ID for backward compat
                 display_id = FACTION_ID_TO_DISPLAY.get(fname, fname)
                 if isinstance(fdata, dict):
-                    faction_list.append({
-                        "id": fname,
-                        "display_id": display_id,
-                        "name": fdata.get("name", fname),
-                        "name_cn": fdata.get("name_cn", fdata.get("name", fname)),
-                        "color": fdata.get("color", ""),
-                        "playable": playable,
-                    })
+                    faction_list.append(
+                        {
+                            "id": fname,
+                            "display_id": display_id,
+                            "name": fdata.get("name", fname),
+                            "name_cn": fdata.get("name_cn", fdata.get("name", fname)),
+                            "color": fdata.get("color", ""),
+                            "playable": playable,
+                        }
+                    )
                 else:
                     name = getattr(fdata, "name", fname)
-                    faction_list.append({
-                        "id": fname, "display_id": display_id,
-                        "name": name, "name_cn": name, "color": "",
-                        "playable": playable,
-                    })
-            scenarios.append({
-                "id": sid,
-                "name": meta.get("name") or builtin.get("name", sid),
-                "name_cn": meta.get("name_cn") or meta.get("name") or builtin.get("name_cn", builtin.get("name", sid)),
-                "period": meta.get("era") or builtin.get("period", ""),
-                "start_year": meta.get("start_year") or builtin.get("start_year", 0),
-                "epoch": meta.get("epoch") or builtin.get("epoch", ""),
-                "factions": faction_list,
-            })
+                    faction_list.append(
+                        {
+                            "id": fname,
+                            "display_id": display_id,
+                            "name": name,
+                            "name_cn": name,
+                            "color": "",
+                            "playable": playable,
+                        }
+                    )
+            scenarios.append(
+                {
+                    "id": sid,
+                    "name": meta.get("name") or builtin.get("name", sid),
+                    "name_cn": meta.get("name_cn")
+                    or meta.get("name")
+                    or builtin.get("name_cn", builtin.get("name", sid)),
+                    "period": meta.get("era") or builtin.get("period", ""),
+                    "start_year": meta.get("start_year") or builtin.get("start_year", 0),
+                    "epoch": meta.get("epoch") or builtin.get("epoch", ""),
+                    "factions": faction_list,
+                }
+            )
         return {"ok": True, "scenarios": scenarios}
 
     @app.get("/api/scenarios/{scenario_id}/timeline")

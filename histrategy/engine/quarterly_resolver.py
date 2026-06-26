@@ -120,7 +120,7 @@ class QuarterlyResolver:
 
                 proposals = self.history_engine.check_events(
                     world_state.year,
-                    getattr(world_state, 'season', 0),
+                    getattr(world_state, "season", 0),
                     world_state,
                     deviation=getattr(world_state, "player_deviation", 0.0),
                 )
@@ -238,7 +238,7 @@ class QuarterlyResolver:
                 ws,
                 player_commands=combined_commands,
                 year=ws.year,
-                turn_number=getattr(ws, 'turn_number', getattr(ws, 'turn', 1)),
+                turn_number=getattr(ws, "turn_number", getattr(ws, "turn", 1)),
             )
         except Exception as e:
             logger.warning(f"Baseline execution failed: {e}")
@@ -282,7 +282,9 @@ class QuarterlyResolver:
                 policy_commands=player_commands,
                 player_decision=player_decision,
                 baseline=baseline or _empty_baseline(ws),
-                history_events=[{"event_id": p.event_id, "title": p.title} for p in bs_proposals] if bs_proposals else [],
+                history_events=[{"event_id": p.event_id, "title": p.title} for p in bs_proposals]
+                if bs_proposals
+                else [],
                 turn_memory=room.turn_summaries[-8:] if room.turn_summaries else [],
                 room_id=room.id,
             )
@@ -317,9 +319,7 @@ class QuarterlyResolver:
         )
 
         if not global_narrative or not global_narrative.strip():
-            global_narrative = self.narrative_engine._offline_global_narrative(
-                ws, all_decisions
-            )
+            global_narrative = self.narrative_engine._offline_global_narrative(ws, all_decisions)
 
         # Store under "global" key + backward-compat per-faction keys
         narratives["global"] = global_narrative
@@ -365,7 +365,7 @@ def _empty_baseline(ws: WorldState):
         resource_changes={},
         character_events=[],
         history_events=[],
-        season_name=str(getattr(getattr(ws, 'season', None), 'cn', None) or getattr(ws, 'season', '?')),
+        season_name=str(getattr(getattr(ws, "season", None), "cn", None) or getattr(ws, "season", "?")),
         year=ws.year,
         tax_revenue={},
         food_delta={},
@@ -420,10 +420,14 @@ def _ensure_season_advance(ws: WorldState, room_id: str = "?") -> None:
 
         if next_idx == 0:
             ws.year += 1
-        ws.turn_number = getattr(ws, 'turn_number', 0) + 1
+        ws.turn_number = getattr(ws, "turn_number", 0) + 1
         logger.info(
             "[room=%s] Season advanced: %s → %s (year=%s, turn=%s)",
-            room_id, current_str, next_str, ws.year, ws.turn_number,
+            room_id,
+            current_str,
+            next_str,
+            ws.year,
+            ws.turn_number,
         )
     except Exception as e:
         logger.error("[room=%s] Season advance failed: %s", room_id, e)
@@ -488,8 +492,7 @@ def _build_turn_summary(
     narrative_str = " | ".join(narrative_fragments) if narrative_fragments else ""
 
     events_str = (
-        "; ".join(e.get("title", "") for e in results.history_events[:4])
-        if results.history_events else "天下无事"
+        "; ".join(e.get("title", "") for e in results.history_events[:4]) if results.history_events else "天下无事"
     )
 
     # Build rich outcome_summary with decisions + narratives + events

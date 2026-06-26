@@ -308,7 +308,6 @@ class TestDBPersistence:
         assert loaded_ws["year"] == 207
 
 
-
 class TestNPCTriggerDecisions:
     """Test _trigger_npc_decisions behavior across round transitions."""
 
@@ -355,6 +354,7 @@ class TestNPCTriggerDecisions:
 
         # Trigger NPC decisions
         from histrategy.server.room_manager import _trigger_npc_decisions
+
         _trigger_npc_decisions(room)
 
         # All AI slots should now have submitted decisions
@@ -375,6 +375,7 @@ class TestNPCTriggerDecisions:
 
         # Should not raise
         from histrategy.server.room_manager import _trigger_npc_decisions
+
         _trigger_npc_decisions(room)
         # All human — nothing should have been submitted
         for slot in room.slots.values():
@@ -386,13 +387,11 @@ class TestNPCTriggerDecisions:
         room.world_state = self._make_mock_world_state()
 
         from histrategy.server.room_manager import _trigger_npc_decisions
+
         _trigger_npc_decisions(room)
 
         # Record first round decisions
-        first_decisions = {
-            fid: slot.pending_decision
-            for fid, slot in room.slots.items() if slot.is_ai()
-        }
+        first_decisions = {fid: slot.pending_decision for fid, slot in room.slots.items() if slot.is_ai()}
         assert len(first_decisions) == 3  # shu, wu, liuzhang
 
         # Advance quarter — should clear ALL decisions
@@ -404,7 +403,9 @@ class TestNPCTriggerDecisions:
         # Re-trigger for next round
         _trigger_npc_decisions(room)
         for slot in room.ai_slots():
-            assert slot.has_submitted(), f"AI slot {slot.faction_id} should have new decision for Q{room.quarter_number}"
+            assert slot.has_submitted(), (
+                f"AI slot {slot.faction_id} should have new decision for Q{room.quarter_number}"
+            )
             # Decision may be the same (heuristic is deterministic) — that's fine
             # The important thing is that it was regenerated
 
@@ -414,6 +415,7 @@ class TestNPCTriggerDecisions:
         room.world_state = None
 
         from histrategy.server.room_manager import _trigger_npc_decisions
+
         _trigger_npc_decisions(room)
         # No crash, no submissions
         for slot in room.ai_slots():
@@ -427,6 +429,7 @@ class TestNPCTriggerDecisions:
         room.slots["wu"].is_active = False
 
         from histrategy.server.room_manager import _trigger_npc_decisions
+
         _trigger_npc_decisions(room)
 
         assert room.slots["shu"].has_submitted(), "Active AI shu should get decision"
@@ -554,6 +557,7 @@ class TestPreAssignedFlow:
             create_human_slot,
         )
         from histrategy.engine.game_room import GameRoom
+
         pre_assigned = {"caocao": "张三", "liubei": "李四"}
         internal_map = {}
         for display_fid, player_name in pre_assigned.items():
@@ -569,11 +573,13 @@ class TestPreAssignedFlow:
             room.slots[fid] = slot
             player_name = internal_map[fid]
             display_fid = FACTION_ID_TO_DISPLAY.get(fid, fid)
-            player_links.append({
-                "faction": display_fid,
-                "player_name": player_name,
-                "url": f"/mp?room={room.id}&faction={display_fid}",
-            })
+            player_links.append(
+                {
+                    "faction": display_fid,
+                    "player_name": player_name,
+                    "url": f"/mp?room={room.id}&faction={display_fid}",
+                }
+            )
 
         # 未指定的势力 → AI NPC
         for fid in LLM_NPC_FACTIONS:

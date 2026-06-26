@@ -28,7 +28,9 @@ RESOLVE_TIMEOUT = 180.0  # 秒（LLM 最长等待时间）
 # ── Public API ────────────────────────────────────────────────────────────────
 
 
-def start(faction: str, scenario: str = "207", language_style: str = "vernacular", lang: str = "zh", host_user_id: str = "") -> dict:
+def start(
+    faction: str, scenario: str = "207", language_style: str = "vernacular", lang: str = "zh", host_user_id: str = ""
+) -> dict:
     """创建单人游戏。
 
     内部：创建 1人类+2AI 房间 → 初始化世界 → 触发 NPC → 返回 intro
@@ -53,7 +55,12 @@ def start(faction: str, scenario: str = "207", language_style: str = "vernacular
     display_fid = FACTION_KEY_TO_DISPLAY.get(faction, faction)
 
     # 1. 创建房间：1 个人类（用 pre_assigned）+ AI NPC 自动填充
-    result = create_room(host_user_id=host_user_id or "system", scenario=scenario, pre_assigned={display_fid: "Player"}, metadata={"lang": lang})
+    result = create_room(
+        host_user_id=host_user_id or "system",
+        scenario=scenario,
+        pre_assigned={display_fid: "Player"},
+        metadata={"lang": lang},
+    )
 
     if not result.get("ok"):
         return {"ok": False, "error": result.get("error", "创建房间失败")}
@@ -97,7 +104,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
 
     # Auto-detect lang from room metadata if not explicitly passed
     if lang == "zh":
-        room_lang = getattr(room, 'metadata', {}).get('lang', 'zh')
+        room_lang = getattr(room, "metadata", {}).get("lang", "zh")
         if room_lang and room_lang != "zh":
             lang = room_lang
 
@@ -111,6 +118,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
 
     # 1. 提交决策 → 同步 resolve（submit_decision 内部调用 _resolve_and_advance）
     from histrategy.server.room_manager import _trigger_npc_decisions
+
     submit_result = submit_decision(game_id, human_fid, decision)
     if not submit_result.get("ok"):
         return {"ok": False, "error": submit_result.get("error", "提交决策失败")}
@@ -130,7 +138,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
             submit_decision(game_id, human_fid, decision)
         except Exception as e:
             logger.warning(f"Room {game_id}: sync NPC trigger failed: {e}")
-        
+
         room = _get_room(game_id)
         if not room or room.quarter_number <= prev_quarter:
             return {"ok": False, "error": "推演失败，请重试"}
@@ -220,7 +228,8 @@ def _build_intro(room: GameRoom, faction_id: str, language_style: str, lang: str
         "narrative": narrative,
         "npc_actions": [],  # NPC 的初始行动（在第一回合推演后才有）
         "new_choices": ["Develop Economy", "Military Action", "Recruit Talent", "Consolidate"]
-        if is_en else ["发展内政", "对外用兵", "广纳贤才", "休养生息"],
+        if is_en
+        else ["发展内政", "对外用兵", "广纳贤才", "休养生息"],
         "state_changes": {},
         "events_occurred": [],
     }
@@ -289,9 +298,15 @@ def _build_faction_status(room: GameRoom, faction_id: str) -> dict:
         return {
             "name": faction_id,
             "faction_id": faction_id,
-            "strength": 0, "food": 0, "treasury": 0,
-            "territories": [], "morale": 50, "is_active": False,
-            "year": room.year, "season": room.season, "turn": room.quarter_number,
+            "strength": 0,
+            "food": 0,
+            "treasury": 0,
+            "territories": [],
+            "morale": 50,
+            "is_active": False,
+            "year": room.year,
+            "season": room.season,
+            "turn": room.quarter_number,
         }
 
     territories = []
@@ -371,31 +386,29 @@ def _build_suggestions(room: GameRoom, faction_id: str, lang: str = "zh") -> lis
 
         if food < 5000:
             suggestions.append(
-                "Low food — develop agriculture, establish supply lines" if is_en
-                else "粮草不足，宜发展农业、推行屯田")
+                "Low food — develop agriculture, establish supply lines" if is_en else "粮草不足，宜发展农业、推行屯田"
+            )
         if treasury < 5000:
             suggestions.append(
-                "Low treasury — cut spending, develop trade" if is_en
-                else "资金短缺，宜降低开支、发展商业")
+                "Low treasury — cut spending, develop trade" if is_en else "资金短缺，宜降低开支、发展商业"
+            )
         if morale < 40:
             suggestions.append(
-                "Low morale — reduce taxes, appease the people" if is_en
-                else "民心不稳，宜减轻赋税、安抚百姓")
+                "Low morale — reduce taxes, appease the people" if is_en else "民心不稳，宜减轻赋税、安抚百姓"
+            )
         if strength < 5000:
             suggestions.append(
-                "Low troops — recruit soldiers, train forces" if is_en
-                else "兵力薄弱，宜招募新兵、训练士卒")
+                "Low troops — recruit soldiers, train forces" if is_en else "兵力薄弱，宜招募新兵、训练士卒"
+            )
         if territories <= 1:
-            suggestions.append(
-                "Small territory — seek expansion opportunities" if is_en
-                else "领地狭小，宜伺机扩张")
+            suggestions.append("Small territory — seek expansion opportunities" if is_en else "领地狭小，宜伺机扩张")
 
     # 通用建议
     if len(suggestions) < 3:
         defaults = (
             ["Hold council for strategic advice", "Send spies to assess rivals", "Develop new technologies"]
-            if is_en else
-            ["召开朝会听取谋士建议", "派遣细作探查邻国动向", "发展科技树解锁新政"]
+            if is_en
+            else ["召开朝会听取谋士建议", "派遣细作探查邻国动向", "发展科技树解锁新政"]
         )
         for d in defaults:
             if d not in suggestions:

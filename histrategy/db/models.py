@@ -32,7 +32,7 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
 
     slots_json = json_dumps({fid: s.to_dict() for fid, s in room.slots.items()})
     summaries_json = json_dumps(room.turn_summaries)
-    metadata_json = json_dumps(getattr(room, 'metadata', {}))
+    metadata_json = json_dumps(getattr(room, "metadata", {}))
     ws_json = json_dumps(world_state_dict) if world_state_dict else None
     now = datetime.now(timezone.utc).isoformat()
 
@@ -186,10 +186,7 @@ def load_room(room_id: str) -> GameRoom | None:
 
     # Restore major_npc_ids from slots (any AI_NPC type = major NPC)
     # This survives DB roundtrip without needing a schema migration
-    room.major_npc_ids = {
-        fid for fid, s in slots.items()
-        if s.occupant_type.value == "ai_npc" and s.is_active
-    }
+    room.major_npc_ids = {fid for fid, s in slots.items() if s.occupant_type.value == "ai_npc" and s.is_active}
 
     # Restore metadata (lang, etc.) — survives server restart
     metadata_raw = row.get("metadata")

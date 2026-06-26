@@ -111,10 +111,7 @@ def collect_all_decisions(
     # 2. 并行 LLM 调用：为主要 NPC 生成独立决策
     # 但如果 AI slot 已经有预生成的 pending_decision（来自 _trigger_npc_decisions），
     # 直接复用——避免对 NPC 重复调 LLM
-    pre_submitted_ai = [
-        s for s in room.major_ai_slots()
-        if s.faction_id not in results and s.has_submitted()
-    ]
+    pre_submitted_ai = [s for s in room.major_ai_slots() if s.faction_id not in results and s.has_submitted()]
     for s in pre_submitted_ai:
         results[s.faction_id] = DecisionResult(
             faction_id=s.faction_id,
@@ -122,10 +119,7 @@ def collect_all_decisions(
             commands=s.pending_commands,
             source="llm",
         )
-    major_ai = [
-        s for s in room.major_ai_slots()
-        if s.faction_id not in results
-    ]
+    major_ai = [s for s in room.major_ai_slots() if s.faction_id not in results]
     if major_ai and llm:
         _collect_ai_decisions_parallel(
             major_ai,
@@ -324,9 +318,7 @@ def _generate_heuristic_decision(
     if strength < 3000 and treasury > 1000:
         amount = min(5000, treasury // 2)
         if amount >= 1000:
-            commands.append(
-                _cmd("conscript", {"amount": amount}, "危急存亡之秋，紧急扩军备战")
-            )
+            commands.append(_cmd("conscript", {"amount": amount}, "危急存亡之秋，紧急扩军备战"))
             parts.append(f"紧急征兵{amount}")
 
     # ── Priority 2: Standard recruitment ──
@@ -345,8 +337,7 @@ def _generate_heuristic_decision(
                 target = n_territories[0] if n_territories else None
                 if target:
                     commands.append(
-                        _cmd("attack", {"target": target, "target_faction": nid},
-                             f"趁敌弱，先发制人进攻{nid}")
+                        _cmd("attack", {"target": target, "target_faction": nid}, f"趁敌弱，先发制人进攻{nid}")
                     )
                     parts.append(f"出兵攻打{nid}")
                     attack_made = True
@@ -359,24 +350,23 @@ def _generate_heuristic_decision(
             strongest = max(stronger, key=lambda x: x[2])
             border = _resolve_heuristic_border(ws, faction_id, strongest[0])
             commands.append(
-                _cmd("defend", {"target": strongest[0], "border": border},
-                     f"敌强我弱，固守{border or '边境'}防御{strongest[0]}")
+                _cmd(
+                    "defend",
+                    {"target": strongest[0], "border": border},
+                    f"敌强我弱，固守{border or '边境'}防御{strongest[0]}",
+                )
             )
             parts.append(f"固守{border or '边境'}以御{strongest[0]}")
 
     # ── Priority 5: Development ──
     if not attack_made and treasury > 3000 and food > 2000 and capital and not hostile_neighbors:
-        commands.append(
-            _cmd("develop", {"territory": capital}, "发展经济")
-        )
+        commands.append(_cmd("develop", {"territory": capital}, "发展经济"))
         parts.append(f"开发{capital}")
 
     # ── Priority 6: Tax adjustment ──
     if morale < 30 and getattr(faction, "tax_rate", 0.3) > 0.25:
         new_rate = max(0.15, getattr(faction, "tax_rate", 0.3) - 0.10)
-        commands.append(
-            _cmd("tax", {"tax_rate": round(new_rate, 2)}, "减税安民")
-        )
+        commands.append(_cmd("tax", {"tax_rate": round(new_rate, 2)}, "减税安民"))
         parts.append(f"减税至{int(new_rate * 100)}%")
     elif getattr(faction, "tax_rate", 0.3) > 0.35:
         commands.append(_cmd("tax", {"tax_rate": 0.3}, "减轻民负"))

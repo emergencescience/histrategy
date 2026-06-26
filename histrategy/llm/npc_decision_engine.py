@@ -169,6 +169,7 @@ def _load_npc_prompt(scenario: str | None, language: str = "zh-CN") -> str:
     # Fall back to default
     return _NPC_DECISION_SYSTEM_DEFAULT
 
+
 # 可用命令类型（与 IntentParser 保持一致）
 NPC_COMMAND_TYPES = [
     "attack",
@@ -279,10 +280,7 @@ class NPCDecisionEngine:
             except Exception as e:
                 last_error = e
                 error_str = str(e).lower()
-                is_retryable = any(
-                    keyword.lower() in error_str
-                    for keyword in NPC_LLM_RETRYABLE_ERRORS
-                )
+                is_retryable = any(keyword.lower() in error_str for keyword in NPC_LLM_RETRYABLE_ERRORS)
 
                 if not is_retryable:
                     # Non-retryable error (e.g. JSON parse error, bad request)
@@ -302,15 +300,11 @@ class NPCDecisionEngine:
                     time.sleep(delay)
                 else:
                     logger.error(
-                        f"NPCDecisionEngine LLM failed after {NPC_LLM_MAX_RETRIES} "
-                        f"attempts for {faction_id}: {e}"
+                        f"NPCDecisionEngine LLM failed after {NPC_LLM_MAX_RETRIES} attempts for {faction_id}: {e}"
                     )
 
         # All retries exhausted or non-retryable error → fall back to heuristic
-        logger.warning(
-            f"NPCDecisionEngine falling back to heuristic for {faction_id} "
-            f"(last error: {last_error})"
-        )
+        logger.warning(f"NPCDecisionEngine falling back to heuristic for {faction_id} (last error: {last_error})")
         return self._generate_heuristic(world_state, faction_id)
 
     def _generate_llm(
@@ -352,7 +346,9 @@ class NPCDecisionEngine:
         if isinstance(response, str):
             response = self._extract_json(response)
 
-        decision = response.get("decision", "观望待机" if self.language == "zh-CN" else "Watching and waiting for the right moment.")
+        decision = response.get(
+            "decision", "观望待机" if self.language == "zh-CN" else "Watching and waiting for the right moment."
+        )
         raw_commands = response.get("commands", [])
 
         # 标准化命令
@@ -427,25 +423,25 @@ class NPCDecisionEngine:
             amount = min(5000, treasury // 2)
             if amount >= 1000:
                 commands.append(
-                    _cmd("conscript", {"amount": amount},
-                         "危急存亡之秋，紧急扩军备战" if not is_en
-                         else "Emergency conscription, nation in peril")
+                    _cmd(
+                        "conscript",
+                        {"amount": amount},
+                        "危急存亡之秋，紧急扩军备战" if not is_en else "Emergency conscription, nation in peril",
+                    )
                 )
-                decision_parts.append(
-                    f"紧急征兵{amount}" if not is_en else f"Emergency draft of {amount}"
-                )
+                decision_parts.append(f"紧急征兵{amount}" if not is_en else f"Emergency draft of {amount}")
 
         # ── Priority 2: Recruitment if below threshold ──
         elif strength < 10000 and treasury > 2000:
             amount = min(5000, treasury // 2)
             commands.append(
-                _cmd("conscript", {"amount": amount},
-                     "兵力薄弱，扩充军备以自保" if not is_en
-                     else "Troops weak, expanding military for self-defense")
+                _cmd(
+                    "conscript",
+                    {"amount": amount},
+                    "兵力薄弱，扩充军备以自保" if not is_en else "Troops weak, expanding military for self-defense",
+                )
             )
-            decision_parts.append(
-                f"征兵{amount}" if not is_en else f"Conscript {amount}"
-            )
+            decision_parts.append(f"征兵{amount}" if not is_en else f"Conscript {amount}")
 
         # ── Priority 3: Attack weak hostile neighbor ──
         attack_made = False
@@ -459,13 +455,13 @@ class NPCDecisionEngine:
                     target = n_territories[0] if n_territories else None
                     if target:
                         commands.append(
-                            _cmd("attack", {"target": target, "target_faction": nid},
-                                 f"趁敌弱，先发制人进攻{nid}" if not is_en
-                                 else f"Preemptive strike on weaker {nid}")
+                            _cmd(
+                                "attack",
+                                {"target": target, "target_faction": nid},
+                                f"趁敌弱，先发制人进攻{nid}" if not is_en else f"Preemptive strike on weaker {nid}",
+                            )
                         )
-                        decision_parts.append(
-                            f"出兵攻打{nid}" if not is_en else f"Attack {nid}"
-                        )
+                        decision_parts.append(f"出兵攻打{nid}" if not is_en else f"Attack {nid}")
                         attack_made = True
                         break
 
@@ -476,66 +472,69 @@ class NPCDecisionEngine:
                 strongest = max(stronger_hostiles, key=lambda x: x[2])
                 border = _resolve_border(ws, faction_id, strongest[0])
                 commands.append(
-                    _cmd("defend", {"target": strongest[0], "border": border},
-                         f"敌强我弱，固守{border or '边境'}防御{strongest[0]}" if not is_en
-                         else f"Outnumbered, fortify {border or 'border'} against {strongest[0]}")
+                    _cmd(
+                        "defend",
+                        {"target": strongest[0], "border": border},
+                        f"敌强我弱，固守{border or '边境'}防御{strongest[0]}"
+                        if not is_en
+                        else f"Outnumbered, fortify {border or 'border'} against {strongest[0]}",
+                    )
                 )
                 decision_parts.append(
-                    f"固守{border or '边境'}以御{strongest[0]}" if not is_en
+                    f"固守{border or '边境'}以御{strongest[0]}"
+                    if not is_en
                     else f"Fortify border against {strongest[0]}"
                 )
 
         # ── Priority 5: Develop economy during peace ──
         if not attack_made and treasury > 3000 and food > 2000 and capital and not hostile_neighbors:
             commands.append(
-                _cmd("develop", {"territory": capital},
-                     "天下太平，发展领地经济" if not is_en
-                     else f"Peacetime development of {capital}")
+                _cmd(
+                    "develop",
+                    {"territory": capital},
+                    "天下太平，发展领地经济" if not is_en else f"Peacetime development of {capital}",
+                )
             )
-            decision_parts.append(
-                f"开发{capital}" if not is_en else f"Develop {capital}"
-            )
+            decision_parts.append(f"开发{capital}" if not is_en else f"Develop {capital}")
 
         # ── Priority 6: Tax adjustment ──
         if morale < 30 and getattr(faction, "tax_rate", 0.3) > 0.25:
             new_rate = max(0.15, getattr(faction, "tax_rate", 0.3) - 0.10)
             commands.append(
-                _cmd("tax", {"tax_rate": round(new_rate, 2)},
-                     "民心低迷，轻徭薄赋以安民" if not is_en
-                     else "Morale low, reducing taxes to pacify populace")
+                _cmd(
+                    "tax",
+                    {"tax_rate": round(new_rate, 2)},
+                    "民心低迷，轻徭薄赋以安民" if not is_en else "Morale low, reducing taxes to pacify populace",
+                )
             )
             decision_parts.append(
-                f"减税至{int(new_rate * 100)}%" if not is_en
-                else f"Reduce tax to {int(new_rate * 100)}%"
+                f"减税至{int(new_rate * 100)}%" if not is_en else f"Reduce tax to {int(new_rate * 100)}%"
             )
         elif getattr(faction, "tax_rate", 0.3) > 0.35:
             commands.append(
-                _cmd("tax", {"tax_rate": 0.30},
-                     "减轻民负，稳定统治" if not is_en
-                     else "Ease the people's burden")
+                _cmd("tax", {"tax_rate": 0.30}, "减轻民负，稳定统治" if not is_en else "Ease the people's burden")
             )
-            decision_parts.append(
-                "降低税率至三成" if not is_en else "Reduce tax rate to 30%"
-            )
+            decision_parts.append("降低税率至三成" if not is_en else "Reduce tax rate to 30%")
 
         # ── Priority 7: Diplomacy with neutrals if warlike ──
         if not attack_made and hostile_neighbors and aggression < 0.5 and diplomacy > 0.4:
             neutral_neighbors = [
-                nid for nid in neighbors
-                if nid not in {h[0] for h in hostile_neighbors}
-                and nid not in {f[0] for f in friendly_neighbors}
+                nid
+                for nid in neighbors
+                if nid not in {h[0] for h in hostile_neighbors} and nid not in {f[0] for f in friendly_neighbors}
             ]
             if neutral_neighbors and treasury > 2000:
                 target = neutral_neighbors[0]
                 commands.append(
-                    _cmd("diplomacy", {"target": target, "action": "improve_relations"},
-                         f"派出使者改善与{target}的关系" if not is_en
-                         else f"Send envoy to improve relations with {target}")
+                    _cmd(
+                        "diplomacy",
+                        {"target": target, "action": "improve_relations"},
+                        f"派出使者改善与{target}的关系"
+                        if not is_en
+                        else f"Send envoy to improve relations with {target}",
+                    )
                 )
-                decision_parts.append(
-                    f"出使{target}改善邦交" if not is_en
-                    else f"Send envoy to {target}"
-                )
+                decision_parts.append(f"出使{target}改善邦交" if not is_en else f"Send envoy to {target}")
 
         # ── Build final decision text ──
         if is_en:
@@ -549,8 +548,7 @@ class NPCDecisionEngine:
             # Make it read like a coherent strategic assessment
             decision_text = joiner.join(decision_parts) + suffix
         else:
-            decision_text = ("休整观望，静待时机。" if not is_en
-                             else "Resting and observing, awaiting the right moment.")
+            decision_text = "休整观望，静待时机。" if not is_en else "Resting and observing, awaiting the right moment."
 
         return decision_text, commands
 
@@ -576,9 +574,13 @@ class NPCDecisionEngine:
         lines.append(f"{L['faction']}: {faction.name} ({faction_id})")
         lines.append(f"{L['ruler']}: {getattr(faction, 'ruler_id', '')}")
         lines.append(f"{L['troops']}: {getattr(faction, 'strength_actual', 0):,}")
-        lines.append(f"{L['funds']}: {getattr(faction, 'treasury', 0):,} | {L['food']}: {getattr(faction, 'food', 0):,}")
-        lines.append(f"{L['morale']}: {getattr(faction, 'morale_actual', 50)} | {L['tax_rate']}: {int(getattr(faction, 'tax_rate', 0.3) * 100)}%")
-        territories = list(getattr(faction, 'territories', []))
+        lines.append(
+            f"{L['funds']}: {getattr(faction, 'treasury', 0):,} | {L['food']}: {getattr(faction, 'food', 0):,}"
+        )
+        lines.append(
+            f"{L['morale']}: {getattr(faction, 'morale_actual', 50)} | {L['tax_rate']}: {int(getattr(faction, 'tax_rate', 0.3) * 100)}%"
+        )
+        territories = list(getattr(faction, "territories", []))
         if territories:
             lines.append(f"🏰 **{L['territories']}**: {territories}")
         else:
@@ -658,6 +660,7 @@ class NPCDecisionEngine:
                     arrow = f"{faction_id}→"
                     if arrow in summary:
                         import re
+
                         m = re.search(rf"{re.escape(faction_id)}→(\w+)", summary)
                         if m and qnum > last_attack_quarter:
                             last_attack_target = m.group(1)
@@ -668,7 +671,7 @@ class NPCDecisionEngine:
             current_quarter = getattr(ws, "turn", 0) or 0
             if last_attack_target and last_attack_quarter >= current_quarter - 1:
                 lines.append(f"## {L['strategic_reminder']}")
-                lines.append(L['failed_attack'].format(target=last_attack_target))
+                lines.append(L["failed_attack"].format(target=last_attack_target))
                 lines.append("")
 
         # Instructions

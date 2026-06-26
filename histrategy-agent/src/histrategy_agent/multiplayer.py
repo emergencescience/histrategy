@@ -48,7 +48,7 @@ class PlayerSlot:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "PlayerSlot":
+    def from_dict(cls, data: dict) -> PlayerSlot:
         return cls(
             user_id=data["user_id"],
             faction_id=data["faction_id"],
@@ -186,7 +186,7 @@ class MultiplayerSession:
             pass
 
     @classmethod
-    def load(cls, session_id: str) -> "MultiplayerSession | None":
+    def load(cls, session_id: str) -> MultiplayerSession | None:
         """Load a session from disk. Returns None if not found."""
         data_dir = os.environ.get("HISTRATEGY_DATA_DIR", os.path.expanduser("~/.histrategy"))
         path = Path(data_dir) / "sessions" / "multiplayer" / f"{session_id}.json"
@@ -197,16 +197,13 @@ class MultiplayerSession:
         return cls.from_dict(data)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "MultiplayerSession":
+    def from_dict(cls, data: dict) -> MultiplayerSession:
         session = cls(
             session_id=data["session_id"],
             host_user_id=data["host_user_id"],
             max_players=data.get("max_players", 7),
         )
-        session.players = {
-            uid: PlayerSlot.from_dict(slot_data)
-            for uid, slot_data in data.get("players", {}).items()
-        }
+        session.players = {uid: PlayerSlot.from_dict(slot_data) for uid, slot_data in data.get("players", {}).items()}
         session.turn_order = list(data.get("turn_order", []))
         session.current_turn_index = data.get("current_turn_index", 0)
         session.game_phase = GamePhase(data.get("game_phase", "lobby"))

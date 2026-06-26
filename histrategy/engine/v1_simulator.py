@@ -140,12 +140,10 @@ def _build_context(
             or L["no_territory"]
         )
         # Compute total population from territories (H15e fix: FactionState has no population field)
-        computed_population = getattr(faction, 'population', 0)
+        computed_population = getattr(faction, "population", 0)
         if not computed_population:
             computed_population = sum(
-                ws.territories[tid].population
-                for tid in faction.territories
-                if tid in ws.territories
+                ws.territories[tid].population for tid in faction.territories if tid in ws.territories
             )
         parts.append(
             f"### {faction.name} ({fid})\n"
@@ -400,7 +398,9 @@ class V1Simulator:
                 log_sim_event(
                     room_id=room_id,
                     quarter_number=quarter_number,
-                    event_type="black_swan" if "灾" in event_text or "祸" in event_text or "变" in event_text else "state_mutation",
+                    event_type="black_swan"
+                    if "灾" in event_text or "祸" in event_text or "变" in event_text
+                    else "state_mutation",
                     event_data={"description": event_text},
                 )
 
@@ -457,6 +457,7 @@ class V1Simulator:
         # json_repair 回退 — 修复 LLM 输出的格式偏差（缺失引号、尾部逗号等）
         try:
             from json_repair import repair_json
+
             repaired = repair_json(text)
             return json.loads(repaired)
         except Exception:
@@ -495,8 +496,8 @@ class V1Simulator:
             }
         narrative = (
             "(Offline mode: LLM unavailable, state unchanged)"
-            if lang == "en" else
-            "（离线模式：无 LLM 可用，状态未变化）"
+            if lang == "en"
+            else "（离线模式：无 LLM 可用，状态未变化）"
         )
         return {
             "narrative": narrative,
@@ -716,7 +717,9 @@ def save_v1_state_to_db(
                                 status=policy_info.get("status", "active"),
                             )
                     except Exception as policy_err:
-                        logger.warning(f"V1 DB save: policy_state failed for {fid}/{policy_name}: {policy_err}", exc_info=True)
+                        logger.warning(
+                            f"V1 DB save: policy_state failed for {fid}/{policy_name}: {policy_err}", exc_info=True
+                        )
 
             success_count += 1
         except Exception as faction_err:
@@ -724,6 +727,8 @@ def save_v1_state_to_db(
             logger.warning(f"V1 DB save failed for faction '{fid}': {faction_err}", exc_info=True)
 
     if error_count > 0:
-        logger.warning(f"V1 DB save: {success_count} factions saved, {error_count} failed. room={room_id} q={quarter_number}")
+        logger.warning(
+            f"V1 DB save: {success_count} factions saved, {error_count} failed. room={room_id} q={quarter_number}"
+        )
     elif success_count > 0:
         logger.info(f"V1 DB save: {success_count} factions saved successfully. room={room_id} q={quarter_number}")

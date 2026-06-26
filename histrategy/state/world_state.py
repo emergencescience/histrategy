@@ -24,10 +24,10 @@ from datetime import datetime
 from enum import Enum
 from pathlib import Path
 
-from .npc_state import NPCState, load_npc_states, save_npc_states
-
 # Phase 1: Re-export WorldState/FactionState from unified engine
 from histrategy_engine.world import FactionState, WorldState  # noqa: F401
+
+from .npc_state import NPCState, load_npc_states, save_npc_states
 
 
 class HistoricalMode(Enum):

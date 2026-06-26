@@ -2,6 +2,7 @@
 
 Starts a local histrategy server in a background thread for multiplayer tests.
 """
+
 from __future__ import annotations
 
 import os
@@ -29,6 +30,7 @@ def _start_server_thread(host: str, port: int, data_dir: str, api_key: str):
     os.environ["HISTRATEGY_ENGINE"] = "v1"
 
     import logging
+
     logging.basicConfig(level=logging.INFO)
 
     import uvicorn
@@ -80,6 +82,7 @@ def histrategy_server():
 
     # Health-check the server
     import httpx
+
     base_url = f"http://{host}:{port}"
     deadline = time.monotonic() + 30
     while time.monotonic() < deadline:
@@ -97,6 +100,7 @@ def histrategy_server():
 
     # Cleanup test data dir
     import shutil
+
     data_path = Path(data_dir)
     if data_path.exists():
         shutil.rmtree(data_path, ignore_errors=True)

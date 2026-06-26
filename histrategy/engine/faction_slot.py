@@ -49,9 +49,11 @@ SCENARIO_NPC_FACTIONS: dict[str, set[str]] = {
     "rome-triumvirate": {"senate", "octavian", "antony", "cleopatra"},
 }
 
+
 def get_npc_factions(scenario: str) -> set[str]:
     """返回指定场景的 LLM NPC 势力集合（场景感知）。"""
     return SCENARIO_NPC_FACTIONS.get(scenario, LLM_NPC_FACTIONS)
+
 
 # 用户可见的势力列表（全名）
 PLAYABLE_FACTIONS = ["caocao", "liubei", "sunquan"]

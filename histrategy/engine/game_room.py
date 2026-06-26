@@ -111,10 +111,7 @@ class GameRoom:
         should participate in the game but don't warrant LLM calls.
         """
         major_ids = getattr(self, "major_npc_ids", None) or set()
-        return [
-            s for s in self.slots.values()
-            if s.is_ai() and s.is_active and s.faction_id not in major_ids
-        ]
+        return [s for s in self.slots.values() if s.is_ai() and s.is_active and s.faction_id not in major_ids]
 
     def active_slots(self) -> list[FactionSlot]:
         """所有活跃槽位（无论人类/AI）。"""

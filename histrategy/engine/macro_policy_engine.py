@@ -53,7 +53,7 @@ def _load_macro_prompt(scenario: str | None, lang: str = "zh") -> str:
     cache_key = (scenario, lang)
     if cache_key in _MACRO_PROMPT_CACHE:
         return _MACRO_PROMPT_CACHE[cache_key]
-    
+
     # Try language-specific prompt first
     if lang == "en":
         candidates = [
@@ -72,6 +72,7 @@ def _load_macro_prompt(scenario: str | None, lang: str = "zh") -> str:
             _MACRO_PROMPT_CACHE[cache_key] = p.read_text(encoding="utf-8")
             return _MACRO_PROMPT_CACHE[cache_key]
     return _MACRO_SIM_DEFAULT
+
 
 OUTPUT_SCHEMA_HINT = """
 ## battle_results

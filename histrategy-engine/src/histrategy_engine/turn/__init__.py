@@ -72,10 +72,7 @@ class TurnController:
 
         # ── Normalize commands: dict → Command objects ──
         if player_commands:
-            player_commands = [
-                Command(**c) if isinstance(c, dict) else c
-                for c in player_commands
-            ]
+            player_commands = [Command(**c) if isinstance(c, dict) else c for c in player_commands]
 
         # ── Step 1: Climate roll ──
         climate_events = self.domestic_engine.climate.roll_all(
@@ -338,7 +335,9 @@ class TurnController:
 
     def _is_valid_command(self, cmd: Command, world_state: WorldState) -> bool:
         # Handle both Command objects and dicts
-        fid = getattr(cmd, "faction_id", None) or (cmd.get("faction_id") if isinstance(cmd, dict) else None)
+        fid = getattr(cmd, "faction_id", None) or (
+            cmd.get("faction_id") if isinstance(cmd, dict) else None
+        )
         if not fid:
             return False
 
@@ -346,11 +345,19 @@ class TurnController:
         if not faction or not faction.is_active:
             return False
 
-        cmd_type = getattr(cmd, "type", None) or (cmd.get("type") if isinstance(cmd, dict) else None)
-        params = getattr(cmd, "params", None) or (cmd.get("params", {}) if isinstance(cmd, dict) else {})
+        cmd_type = getattr(cmd, "type", None) or (
+            cmd.get("type") if isinstance(cmd, dict) else None
+        )
+        params = getattr(cmd, "params", None) or (
+            cmd.get("params", {}) if isinstance(cmd, dict) else {}
+        )
 
         if cmd_type in ("recruit", "develop"):
-            tid = params.get("territory", "") if isinstance(params, dict) else getattr(params, "territory", "")
+            tid = (
+                params.get("territory", "")
+                if isinstance(params, dict)
+                else getattr(params, "territory", "")
+            )
             territory = world_state.territories.get(tid)
             if not territory:
                 return False
