@@ -71,7 +71,7 @@ def run_simulation_playthrough() -> None:
         return details
 
     # Initialize Game Engine for Scenario 207 (三顾茅庐) with player faction shu
-    engine = GameEngine(scenario="207", new_game=True, llm=llm)
+    engine = GameEngine(scenario="three-kingdoms", new_game=True, llm=llm)
     engine.set_player_faction("shu")
 
     playthrough_log = []

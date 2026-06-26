@@ -29,7 +29,7 @@ class DirectEngine:
 
     def __init__(
         self,
-        scenario: str = "207",
+        scenario: str = "three-kingdoms",
         faction: str = "shu",
         llm_api_key: str | None = None,
         llm_provider: str | None = None,
@@ -38,7 +38,7 @@ class DirectEngine:
         """Create a new game engine.
 
         Args:
-            scenario: Scenario ID ("207")
+            scenario: Scenario ID ("three-kingdoms")
             faction: Player faction ("shu", "cao", "wu")
             llm_api_key: API key for LLM provider (auto-detected if unset)
             llm_provider: Override provider detection ("deepseek", "openai", "tongyi")

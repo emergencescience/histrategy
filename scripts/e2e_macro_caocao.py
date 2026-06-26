@@ -30,7 +30,7 @@ print("=" * 60)
 print("E2E TEST: Cao Cao Macro Historical Engine (5 quarters)")
 print("=" * 60)
 
-engine = GameEngine(llm=llm, scenario="207", new_game=True)
+engine = GameEngine(llm=llm, scenario="three-kingdoms", new_game=True)
 engine.set_player_faction("cao")
 
 ws = engine.world_state_v2

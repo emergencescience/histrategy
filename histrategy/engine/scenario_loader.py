@@ -53,18 +53,21 @@ from .loader import (
 
 # ─── helpers ────────────────────────────────────────────────────────────────
 
+# Canonical scenario directory names.  Any other value is rejected with a
+# clear error — legacy numeric IDs ("207", "44bc") and the old "caesar-44bc"
+# alias must be replaced with the canonical names.
 
-def _normalise_scenario_id(scenario_id: str) -> str:
-    """Map legacy numeric scenario IDs to directory names.
 
-    "207" / "" → "three-kingdoms"
-    "caesar-44bc" / "44bc" → "rome-triumvirate"
-    Everything else is passed through unchanged.
+def _validate_scenario_id(scenario_id: str) -> str:
+    """Validate and return a canonical scenario ID.
+
+    Raises ValueError if *scenario_id* is not a known canonical name.
     """
-    if scenario_id in ("", "207", "three-kingdoms"):
-        return "three-kingdoms"
-    if scenario_id in ("caesar-44bc", "44bc", "rome-triumvirate"):
-        return "rome-triumvirate"
+    if scenario_id not in ("three-kingdoms", "rome-triumvirate"):
+        raise ValueError(
+            f"Unknown scenario {scenario_id!r}. "
+            f"Expected one of: 'three-kingdoms', 'rome-triumvirate'"
+        )
     return scenario_id
 
 
@@ -103,8 +106,8 @@ class ScenarioLoader:
         scenario_id: str = "three-kingdoms",
         scenarios_root: Path | None = None,
     ):
-        # Normalise legacy scenario IDs to directory names
-        self.scenario_id = _normalise_scenario_id(scenario_id)
+        # Validate scenario ID against known canonical names
+        self.scenario_id = _validate_scenario_id(scenario_id)
         self._root = scenarios_root or _find_scenarios_root()
         self._dir = self._root / self.scenario_id
         self._toml = self._load_toml()

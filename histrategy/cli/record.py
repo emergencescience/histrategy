@@ -48,7 +48,7 @@ DEFAULT_DECISIONS = [
 def main():
     parser = argparse.ArgumentParser(description="三國志略 — 录制管线")
     parser.add_argument("--faction", default="shu")  # dynamic from scenario
-    parser.add_argument("--scenario", default="207")
+    parser.add_argument("--scenario", default="three-kingdoms")
     parser.add_argument("--turns", type=int, default=10, help="录制回合数")
     parser.add_argument("--output", default=None, help="输出视频路径")
     parser.add_argument("--fps", type=float, default=0.5, help="帧率 (秒/帧)")

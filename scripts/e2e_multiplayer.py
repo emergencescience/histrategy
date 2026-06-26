@@ -45,7 +45,7 @@ def test_v3_multi():
         print(f"V3 Q1 — {faction}: {decision[:50]}...")
         print(f"{'='*60}")
 
-        engine = GameEngine(scenario="207", new_game=True, llm=llm)
+        engine = GameEngine(scenario="three-kingdoms", new_game=True, llm=llm)
         engine.set_player_faction(faction)
 
         t0 = time.time()
@@ -83,7 +83,7 @@ def test_v1_multi():
         return
 
     # 初始化 world state
-    engine = GameEngine(scenario="207", new_game=True)
+    engine = GameEngine(scenario="three-kingdoms", new_game=True)
     engine.set_player_faction("cao")
     ws = engine.world_state_v2
 

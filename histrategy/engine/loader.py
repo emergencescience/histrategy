@@ -26,22 +26,11 @@ from histrategy_engine.world import (
     WorldState,
 )
 
-# ─── scenario ID mapping ────────────────────────────────────────────────────
-# Legacy code uses short numeric IDs ("207"); the scenarios/ directory uses
-# human-readable directory names ("three-kingdoms").
-
-_SCENARIO_ID_MAP: dict[str, str] = {
-    "207": "three-kingdoms",
-    "three-kingdoms": "three-kingdoms",
-    "caesar-44bc": "rome-triumvirate",
-    "44bc": "rome-triumvirate",
-    "rome-triumvirate": "rome-triumvirate",
-}
-
-
-def _normalise_scenario_id(scenario_id: str) -> str:
-    """Map legacy scenario IDs to directory names."""
-    return _SCENARIO_ID_MAP.get(scenario_id, scenario_id)
+# ─── scenario ID ─────────────────────────────────────────────────────────────
+# Only canonical scenario IDs are accepted: "three-kingdoms" | "rome-triumvirate".
+# Legacy numeric IDs ("207", "44bc") and the old "caesar-44bc" alias are
+# no longer mapped — callers must use the canonical names.
+_CANONICAL_SCENARIO_IDS: frozenset[str] = frozenset({"three-kingdoms", "rome-triumvirate"})
 
 
 TERRAIN_MAP: dict[str, TerrainType] = {
@@ -126,8 +115,7 @@ def load_territories(
     """
     from .scenario_loader import ScenarioLoader
 
-    normalised = _normalise_scenario_id(scenario_id)
-    loader = ScenarioLoader(normalised)
+    loader = ScenarioLoader(scenario_id)
 
     try:
         return loader.load_territories()
@@ -142,7 +130,7 @@ def load_territories(
 
     territory_path = None
     if scenarios_root:
-        candidate = scenarios_root / normalised / "knowledge" / "territories.json"
+        candidate = scenarios_root / scenario_id / "knowledge" / "territories.json"
         if candidate.is_file():
             territory_path = candidate
 
@@ -151,7 +139,7 @@ def load_territories(
         if candidate.is_file():
             territory_path = candidate
 
-    if territory_path is None and scenarios_root and normalised != "three-kingdoms":
+    if territory_path is None and scenarios_root and scenario_id != "three-kingdoms":
         territory_path = scenarios_root / "three-kingdoms" / "knowledge" / "territories.json"
         if not territory_path.is_file():
             territory_path = None
@@ -382,7 +370,7 @@ def load_scenario(
 
 def build_world_state(
     player_faction_id: str,
-    scenario_id: str = "207",
+    scenario_id: str = "three-kingdoms",
     knowledge_path: str | None = None,
 ) -> WorldState:
     """Build a complete WorldState for a new game.
@@ -402,8 +390,7 @@ def build_world_state(
     """
     from .scenario_loader import ScenarioLoader
 
-    normalised = _normalise_scenario_id(scenario_id)
-    loader = ScenarioLoader(normalised)
+    loader = ScenarioLoader(scenario_id)
 
     try:
         return loader.build_world_state(player_faction_id)
@@ -416,7 +403,7 @@ def build_world_state(
     if knowledge_path is None:
         knowledge_path = resolve_knowledge_path()
 
-    territories = load_territories(scenario_id=normalised, knowledge_path=knowledge_path)
+    territories = load_territories(scenario_id=scenario_id, knowledge_path=knowledge_path)
     characters = load_characters(knowledge_path)
     scenario = load_scenario(scenario_id, knowledge_path)
 

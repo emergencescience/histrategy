@@ -58,7 +58,7 @@ def _try_save(room: GameRoom, ws_dict: dict | None = None):
 
 
 def create_room(
-    scenario: str = "207",
+    scenario: str = "three-kingdoms",
     pre_assigned: dict[str, str] | None = None,
     metadata: dict | None = None,
 ) -> dict:

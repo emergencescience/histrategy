@@ -43,7 +43,7 @@ def tk_room_id():
     from histrategy.server.room_manager import create_room
 
     result = create_room(
-        scenario="207",
+        scenario="three-kingdoms",
         pre_assigned={"shu": "TestPlayer"},
     )
     assert result["ok"]

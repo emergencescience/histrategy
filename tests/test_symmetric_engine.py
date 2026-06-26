@@ -564,7 +564,7 @@ class TestPreAssignedFlow:
             internal_map[internal_fid] = player_name
         internal_ids = list(internal_map.keys())
 
-        room = GameRoom(scenario="207")
+        room = GameRoom(scenario="three-kingdoms")
         player_links = []
 
         for fid in internal_ids:

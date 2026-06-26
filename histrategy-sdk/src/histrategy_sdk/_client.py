@@ -87,7 +87,7 @@ class ServerClient:
     def create_game(
         self,
         faction: str = "shu",
-        scenario: str = "207",
+        scenario: str = "three-kingdoms",
         llm_api_key: str | None = None,
         session_id: str | None = None,
         language_style: str | None = None,
@@ -96,7 +96,7 @@ class ServerClient:
 
         Args:
             faction: "shu" (刘备), "cao" (曹操), or "wu" (孙权)
-            scenario: Scenario ID, currently only "207"
+            scenario: Scenario ID, currently only "three-kingdoms"
             llm_api_key: User's own DeepSeek API key (not persisted)
             session_id: Orchestrator session ID for persistence
             language_style: "classical" (古文风) or "vernacular" (白话文)
@@ -217,7 +217,7 @@ class ServerClient:
         data = self._post("/api/games/restore", body)
         return RestoreResult(
             game_id=data["game_id"],
-            scenario=data.get("scenario", "207"),
+            scenario=data.get("scenario", "three-kingdoms"),
             faction=data.get("faction", "?"),
             faction_status=FactionStatus(**data.get("faction_status", {})),
             restored=data.get("restored", False),

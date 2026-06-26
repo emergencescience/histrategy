@@ -119,7 +119,7 @@ def test_decision_bus():
     from histrategy.engine.game import GameEngine
 
     # Build a minimal world state
-    engine = GameEngine(scenario="207", new_game=True)
+    engine = GameEngine(scenario="three-kingdoms", new_game=True)
     engine.set_player_faction("shu")  # must be called before get_intro_scene/process_turn
     engine.game_started = True
     ws = engine.world_state_v2
@@ -235,7 +235,7 @@ def test_multi_turn():
     print("=== Test: Multi-Turn ===")
     from histrategy.engine.game import GameEngine
 
-    engine = GameEngine(scenario="207", new_game=True)
+    engine = GameEngine(scenario="three-kingdoms", new_game=True)
     engine.set_player_faction("shu")  # must be called before get_intro_scene/process_turn
     engine.game_started = True
 

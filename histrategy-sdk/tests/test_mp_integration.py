@@ -236,7 +236,7 @@ class TestMultiplayerRoom:
         result = MultiplayerRoom.create(
             server_client,
             {"caocao": "曹操"},
-            scenario="207",
+            scenario="three-kingdoms",
             metadata={"lang": "zh"},
         )
         assert result["ok"] is True

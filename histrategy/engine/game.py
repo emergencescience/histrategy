@@ -154,7 +154,7 @@ class GameEngine:
     def __init__(
         self,
         llm: LLMAdapter | None = None,
-        scenario: str = "207",
+        scenario: str = "three-kingdoms",
         new_game: bool = False,
         sim_engine: WorldSimEngine | None = None,
         force_v1: bool = False,
@@ -769,11 +769,10 @@ class GameEngine:
 
     def _set_player_faction_v2(self, faction_id: str) -> None:
         """v2 path: build WorldState from scenario data via ScenarioLoader."""
-        from .loader import _normalise_scenario_id
         from .scenario_loader import ScenarioLoader
 
         mapped = V2_FACTION_MAP.get(faction_id, faction_id)
-        scenario_id = _normalise_scenario_id(self.scenario)
+        scenario_id = self.scenario
 
         loader = ScenarioLoader(scenario_id)
         try:

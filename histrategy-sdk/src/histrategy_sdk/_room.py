@@ -50,7 +50,7 @@ class Room:
         name: str,
         *,
         faction: str = "shu",
-        scenario: str = "207",
+        scenario: str = "three-kingdoms",
         llm_api_key: str | None = None,
         llm_provider: str | None = None,
         lang: str = "zh",
@@ -60,7 +60,7 @@ class Room:
         Args:
             name: Room name (e.g. "my-campaign" or "group-chat-42/shu")
             faction: "shu" (刘备), "cao" (曹操), or "wu" (孙权)
-            scenario: Scenario ID, currently only "207"
+            scenario: Scenario ID, currently only "three-kingdoms"
             llm_api_key: API key for LLM (auto-detected from env if unset)
             llm_provider: "deepseek", "openai", "tongyi" (auto-detected)
             lang: Language for narratives ("zh" or "en")

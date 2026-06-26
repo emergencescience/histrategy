@@ -78,7 +78,7 @@ def run_playtest() -> dict:
         # Initialize engine
         print("[1/3] 初始化游戏引擎...")
         with _suppress_stderr():
-            engine = GameEngine(scenario="207", new_game=True)
+            engine = GameEngine(scenario="three-kingdoms", new_game=True)
 
         # Select Liu Bei faction
         engine.set_player_faction("shu")

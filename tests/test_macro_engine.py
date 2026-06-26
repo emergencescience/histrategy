@@ -48,7 +48,7 @@ def world_state():
         season=Season.WINTER,
         turn_number=1,
         player_faction_id="cao",
-        scenario="207",
+        scenario="three-kingdoms",
     )
 
     # Factions
