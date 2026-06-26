@@ -1,15 +1,13 @@
 """
-RoomManager — 多人游戏房间管理（v2: room_player 对称架构）。
+RoomManager — 多人游戏房间管理（v3: 纯势力模型）。
 
-核心改进：
-  - room_player 表：进入房间 ≠ 选择势力。host 可以观战。
-  - 创建/加入统一为 "enter" — 任何人都可以进入房间。
-  - host 负责开始游戏；billing 默认 host 付费。
+核心简化：
+  - histrategy 不追踪 user_id / host_user_id —— 身份由 orchestrator 代理层处理。
+  - 房间创建时通过 pre_assigned 指定势力分配，之后不可变。
+  - 没有 enter_room / kick_player / pick_faction —— 势力在创建时固定。
+  - 玩家通过 faction_id 识别（/mp?room=xxx&faction=caocao）。
 
-玩家角色：
-  host      — 创建房间的人，可以开始游戏、踢人
-  player    — 普通玩家，可以选势力
-  spectator — 观战者，不能选势力也不能决策
+依赖方向：单边 orchestrator → histrategy。histrategy 绝不回调 orchestrator。
 """
 
 from __future__ import annotations
@@ -42,26 +40,6 @@ class RateLimitError(Exception):
     pass
 
 
-# ── Player helper ────────────────────────────────────
-
-
-def _get_room_players(room: GameRoom) -> dict[str, dict]:
-    """Derive player info from room.slots and host_user_id (no in-memory cache).
-
-    Returns dict compatible with old _players format:
-        {user_id: {role, display_name}}
-    """
-    players: dict[str, dict] = {}
-    # Host
-    if room.host_user_id:
-        players[room.host_user_id] = {"role": "host", "display_name": room.host_user_id}
-    # Human players from slots
-    for _fid, s in room.slots.items():
-        if s.is_human() and s.occupant_id:
-            uid = s.occupant_id
-            if uid not in players:
-                players[uid] = {"role": "player", "display_name": getattr(s, "display_name", "") or uid}
-    return players
 
 
 def _try_save(room: GameRoom, ws_dict: dict | None = None):
@@ -80,8 +58,6 @@ def _try_save(room: GameRoom, ws_dict: dict | None = None):
 
 
 def create_room(
-    host_user_id: str = "",
-    host_name: str = "",
     scenario: str = "207",
     pre_assigned: dict[str, str] | None = None,
     metadata: dict | None = None,
@@ -138,11 +114,7 @@ def create_room(
     if not internal_ids:
         internal_ids = ["cao", "shu", "wu"]
 
-    # Normalize host_user_id before constructing GameRoom to prevent empty values in DB
-    host_user_id = host_user_id or ("host_" + uuid.uuid4().hex[:6])
-
     room = GameRoom(
-        host_user_id=host_user_id,
         scenario=scenario,
     )
     if metadata:
@@ -161,8 +133,8 @@ def create_room(
             slot = _make_ai(fid)
             room.slots[fid] = slot
         else:
-            # 预分配：直接设为 HUMAN，occupant_id = faction_id（内部服务，无需 token）
-            slot = create_human_slot(fid, fid, player_name)
+            # 预分配：直接设为 HUMAN。histrategy 不追踪 user_id
+            slot = create_human_slot(fid, player_name)
             room.slots[fid] = slot
         # Use fid directly — frontend resolves display names from /api/scenarios
         display_fid = fid
@@ -174,7 +146,6 @@ def create_room(
             }
         )
         # 注册玩家
-        _enter_player(room.id, fid, "player", player_name)
 
     # 未指定的势力 → AI NPC（从场景数据动态获取，只加载可扮演势力）
     try:
@@ -216,7 +187,6 @@ def create_room(
     room.major_npc_ids = set(npc_factions)
 
     # host 进入房间
-    _enter_player(room.id, host_user_id or ("host_" + uuid.uuid4().hex[:6]), "host", host_name or "房主")
 
     # 立即初始化世界状态并开始游戏
     _init_world_state(room)
@@ -233,11 +203,9 @@ def create_room(
     fnames = _get_faction_names(room, lang=lang)
     display_factions = [fnames.get(f, f) for f in internal_ids]
 
-    logger.info(f"Room created+started: {room.id} by {host_user_id or 'anon'} (humans: {display_factions})")
     result = {
         "ok": True,
         "room_id": room.id,
-        "host_user_id": host_user_id,
         "phase": "waiting",
         "human_factions": display_factions,
         "faction_names": fnames,
@@ -247,160 +215,16 @@ def create_room(
     return result
 
 
-def enter_room(
-    room_id: str,
-    user_id: str = "",
-    display_name: str = "",
-    faction: str = "",
-) -> dict:
-    """进入房间。
+def start_game(room_id: str) -> dict:
+    """开始游戏。未选的势力自动变 AI。
 
-    简化模式：玩家访问 /mp?room=xxx&faction=cao 即可自动进入。
     histrategy 是内部服务，auth 由 orchestrator 代理层处理。
-
-    Returns:
-        {"ok": True, "faction": str, ...} 或 error
-    """
-    room = _get_room(room_id)
-    if not room:
-        return {"ok": False, "error": "房间不存在"}
-
-    room_players = _get_room_players(room)
-
-    # 翻译显示名 → 内部 ID
-    if faction:
-        from histrategy.engine.faction_slot import FACTION_DISPLAY_TO_ID
-
-        faction = FACTION_DISPLAY_TO_ID.get(faction, faction)
-
-    # 自动生成 user_id（内部服务，不需要维护 user 表）
-    if not user_id:
-        user_id = faction if faction else ("u_" + uuid.uuid4().hex)
-
-    # 如果指定了 faction，自动占据该势力（如果 slot 存在且 open）
-    if faction and faction in room.slots:
-        slot = room.slots[faction]
-        if slot.is_open():
-            # 自动占据势力（occupant_id = faction_id）
-            from histrategy.engine.faction_slot import create_human_slot
-
-            room.slots[faction] = create_human_slot(faction, faction)
-            logger.info(f"Player {user_id} auto-claimed {faction} in room {room_id}")
-            _try_save(room)
-        elif slot.is_human():
-            # 已有人类占据，使用 faction_id 识别
-            if slot.occupant_id != faction:
-                return {"ok": False, "error": f"势力 {faction} 已被其他人占据"}
-        else:
-            return {"ok": False, "error": f"势力 {faction} 由AI控制"}
-
-    # 如果已在房间里，返回当前状态
-    if user_id in room_players:
-        p = room_players[user_id]
-        result = {
-            "ok": True,
-            "already_in": True,
-            "user_id": user_id,
-            "role": p["role"],
-            "faction": faction,
-            "room": _room_summary(room),
-        }
-        return result
-
-    # 新玩家
-    role = "player"
-    _enter_player(room_id, user_id, role, display_name or ("玩家_" + user_id[-4:]))
-
-    result = {
-        "ok": True,
-        "role": role,
-        "user_id": user_id,
-        "faction": faction,
-        "room": _room_summary(room),
-    }
-    return result
-
-
-def kick_player(room_id: str, host_user_id: str, target_user_id: str) -> dict:
-    """host 踢人。"""
-    room = _get_room(room_id)
-    if not room:
-        return {"ok": False, "error": "房间不存在"}
-
-    room_players = _get_room_players(room)
-    host = room_players.get(host_user_id, {})
-    if host.get("role") != "host":
-        return {"ok": False, "error": "只有房主可以踢人"}
-
-    if target_user_id in room_players:
-        # 释放该玩家占据的势力
-        for slot in room.slots.values():
-            if slot.is_human() and slot.occupant_id == target_user_id:
-                from histrategy.engine.faction_slot import create_open_slot
-
-                room.slots[slot.faction_id] = create_open_slot(slot.faction_id)
-        _try_save(room)
-
-    return {"ok": True}
-
-
-def pick_faction(room_id: str, user_id: str, faction_id: str) -> dict:
-    """玩家选择一个势力。
-
-    Returns:
-        {"ok": True, "faction": str} 或 error
-    """
-    room = _get_room(room_id)
-    if not room:
-        return {"ok": False, "error": "房间不存在"}
-
-    room_players = _get_room_players(room)
-    player = room_players.get(user_id)
-    if not player:
-        return {"ok": False, "error": "请先进入房间"}
-
-    if player["role"] == "spectator":
-        return {"ok": False, "error": "观战者不能选择势力"}
-
-    if room.phase.value not in ("lobby",):
-        return {"ok": False, "error": "游戏已开始，不能选势力"}
-
-    if faction_id not in room.slots:
-        return {"ok": False, "error": f"势力 {faction_id} 不可用"}
-
-    slot = room.slots[faction_id]
-    if slot.is_human() and slot.occupant_id != user_id:
-        return {"ok": False, "error": f"势力 {faction_id} 已被其他人选择"}
-
-    # 先释放该玩家之前选的势力（如果有）
-    for fid, s in room.slots.items():
-        if s.is_human() and s.occupant_id == user_id and fid != faction_id:
-            from histrategy.engine.faction_slot import create_open_slot
-
-            room.slots[fid] = create_open_slot(fid)
-
-    # 占据新势力
-    from histrategy.engine.faction_slot import create_human_slot
-
-    room.slots[faction_id] = create_human_slot(faction_id, user_id)
-    _try_save(room)
-
-    logger.info(f"Player {user_id} picked {faction_id} in room {room_id}")
-    return {"ok": True, "faction": faction_id}
-
-
-def start_game(room_id: str, user_id: str) -> dict:
-    """host 开始游戏。未选的势力自动变 AI。
+    任何人可以通过 orchestrator 调用此接口开始游戏。
 
     Returns:
         {"ok": True, "phase": "waiting", "humans": [...], "ai_npcs": [...]}
     """
-    room = _get_room(room_id)
-    if not room:
-        return {"ok": False, "error": "房间不存在"}
-
-    player = _get_room_players(room).get(user_id, {})
-    if player.get("role") != "host":
+    if room.phase.value != "lobby":
         return {"ok": False, "error": "只有房主可以开始游戏"}
 
     if room.phase.value != "lobby":
@@ -484,8 +308,6 @@ def submit_decision(room_id: str, faction_id: str, decision: str) -> dict:
         return {"ok": False, "error": f"势力 {faction_id} 已灭亡"}
     if not slot.is_human():
         return {"ok": False, "error": f"势力 {faction_id} 由AI控制"}
-    if slot.occupant_id and slot.occupant_id != faction_id:
-        return {"ok": False, "error": f"你不是势力 {faction_id} 的控制者"}
 
     slot.submit_decision(decision)
     _try_save(room)
@@ -517,7 +339,7 @@ def submit_decision(room_id: str, faction_id: str, decision: str) -> dict:
 
 
 def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
-    """获取房间状态（含玩家列表、势力分配）。"""
+    """获取房间状态（含势力分配）。histrategy 不追踪 user_id。"""
     room = _get_room(room_id)
     if not room:
         return {"ok": False, "error": "房间不存在"}
@@ -527,28 +349,26 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
     fnames = _get_faction_names(room, lang=lang)
     _display = lambda fid: fnames.get(fid, fid)
 
-    room_players = _get_room_players(room)
     submitted = [_display(fid) for fid, s in room.slots.items() if s.is_active and s.has_submitted()]
     pending = [_display(fid) for fid, s in room.slots.items() if s.is_active and not s.has_submitted()]
 
     status = {
         "ok": True,
         "room_id": room.id,
-        "host_user_id": room.host_user_id,
         "phase": room.phase.value,
         "year": room.year,
         "season": room.season,
         "quarter": room.quarter_number,
         "faction_names": fnames,  # {internal_id: display_name} for orchestrator
         "players": {
-            uid: {"role": p["role"], "display_name": p.get("display_name", "")} for uid, p in room_players.items()
+            fid: {"role": "human", "display_name": s.display_name or fid}
+            for fid, s in room.slots.items() if s.is_human()
         },
         "slots": {
             _display(fid): {
                 "faction_id": _display(fid),
                 "internal_id": fid,
                 "occupant_type": s.occupant_type.value,
-                "occupant_id": s.occupant_id,
                 "has_submitted": s.has_submitted(),
                 "is_active": s.is_active,
             }
@@ -733,27 +553,6 @@ def _get_room(room_id: str) -> GameRoom | None:
     except Exception:
         pass
     return None
-
-
-def _enter_player(room_id: str, user_id: str, role: str, display_name: str):
-    """Register a player in the room. Updates the relevant FactionSlot display_name."""
-    room = _get_room(room_id)
-    if not room:
-        return
-    # Update slot display_name if this user occupies a faction
-    for _fid, s in room.slots.items():
-        if s.is_human() and s.occupant_id == user_id:
-            s.display_name = display_name
-            _try_save(room)
-            break
-
-
-def _room_summary(room: GameRoom) -> dict:
-    return {
-        "room_id": room.id,
-        "phase": room.phase.value,
-        "slots": {fid: s.occupant_type.value for fid, s in room.slots.items()},
-    }
 
 
 def _init_world_state(room: GameRoom):

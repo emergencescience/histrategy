@@ -26,8 +26,6 @@ def room_id():
     from histrategy.server.room_manager import create_room
 
     result = create_room(
-        host_user_id="integration_test",
-        host_name="Integration Test",
         scenario="rome-triumvirate",
         pre_assigned={"octavian": "TestPlayer"},
     )
@@ -45,8 +43,6 @@ def tk_room_id():
     from histrategy.server.room_manager import create_room
 
     result = create_room(
-        host_user_id="integration_test",
-        host_name="Integration Test",
         scenario="207",
         pre_assigned={"shu": "TestPlayer"},
     )

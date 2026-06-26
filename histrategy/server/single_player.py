@@ -29,7 +29,7 @@ RESOLVE_TIMEOUT = 180.0  # 秒（LLM 最长等待时间）
 
 
 def start(
-    faction: str, scenario: str = "207", language_style: str = "vernacular", lang: str = "zh", host_user_id: str = ""
+    faction: str, scenario: str = "207", language_style: str = "vernacular", lang: str = "zh"
 ) -> dict:
     """创建单人游戏。
 
@@ -40,7 +40,6 @@ def start(
         scenario: 剧本 (默认 207)
         language_style: 语言风格 (classical | vernacular)
         lang: 界面语言 (zh | en)
-        host_user_id: 真实用户 UUID (从 orchestrator X-User-Id 头部提取)
 
     Returns:
         GameCreatedResponse 格式:
@@ -56,7 +55,7 @@ def start(
 
     # 1. 创建房间：1 个人类（用 pre_assigned）+ AI NPC 自动填充
     result = create_room(
-        host_user_id=host_user_id or "system",
+
         scenario=scenario,
         pre_assigned={display_fid: "Player"},
         metadata={"lang": lang},

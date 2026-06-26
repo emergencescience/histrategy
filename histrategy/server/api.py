@@ -1028,7 +1028,6 @@ def create_app(llm_provider: str | None = None) -> Any:
         from histrategy.server.room_manager import create_room
 
         # Prefer X-User-Id (injected by orchestrator proxy) over body user_id
-        host_user_id = x_user_id or body.get("user_id", "")
 
         pre_assigned = body.get("pre_assigned")
         if not pre_assigned:
@@ -1038,8 +1037,6 @@ def create_app(llm_provider: str | None = None) -> Any:
             }
 
         result = create_room(
-            host_user_id=host_user_id,
-            host_name=body.get("display_name", ""),
             scenario=body.get("scenario", "207"),
             pre_assigned=pre_assigned,
             metadata=body.get("metadata"),
@@ -1047,34 +1044,14 @@ def create_app(llm_provider: str | None = None) -> Any:
         return result
 
     @app.post("/api/rooms/{room_id}/enter")
-    def api_enter_room(room_id: str, body: dict = Body(...)):
-        """进入房间。histrategy 是内部服务，auth 由 orchestrator 代理层处理。"""
-        from histrategy.server.room_manager import enter_room
-
-        return enter_room(
-            room_id,
-            body.get("user_id", ""),
-            body.get("display_name", ""),
-            body.get("faction", ""),
-        )
-
     @app.post("/api/rooms/{room_id}/pick")
-    def api_pick_faction(room_id: str, body: dict = Body(...)):
-        """选择势力。"""
-        from histrategy.server.room_manager import pick_faction
-
-        return pick_faction(
-            room_id,
-            body.get("user_id", ""),
-            body.get("faction_id", ""),
-        )
-
     @app.post("/api/rooms/{room_id}/start")
-    def api_start_room(room_id: str, body: dict = Body(...)):
-        """host 开始游戏。"""
+    @app.post("/api/rooms/{room_id}/start")
+    def api_start_room(room_id: str):
+        """开始游戏。histrategy 不追踪 user_id，auth 由 orchestrator 处理。"""
         from histrategy.server.room_manager import start_game
 
-        return start_game(room_id, body.get("user_id", ""))
+        return start_game(room_id)
 
     @app.post("/api/rooms/{room_id}/decide")
     def api_submit_decision(room_id: str, body: dict = Body(...)):
@@ -1246,23 +1223,17 @@ def create_app(llm_provider: str | None = None) -> Any:
         """List rooms for a user. Uses X-User-Id if present, else user_id param."""
         from histrategy.db.connection import execute
 
-        uid = x_user_id or user_id
-        if not uid:
-            return {"rooms": [], "count": 0}
-
         rows = execute(
-            "SELECT id, host_user_id, scenario, year, season, quarter_number, "
+            "SELECT id, scenario, year, season, quarter_number, "
             "phase, is_public, metadata, created_at, updated_at "
-            "FROM game_room WHERE host_user_id = ? "
+            "FROM game_room ORDER BY updated_at DESC LIMIT 50"
             "ORDER BY updated_at DESC LIMIT 50",
-            (uid,),
         )
         rooms = []
         for r in rows:
             rooms.append(
                 {
                     "id": r["id"],
-                    "host_user_id": r["host_user_id"],
                     "scenario": r["scenario"],
                     "year": r["year"],
                     "season": r["season"],
@@ -1303,7 +1274,6 @@ def create_app(llm_provider: str | None = None) -> Any:
             scenario=body.get("scenario", "207"),
             language_style=body.get("language_style", "vernacular"),
             lang=body.get("lang", "zh"),
-            host_user_id=x_user_id or body.get("user_id", ""),
         )
 
     @app.get("/api/scenarios")

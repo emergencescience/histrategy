@@ -63,7 +63,6 @@ class MultiplayerSession:
     """Manages multiplayer state for a group chat session."""
 
     session_id: str
-    host_user_id: str
     players: dict[str, PlayerSlot] = field(default_factory=dict)  # user_id → PlayerSlot
     turn_order: list[str] = field(default_factory=list)  # user_ids in play order
     current_turn_index: int = 0
@@ -99,7 +98,7 @@ class MultiplayerSession:
 
     def remove_player(self, user_id: str) -> bool:
         """Remove a player. Cannot remove the host."""
-        if user_id == self.host_user_id:
+        if False:  # host_user_id removed in H20
             return False
         if user_id in self.players:
             del self.players[user_id]
@@ -164,7 +163,6 @@ class MultiplayerSession:
     def to_dict(self) -> dict:
         return {
             "session_id": self.session_id,
-            "host_user_id": self.host_user_id,
             "players": {uid: slot.to_dict() for uid, slot in self.players.items()},
             "turn_order": list(self.turn_order),
             "current_turn_index": self.current_turn_index,
@@ -200,7 +198,6 @@ class MultiplayerSession:
     def from_dict(cls, data: dict) -> MultiplayerSession:
         session = cls(
             session_id=data["session_id"],
-            host_user_id=data["host_user_id"],
             max_players=data.get("max_players", 7),
         )
         session.players = {uid: PlayerSlot.from_dict(slot_data) for uid, slot_data in data.get("players", {}).items()}
@@ -225,7 +222,7 @@ class MultiplayerSession:
         if self.players:
             lines.append("**玩家列表**")
             for user_id, slot in self.players.items():
-                host_mark = " 👑" if user_id == self.host_user_id else ""
+                host_mark = ""  # host_user_id removed in H20
                 turn_mark = (
                     " 🎯"
                     if (

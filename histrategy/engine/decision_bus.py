@@ -166,7 +166,7 @@ def collect_all_decisions(
         for slot in room.human_slots():
             if slot.faction_id not in results:
                 logger.warning(
-                    f"Human player {slot.occupant_id} for faction {slot.faction_id} timed out after {elapsed:.0f}s"
+                    f"Human faction {slot.faction_id} timed out after {elapsed:.0f}s"
                 )
                 if llm:
                     decision, commands = _generate_llm_decision(

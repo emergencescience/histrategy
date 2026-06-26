@@ -9,6 +9,9 @@ RoomPhase:
     WAITING   — 等待所有 faction 提交本季度决策
     RESOLVING — 正在执行季度引擎（拒绝新提交）
     FINISHED  — 游戏结束
+
+histrategy 不追踪 user_id —— 身份由 orchestrator 代理层处理。
+房间创建时通过 pre_assigned 指定势力分配，之后不可变。
 """
 
 from __future__ import annotations
@@ -44,10 +47,10 @@ class GameRoom:
     - 没有 player_faction_id —— 所有势力对称
     - 没有单一「玩家」概念 —— 每个 FactionSlot 独立提交决策
     - 通过 RoomPhase 状态机驱动多 faction 季度循环
+    - 不追踪 user_id / host_user_id —— 身份由 orchestrator 处理
     """
 
     id: str = field(default_factory=lambda: uuid.uuid4().hex)  # full UUID v4 (32-char hex)
-    host_user_id: str | None = None
     scenario: str = "207"
     year: int = 207
     season: str = "春"
@@ -152,7 +155,6 @@ class GameRoom:
     def to_dict(self) -> dict:
         return {
             "id": self.id,
-            "host_user_id": self.host_user_id,
             "is_public": self.is_public,
             "scenario": self.scenario,
             "year": self.year,
@@ -170,7 +172,6 @@ class GameRoom:
         """从字典重建 GameRoom（不含 world_state，需单独加载）。"""
         room = cls(
             id=data["id"],
-            host_user_id=data.get("host_user_id"),
             is_public=data.get("is_public", False),
             scenario=data.get("scenario", "207"),
             year=data.get("year", 207),
@@ -215,11 +216,13 @@ def create_single_player_room(
 
     玩家占据一个 faction，其他两大势力自动填充为 AI NPC。
     次要势力（刘表/刘璋/张鲁/马超）使用启发式规则。
+
+    Note: user_id 参数保留用于向后兼容，但 histrategy 不追踪用户身份。
     """
     from .faction_slot import create_human_slot
 
     room = GameRoom(scenario=scenario)
-    room.slots[faction_id] = create_human_slot(faction_id, user_id)
+    room.slots[faction_id] = create_human_slot(faction_id)
 
     # 其他主要势力 → AI NPC
     major_npc_ids = set()
@@ -234,15 +237,15 @@ def create_single_player_room(
 
 
 def create_multi_player_room(
-    host_user_id: str,
     faction_ids: list[str],
     scenario: str = "207",
 ) -> GameRoom:
     """创建多人模式的 GameRoom。
 
     指定势力设为 OPEN 等待玩家加入，其余设为 AI NPC。
+    histrategy 不追踪 host_user_id。
     """
-    room = GameRoom(host_user_id=host_user_id, scenario=scenario)
+    room = GameRoom(scenario=scenario)
 
     # 指定势力 → OPEN（等待玩家加入）
     for fid in faction_ids:
@@ -253,6 +256,5 @@ def create_multi_player_room(
         if fid not in room.slots:
             room.slots[fid] = create_ai_slot(fid)
 
-    # 如果 host 自己也选了势力，立即加入
     room.phase = RoomPhase.LOBBY
     return room
