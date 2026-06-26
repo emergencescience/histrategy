@@ -26,13 +26,6 @@ if TYPE_CHECKING:
     from histrategy.engine.quarterly_engine import QuarterResult
     from histrategy.llm.adapter import LLMAdapter
 
-# Default prompt (Three Kingdoms)
-        "Based on the current world state and all factions' decisions, simulate this "
-        "quarter's outcomes. Output structured JSON with battle_results, "
-        "diplomatic_reactions, economic_changes, character_events, and turn_summary. "
-        "All narrative text MUST be in English."
-    ),
-)
 _MACRO_PROMPT_CACHE: dict[tuple, str] = {}
 
 

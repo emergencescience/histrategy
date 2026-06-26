@@ -395,26 +395,16 @@ def create_app(llm_provider: str | None = None) -> Any:
             llm_debug["env_key_exists"] = bool(raw_key)
             llm_debug["env_key_length"] = len(raw_key) if raw_key else 0
 
-        # Check v2 engine availability
-        v2_available = False
+        # v2 engine is always available (histrategy-engine is a hard dependency)
+        v2_available = True
         v2_error = None
-        try:
-            from histrategy.engine.game import _V2_AVAILABLE as _v2a
-            from histrategy.engine.game import _V2_IMPORT_ERROR as _v2err
-
-            v2_available = _v2a
-            v2_error = _v2err
-        except ImportError as e:
-            v2_error = str(e)
-        except Exception as e:
-            v2_error = f"{type(e).__name__}: {e}"
 
         # Detect active engine mode from environment (safe — uses stdlib os)
         import os as _stdlib_os
 
         config_engine = _stdlib_os.environ.get("HISTRATEGY_ENGINE", "")
         if not config_engine:
-            config_engine = "v2" if v2_available else "v1"
+            config_engine = "v2"
 
         # DB type detection
         try:

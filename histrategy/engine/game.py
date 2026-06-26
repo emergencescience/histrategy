@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import contextlib
 import os
-from typing import TYPE_CHECKING
 
 # ─── v1 imports (always available) ────────────────────────────────
 from ..engine.world import GameWorld
@@ -24,45 +23,20 @@ from ..state.world_state import (
     FactionState,
     WorldState,
     has_existing_game,
-    load_world,
-    save_world,
+# ─── v2 engine (always available) ────────────────────────────────
+
+from histrategy_engine import (  # noqa: F811, E402
+    CharacterEngine,
+    DecisionEngine,
+    DomesticEngine,
+    HistoryEngine,
+    MapEngine,
+    MilitaryEngine,
+    TurnController,
 )
-
-if TYPE_CHECKING:
-    from histrategy_engine.ai import DecisionEngine
-    from histrategy_engine.character import CharacterEngine
-    from histrategy_engine.domestic import DomesticEngine
-    from histrategy_engine.history import HistoryEngine
-    from histrategy_engine.map import MapEngine
-    from histrategy_engine.military import MilitaryEngine
-    from histrategy_engine.turn import TurnController
-    from histrategy_engine.world import TurnResult
-    from histrategy_engine.world import WorldState as V2WorldState
-
-# ─── v2 detection ─────────────────────────────────────────────────
-
-_V2_AVAILABLE = False
-_V2_IMPORT_ERROR = None
-try:
-    from histrategy_engine import (  # noqa: F811
-        CharacterEngine,
-        DecisionEngine,
-        DomesticEngine,
-        HistoryEngine,
-        MapEngine,
-        MilitaryEngine,
-        TurnController,
-    )
-    from histrategy_engine import (
-        WorldState as V2WorldState,
-    )
-
-    _V2_AVAILABLE = True
-except ImportError as _e:
-    _V2_IMPORT_ERROR = str(_e)
-
-# ─── Faction data is now loaded from scenarios/ JSON (P0.2) ──────
-
+from histrategy_engine import (
+    WorldState as V2WorldState,
+)
 
 # ─── Macro engine: first-turn hard-coded suggestions ───────────
 # Skip LLM call on turn 0 — all factions start from the same 207 scenario
@@ -162,7 +136,7 @@ class GameEngine:
         self.llm = llm
         self.scenario = scenario
         force_v1_env = os.environ.get("HISTRATEGY_FORCE_V1", "").lower() in ("true", "1")
-        self._use_v2 = _V2_AVAILABLE and not force_v1 and not force_v1_env
+        self._use_v2 = not force_v1 and not force_v1_env
 
         # Detect scenario language early (needed by NarrativeEngine in _build_engine_stack)
         self._scenario_language = "zh"
