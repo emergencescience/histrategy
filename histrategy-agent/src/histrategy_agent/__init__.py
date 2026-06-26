@@ -5,7 +5,7 @@ Bridges IM chat messages to the histrategy-engine deterministic engines.
 """
 
 from .format_engine import FormatEngine
-from .multiplayer import GamePhase, MultiplayerSession, PlayerSlot
+from .multiplayer import FactionPlayer, GamePhase, MultiplayerSession
 from .session import GameSession, GameSessionManager
 from .state_bridge import StateBridge
 from .turn_processor import TurnProcessor
@@ -20,6 +20,6 @@ __all__ = [
     "FormatEngine",
     "GamePhase",
     "MultiplayerSession",
-    "PlayerSlot",
+    "FactionPlayer",
 ]
 __version__ = "0.1.0"
