@@ -165,7 +165,7 @@ def run_playtest() -> dict:
 
         return {
             "faction": "shu (刘备)",
-            "scenario": "207",
+            "scenario": "three-kingdoms",
             "turns_completed": len(results),
             "errors": len(errors),
             "error_details": errors,

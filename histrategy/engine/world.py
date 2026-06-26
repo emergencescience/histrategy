@@ -76,7 +76,7 @@ class HistoricalEvent:
 class GameWorld:
     """The game world state."""
 
-    def __init__(self, scenario: str = "207"):
+    def __init__(self, scenario: str = "three-kingdoms"):
         self.scenario = scenario
         self.current_year = 207
         self.current_season = "spring"

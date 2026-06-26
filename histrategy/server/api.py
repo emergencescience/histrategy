@@ -19,33 +19,6 @@ from typing import Any
 
 from pydantic import BaseModel
 
-_logger = logging.getLogger(__name__)
-
-# ─── Legacy scenario ID migration ─────────────────────────────────
-
-_LEGACY_SCENARIO_MAP: dict[str, str] = {
-    "207": "three-kingdoms",
-    "caesar-44bc": "rome-triumvirate",
-    "44bc": "rome-triumvirate",
-}
-
-
-def _normalise_scenario_param(scenario: str) -> str:
-    """Map legacy scenario IDs to canonical names (with deprecation warning).
-
-    This is an API-layer convenience shim.  The engine layer only accepts
-    canonical IDs ("three-kingdoms", "rome-triumvirate").  Once all
-    callers and database rows have been migrated, this function and the
-    mapping dict can be removed.
-    """
-    if scenario in _LEGACY_SCENARIO_MAP:
-        canonical = _LEGACY_SCENARIO_MAP[scenario]
-        _logger.warning(
-            "Legacy scenario ID %r — please update to %r", scenario, canonical
-        )
-        return canonical
-    return scenario
-
 # ─── Models ──────────────────────────────────────────────────────
 
 
@@ -137,7 +110,6 @@ def _get_or_create_engine(
     faction: str = "shu", scenario: str = "three-kingdoms", new: bool = True, llm_api_key: str | None = None
 ) -> tuple[str, Any]:
     """Get existing game by ID or create a new one."""
-    scenario = _normalise_scenario_param(scenario)
     if not new and _games:
         return list(_games.keys())[-1], list(_games.values())[-1]
 
@@ -579,10 +551,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         restore_error = None
         try:
-            # Normalise legacy scenario IDs before passing to engine
             ws = dict(req.world_state)
-            if "scenario" in ws:
-                ws["scenario"] = _normalise_scenario_param(ws["scenario"])
             engine = GameEngine.from_dict(ws, llm=llm)
         except Exception as e:
             _logger.error("Game restore failed: %s\n%s", e, _tb.format_exc())
@@ -1071,7 +1040,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             }
 
         result = create_room(
-            scenario=_normalise_scenario_param(body.get("scenario", "three-kingdoms")),
+            scenario=body.get("scenario", "three-kingdoms"),
             pre_assigned=pre_assigned,
             metadata=body.get("metadata"),
         )
@@ -1274,7 +1243,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         return start(
             faction=body.get("faction", "shu"),
-            scenario=_normalise_scenario_param(body.get("scenario", "three-kingdoms")),
+            scenario=body.get("scenario", "three-kingdoms"),
             language_style=body.get("language_style", "vernacular"),
             lang=body.get("lang", "zh"),
         )
@@ -1309,7 +1278,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         scenarios = []
         for sid in ScenarioLoader.list_scenarios():
-            loader = ScenarioLoader(_normalise_scenario_param(sid))
+            loader = ScenarioLoader(sid)
             cfg = loader._toml
             meta = cfg.get("meta", {})
             builtin = _BUILTIN_META.get(sid, {})
@@ -1376,7 +1345,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         """
         from histrategy.engine.scenario_loader import ScenarioLoader
 
-        loader = ScenarioLoader(_normalise_scenario_param(scenario_id))
+        loader = ScenarioLoader(scenario_id)
         events = loader.get_timeline_events(year, season)
         return {
             "ok": True,

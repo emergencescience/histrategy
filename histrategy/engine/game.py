@@ -102,7 +102,7 @@ def create_initial_world(player_faction_id: str) -> WorldState:
     clear_session_log()
 
     state = WorldState()
-    state.scenario = "207"
+    state.scenario = "three-kingdoms"
     state.player_faction_id = player_faction_id
 
     scenario = load_scenario("207")
@@ -443,7 +443,7 @@ class GameEngine:
         from .loader import build_world_state
 
         faction_id = data.get("player_faction_id") or data.get("faction_id", "shu")
-        scenario_id = data.get("scenario", "207")
+        scenario_id = data.get("scenario", "three-kingdoms")
 
         # Build fresh base world state from scenario data
         ws = build_world_state(faction_id, scenario_id, self._knowledge_path)
@@ -580,7 +580,7 @@ class GameEngine:
         """
         engine = cls.__new__(cls)
         engine.llm = llm
-        engine.scenario = data.get("scenario", "207")
+        engine.scenario = data.get("scenario", "three-kingdoms")
 
         engine._use_v2 = True
 
@@ -2091,7 +2091,7 @@ class GameEngine:
         # ── Build GameRoom from engine state ──
         room = GameRoom(
             id=getattr(self, "_room_id", str(_uuid.uuid4())),
-            scenario="207",
+            scenario="three-kingdoms",
             year=ws.year,
             season=ws.season.cn if hasattr(ws.season, "cn") else str(ws.season),
             quarter_number=ws.turn_number,

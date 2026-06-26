@@ -51,7 +51,7 @@ class GameRoom:
     """
 
     id: str = field(default_factory=lambda: uuid.uuid4().hex)  # full UUID v4 (32-char hex)
-    scenario: str = "207"
+    scenario: str = "three-kingdoms"
     year: int = 207
     season: str = "春"
     quarter_number: int = 0
@@ -173,7 +173,7 @@ class GameRoom:
         room = cls(
             id=data["id"],
             is_public=data.get("is_public", False),
-            scenario=data.get("scenario", "207"),
+            scenario=data.get("scenario", "three-kingdoms"),
             year=data.get("year", 207),
             season=data.get("season", "春"),
             quarter_number=data.get("quarter_number", 0),
@@ -210,7 +210,7 @@ class GameRoom:
 def create_single_player_room(
     faction_id: str,
     user_id: str,
-    scenario: str = "207",
+    scenario: str = "three-kingdoms",
 ) -> GameRoom:
     """创建单人模式的 GameRoom。
 
@@ -238,7 +238,7 @@ def create_single_player_room(
 
 def create_multi_player_room(
     faction_ids: list[str],
-    scenario: str = "207",
+    scenario: str = "three-kingdoms",
 ) -> GameRoom:
     """创建多人模式的 GameRoom。
 

@@ -199,7 +199,7 @@ class WorldState:
 
     # Player
     player_faction_id: str = ""
-    scenario: str = "207"  # scenario identifier
+    scenario: str = "three-kingdoms"  # scenario identifier
 
     # World
     factions: dict[str, FactionState] = field(default_factory=dict)

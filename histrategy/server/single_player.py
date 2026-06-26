@@ -29,7 +29,7 @@ RESOLVE_TIMEOUT = 180.0  # 秒（LLM 最长等待时间）
 
 
 def start(
-    faction: str, scenario: str = "207", language_style: str = "vernacular", lang: str = "zh"
+    faction: str, scenario: str = "three-kingdoms", language_style: str = "vernacular", lang: str = "zh"
 ) -> dict:
     """创建单人游戏。
 

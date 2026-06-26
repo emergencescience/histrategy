@@ -121,7 +121,7 @@ def load_room(room_id: str) -> GameRoom | None:
 
     room = GameRoom(
         id=row["id"],
-        scenario=row.get("scenario", "207"),
+        scenario=row.get("scenario", "three-kingdoms"),
         year=row.get("year", 207),
         season=row.get("season", "春"),
         quarter_number=row.get("quarter_number", 0),

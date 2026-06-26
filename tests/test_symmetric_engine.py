@@ -97,7 +97,7 @@ class TestGameRoom:
     def test_create_multi_player_room(self):
         room = create_multi_player_room(["cao", "shu"])
         assert room.phase == RoomPhase.LOBBY
-        assert room.scenario == "207"
+        assert room.scenario == "three-kingdoms"
         assert len(room.slots) == 4
         # cao and shu are OPEN, rest are AI
         assert room.slots["cao"].is_open()

@@ -57,12 +57,12 @@ class TestHealth:
 class TestCreateGame:
     """POST /api/games — create new game."""
 
-    def test_create_game_shu_207(self, client):
+    def test_create_game_shu(self, client):
         resp = client.post(
             "/api/games",
             json={
                 "faction": "shu",
-                "scenario": "207",
+                "scenario": "three-kingdoms",
                 "new": True,
             },
         )
@@ -80,7 +80,7 @@ class TestCreateGame:
             "/api/games",
             json={
                 "faction": "cao",
-                "scenario": "207",
+                "scenario": "three-kingdoms",
                 "new": True,
             },
         )
@@ -420,7 +420,7 @@ class TestRestoreGame:
         resp = client.post(
             "/api/games/restore",
             json={
-                "world_state": {"player_faction_id": "cao", "scenario": "207"},
+                "world_state": {"player_faction_id": "cao", "scenario": "three-kingdoms"},
             },
         )
         assert resp.status_code == 200
