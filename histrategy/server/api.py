@@ -293,7 +293,6 @@ def create_app(llm_provider: str | None = None) -> Any:
             _llm_provider = "custom"
 
     from fastapi import FastAPI, Header
-    from fastapi.middleware.cors import CORSMiddleware
 
     from histrategy.server.persistence_adapter import create_persistence_adapter
 
@@ -301,28 +300,6 @@ def create_app(llm_provider: str | None = None) -> Any:
         title="三國志略 API",
         description="Histrategy v2 — Three Kingdoms Strategy Game Engine API",
         version="0.2.0",
-    )
-
-    # CORS: allow Emergence ecosystem origins + env extras
-    import os as _os
-
-    _cors_origins = [
-        "http://localhost:3000",
-        "https://emergence.science",
-        "https://www.emergence.science",
-        "https://surprisal-portal.vercel.app",
-    ]
-    # Allow extra origins from env (comma-separated)
-    _extra = _os.environ.get("ALLOWED_ORIGINS", "")
-    if _extra:
-        _cors_origins.extend([o.strip() for o in _extra.split(",") if o.strip()])
-
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=_cors_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
     )
 
     # ── Database initialization ─────────────────────────
@@ -662,6 +639,8 @@ def create_app(llm_provider: str | None = None) -> Any:
     @app.post("/api/games/{game_id}/command")
     def execute_command(game_id: str, req: CommandRequest, authorization: str | None = Header(default=None)):
         """Submit a decision and process the turn. Persists turn history to orchestrator."""
+        import os as _os
+
         engine = _get_engine(game_id)
         if not engine:
             from fastapi.responses import JSONResponse

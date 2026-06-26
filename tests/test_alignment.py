@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from histrategy.llm.alignment import (
-    ALIGNMENT_SYSTEM_PROMPT,
+    ALIGNMENT_SYSTEM,
     MAX_ADJUSTMENT_PCT,
     MAX_RETRIES,
     AlignmentEngine,
@@ -188,8 +188,8 @@ class TestAlignmentEngine:
 
     def test_system_prompt_exists(self):
         """Alignment system prompt should be non-empty."""
-        assert len(ALIGNMENT_SYSTEM_PROMPT) > 100
-        assert "±20%" in ALIGNMENT_SYSTEM_PROMPT or "20" in ALIGNMENT_SYSTEM_PROMPT
+        assert len(ALIGNMENT_SYSTEM) > 100
+        assert "±20%" in ALIGNMENT_SYSTEM or "20" in ALIGNMENT_SYSTEM
 
     def test_max_adjustment_constant(self):
         """MAX_ADJUSTMENT_PCT should be 25%."""

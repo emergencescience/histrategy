@@ -18,7 +18,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from histrategy.llm.prompt_loader import load_prompt
+from histrategy.llm.prompt_loader import MACRO_SIM_SYSTEM, MACRO_SIM_SYSTEM_EN
 
 if TYPE_CHECKING:
     from histrategy_engine.world import WorldState
@@ -27,14 +27,6 @@ if TYPE_CHECKING:
     from histrategy.llm.adapter import LLMAdapter
 
 # Default prompt (Three Kingdoms)
-_MACRO_SIM_DEFAULT = load_prompt(
-    "macro_simulator.md",
-    default="你是《三國志略》的太史令（Macro Historical Simulator）。",
-)
-_MACRO_SIM_EN = load_prompt(
-    "macro_simulator_en.md",
-    default=(
-        "You are the Grand Historian of Histrategy (Macro Historical Simulator). "
         "Based on the current world state and all factions' decisions, simulate this "
         "quarter's outcomes. Output structured JSON with battle_results, "
         "diplomatic_reactions, economic_changes, character_events, and turn_summary. "
@@ -48,8 +40,8 @@ def _load_macro_prompt(scenario: str | None, lang: str = "zh") -> str:
     """Load scenario-specific macro simulator prompt with language selection."""
     if not scenario or scenario in ("207", "three-kingdoms", ""):
         if lang == "en":
-            return _MACRO_SIM_EN
-        return _MACRO_SIM_DEFAULT
+            return MACRO_SIM_SYSTEM_EN
+        return MACRO_SIM_SYSTEM
     cache_key = (scenario, lang)
     if cache_key in _MACRO_PROMPT_CACHE:
         return _MACRO_PROMPT_CACHE[cache_key]
@@ -58,12 +50,12 @@ def _load_macro_prompt(scenario: str | None, lang: str = "zh") -> str:
     if lang == "en":
         candidates = [
             Path(f"scenarios/{scenario}/prompts/macro_simulator_en.md"),
-            Path(f"scenarios/{scenario}/prompts/macro_simulator_zh-CN.md"),
+            Path(f"scenarios/{scenario}/prompts/macro_simulator_zh.md"),
             Path(f"scenarios/{scenario}/prompts/macro_simulator.md"),
         ]
     else:
         candidates = [
-            Path(f"scenarios/{scenario}/prompts/macro_simulator_zh-CN.md"),
+            Path(f"scenarios/{scenario}/prompts/macro_simulator_zh.md"),
             Path(f"scenarios/{scenario}/prompts/macro_simulator_en.md"),
             Path(f"scenarios/{scenario}/prompts/macro_simulator.md"),
         ]
@@ -71,7 +63,7 @@ def _load_macro_prompt(scenario: str | None, lang: str = "zh") -> str:
         if p.is_file():
             _MACRO_PROMPT_CACHE[cache_key] = p.read_text(encoding="utf-8")
             return _MACRO_PROMPT_CACHE[cache_key]
-    return _MACRO_SIM_DEFAULT
+    return MACRO_SIM_SYSTEM
 
 
 OUTPUT_SCHEMA_HINT = """

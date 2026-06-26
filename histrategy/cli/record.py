@@ -408,7 +408,7 @@ def render_turn_html(turn: dict, template: str) -> str:
 
 
 FRAME_HTML = """<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head><meta charset="UTF-8"><style>
 *{{margin:0;padding:0;box-sizing:border-box}}
 body{{background:#1a1a2e;color:#e0d8c8;font-family:'Noto Sans SC',sans-serif;
@@ -573,7 +573,7 @@ def _try_composite_from_html(frames_dir: Path, output: Path, fps: float) -> bool
 # ─── Default Template (fallback) ─────────────────────────────────
 
 DEFAULT_FRAME_TEMPLATE = """<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head><meta charset="UTF-8"><title>三國志略 录制帧</title>
 <style>
 body{{background:#1a1a2e;color:#e0d8c8;font-family:sans-serif;padding:20px}}

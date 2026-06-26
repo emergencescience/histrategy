@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from .adapter import LLMAdapter
 
 
-from .prompt_loader import ADVISOR_SYSTEM_PROMPT
+from .prompt_loader import ADVISOR_SYSTEM
 
 
 @dataclass
@@ -68,7 +68,7 @@ class StrategicAdvisor:
 
         context = self._build_context(local_state, personality, query)
         messages = [
-            {"role": "system", "content": ADVISOR_SYSTEM_PROMPT},
+            {"role": "system", "content": ADVISOR_SYSTEM},
             {"role": "user", "content": context},
         ]
         metadata = {
@@ -123,7 +123,7 @@ class StrategicAdvisor:
         context += "\n\n请输出JSON格式的战略分析（无query模式）。"
 
         messages = [
-            {"role": "system", "content": ADVISOR_SYSTEM_PROMPT},
+            {"role": "system", "content": ADVISOR_SYSTEM},
             {"role": "user", "content": context},
         ]
         metadata = {

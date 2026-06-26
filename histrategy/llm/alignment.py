@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .adapter import LLMAdapter
 
-from .prompt_loader import ALIGNMENT_SYSTEM_PROMPT
+from .prompt_loader import ALIGNMENT_SYSTEM
 
 MAX_RETRIES = 3
 MAX_ADJUSTMENT_PCT = 0.25  # 25% max allowed adjustment
@@ -122,7 +122,7 @@ class AlignmentEngine:
 
         for attempt in range(1, MAX_RETRIES + 1):
             try:
-                raw_response = self._call_llm(context, ALIGNMENT_SYSTEM_PROMPT, metadata=metadata)
+                raw_response = self._call_llm(context, ALIGNMENT_SYSTEM, metadata=metadata)
                 events = self._parse_events(raw_response)
 
                 if not events:

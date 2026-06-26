@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from histrategy.engine.faction_slot import FactionSlot
-from histrategy.llm.prompt_loader import load_prompt
+from histrategy.llm.prompt_loader import NPC_DECISION_SYSTEM, NPC_DECISION_SYSTEM_EN
 
 logger = logging.getLogger("histrategy.npc")
 
@@ -52,7 +52,7 @@ _NPC_PROMPT_CACHE: dict[tuple[str, str], str] = {}
 
 # ── Bilingual labels for _build_context ────────────────────
 _NPC_LABELS = {
-    "zh-CN": {
+    "zh": {
         "current_time": "当前时间",
         "quarter": "季度",
         "your_faction": "你的势力",
@@ -121,17 +121,9 @@ _NPC_LABELS = {
 }
 
 # Default Three Kingdoms prompt (for backward compatibility)
-_NPC_DECISION_SYSTEM_DEFAULT = load_prompt(
-    "npc_decision.md",
-    default="你是《三國志略》中的一位诸侯，请根据当前天下形势制定本季度战略决策。",
-)
-_NPC_DECISION_SYSTEM_EN = load_prompt(
-    "npc_decision_en.md",
-    default="You are a warlord in the Three Kingdoms. Formulate this quarter's strategic decision based on the current situation.",
-)
 
 
-def _load_npc_prompt(scenario: str | None, language: str = "zh-CN") -> str:
+def _load_npc_prompt(scenario: str | None, language: str = "zh") -> str:
     """Load scenario-specific NPC decision prompt with language fallback.
 
     Priority:
@@ -143,8 +135,8 @@ def _load_npc_prompt(scenario: str | None, language: str = "zh-CN") -> str:
     if not scenario or scenario in ("207", "three-kingdoms", ""):
         # For Three Kingdoms, support English prompt
         if language and language.startswith("en"):
-            return _NPC_DECISION_SYSTEM_EN
-        return _NPC_DECISION_SYSTEM_DEFAULT
+            return NPC_DECISION_SYSTEM_EN
+        return NPC_DECISION_SYSTEM
 
     cache_key = (scenario, language)
     if cache_key in _NPC_PROMPT_CACHE:
@@ -167,7 +159,7 @@ def _load_npc_prompt(scenario: str | None, language: str = "zh-CN") -> str:
                 pass
 
     # Fall back to default
-    return _NPC_DECISION_SYSTEM_DEFAULT
+    return NPC_DECISION_SYSTEM
 
 
 # 可用命令类型（与 IntentParser 保持一致）
@@ -217,13 +209,10 @@ class NPCDecisionEngine:
     4. 场景感知 — 从 scenarios/{name}/prompts/ 加载专属 prompt，支持多语言
     """
 
-    def __init__(self, llm: LLMAdapter | None = None, scenario: str | None = None, language: str = "zh-CN"):
+    def __init__(self, llm: LLMAdapter | None = None, scenario: str | None = None, language: str = "zh"):
         self.llm = llm
         self.llm_available = llm is not None and llm.is_available
         self.scenario = scenario
-        # Normalize language: room metadata uses "zh"/"en", engine uses "zh-CN"/"en"
-        if language == "zh":
-            language = "zh-CN"
         self.language = language
 
     def generate(
@@ -254,7 +243,7 @@ class NPCDecisionEngine:
         """
         faction = world_state.factions.get(faction_id)
         if not faction or not faction.is_active:
-            L = _NPC_LABELS.get(self.language, _NPC_LABELS["zh-CN"])
+            L = _NPC_LABELS.get(self.language, _NPC_LABELS["zh"])
             return L["not_active"], []
 
         # Use LLM for major factions; fall back to heuristic for minor
@@ -347,7 +336,7 @@ class NPCDecisionEngine:
             response = self._extract_json(response)
 
         decision = response.get(
-            "decision", "观望待机" if self.language == "zh-CN" else "Watching and waiting for the right moment."
+            "decision", "观望待机" if self.language == "zh" else "Watching and waiting for the right moment."
         )
         raw_commands = response.get("commands", [])
 
@@ -375,7 +364,7 @@ class NPCDecisionEngine:
         """
         faction = ws.factions.get(faction_id)
         if not faction:
-            return "休整" if self.language == "zh-CN" else "Rest", []
+            return "休整" if self.language == "zh" else "Rest", []
 
         is_en = self.language == "en"
         commands: list[dict] = []
@@ -560,7 +549,7 @@ class NPCDecisionEngine:
         turn_memory: list[dict],
     ) -> str:
         """Build LLM decision context (FOW-aware). Language-controlled via self.language."""
-        L = _NPC_LABELS.get(self.language, _NPC_LABELS["zh-CN"])
+        L = _NPC_LABELS.get(self.language, _NPC_LABELS["zh"])
         lines: list[str] = []
 
         # Time

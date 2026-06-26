@@ -14,8 +14,8 @@ def load_prompt(filename: str, default: str | None = None) -> str | None:
         return f.read().strip()
 
 
-ADVISOR_SYSTEM_PROMPT = load_prompt("advisor.md")
-ALIGNMENT_SYSTEM_PROMPT = load_prompt("alignment.md")
+ADVISOR_SYSTEM = load_prompt("advisor.md")
+ALIGNMENT_SYSTEM = load_prompt("alignment.md")
 GAMEMASTER_INTRO_SYSTEM = load_prompt("gamemaster_intro.md")
 GAMEMASTER_INTRO_SYSTEM_EN = load_prompt(
     "gamemaster_intro_en.md",
@@ -37,13 +37,20 @@ GLOBAL_NARRATIVE_SYSTEM = load_prompt("global_narrative.md")
 GLOBAL_NARRATIVE_SYSTEM_EN = load_prompt("global_narrative_en.md")
 PLAN_SUGGESTIONS_SYSTEM = load_prompt("plan_suggestions.md")
 NPC_INTERPRETER_SYSTEM = load_prompt("npc_interpreter.md")
+NPC_DECISION_SYSTEM = load_prompt("npc_decision.md")
+NPC_DECISION_SYSTEM_EN = load_prompt("npc_decision_en.md")
 INTENT_PARSE_SYSTEM = load_prompt("intent_parse.md")
 WORLD_SIMULATOR_SYSTEM = load_prompt("world_simulator.md")
+MACRO_SIM_SYSTEM = load_prompt("macro_simulator.md")
+try:
+    MACRO_SIM_SYSTEM_EN = load_prompt("macro_simulator_en.md")
+except FileNotFoundError:
+    MACRO_SIM_SYSTEM_EN = None
 
 # Dictionary of system prompt contents mapping to prompt names to detect in LLMAdapter and suppress verbose logs.
 KNOWN_PROMPTS = {
-    "ADVISOR_SYSTEM_PROMPT": ADVISOR_SYSTEM_PROMPT,
-    "ALIGNMENT_SYSTEM_PROMPT": ALIGNMENT_SYSTEM_PROMPT,
+    "ADVISOR_SYSTEM": ADVISOR_SYSTEM,
+    "ALIGNMENT_SYSTEM": ALIGNMENT_SYSTEM,
     "GAMEMASTER_INTRO_SYSTEM": GAMEMASTER_INTRO_SYSTEM,
     "GAMEMASTER_PLAN_SYSTEM": GAMEMASTER_PLAN_SYSTEM,
     "GAMEMASTER_COMMAND_SYSTEM": GAMEMASTER_COMMAND_SYSTEM,
@@ -53,8 +60,10 @@ KNOWN_PROMPTS = {
     "GLOBAL_NARRATIVE_SYSTEM_EN": GLOBAL_NARRATIVE_SYSTEM_EN,
     "PLAN_SUGGESTIONS_SYSTEM": PLAN_SUGGESTIONS_SYSTEM,
     "NPC_INTERPRETER_SYSTEM": NPC_INTERPRETER_SYSTEM,
+    "NPC_DECISION_SYSTEM": NPC_DECISION_SYSTEM,
+    "NPC_DECISION_SYSTEM_EN": NPC_DECISION_SYSTEM_EN,
     "INTENT_PARSE_SYSTEM": INTENT_PARSE_SYSTEM,
     "WORLD_SIMULATOR_SYSTEM": WORLD_SIMULATOR_SYSTEM,
     "POLICY_PARSE_SYSTEM": load_prompt("policy_parse.md"),
-    "MACRO_SIM_SYSTEM": load_prompt("macro_simulator.md"),
+    "MACRO_SIM_SYSTEM": MACRO_SIM_SYSTEM,
 }

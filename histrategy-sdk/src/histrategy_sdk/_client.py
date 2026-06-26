@@ -236,7 +236,7 @@ class ServerClient:
         pre_assigned: dict[str, str] | None = None,
         scenario: str = "three-kingdoms",
         metadata: dict[str, str] | None = None,
-        lang: str = "zh-CN",
+        lang: str = "zh",
     ) -> dict:
         """Create a multiplayer room.
 
@@ -245,7 +245,7 @@ class ServerClient:
                 e.g. {"caocao": "张三", "liubei": "李四"}
             scenario: Scenario ID (e.g. "three-kingdoms", "rome-triumvirate")
             metadata: Optional metadata (e.g. {"lang": "en"})
-            lang: Language code ("zh-CN" or "en"). Merged into metadata.
+            lang: Language code ("zh" or "en"). Merged into metadata.
 
         Returns:
             Dict with ok, room_id, host_token, phase, human_factions, player_links

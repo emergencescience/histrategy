@@ -56,7 +56,7 @@ def _load_simulator_prompt(scenario: str | None, lang: str = "zh") -> str:
             ]
         else:
             candidates = [
-                Path(f"scenarios/{scenario}/prompts/v1_simulator_zh-CN.md"),
+                Path(f"scenarios/{scenario}/prompts/v1_simulator_zh.md"),
                 Path(f"scenarios/{scenario}/prompts/v1_simulator.md"),
                 Path(f"scenarios/{scenario}/prompts/v1_simulator_en.md"),
             ]

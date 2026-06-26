@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from histrategy.llm.advisor import (
-    ADVISOR_SYSTEM_PROMPT,
+    ADVISOR_SYSTEM,
     StrategicAdvisor,
 )
 
@@ -133,5 +133,5 @@ class TestStrategicAdvisor:
 
     def test_system_prompt(self):
         """System prompt should contain key instructions."""
-        assert "诸葛亮" in ADVISOR_SYSTEM_PROMPT or "军师" in ADVISOR_SYSTEM_PROMPT
-        assert "局部情报" in ADVISOR_SYSTEM_PROMPT or "有限" in ADVISOR_SYSTEM_PROMPT
+        assert "诸葛亮" in ADVISOR_SYSTEM or "军师" in ADVISOR_SYSTEM
+        assert "局部情报" in ADVISOR_SYSTEM or "有限" in ADVISOR_SYSTEM

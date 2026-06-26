@@ -58,7 +58,7 @@ class MultiplayerRoom:
         pre_assigned: dict[str, str] | None = None,
         scenario: str = "three-kingdoms",
         metadata: dict[str, str] | None = None,
-        lang: str = "zh-CN",
+        lang: str = "zh",
     ) -> dict:
         """Host creates a multiplayer room.
 
@@ -68,7 +68,7 @@ class MultiplayerRoom:
                 e.g. {"caocao": "曹操", "liubei": "刘备"}
             scenario: Scenario ID (e.g. "three-kingdoms", "rome-triumvirate")
             metadata: Optional metadata (e.g. {"lang": "en"})
-            lang: Language code ("zh-CN" or "en"). Merged into metadata.
+            lang: Language code ("zh" or "en"). Merged into metadata.
 
         Returns:
             Dict with keys: room_id, host_token, phase, human_factions,
