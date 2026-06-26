@@ -31,10 +31,6 @@ _MACRO_PROMPT_CACHE: dict[tuple, str] = {}
 
 def _load_macro_prompt(scenario: str | None, lang: str = "zh") -> str:
     """Load scenario-specific macro simulator prompt with language selection."""
-    if not scenario or scenario in ("207", "three-kingdoms", ""):
-        if lang == "en":
-            return MACRO_SIM_SYSTEM_EN
-        return MACRO_SIM_SYSTEM
     cache_key = (scenario, lang)
     if cache_key in _MACRO_PROMPT_CACHE:
         return _MACRO_PROMPT_CACHE[cache_key]

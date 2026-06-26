@@ -132,12 +132,52 @@ def test_v1_multi():
         return False
 
 
+def test_v2_multi():
+    """V2 引擎：确定性规则引擎，零 LLM 调用，每个势力依次一回合。"""
+    os.environ["HISTRATEGY_ENGINE"] = "v2"
+
+    from histrategy.engine.game import GameEngine
+
+    factions = [
+        ("cao", "发展经济"),
+        ("shu", "招募士兵"),
+        ("wu", "巩固防御"),
+    ]
+
+    for i, (faction, decision) in enumerate(factions):
+        print(f"\n{'='*60}")
+        print(f"V2 Q1 — {faction}: {decision}")
+        print(f"{'='*60}")
+
+        engine = GameEngine(scenario="three-kingdoms", new_game=True)
+        engine.set_player_faction(faction)
+
+        t0 = time.time()
+        try:
+            result = engine.process_turn(decision)
+            elapsed = time.time() - t0
+
+            narrative = str(result.get("narrative", ""))[:200]
+            print(f"  延迟: {elapsed:.3f}s")
+            print(f"  叙事: {narrative}")
+        except Exception as e:
+            elapsed = time.time() - t0
+            print(f"  ❌ 失败 ({elapsed:.3f}s): {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+
+    return True
+
+
 def main():
     engine_mode = detect_engine_mode()
     print(f"🚀 E2E 测试 — {engine_mode.value.upper()} 引擎\n")
 
     if engine_mode == EngineMode.V1:
         ok = test_v1_multi()
+    elif engine_mode == EngineMode.V2:
+        ok = test_v2_multi()
     elif engine_mode in (EngineMode.V3,):
         ok = test_v3_multi()
     else:

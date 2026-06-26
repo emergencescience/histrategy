@@ -2080,7 +2080,7 @@ class GameEngine:
         # ── Build GameRoom from engine state ──
         room = GameRoom(
             id=getattr(self, "_room_id", str(_uuid.uuid4())),
-            scenario="three-kingdoms",
+            scenario=self.scenario,
             year=ws.year,
             season=ws.season.cn if hasattr(ws.season, "cn") else str(ws.season),
             quarter_number=ws.turn_number,
@@ -2353,6 +2353,29 @@ class GameEngine:
     # ─── Fallbacks ────────────────────────────────────────────
 
     def _fallback_intro(self) -> dict:
+        if self._scenario_language == "en":
+            scenario = getattr(self, "scenario", "three-kingdoms")
+            if "rome" in scenario:
+                return {
+                    "narrative": "Rome, 44 BC. Caesar is dead. The Republic teeters on the brink of civil war.",
+                    "npc_actions": [
+                        "Octavian crosses the Adriatic, claiming Caesar's legacy",
+                        "Antony consolidates power in Rome",
+                    ],
+                    "state_changes": {"strength": 0, "economy": 0, "morale": 0, "treasury": 0, "food": 0},
+                    "events_occurred": [],
+                    "new_choices": ["1. Develop economy", "2. Prepare for war", "3. Seek allies", "4. Gather intelligence"],
+                }
+            return {
+                "narrative": "The year is 207 AD. The Han dynasty crumbles; warlords vie for supremacy.",
+                "npc_actions": [
+                    "Cao Cao pacifies the north, eyeing the south",
+                    "Sun Quan fortifies Jiangdong as Zhou Yu drills the navy",
+                ],
+                "state_changes": {"strength": 0, "economy": 0, "morale": 0, "treasury": 0, "food": 0},
+                "events_occurred": [],
+                "new_choices": ["1. Develop economy", "2. Prepare for war", "3. Seek allies", "4. Gather intelligence"],
+            }
         return {
             "narrative": "建安十二年（公元207年），汉室倾颓，群雄逐鹿。",
             "npc_actions": ["曹操平定北方，虎视江南", "孙权坐断江东，周瑜操练水军"],
