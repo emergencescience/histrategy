@@ -399,12 +399,10 @@ def create_app(llm_provider: str | None = None) -> Any:
         v2_available = True
         v2_error = None
 
-        # Detect active engine mode from environment (safe — uses stdlib os)
-        import os as _stdlib_os
+        # Detect active engine mode
+        from histrategy.engine.engine_switch import detect_engine_mode
 
-        config_engine = _stdlib_os.environ.get("HISTRATEGY_ENGINE", "")
-        if not config_engine:
-            config_engine = "v2"
+        config_engine = detect_engine_mode().value
 
         # DB type detection
         try:
@@ -498,7 +496,6 @@ def create_app(llm_provider: str | None = None) -> Any:
         On restore failure, returns a partial state with restore_error for
         the frontend to handle gracefully (e.g. show error + offer new game).
         """
-        import logging
         import traceback as _tb
 
         _logger = logging.getLogger(__name__)

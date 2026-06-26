@@ -4,9 +4,7 @@
 Usage:
     HISTRATEGY_ENGINE=v1   → V1 纯 LLM 仿真
     HISTRATEGY_ENGINE=v2   → V2 确定性引擎 (默认)
-    HISTRATEGY_ENGINE=v3   → V3 混合引擎 (确定性基线 + LLM 非线性层，合并了旧 v3+macro)
-
-旧环境变量 HISTRATEGY_V3 仍然兼容，映射到 V3。
+    HISTRATEGY_ENGINE=v3   → V3 混合引擎 (确定性基线 + LLM 非线性层)
 """
 
 from __future__ import annotations
@@ -27,7 +25,7 @@ class EngineMode(Enum):
 def detect_engine_mode() -> EngineMode:
     """检测当前引擎模式。
 
-    优先级: HISTRATEGY_ENGINE > 旧环境变量兼容 > 默认 V2
+    优先级: HISTRATEGY_ENGINE > 默认 V2
     """
     engine = os.environ.get("HISTRATEGY_ENGINE", "").lower()
 
@@ -38,10 +36,5 @@ def detect_engine_mode() -> EngineMode:
     }
     if engine in mode_map:
         return mode_map[engine]
-
-    # 兼容旧环境变量 (HISTRATEGY_V3 → V3)
-    if os.environ.get("HISTRATEGY_V3") == "1":
-        logger.info("HISTRATEGY_V3=1 detected → V3 (merged V3+Macro)")
-        return EngineMode.V3
 
     return EngineMode.V2

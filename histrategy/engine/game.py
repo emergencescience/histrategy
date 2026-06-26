@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+from typing import TYPE_CHECKING
 
 # ─── v1 imports (always available) ────────────────────────────────
 from ..engine.world import GameWorld
@@ -23,9 +24,24 @@ from ..state.world_state import (
     FactionState,
     WorldState,
     has_existing_game,
+    load_world,
+    save_world,
+)
+
+if TYPE_CHECKING:
+    from histrategy_engine.ai import DecisionEngine
+    from histrategy_engine.character import CharacterEngine
+    from histrategy_engine.domestic import DomesticEngine
+    from histrategy_engine.history import HistoryEngine
+    from histrategy_engine.map import MapEngine
+    from histrategy_engine.military import MilitaryEngine
+    from histrategy_engine.turn import TurnController
+    from histrategy_engine.world import TurnResult
+    from histrategy_engine.world import WorldState as V2WorldState
+
 # ─── v2 engine (always available) ────────────────────────────────
 
-from histrategy_engine import (  # noqa: F811, E402
+from histrategy_engine import (
     CharacterEngine,
     DecisionEngine,
     DomesticEngine,
@@ -37,6 +53,7 @@ from histrategy_engine import (  # noqa: F811, E402
 from histrategy_engine import (
     WorldState as V2WorldState,
 )
+from histrategy_engine.world import TurnResult
 
 # ─── Macro engine: first-turn hard-coded suggestions ───────────
 # Skip LLM call on turn 0 — all factions start from the same 207 scenario
@@ -137,6 +154,8 @@ class GameEngine:
         self.scenario = scenario
         force_v1_env = os.environ.get("HISTRATEGY_FORCE_V1", "").lower() in ("true", "1")
         self._use_v2 = not force_v1 and not force_v1_env
+        self._use_v3 = False
+        self._use_macro = False
 
         # Detect scenario language early (needed by NarrativeEngine in _build_engine_stack)
         self._scenario_language = "zh"
@@ -233,11 +252,7 @@ class GameEngine:
         from ..engine.engine_switch import EngineMode, detect_engine_mode
 
         engine_mode = detect_engine_mode()
-        self._use_v3 = engine_mode == EngineMode.V3 or os.environ.get("HISTRATEGY_V3", "").lower() in (
-            "1",
-            "true",
-            "yes",
-        )
+        self._use_v3 = engine_mode == EngineMode.V3
         self._use_macro = self._use_v3
 
         if llm and llm.is_available:
@@ -248,7 +263,7 @@ class GameEngine:
 
             # IntentParser: use fast model in v3 mode for speed
             if self._use_v3:
-                intent_model = os.environ.get("HISTRATEGY_V3_INTENT_MODEL", "deepseek-v4-flash")
+                intent_model = os.environ.get("HISTRATEGY_INTENT_MODEL", "deepseek-v4-flash")
                 try:
                     from ..llm.adapter import LLMAdapter as _LLM
 
@@ -283,7 +298,7 @@ class GameEngine:
             from ..llm.world_simulator import WorldSimulator
 
             # WorldSimulator uses a fast model (no reasoning overhead)
-            v3_fast_model = os.environ.get("HISTRATEGY_V3_FAST_MODEL", "deepseek-chat")
+            v3_fast_model = os.environ.get("HISTRATEGY_FAST_MODEL", "deepseek-chat")
             try:
                 from ..llm.adapter import LLMAdapter as _LLM
 
@@ -971,14 +986,14 @@ class GameEngine:
         if os.environ.get("HISTRATEGY_SYMMETRIC") == "1":
             return self.process_turn_symmetric(player_decision)
 
-        if self._use_v2:
-            if self._use_macro and self._macro_sim:
-                return self._process_turn_macro(player_decision)
-            if self._use_v3 and self.world_simulator:
+        if self._use_v3:
+            if self.world_simulator:
                 return self._process_turn_v3(player_decision)
+            if self._macro_sim:
+                return self._process_turn_macro(player_decision)
+        if self._use_v2:
             return self._process_turn_v2(player_decision)
-        else:
-            return self._process_turn_v1(player_decision)
+        return self._process_turn_v1(player_decision)
 
     def set_debug_context(self, session_id: str, jwt_token: str = "") -> None:
         """Set session context for Postgres debug logging (called from API layer)."""
