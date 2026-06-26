@@ -18,13 +18,13 @@ CREATE TABLE IF NOT EXISTS game_room (
     turn_summaries  TEXT DEFAULT '[]',         -- JSON: 回合摘要数组
     metadata        TEXT DEFAULT '{}',         -- JSON: 房间元数据 (lang, etc.)
     engine_version  TEXT DEFAULT '',            -- 'v1' | 'v2' | 'v3' — 哪套引擎产生此房间
+    is_public       INTEGER DEFAULT 0,          -- shared/published game page
     created_at      TEXT DEFAULT '',
     updated_at      TEXT DEFAULT ''
 );
 
 -- faction_slot TABLE REMOVED in H20
 -- Slots are now stored as JSON in game_room.slots column.
--- DROP TABLE IF EXISTS faction_slot;  -- handled by migration
 
 -- ═══════════════════════════════════════════════════════════
 -- quarter_turn: 每季度的完整记录

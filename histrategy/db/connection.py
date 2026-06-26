@@ -97,46 +97,6 @@ def init_db():
         schema = _load_schema()
         if _IS_SQLITE:
             conn.executescript(schema)
-            # ── Migrations ──
-            # Drop deprecated room_player table (H14i)
-            try:
-                conn.execute("DROP TABLE IF EXISTS room_player")
-                conn.commit()
-            except Exception:
-                pass
-            # Add engine_version column to game_room (H16a)
-            try:
-                conn.execute("ALTER TABLE game_room ADD COLUMN engine_version TEXT DEFAULT ''")
-                conn.commit()
-            except Exception:
-                pass
-            # Rebuild turn_delta index with faction_id (H16a)
-            try:
-                conn.execute("DROP INDEX IF EXISTS idx_turn_delta_room")
-                conn.execute(
-                    "CREATE INDEX IF NOT EXISTS idx_turn_delta_room ON turn_delta(room_id, quarter_number, faction_id)"
-                )
-                conn.commit()
-            except Exception:
-                pass
-            # Add metadata column to game_room (H16a multi-scenario)
-            try:
-                conn.execute("ALTER TABLE game_room ADD COLUMN metadata TEXT DEFAULT '{}'")
-                conn.commit()
-            except Exception:
-                pass
-            # Add is_public column to game_room (H18h publish feature)
-            try:
-                conn.execute("ALTER TABLE game_room ADD COLUMN is_public INTEGER DEFAULT 0")
-                conn.commit()
-            except Exception:
-                pass
-            # Drop faction_slot table (H20: slots now JSON in game_room)
-            try:
-                conn.execute("DROP TABLE IF EXISTS faction_slot")
-                conn.commit()
-            except Exception:
-                pass
         else:
             # PostgreSQL: execute statements individually (psycopg2 doesn't support multi-statement)
             with conn.cursor() as cur:
@@ -148,84 +108,6 @@ def init_db():
                         except Exception as _stmt_err:
                             logger.warning("Schema statement skipped: %s", str(_stmt_err)[:100])
                 conn.commit()
-                # ── Migrations ──
-                # Drop deprecated room_player table (H14i)
-                try:
-                    cur.execute("DROP TABLE IF EXISTS room_player")
-                    conn.commit()
-                except Exception:
-                    conn.rollback()
-                # Add engine_version column to game_room (H16a)
-                try:
-                    cur.execute("ALTER TABLE game_room ADD COLUMN IF NOT EXISTS engine_version TEXT DEFAULT ''")
-                    conn.commit()
-                except Exception:
-                    conn.rollback()
-                # Rebuild turn_delta index with faction_id (H16a)
-                try:
-                    cur.execute("DROP INDEX IF EXISTS idx_turn_delta_room")
-                    cur.execute(
-                        "CREATE INDEX IF NOT EXISTS idx_turn_delta_room "
-                        "ON turn_delta(room_id, quarter_number, faction_id)"
-                    )
-                    conn.commit()
-                except Exception:
-                    conn.rollback()
-                # Fix llm_call_log.created_at: populate empty values
-                try:
-                    cur.execute(
-                        "UPDATE llm_call_log SET created_at = NOW()::text WHERE created_at = '' OR created_at IS NULL"
-                    )
-                    conn.commit()
-                except Exception:
-                    conn.rollback()
-                # H16d: Add missing llm_call_log columns for multi-scenario schema
-                try:
-                    cur.execute("ALTER TABLE llm_call_log ADD COLUMN IF NOT EXISTS room_id TEXT")
-                    conn.commit()
-                except Exception:
-                    conn.rollback()
-                try:
-                    cur.execute("ALTER TABLE llm_call_log ADD COLUMN IF NOT EXISTS quarter_number INTEGER DEFAULT 0")
-                    conn.commit()
-                except Exception:
-                    conn.rollback()
-                try:
-                    cur.execute("ALTER TABLE llm_call_log ADD COLUMN IF NOT EXISTS faction_id TEXT")
-                    conn.commit()
-                except Exception:
-                    conn.rollback()
-                try:
-                    cur.execute("ALTER TABLE llm_call_log ADD COLUMN IF NOT EXISTS system_prompt_type TEXT")
-                    conn.commit()
-                except Exception:
-                    conn.rollback()
-                try:
-                    if _IS_SQLITE:
-                        cur.execute("ALTER TABLE game_room ADD COLUMN metadata TEXT DEFAULT '{}'")
-                    else:
-                        cur.execute("ALTER TABLE game_room ADD COLUMN IF NOT EXISTS metadata TEXT DEFAULT '{}'")
-                    conn.commit()
-                except Exception:
-                    conn.rollback()
-                # Add is_public column to game_room (H18h publish feature)
-                try:
-                    if _IS_SQLITE:
-                        cur.execute("ALTER TABLE game_room ADD COLUMN is_public INTEGER DEFAULT 0")
-                    else:
-                        cur.execute("ALTER TABLE game_room ADD COLUMN IF NOT EXISTS is_public INTEGER DEFAULT 0")
-                    conn.commit()
-                except Exception:
-                    conn.rollback()
-                # Add display_name to faction_slot (H19a remove in-memory state)
-                try:
-                    if _IS_SQLITE:
-                        cur.execute("ALTER TABLE faction_slot ADD COLUMN display_name TEXT DEFAULT ''")
-                    else:
-                        cur.execute("ALTER TABLE faction_slot ADD COLUMN IF NOT EXISTS display_name TEXT DEFAULT ''")
-                    conn.commit()
-                except Exception:
-                    conn.rollback()
         conn.commit()
         _SCHEMA_LOADED = True
         logger.info("Database schema initialized (type=%s)", "sqlite" if _IS_SQLITE else "postgres")
@@ -347,7 +229,6 @@ CREATE TABLE IF NOT EXISTS game_room (
 );
 
 -- faction_slot removed in H20: slots are now stored as JSON in game_room.slots
--- DROP TABLE IF EXISTS faction_slot;  -- handled by migration below
 
 CREATE TABLE IF NOT EXISTS quarter_turn (
     id              TEXT PRIMARY KEY,
@@ -392,12 +273,6 @@ CREATE TABLE IF NOT EXISTS simulation_event_log (
     event_data      TEXT,
     created_at      TEXT DEFAULT ''
 );
-
--- ── Migration: drop deprecated room_player table ──
--- room_player is redundant: faction_slot already maps faction → occupant.
--- This table was designed for the old player_token auth model (removed H14g).
--- Running this migration on existing DBs removes the unused table.
--- For new DBs the CREATE TABLE above is skipped (the migration drops it).
 
 -- 世界状态快照表：每个势力在当前季度的完整状态
 -- 一张表存储所有数值+非数值状态（城池/人口/兵力/粮草/政策/科技树）
