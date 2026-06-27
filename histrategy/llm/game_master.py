@@ -25,6 +25,7 @@ from ..state.world_state import (
     save_world,
 )
 from .adapter import LLMAdapter
+from .context_helpers import collect_dead_characters
 from .prompt_loader import (
     GAMEMASTER_COMMAND_SYSTEM,
     GAMEMASTER_COMMAND_SYSTEM_EN,
@@ -127,12 +128,7 @@ def _build_plan_context(state: WorldState) -> str:
         )
 
     # Resolve deceased characters
-    dead_names = [c.name for c in state.characters.values() if not c.alive]
-    if ("dongzhuo" not in state.characters or not state.characters["dongzhuo"].alive) and "董卓" not in dead_names:
-        dead_names.append("董卓")
-    if ("liubiao" not in state.characters or not state.characters["liubiao"].alive) and "刘表" not in dead_names:
-        dead_names.append("刘表")
-
+    dead_names = collect_dead_characters(state)
     if dead_names:
         lines.append("")
         lines.append("## 已亡故/不活跃人物（不可在此回合复活或出现活跃事迹）")
@@ -212,12 +208,7 @@ def _build_command_context(state: WorldState, player_decision: str) -> str:
         )
 
     # Resolve deceased characters
-    dead_names = [c.name for c in state.characters.values() if not c.alive]
-    if ("dongzhuo" not in state.characters or not state.characters["dongzhuo"].alive) and "董卓" not in dead_names:
-        dead_names.append("董卓")
-    if ("liubiao" not in state.characters or not state.characters["liubiao"].alive) and "刘表" not in dead_names:
-        dead_names.append("刘表")
-
+    dead_names = collect_dead_characters(state)
     if dead_names:
         lines.append("")
         lines.append("## 已亡故/不活跃人物（不可在此回合复活或出现活跃事迹）")
