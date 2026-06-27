@@ -16,6 +16,7 @@ import json as _json
 import logging
 import os
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -864,7 +865,6 @@ def _capture_faction_state(ws) -> dict:
 def _resolve_v1(room, ws, decisions, llm):
     """V1 引擎：纯 LLM 仿真。"""
     import concurrent.futures
-    from dataclasses import dataclass
 
     from histrategy.engine.v1_simulator import V1Simulator, _apply_v1_state_to_world, save_v1_state_to_db
 
@@ -969,108 +969,8 @@ def _resolve_v1(room, ws, decisions, llm):
     # (e.g. Rome 44 BC starts in spring, Q1 should be spring, not summer).
     _advance_season(ws)
 
-    # 构建兼容 result 对象
-    @dataclass
-    class V1Result:
-        narratives: dict
-        state_changes: dict
-        turn_summary: dict | None
-        faction_decisions: dict | None = None  # V1 pass-through for _save_quarter
-
-    narratives = {}
-    # LLM returns "narratives" (prompt key), not "faction_narratives" (bug H16)
-    faction_narratives = v1_result.get("narratives", v1_result.get("faction_narratives", {}))
-    global_narrative = v1_result.get("narrative", "")
-    factions_data = v1_result.get("factions", {})
-
-    for fid in decisions:
-        # Use per-faction narrative if available and non-empty
-        fn = faction_narratives.get(fid, "")
-        if fn and fn.strip():
-            narratives[fid] = fn
-        else:
-            # Fallback: generate per-faction summary from actual WorldState data
-            faction = ws.factions.get(fid)
-            if faction:
-                troops = getattr(faction, "strength_actual", 0)
-                food = faction.food
-                territory_names = [ws.territories[tid].name for tid in faction.territories if tid in ws.territories]
-                territory_str = "、".join(territory_names[:3]) if territory_names else "无领地"
-                fname = faction.name
-            else:
-                fd = factions_data.get(fid, {})
-                fname = {"cao": "曹操", "shu": "刘备", "wu": "孙权"}.get(
-                    fid, factions_data.get(fid, {}).get("name", fid)
-                )
-                troops = fd.get("troops", 0)
-                food = fd.get("food", 0)
-                territory_names = [t["name"] if isinstance(t, dict) else str(t) for t in fd.get("territories", [])]
-                territory_str = "、".join(territory_names[:3]) if territory_names else "无领地"
-            narratives[fid] = (
-                (
-                    f"{global_narrative}\n\n"
-                    f"【{fname}方纪】是季，{fname}拥兵{troops:,}，积粟{food:,}斛，"
-                    f"据{territory_str}。"
-                    if global_narrative
-                    else f"【{fname}】是季，{fname}拥兵{troops:,}，积粟{food:,}斛，据{territory_str}。"
-                )
-                if lang != "en"
-                else (
-                    f"{global_narrative}\n\n"
-                    f"[{fname}] This quarter, {fname} commands {troops:,} troops, "
-                    f"stores {food:,} grain, holds {territory_str}."
-                    if global_narrative
-                    else f"[{fname}] This quarter, {fname} commands {troops:,} troops, "
-                    f"stores {food:,} grain, holds {territory_str}."
-                )
-            )
-
-    # 构建丰富的回合摘要，供 NPC 下回合参考
-    # 提取关键事件：谁打了谁，结果如何，以及 LLM 生成的事件
-    battle_events = []
-    for fid in decisions:
-        dr = decisions.get(fid)
-        if dr and dr.commands:
-            for cmd in dr.commands:
-                if isinstance(cmd, dict) and cmd.get("type") == "attack":
-                    target = cmd.get("params", {}).get("target_territory", "?")
-                    battle_events.append(f"{fid}→{target}")
-    # Also check V1 LLM's events and battles for richer summary
-    v1_events = v1_result.get("events", [])
-    v1_battles = v1_result.get("battles", [])
-    if v1_battles:
-        for b in v1_battles[:3]:
-            atk = b.get("attacker", "?")
-            dfd = b.get("defender", "?")
-            loc = b.get("location", "")
-            battle_events.append(f"{atk}⚔{dfd}@{loc}")
-    if v1_events and not battle_events:
-        # Use first event as summary if no battles
-        evt = v1_events[0]
-        if isinstance(evt, str) and len(evt) < 60:
-            battle_events.append(evt[:40])
-    # Also try LLM's turn_summary
-    ts = v1_result.get("turn_summary", {})
-    if isinstance(ts, dict):
-        key_evt = ts.get("key_event", "")
-        if key_evt and key_evt not in battle_events:
-            battle_events.append(str(key_evt)[:40])
-    battle_str = " | ".join(battle_events[:3]) if battle_events else ""
-
-    v1_summary = {
-        "quarter": room.quarter_number + 1,
-        "engine": "v1",
-        "outcome_summary": (f"[{ws.year}年{getattr(ws, 'current_season', '?')}] {battle_str or '各方休整'}")
-        if battle_str
-        else (f"[{ws.year}年{getattr(ws, 'current_season', '?')}] 各方休整，蓄力待发"),
-    }
-
-    return V1Result(
-        narratives=narratives,
-        state_changes={},
-        turn_summary=v1_summary,
-        faction_decisions=fd,
-    )
+    # 构建兼容 result 对象并返回
+    return _build_v1_result(room, ws, decisions, v1_result, fd, lang)
 
 
 def _resolve_v2_or_v3(room, ws, decisions, llm, mode):
@@ -1135,26 +1035,137 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode):
     return result
 
 
+# ── V1 Result Builder ─────────────────────────────────────────────
+
+
+@dataclass
+class _V1Result:
+    narratives: dict
+    state_changes: dict
+    turn_summary: dict | None
+    faction_decisions: dict | None = None  # V1 pass-through for _save_quarter
+
+
+def _build_v1_result(room, ws, decisions, v1_result, fd, lang):
+    """Build narratives + battle summary + V1Result from LLM output."""
+    faction_narratives = v1_result.get("narratives", v1_result.get("faction_narratives", {}))
+    global_narrative = v1_result.get("narrative", "")
+    factions_data = v1_result.get("factions", {})
+
+    narratives = {}
+    for fid in decisions:
+        fn = faction_narratives.get(fid, "")
+        if fn and fn.strip():
+            narratives[fid] = fn
+        else:
+            faction = ws.factions.get(fid)
+            if faction:
+                troops = getattr(faction, "strength_actual", 0)
+                food = faction.food
+                territory_names = [ws.territories[tid].name for tid in faction.territories if tid in ws.territories]
+                territory_str = "、".join(territory_names[:3]) if territory_names else "无领地"
+                fname = faction.name
+            else:
+                fdata = factions_data.get(fid, {})
+                fname = fdata.get("name", fid)
+                troops = fdata.get("troops", 0)
+                food = fdata.get("food", 0)
+                territory_names = [t["name"] if isinstance(t, dict) else str(t) for t in fdata.get("territories", [])]
+                territory_str = "、".join(territory_names[:3]) if territory_names else "无领地"
+
+            if lang != "en":
+                narratives[fid] = (
+                    f"{global_narrative}\n\n【{fname}方纪】是季，{fname}拥兵{troops:,}，积粟{food:,}斛，据{territory_str}。"
+                    if global_narrative
+                    else f"【{fname}】是季，{fname}拥兵{troops:,}，积粟{food:,}斛，据{territory_str}。"
+                )
+            else:
+                narratives[fid] = (
+                    f"{global_narrative}\n\n[{fname}] This quarter, {fname} commands {troops:,} troops, "
+                    f"stores {food:,} grain, holds {territory_str}."
+                    if global_narrative
+                    else f"[{fname}] This quarter, {fname} commands {troops:,} troops, "
+                    f"stores {food:,} grain, holds {territory_str}."
+                )
+
+    # Build battle summary for NPC reference
+    battle_events = []
+    for fid in decisions:
+        dr = decisions.get(fid)
+        if dr and dr.commands:
+            for cmd in dr.commands:
+                if isinstance(cmd, dict) and cmd.get("type") == "attack":
+                    target = cmd.get("params", {}).get("target_territory", "?")
+                    battle_events.append(f"{fid}→{target}")
+    v1_battles = v1_result.get("battles", [])
+    if v1_battles:
+        for b in v1_battles[:3]:
+            battle_events.append(f"{b.get('attacker','?')}⚔{b.get('defender','?')}@{b.get('location','')}")
+    v1_events = v1_result.get("events", [])
+    if v1_events and not battle_events:
+        evt = v1_events[0]
+        if isinstance(evt, str) and len(evt) < 60:
+            battle_events.append(evt[:40])
+    ts = v1_result.get("turn_summary", {})
+    if isinstance(ts, dict):
+        key_evt = ts.get("key_event", "")
+        if key_evt and key_evt not in battle_events:
+            battle_events.append(str(key_evt)[:40])
+    battle_str = " | ".join(battle_events[:3]) if battle_events else ""
+
+    season_str = getattr(ws, "current_season", "?")
+    v1_summary = {
+        "quarter": room.quarter_number + 1,
+        "engine": "v1",
+        "outcome_summary": (
+            f"[{ws.year}年{season_str}] {battle_str or '各方休整'}"
+            if battle_str
+            else f"[{ws.year}年{season_str}] 各方休整，蓄力待发"
+        ),
+    }
+
+    return _V1Result(
+        narratives=narratives,
+        state_changes={},
+        turn_summary=v1_summary,
+        faction_decisions=fd,
+    )
+
+
+# ── DB Save Helpers ─────────────────────────────────────────────
+
+
+def _safe_int(val, default=0):
+    """Coerce value to int, returning default on failure."""
+    try:
+        return int(val)
+    except (ValueError, TypeError):
+        return default
+
+
+def _safe_float(val, default=0.0):
+    """Coerce value to float, returning default on failure."""
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return default
+
+
+def _territories_to_list(ws, faction) -> list[dict]:
+    """Serialize faction territories to [{id, name}] list."""
+    result = []
+    for tid in faction.territories:
+        t = ws.territories.get(tid)
+        result.append({"id": tid, "name": t.name if t else tid})
+    return result
+
+
 def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
     """将 V3 仿真结果写入 game_state + policy_state + turn_delta 表。
 
     使用逐势力 try/except 保障：单个势力故障不影响其他势力持久化。
-    保持与原 V1 fix 一致的 _safe_int/_safe_float 数值强制模式。
     """
     from histrategy.db.models import save_game_state, save_policy_state, save_turn_delta
-
-    # ── 数值强制辅助（LLM/规则引擎可能返回非数值） ──
-    def _safe_int(val, default=0):
-        try:
-            return int(val)
-        except (ValueError, TypeError):
-            return default
-
-    def _safe_float(val, default=0.0):
-        try:
-            return float(val)
-        except (ValueError, TypeError):
-            return default
 
     success_count = 0
     error_count = 0
@@ -1170,10 +1181,7 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
                 continue
 
             # ── 城池列表 ──
-            territories_list = []
-            for tid in faction.territories:
-                t = ws.territories.get(tid)
-                territories_list.append({"id": tid, "name": t.name if t else tid})
+            territories_list = _territories_to_list(ws, faction)
 
             # ── 政策字典（输入验证） ──
             policies = getattr(faction, "policies", {}) or {}
