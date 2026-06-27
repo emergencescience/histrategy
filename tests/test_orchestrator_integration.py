@@ -162,7 +162,7 @@ class TestRoomTurnsAPI:
             turn = turns[0]
             required = ["quarter_number", "year", "season", "faction_decisions", "narratives", "state_changes"]
             for field in required:
-                assert field in turn.keys() if hasattr(turn, "keys") else field in dict(turn), (
+                assert field in turn if hasattr(turn, "keys") else field in dict(turn), (
                     f"orchestrator requires turn field '{field}'"
                 )
 

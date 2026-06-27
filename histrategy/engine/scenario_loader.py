@@ -182,10 +182,7 @@ class ScenarioLoader:
                 data = json.load(f)
 
             # Support both array and {"characters": [...]} formats
-            if isinstance(data, list):
-                items = data
-            else:
-                items = data.get("characters", [])
+            items = data if isinstance(data, list) else data.get("characters", [])
 
             characters: dict[str, Character] = {}
             for cd in items:

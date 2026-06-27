@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import copy
 
-from .faction_slot import normalize_faction_id as _normalize
 from ..engine.offline_sim import simulate_turn_offline
 from ..engine.world import GameWorld
 from ..engine.world_sim_interface import SimResult, WorldSimEngine
 from ..state.world_state import WorldState, save_world
+from .faction_slot import normalize_faction_id as _normalize
 
 # ── Legacy offline_sim.py 使用的 faction_id 格式 ──
 # offline_sim.py 内部使用旧格式 (liu_biao, yuan_shao, caocao, liubei...)，

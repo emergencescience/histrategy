@@ -171,7 +171,7 @@ class MultiplayerRoom:
                 continue
 
             slots = current.get("slots", {})
-            pending = current.get("pending", [])
+            _pending = current.get("pending", [])  # noqa: F841
 
             # Check if any AI NPC still hasn't submitted
             npc_pending = []
@@ -224,7 +224,7 @@ class MultiplayerRoom:
             phase = current.get("phase", "")
             quarter = current.get("quarter", 0)
             submitted = current.get("submitted", [])
-            pending = current.get("pending", [])
+            current.get("pending", [])
 
             # Resolution detected when:
             # - phase is back to "waiting" (not "resolving")

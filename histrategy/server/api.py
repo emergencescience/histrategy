@@ -223,7 +223,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
     @app.post("/api/rooms")
     def api_create_room(
-        body: dict = Body(...),
+        body: dict = Body(...),  # noqa: B008
         x_user_id: str = Header(default="", alias="X-User-Id"),
     ):
         """Create a multiplayer room.
@@ -261,7 +261,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         return start_game(room_id)
 
     @app.post("/api/rooms/{room_id}/decide")
-    def api_submit_decision(room_id: str, body: dict = Body(...)):
+    def api_submit_decision(room_id: str, body: dict = Body(...)):  # noqa: B008
         """Submit this quarter's decision."""
         from histrategy.server.room_manager import submit_decision
 
@@ -402,7 +402,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
     # Publish / Unpublish
     @app.patch("/api/rooms/{room_id}/publish")
-    def api_publish_room(room_id: str, body: dict = Body(...)):
+    def api_publish_room(room_id: str, body: dict = Body(...)):  # noqa: B008
         """Toggle room public/private. { public: true | false }"""
         from fastapi.responses import JSONResponse
 
@@ -436,7 +436,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         return status(game_id)
 
     @app.post("/api/single-player/{game_id}/command")
-    def api_sp_command(game_id: str, body: dict = Body(...)):
+    def api_sp_command(game_id: str, body: dict = Body(...)):  # noqa: B008
         """Single-player — submit command (blocks until LLM resolution completes)."""
         from histrategy.server.single_player import command
 
@@ -444,7 +444,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
     @app.post("/api/single-player/start")
     def api_sp_start(
-        body: dict = Body(...),
+        body: dict = Body(...),  # noqa: B008
         x_user_id: str = Header(default="", alias="X-User-Id"),
     ):
         """Single-player — start new game."""

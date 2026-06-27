@@ -7,6 +7,7 @@ JSON fields are serialized/deserialized via json.dumps/loads.
 
 from __future__ import annotations
 
+import contextlib
 import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
@@ -57,13 +58,11 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
             ),
         )
         # If metadata column exists, update it too
-        try:
+        with contextlib.suppress(Exception):
             execute_write(
                 "UPDATE game_room SET metadata = ? WHERE id = ?",
                 (metadata_json, room.id),
             )
-        except Exception:
-            pass
     else:
         execute_write(
             """INSERT INTO game_room
@@ -87,13 +86,11 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
             ),
         )
         # If metadata column exists, set it
-        try:
+        with contextlib.suppress(Exception):
             execute_write(
                 "UPDATE game_room SET metadata = ? WHERE id = ?",
                 (metadata_json, room.id),
             )
-        except Exception:
-            pass
 
 
 

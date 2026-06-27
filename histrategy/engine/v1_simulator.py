@@ -530,9 +530,8 @@ def _apply_v1_state_to_world(ws: WorldState, v1_factions: dict) -> WorldState:
         faction = ws.factions[fid]
 
         # 数值更新 — 兼容两个 WorldState 版本的字段名
-        if "population" in data:
-            if hasattr(faction, "population"):
-                faction.population = data["population"]
+        if "population" in data and hasattr(faction, "population"):
+            faction.population = data["population"]
         if "troops" in data:
             new_troops = int(data["troops"])
             old_troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0

@@ -49,6 +49,13 @@ ignore = [
     "F821",  # undefined name (template engine TYPE_CHECKING)
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# Narrative/data strings exceed 120 chars; splitting would harm readability
+"histrategy/server/single_player.py" = ["E501"]
+"histrategy/llm/npc_decision_engine.py" = ["E501"]
+"histrategy/llm/narrative.py" = ["E501"]
+"histrategy/engine/intro_plan.py" = ["E501"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["histrategy"]
 

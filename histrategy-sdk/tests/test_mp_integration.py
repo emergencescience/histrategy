@@ -45,7 +45,7 @@ class TestServerClient:
             pre_assigned={"caocao": "曹操", "liubei": "刘备"},
         )
         room_id = create_result["room_id"]
-        cao_link = next(l for l in create_result["player_links"] if l["faction"] == "caocao")
+        cao_link = next(link for link in create_result["player_links"] if link["faction"] == "caocao")
 
         enter_result = server_client.enter_room(
             room_id=room_id,
@@ -89,8 +89,8 @@ class TestMultiplayerRoom:
         assert result["ok"] is True
         room_id = result["room_id"]
 
-        cao_link = next(l for l in result["player_links"] if l["faction"] == "caocao")
-        liu_link = next(l for l in result["player_links"] if l["faction"] == "liubei")
+        cao_link = next(link for link in result["player_links"] if link["faction"] == "caocao")
+        liu_link = next(link for link in result["player_links"] if link["faction"] == "liubei")
 
         cao_room = MultiplayerRoom.join(server_client, room_id, "caocao", cao_link["player_token"])
         liu_room = MultiplayerRoom.join(server_client, room_id, "liubei", liu_link["player_token"])
@@ -111,8 +111,8 @@ class TestMultiplayerRoom:
         room_id = result["room_id"]
 
         # Both players join
-        cao_link = next(l for l in result["player_links"] if l["faction"] == "caocao")
-        liu_link = next(l for l in result["player_links"] if l["faction"] == "liubei")
+        cao_link = next(link for link in result["player_links"] if link["faction"] == "caocao")
+        liu_link = next(link for link in result["player_links"] if link["faction"] == "liubei")
 
         cao = MultiplayerRoom.join(server_client, room_id, "caocao", cao_link["player_token"])
         liu = MultiplayerRoom.join(server_client, room_id, "liubei", liu_link["player_token"])
@@ -181,7 +181,7 @@ class TestMultiplayerRoom:
         )
         room_id = result["room_id"]
 
-        cao_link = next(l for l in result["player_links"] if l["faction"] == "caocao")
+        cao_link = next(link for link in result["player_links"] if link["faction"] == "caocao")
         cao = MultiplayerRoom.join(server_client, room_id, "caocao", cao_link["player_token"])
 
         status = cao.status()
@@ -200,7 +200,7 @@ class TestMultiplayerRoom:
         room_id = result["room_id"]
 
         # Join as one human player
-        cao_link = next(l for l in result["player_links"] if l["faction"] == "caocao")
+        cao_link = next(link for link in result["player_links"] if link["faction"] == "caocao")
         cao = MultiplayerRoom.join(server_client, room_id, "caocao", cao_link["player_token"])
 
         # All 3 factions are human; other scenario factions are AI NPCs
@@ -224,7 +224,7 @@ class TestMultiplayerRoom:
         )
         room_id = result["room_id"]
 
-        cao_link = next(l for l in result["player_links"] if l["faction"] == "caocao")
+        cao_link = next(link for link in result["player_links"] if link["faction"] == "caocao")
         cao = MultiplayerRoom.join(server_client, room_id, "caocao", cao_link["player_token"])
 
         # Should return quickly since there are no AI NPCs or all NPCs are handled

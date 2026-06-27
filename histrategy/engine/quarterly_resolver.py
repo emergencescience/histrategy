@@ -413,10 +413,7 @@ def _ensure_season_advance(ws: WorldState, room_id: str = "?") -> None:
         next_str = _SEASON_ORDER[next_idx]
 
         # 设置新 season（优先使用 Season enum）
-        if next_str in _SEASON_ENUM_MAP:
-            ws.season = _SEASON_ENUM_MAP[next_str]
-        else:
-            ws.season = next_str
+        ws.season = _SEASON_ENUM_MAP.get(next_str, next_str)
 
         if next_idx == 0:
             ws.year += 1

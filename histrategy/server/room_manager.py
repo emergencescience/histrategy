@@ -347,7 +347,8 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
     # Dynamic faction names from scenario data (not hardcoded Three Kingdoms)
     lang = getattr(room, "metadata", {}).get("lang", "zh") if getattr(room, "metadata", None) else "zh"
     fnames = _get_faction_names(room, lang=lang)
-    _display = lambda fid: fnames.get(fid, fid)
+    def _display(fid):
+        return fnames.get(fid, fid)
 
     submitted = [_display(fid) for fid, s in room.slots.items() if s.is_active and s.has_submitted()]
     pending = [_display(fid) for fid, s in room.slots.items() if s.is_active and not s.has_submitted()]
@@ -775,10 +776,10 @@ def _resolve_and_advance(room: GameRoom):
     if engine_mode == EngineMode.V1:
         result = _resolve_v1(room, ws, decisions, llm)
     elif engine_mode == EngineMode.V2:
-        result = _resolve_v2(room, ws, decisions, llm)
+        result = _resolve_v2_or_v3(room, ws, decisions, llm, mode="v2")
     else:
         # V3 (merged V3+Macro)
-        result = _resolve_v3(room, ws, decisions, llm)
+        result = _resolve_v2_or_v3(room, ws, decisions, llm, mode="v3")
 
     room._last_narratives = result.narratives
     npc_actions = []
@@ -842,6 +843,24 @@ def _resolve_and_advance(room: GameRoom):
     _write_backup(room, ws_dict)
 
 
+def _capture_faction_state(ws) -> dict:
+    """Capture pre-resolution state for turn_delta calculation.
+
+    Returns {faction_id: {population, troops, food, treasury, morale}}.
+    """
+    old_state = {}
+    for fid in ws.factions:
+        faction = ws.factions[fid]
+        old_state[fid] = {
+            "population": getattr(faction, "population", 0),
+            "troops": getattr(faction, "strength_actual", 0),
+            "food": faction.food,
+            "treasury": faction.treasury,
+            "morale": getattr(faction, "morale_actual", 50),
+        }
+    return old_state
+
+
 def _resolve_v1(room, ws, decisions, llm):
     """V1 引擎：纯 LLM 仿真。"""
     import concurrent.futures
@@ -886,7 +905,7 @@ def _resolve_v1(room, ws, decisions, llm):
         v1_result = simulator._fallback(ws, fd, lang=lang)
 
     # ── 先捕获旧状态（用于 turn_delta 计算）──
-    old_state = {}
+    old_state = _capture_faction_state(ws)
     v1_factions = v1_result.get("factions", {})
     state_changes = v1_result.get("state_changes", {})
     if not v1_factions and state_changes:
@@ -1054,113 +1073,63 @@ def _resolve_v1(room, ws, decisions, llm):
     )
 
 
-def _resolve_v2(room, ws, decisions, llm):
-    """V2 引擎：纯确定性仿真 — 零 LLM 调用。
+def _resolve_v2_or_v3(room, ws, decisions, llm, mode):
+    """Resolve using QuarterlyResolver — V2 (deterministic) or V3 (LLM-augmented).
 
-    使用 QuarterlyResolver 的确定性基线（TurnController），
-    不启用 macro_policy_engine / narrative_engine 等 LLM 组件。
+    V2: TurnController + IntentParser only (zero LLM).
+    V3: Full engine stack (MacroPolicy, Narrative, BlackSwan, Guardrail, StateApplier).
     """
-
     from histrategy.engine.quarterly_resolver import QuarterlyResolver
 
-    # ── 捕获旧状态（用于 turn_delta 计算）──
-    old_state = {}
-    for fid in ws.factions:
-        faction = ws.factions[fid]
-        old_state[fid] = {
-            "population": getattr(faction, "population", 0),
-            "troops": getattr(faction, "strength_actual", 0),
-            "food": faction.food,
-            "treasury": faction.treasury,
-            "morale": getattr(faction, "morale_actual", 50),
-        }
+    # ── Capture pre-resolution state ──
+    old_state = _capture_faction_state(ws)
 
-    # 仅初始化确定性组件（无 LLM 富化层）
-    try:
-        from histrategy.engine.game import GameEngine
-
-        engine = GameEngine(scenario=room.scenario, new_game=True, llm=llm)
-        engine.world_state_v2 = ws
-        engine._use_v2 = True
-        turn_controller = getattr(engine, "turn_controller", None)
-        intent_parser = getattr(engine, "intent_parser", None)
-    except Exception as e:
-        logger.warning(f"GameEngine init for V2 failed: {e}, using bare resolver")
-        turn_controller = None
-        intent_parser = None
-
-    resolver = QuarterlyResolver(
-        intent_parser=intent_parser,
-        turn_controller=turn_controller,
-        # 不传入 macro_policy_engine / narrative_engine → 纯确定性
-    )
-    result = resolver.resolve(room, ws, decisions, llm=llm)
-
-    # 写入 DB
-    _save_v3_state_to_db(room, ws, decisions, result, old_state)
-
-    return result
-
-
-def _resolve_v3(room, ws, decisions, llm):
-    """V3 引擎：完整初始化的 QuarterlyResolver（合并旧 V3+Macro）。
-
-    包含：V2 确定性基线 + MacroPolicyEngine LLM 非线性层
-    + BlackSwanInjector + GuardrailValidator + NarrativeEngine。
-    """
-
-    from histrategy.engine.quarterly_resolver import QuarterlyResolver
-
-    # ── 先捕获旧状态（用于 turn_delta 计算）──
-    old_state = {}
-    for fid in ws.factions:
-        faction = ws.factions[fid]
-        old_state[fid] = {
-            "population": getattr(faction, "population", 0),
-            "troops": getattr(faction, "strength_actual", 0),
-            "food": faction.food,
-            "treasury": faction.treasury,
-            "morale": getattr(faction, "morale_actual", 50),
-        }
-
-    # 创建临时 GameEngine 来获取所有子引擎
+    # ── Create temporary GameEngine to access sub-engines ──
     try:
         import os
 
-        os.environ.setdefault("HISTRATEGY_ENGINE", "v3")
         from histrategy.engine.game import GameEngine
 
+        if mode == "v3":
+            os.environ.setdefault("HISTRATEGY_ENGINE", "v3")
         engine = GameEngine(scenario=room.scenario, new_game=True, llm=llm)
         engine.world_state_v2 = ws
         engine._use_v2 = True
-        for slot in room.human_slots():
-            engine.set_player_faction(slot.faction_id)
-            break
+        if mode == "v3":
+            for slot in room.human_slots():
+                engine.set_player_faction(slot.faction_id)
+                break
     except Exception as e:
-        logger.warning(f"GameEngine init failed: {e}, using bare QuarterlyResolver")
+        logger.warning(f"GameEngine init for {mode.upper()} failed: {e}, using bare resolver")
         resolver = QuarterlyResolver()
         result = resolver.resolve(room, ws, decisions, llm=llm)
-        # Still save state to DB
         _save_v3_state_to_db(room, ws, decisions, result, old_state)
         return result
 
-    resolver = QuarterlyResolver(
-        intent_parser=getattr(engine, "_macro_parser", None),
-        turn_controller=getattr(engine, "turn_controller", None),
-        history_engine=getattr(engine, "history_engine", None),
-        macro_policy_engine=getattr(engine, "_macro_sim", None),
-        narrative_engine=getattr(engine, "narrative_engine", None),
-        black_swan_injector=getattr(engine, "_black_swan", None),
-        guardrail_validator=getattr(engine, "guardrail_validator", None),
-        state_applier=getattr(engine, "state_applier", None),
-    )
-    # Override language from room metadata on all LLM engines
-    if resolver.macro_policy_engine:
+    # ── Build resolver based on mode ──
+    if mode == "v2":
+        resolver = QuarterlyResolver(
+            intent_parser=getattr(engine, "intent_parser", None),
+            turn_controller=getattr(engine, "turn_controller", None),
+        )
+    else:  # v3
+        resolver = QuarterlyResolver(
+            intent_parser=getattr(engine, "_macro_parser", None),
+            turn_controller=getattr(engine, "turn_controller", None),
+            history_engine=getattr(engine, "history_engine", None),
+            macro_policy_engine=getattr(engine, "_macro_sim", None),
+            narrative_engine=getattr(engine, "narrative_engine", None),
+            black_swan_injector=getattr(engine, "_black_swan", None),
+            guardrail_validator=getattr(engine, "guardrail_validator", None),
+            state_applier=getattr(engine, "state_applier", None),
+        )
+        # Override language from room metadata on all LLM engines
         lang = getattr(room, "metadata", {}).get("lang", "zh")
-        resolver.macro_policy_engine.lang = lang
-    if resolver.narrative_engine:
-        lang = getattr(room, "metadata", {}).get("lang", "zh")
-        resolver.narrative_engine.lang = lang
+        if resolver.macro_policy_engine:
+            resolver.macro_policy_engine.lang = lang
+        if resolver.narrative_engine:
+            resolver.narrative_engine.lang = lang
+
     result = resolver.resolve(room, ws, decisions, llm=llm)
     _save_v3_state_to_db(room, ws, decisions, result, old_state)
     return result

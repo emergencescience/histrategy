@@ -85,7 +85,7 @@ CHARACTER_PROFILES_FILE = _character_profiles_file()
 
 
 @dataclass
-class FactionState:
+class FactionState:  # noqa: F811 — shadowed by re-export at L28
     """State of a single faction at a point in time."""
 
     id: str
@@ -183,7 +183,7 @@ class EventEntry:
 
 
 @dataclass
-class WorldState:
+class WorldState:  # noqa: F811 — shadowed by re-export at L28
     """
     Complete game world state.
 
