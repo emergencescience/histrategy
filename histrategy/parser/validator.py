@@ -68,6 +68,8 @@ class CommandValidator:
             return self._validate_tax(cmd)
         elif cmd_type == "train":
             return self._validate_train(cmd, world_state)
+        elif cmd_type == "defend":
+            return self._validate_train(cmd, world_state)  # defend uses same territory-ownership check
         elif cmd_type == "negotiate":
             return self._validate_negotiate(cmd, world_state)
         elif cmd_type in ("spy", "trade"):

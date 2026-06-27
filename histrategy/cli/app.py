@@ -38,17 +38,6 @@ ASCII_TITLE = r"""
  |_| |_|___|____/ |_| |_| \_/_/   \_\_| |_____|____|  |_|
 """
 
-TEMPERAMENT_STYLES = {
-    "cautious": ("\U0001f6e1", "blue"),
-    "aggressive": ("⚔", "red"),
-    "scheming": ("\U0001f575", "magenta"),
-    "pragmatic": ("\U0001f4cb", "green"),
-    "strict": ("\U0001f4dc", "yellow"),
-    "proud": ("\U0001f409", "bright_yellow"),
-    "friendly": ("\U0001f91d", "cyan"),
-}
-
-
 def run_game(force_new: bool = False):
     """Main game loop.
 
