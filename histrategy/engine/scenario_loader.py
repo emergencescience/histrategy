@@ -315,6 +315,27 @@ class ScenarioLoader:
                 if tid in territories:
                     territories[tid].owner_id = fid
 
+        # Apply territory overrides from initial_state (population, development, fertility, etc.)
+        init_territories = init.get("territories", {})
+        if init_territories:
+            for tid, td in init_territories.items():
+                if tid in territories:
+                    t = territories[tid]
+                    if "name" in td:
+                        t.name = td["name"]
+                    if "population" in td:
+                        t.population = td["population"]
+                    if "development" in td:
+                        t.development = td["development"]
+                    if "terrain" in td:
+                        from ..engine.loader import TERRAIN_MAP
+
+                        t.terrain_type = TERRAIN_MAP.get(td["terrain"], t.terrain_type)
+                    if "climate_zone" in td:
+                        t.climate_zone = td["climate_zone"]
+                    if "fertility" in td:
+                        t.fertility = td["fertility"]
+
         # Determine season
         season_str = init.get("season", "spring")
         season = _parse_season(season_str)

@@ -57,7 +57,7 @@ class EconomyParams:
     }
 
     @classmethod
-    def for_scenario(cls, scenario: str | None = None) -> "EconomyParams":
+    def for_scenario(cls, scenario: str | None = None) -> EconomyParams:
         """Create EconomyParams with climate-appropriate seasonal multipliers."""
         params = cls()
         if scenario and scenario in cls.SCENARIO_CLIMATE:

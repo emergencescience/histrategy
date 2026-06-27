@@ -324,7 +324,8 @@
       "population": 500000,
       "development": 80,
       "terrain": "urban",
-      "has_port": true
+      "has_port": true,
+      "fertility": 5
     },
     "cisalpine_gaul": {
       "name": "山南高卢",
@@ -332,7 +333,8 @@
       "owner": "antony",
       "population": 200000,
       "development": 45,
-      "terrain": "plains"
+      "terrain": "plains",
+      "fertility": 6
     },
     "transalpine_gaul": {
       "name": "山北高卢",
@@ -341,7 +343,8 @@
       "population": 300000,
       "development": 35,
       "terrain": "plains",
-      "has_port": true
+      "has_port": true,
+      "fertility": 4
     },
     "aegyptus": {
       "name": "埃及",
@@ -360,7 +363,8 @@
       "population": 80000,
       "development": 30,
       "terrain": "desert",
-      "has_port": true
+      "has_port": true,
+      "fertility": 2
     },
     "cyprus": {
       "name": "塞浦路斯",
@@ -369,7 +373,8 @@
       "population": 60000,
       "development": 35,
       "terrain": "hills",
-      "has_port": true
+      "has_port": true,
+      "fertility": 3
     },
     "sicilia": {
       "name": "西西里",
@@ -378,7 +383,8 @@
       "population": 200000,
       "development": 50,
       "terrain": "hills",
-      "has_port": true
+      "has_port": true,
+      "fertility": 6
     },
     "sardinia": {
       "name": "撒丁尼亚",
@@ -387,7 +393,8 @@
       "population": 60000,
       "development": 25,
       "terrain": "hills",
-      "has_port": true
+      "has_port": true,
+      "fertility": 3
     },
     "hispania_citerior": {
       "name": "近西班牙",
@@ -396,7 +403,8 @@
       "population": 180000,
       "development": 40,
       "terrain": "plains",
-      "has_port": true
+      "has_port": true,
+      "fertility": 4
     },
     "narbonensis": {
       "name": "纳尔旁高卢",
@@ -405,7 +413,8 @@
       "population": 120000,
       "development": 50,
       "terrain": "plains",
-      "has_port": true
+      "has_port": true,
+      "fertility": 5
     },
     "africa": {
       "name": "阿非利加",
@@ -414,7 +423,8 @@
       "population": 200000,
       "development": 45,
       "terrain": "plains",
-      "has_port": true
+      "has_port": true,
+      "fertility": 5
     },
     "macedonia": {
       "name": "马其顿",
@@ -423,7 +433,8 @@
       "population": 150000,
       "development": 40,
       "terrain": "mountain",
-      "has_port": true
+      "has_port": true,
+      "fertility": 4
     },
     "syria": {
       "name": "叙利亚",
@@ -432,7 +443,8 @@
       "population": 250000,
       "development": 50,
       "terrain": "desert",
-      "has_port": true
+      "has_port": true,
+      "fertility": 4
     },
     "asia": {
       "name": "亚细亚",
@@ -441,7 +453,8 @@
       "population": 350000,
       "development": 55,
       "terrain": "hills",
-      "has_port": true
+      "has_port": true,
+      "fertility": 5
     },
     "graecia": {
       "name": "希腊",
@@ -450,7 +463,8 @@
       "population": 150000,
       "development": 50,
       "terrain": "hills",
-      "has_port": true
+      "has_port": true,
+      "fertility": 3
     },
     "illyria": {
       "name": "伊利里亚",
@@ -459,7 +473,8 @@
       "population": 80000,
       "development": 30,
       "terrain": "mountain",
-      "has_port": true
+      "has_port": true,
+      "fertility": 3
     },
     "mesopotamia": {
       "name": "美索不达米亚",
@@ -467,7 +482,8 @@
       "owner": "cassius_brutus",
       "population": 300000,
       "development": 55,
-      "terrain": "river_valley"
+      "terrain": "river_valley",
+      "fertility": 5
     },
     "italia": {
       "name": "意大利",
@@ -476,7 +492,8 @@
       "population": 800000,
       "development": 55,
       "terrain": "plains",
-      "has_port": true
+      "has_port": true,
+      "fertility": 6
     }
   },
   "objectives": [
