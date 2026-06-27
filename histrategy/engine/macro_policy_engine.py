@@ -18,7 +18,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from histrategy.llm.prompt_loader import MACRO_SIM_SYSTEM, MACRO_SIM_SYSTEM_EN
+from histrategy.llm.prompt_loader import MACRO_SIM_SYSTEM
 
 if TYPE_CHECKING:
     from histrategy_engine.world import WorldState

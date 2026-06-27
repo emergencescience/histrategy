@@ -164,7 +164,7 @@ class GameSessionManager:
         platform: str,
         chat_id: str,
         faction_id: str = "shu",
-        scenario: str = "207",
+        scenario: str = "three-kingdoms",
     ) -> GameSession:
         """Load existing session or create a new one."""
         existing = self.get_session(platform, chat_id)

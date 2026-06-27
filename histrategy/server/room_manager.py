@@ -76,7 +76,7 @@ def create_room(
     from histrategy.engine.game_room import GameRoom, RoomPhase
 
     # ── Build scenario-aware faction mapping ──
-    use_fallback = scenario in ("", "207", "three-kingdoms")
+    use_fallback = scenario in ("", "three-kingdoms")
     if use_fallback:
         from histrategy.engine.faction_slot import (
             FACTION_DISPLAY_TO_ID,
@@ -581,7 +581,7 @@ def _init_world_state(room: GameRoom):
 
     # For non-default scenarios, use ScenarioLoader to pick up
     # scenario-specific factions and year
-    if room.scenario and room.scenario not in ("207", "three-kingdoms", ""):
+    if room.scenario and room.scenario not in ("three-kingdoms", ""):
         from histrategy.engine.scenario_loader import ScenarioLoader
 
         try:
@@ -623,7 +623,7 @@ def _init_world_state(room: GameRoom):
             room.season = "spring"
 
     # ── Defensive check: after fallback, verify slot factions exist in WorldState ──
-    if room.world_state is not None and room.scenario not in ("", "207", "three-kingdoms"):
+    if room.world_state is not None and room.scenario not in ("", "three-kingdoms"):
         ws_factions = set(room.world_state.factions.keys()) if hasattr(room.world_state, "factions") else set()
         slot_factions = set(room.slots.keys())
         missing = slot_factions - ws_factions

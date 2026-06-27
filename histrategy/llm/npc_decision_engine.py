@@ -132,7 +132,7 @@ def _load_npc_prompt(scenario: str | None, language: str = "zh") -> str:
     3. scenarios/{scenario}/prompts/npc_decision.md
     4. Fall back to module-level default (Three Kingdoms)
     """
-    if not scenario or scenario in ("207", "three-kingdoms", ""):
+    if not scenario or scenario in ("three-kingdoms", ""):
         # For Three Kingdoms, support English prompt
         if language and language.startswith("en"):
             return NPC_DECISION_SYSTEM_EN

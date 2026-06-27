@@ -48,7 +48,7 @@ def _load_simulator_prompt(scenario: str | None, lang: str = "zh") -> str:
 
     # Try scenario-specific prompts in language-preference order
     candidates = []
-    if scenario and scenario not in ("207", "three-kingdoms", ""):
+    if scenario and scenario not in ("three-kingdoms", ""):
         if lang == "en":
             candidates = [
                 Path(f"scenarios/{scenario}/prompts/v1_simulator_en.md"),

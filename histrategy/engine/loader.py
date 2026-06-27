@@ -28,7 +28,7 @@ from histrategy_engine.world import (
 
 # ─── scenario ID ─────────────────────────────────────────────────────────────
 # Only canonical scenario IDs are accepted: "three-kingdoms" | "rome-triumvirate".
-# Legacy numeric IDs ("207", "44bc") and the old "caesar-44bc" alias are
+# Legacy numeric IDs (e.g. "207" for three-kingdoms) are
 # no longer mapped — callers must use the canonical names.
 _CANONICAL_SCENARIO_IDS: frozenset[str] = frozenset({"three-kingdoms", "rome-triumvirate"})
 
@@ -107,7 +107,7 @@ def load_territories(
     Delegates to :class:`~histrategy.engine.scenario_loader.ScenarioLoader`.
 
     Args:
-        scenario_id: Scenario directory name (e.g. "three-kingdoms", "caesar-44bc").
+        scenario_id: Scenario directory name (e.g. "three-kingdoms", "rome-triumvirate").
         knowledge_path: Deprecated fallback; ignored unless the scenarios/ file is missing.
 
     Returns:
@@ -358,12 +358,17 @@ def load_scenario(
     if not os.path.isdir(scenario_dir):
         return None
 
-    # Try exact match first
-    for fname in os.listdir(scenario_dir):
-        if fname.endswith(".json") and scenario_id in fname:
-            fpath = os.path.join(scenario_dir, fname)
-            with open(fpath) as f:
-                return json.load(f)
+    # Legacy alias: "three-kingdoms" → "207" for old filename compatibility
+    search_ids = [scenario_id]
+    if scenario_id == "three-kingdoms":
+        search_ids.append("207")
+
+    for sid in search_ids:
+        for fname in os.listdir(scenario_dir):
+            if fname.endswith(".json") and sid in fname:
+                fpath = os.path.join(scenario_dir, fname)
+                with open(fpath) as f:
+                    return json.load(f)
 
     return None
 
@@ -382,7 +387,7 @@ def build_world_state(
 
     Args:
         player_faction_id: The faction the player controls ("shu", "cao", "wu")
-        scenario_id: Scenario identifier ("207" or "three-kingdoms")
+        scenario_id: Scenario identifier (e.g. "three-kingdoms")
         knowledge_path: Deprecated; path to histrategy-knowledge/
 
     Returns:

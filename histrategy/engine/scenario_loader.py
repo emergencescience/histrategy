@@ -54,7 +54,7 @@ from .loader import (
 # ─── helpers ────────────────────────────────────────────────────────────────
 
 # Canonical scenario directory names.  Any other value is rejected with a
-# clear error — legacy numeric IDs ("207", "44bc") and the old "caesar-44bc"
+# clear error — legacy numeric IDs (e.g. "207" for three-kingdoms)
 # alias must be replaced with the canonical names.
 
 
@@ -74,7 +74,7 @@ def _validate_scenario_id(scenario_id: str) -> str:
 def _coerce_factions_to_dict(data: list | dict) -> dict:
     """Normalise faction data to a dict keyed by faction id.
 
-    Supports both the array format (caesar-44bc) and the legacy dict format.
+    Supports both the array format (rome-triumvirate) and the legacy dict format.
     """
     if isinstance(data, dict):
         return data
@@ -97,7 +97,7 @@ class ScenarioLoader:
         loader = ScenarioLoader("three-kingdoms")
         ws = loader.build_world_state("shu")
 
-        loader2 = ScenarioLoader("caesar-44bc")
+        loader2 = ScenarioLoader("rome-triumvirate")
         ws2 = loader2.build_world_state("octavian")
     """
 
@@ -410,7 +410,7 @@ class ScenarioLoader:
     def _build_factions(self, factions_data: dict) -> dict[str, FactionState]:
         """Build FactionState objects from raw dict data.
 
-        Handles both legacy TK field names and modern caesar-44bc field names.
+        Handles both legacy TK field names and modern rome-triumvirate field names.
         """
         factions: dict[str, FactionState] = {}
         for fid, fd in factions_data.items():
@@ -487,7 +487,7 @@ class ScenarioLoader:
         Returns an empty list if the file doesn't exist or has no match.
 
         Supports both formats:
-        1. Array format (caesar-44bc): {"year": -43, "season": "spring", ...}
+        1. Array format (rome-triumvirate): {"year": -43, "season": "spring", ...}
         2. Object format (three-kingdoms): {"events": [{"year": 207, "month": 12, ...}]}
         """
         timeline_path = self._dir / "knowledge" / "timeline.json"
@@ -568,7 +568,7 @@ def _character_from_dict(cd: dict) -> Character:
     """Build a Character from a JSON dict.
 
     Supports both TK field names (stats.leadership, faction, location, loyalty)
-    and caesar-44bc field names (martial, intellect, politics, charisma, faction, role).
+    and rome-triumvirate field names (martial, intellect, politics, charisma, faction, role).
     """
     # Stats: TK uses nested stats dict, Caesar uses top-level attributes
     if "stats" in cd:

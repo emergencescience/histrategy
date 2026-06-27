@@ -96,7 +96,7 @@ def create_initial_world(player_faction_id: str) -> WorldState:
     state.scenario = "three-kingdoms"
     state.player_faction_id = player_faction_id
 
-    scenario = load_scenario("207")
+    scenario = load_scenario("three-kingdoms")
     factions_data = scenario.get("factions", {}) if scenario else {}
 
     for fid, fd in factions_data.items():
