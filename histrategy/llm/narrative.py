@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
     from .adapter import LLMAdapter
 
+from .context_helpers import collect_dead_characters
 from .prompt_loader import NARRATIVE_SYSTEM, NARRATIVE_SYSTEM_EN, PLAN_SUGGESTIONS_SYSTEM
 
 # ─── Knowledge path resolution ──────────────────────────────────
@@ -450,15 +451,7 @@ class NarrativeEngine:
             lines.append("")
 
             # List deceased figures to avoid revival hallucinations
-            dead_names = [c.name for c in world_state.characters.values() if not c.alive]
-            if (
-                "dongzhuo" not in world_state.characters or not world_state.characters["dongzhuo"].alive
-            ) and "董卓" not in dead_names:
-                dead_names.append("董卓")
-            if (
-                "liubiao" not in world_state.characters or not world_state.characters["liubiao"].alive
-            ) and "刘表" not in dead_names:
-                dead_names.append("刘表")
+            dead_names = collect_dead_characters(world_state)
 
             if dead_names:
                 lines.append("## 已亡故/不活跃人物（不可在此回合复活或出现活跃事迹）")

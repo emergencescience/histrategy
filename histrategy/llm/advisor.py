@@ -247,16 +247,6 @@ class StrategicAdvisor:
         if not border_enemies:
             return "暂无边境威胁，可安心发展内政、积蓄实力。"
 
-        max(
-            border_enemies,
-            key=lambda p: int(
-                p.get("strength", "0").replace(",", "").split("~")[-1].strip()
-                if "~" in p.get("strength", "0")
-                else p.get("strength", "0").replace(",", "")
-            ),
-            default=None,
-        )
-
         advice = f"边境有 {', '.join(p['name'] for p in border_enemies)} 虎视眈眈。"
         if food < 2000:
             advice += "眼下粮草不足，宜先发展农业、固本培元。"

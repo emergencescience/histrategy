@@ -1,21 +1,23 @@
 """
-NPCDecisionEngine — 为一个 NPC faction 生成独立季度决策。
+NPCDecisionEngine — generates independent quarterly decisions for a single NPC faction.
 
-每个 NPC faction 有独立的 LLM 调用——不是"顺便"在 MacroPolicyEngine 里生成。
-这是对称多人引擎的核心组件：NPC 和人类在决策生成路径上完全对称。
+Each NPC faction gets its own LLM call — not generated "as a side effect"
+inside MacroPolicyEngine. This is a core component of the symmetric multiplayer
+engine: NPCs and humans are fully symmetric in their decision-generation path.
 
-主要势力 (cao/shu/wu):
-    使用 LLM 独立决策 → NPCDecisionEngine.generate()
+Major factions (cao/shu/wu):
+    Use LLM independent decisions → NPCDecisionEngine.generate()
 
-次要势力 (liubiao/liuzhang/machao/zhanglu):
-    使用启发式规则 → _generate_heuristic()
-    原因：减少 token 成本和防止行为偏离历史
+Minor factions (liubiao/liuzhang/machao/zhanglu):
+    Use heuristic rules → _generate_heuristic()
+    Reason: reduce token cost and prevent behavior from deviating from history
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -162,7 +164,7 @@ def _load_npc_prompt(scenario: str | None, language: str = "zh") -> str:
     return NPC_DECISION_SYSTEM
 
 
-# 可用命令类型（与 IntentParser 保持一致）
+# Available command types (must match IntentParser)
 NPC_COMMAND_TYPES = [
     "attack",
     "defend",
@@ -200,13 +202,14 @@ def _resolve_border(ws: WorldState, faction_id: str, neighbor_id: str) -> str | 
 
 
 class NPCDecisionEngine:
-    """为一个 NPC faction 生成独立季度决策。
+    """Generates independent quarterly decisions for a single NPC faction.
 
-    关键设计原则：
-    1. FOW (Fog of War) — NPC 只能看到相邻势力的估算兵力
-    2. 个性驱动 — 不同 NPC 有不同 aggression/caution 参数
-    3. 记忆感知 — NPC 能看到最近 N 回合的历史摘要
-    4. 场景感知 — 从 scenarios/{name}/prompts/ 加载专属 prompt，支持多语言
+    Key design principles:
+    1. FOW (Fog of War) — NPC only sees estimated troop counts of adjacent factions
+    2. Personality-driven — different NPCs have different aggression/caution params
+    3. Memory-aware — NPC sees summaries of the last N turns
+    4. Scenario-aware — loads scenario-specific prompts from scenarios/{name}/prompts/,
+       with multi-language support
     """
 
     def __init__(self, llm: LLMAdapter | None = None, scenario: str | None = None, language: str = "zh"):
@@ -225,21 +228,21 @@ class NPCDecisionEngine:
         quarter_number: int = 0,
         scenario: str | None = None,
     ) -> tuple[str, list]:
-        """生成 NPC 的本季度决策。
+        """Generate this NPC faction's quarterly decision.
 
         Args:
-            world_state: 当前世界状态（全局视角，但NPC内部会投影FOW）
-            faction_id: 该NPC的势力ID
-            turn_memory: 最近回合摘要列表
-            slot: FactionSlot（可选，用于读取AI配置）
-            scenario: 覆盖场景名（用于加载专属 prompt）
-            room_id: 房间 ID（用于 DB 日志）
-            quarter_number: 季度编号（用于 DB 日志）
+            world_state: Current world state (global view, but NPC internally projects FOW)
+            faction_id: This NPC's faction ID
+            turn_memory: Recent turn summary list
+            slot: FactionSlot (optional, for reading AI config)
+            scenario: Override scenario name (for loading scenario-specific prompt)
+            room_id: Room ID (for DB logging)
+            quarter_number: Quarter number (for DB logging)
 
         Returns:
             (decision_text, parsed_commands)
-                decision_text: 自然语言决策文本（用于叙事和记录）
-                parsed_commands: 结构化命令列表
+                decision_text: Natural language decision text (for narrative and record)
+                parsed_commands: Structured command list
         """
         faction = world_state.factions.get(faction_id)
         if not faction or not faction.is_active:
@@ -307,7 +310,7 @@ class NPCDecisionEngine:
         quarter_number: int = 0,
         scenario: str | None = None,
     ) -> tuple[str, list]:
-        """LLM 生成决策。"""
+        """LLM-generated decision."""
         context = self._build_context(ws, faction_id, faction, turn_memory)
 
         temperature = slot.ai_temperature if slot else 0.7
@@ -340,7 +343,7 @@ class NPCDecisionEngine:
         )
         raw_commands = response.get("commands", [])
 
-        # 标准化命令
+        # Normalize commands to canonical format
         commands = self._normalize_commands(raw_commands, faction_id)
 
         # Note: LLMAdapter already logs the call to llm_call_log via _log_to_db.
@@ -353,7 +356,7 @@ class NPCDecisionEngine:
         ws: WorldState,
         faction_id: str,
     ) -> tuple[str, list]:
-        """启发式规则生成决策（次要势力或LLM不可用时）。
+        """Heuristic rule-based decision (minor factions or when LLM unavailable).
 
         Now significantly more context-aware:
         - Considers neighbor threats (troop ratios, hostile relations)
@@ -573,8 +576,12 @@ class NPCDecisionEngine:
         if territories:
             lines.append(f"🏰 **{L['territories']}**: {territories}")
         else:
-            lines.append(f"🏰 **{L['territories']}**: [] （无固定领地，可能处于迁徙中或依附他方）")
-        lines.append(f"{L['territories']}: {territories}")
+            no_territory_text = (
+                "[] （无固定领地，可能处于迁徙中或依附他方）"
+                if self.language == "zh"
+                else "[] (no fixed territory — may be migrating or vassalized)"
+            )
+            lines.append(f"🏰 **{L['territories']}**: {no_territory_text}")
         lines.append("")
 
         # Terrain / strategic geography
@@ -648,8 +655,6 @@ class NPCDecisionEngine:
                     # 检测上一回合是否有本势力的进攻
                     arrow = f"{faction_id}→"
                     if arrow in summary:
-                        import re
-
                         m = re.search(rf"{re.escape(faction_id)}→(\w+)", summary)
                         if m and qnum > last_attack_quarter:
                             last_attack_target = m.group(1)
@@ -671,7 +676,7 @@ class NPCDecisionEngine:
         return "\n".join(lines)
 
     def _normalize_commands(self, raw: list, faction_id: str) -> list[dict]:
-        """标准化 LLM 输出的命令格式。"""
+        """Normalize LLM output commands to canonical format."""
         commands = []
         for item in raw:
             if not isinstance(item, dict):
@@ -690,7 +695,7 @@ class NPCDecisionEngine:
         return commands
 
     def _get_neighbors(self, ws: WorldState, faction_id: str) -> list[str]:
-        """获取相邻势力列表。"""
+        """Get list of neighboring faction IDs."""
         neighbors: set[str] = set()
         faction = ws.factions.get(faction_id)
         if not faction:
@@ -707,7 +712,7 @@ class NPCDecisionEngine:
 
     @staticmethod
     def _extract_json(text: str) -> dict:
-        """从文本中提取 JSON。"""
+        """Extract JSON from text response."""
         # 尝试直接解析
         try:
             return json.loads(text)
