@@ -22,28 +22,36 @@ class EconomyParams:
 
     Calibration target: a mid-sized faction (5 territories, ~125k pop)
     should be able to sustain ~50k troops with a small surplus at 30% tax.
+
+    Design principle: prevent snowballing. Large factions face
+    diminishing returns — more territory = more occupation cost,
+    more troops = more maintenance, repeated conscription = fatigue.
     """
 
     # ── Population ──
-    base_population_growth: float = 0.005  # per quarter (2%/year)
+    base_population_growth: float = 0.003  # per quarter (1.2%/year, down from 2%)
 
     # ── Food ──
-    base_food_per_soldier: float = 0.01  # food per soldier per quarter
+    base_food_per_soldier: float = 0.015  # food per soldier per quarter (increased — soldiers eat more)
     base_food_per_civilian: float = 0.002  # food per civilian per quarter
-    food_production_multiplier: float = 0.05  # food output per population * dev * fertility
+    food_production_multiplier: float = 0.025  # food output per population * dev * fertility (halved from 0.05)
+
+    # ── Seasonal food coefficients (spring=0, summer=1, autumn=2, winter=3) ──
+    season_food_multipliers: tuple = (1.0, 1.2, 1.5, 0.3)
 
     # ── Taxation (revenue = pop × base_tax_revenue_per_pop × tax_rate) ──
-    base_tax_revenue_per_pop: float = 0.02  # tax revenue per population unit per quarter
+    base_tax_revenue_per_pop: float = 0.015  # tax revenue per population unit per quarter (reduced from 0.02)
     max_tax_rate: float = 0.70  # maximum allowed tax rate
 
     # ── Military costs ──
-    military_maintenance_per_soldier: float = 0.001  # gold per soldier per quarter
-    conscript_cost: float = 2.0  # one-time gold cost per conscript
+    military_maintenance_per_soldier: float = 0.003  # gold per soldier per quarter (increased 3x)
+    conscript_cost: float = 3.0  # one-time gold cost per conscript (increased from 2.0)
     conscript_food_penalty: float = 0.5  # food output loss per conscript
+    conscription_fatigue_factor: float = 0.3  # each consecutive draft reduces available pool by this %
 
-    # ── Occupation / governance costs ──
-    occupation_cost_per_territory: float = 50.0  # gold per non-core territory per quarter
-    core_territory_count: int = 4  # first N territories are "core" (no occupation cost)
+    # ── Occupation / governance costs (scales with territory count) ──
+    occupation_cost_per_territory: float = 200.0  # gold per non-core territory per quarter (increased 4x)
+    core_territory_count: int = 3  # first N territories are "core" (reduced from 4)
 
     # ── Morale ──
     morale_tax_penalty: float = 0.3  # morale penalty per 1% above 20% tax
@@ -54,7 +62,7 @@ class EconomyParams:
     development_decay: float = 0.995  # natural decay multiplier
 
     # ── Conscription limits ──
-    max_conscript_ratio: float = 0.05  # max conscripts per quarter as % of total population
+    max_conscript_ratio: float = 0.04  # max conscripts per quarter as % of total population (reduced from 5%)
 
 
 # ─── Result type ───────────────────────────────────────────────
@@ -101,6 +109,7 @@ class QuarterlyEngine:
 
     def __init__(self, params: EconomyParams | None = None):
         self.params = params or EconomyParams()
+        self._draft_streak: dict[str, int] = {}  # faction_id → consecutive draft quarters
 
     def execute_quarter(
         self,
@@ -164,7 +173,11 @@ class QuarterlyEngine:
             result.tax_revenue[fid] = revenue
 
             # ── Food ──
+            season_idx = quarter % 4
             food_consumed = strength * p.base_food_per_soldier + total_pop * p.base_food_per_civilian
+            # Winter increases consumption (heating, transport losses)
+            if season_idx == 3:  # winter
+                food_consumed *= 1.3
             # Food production from agriculture tech and development
             food_produced = 0
             for tid in territories:
@@ -174,6 +187,10 @@ class QuarterlyEngine:
                     fertility = getattr(t, "fertility", 5)
                     tpop = getattr(t, "population", 25000)
                     food_produced += tpop * (dev / 100) * (fertility / 10) * p.food_production_multiplier
+
+            # Apply seasonal modifier — winter food is scarce
+            seasonal_mult = p.season_food_multipliers[season_idx] if 0 <= season_idx < 4 else 1.0
+            food_produced *= seasonal_mult
 
             # Law effects on food
             for law in laws_to_apply.get(fid, []):
@@ -217,8 +234,14 @@ class QuarterlyEngine:
             # ── Conscription ──
             conscript_amount = conscriptions.get(fid, 0)
             if conscript_amount > 0:
-                # Cap: can't conscript more than max_conscript_ratio of total population
-                max_draft = int(total_pop * p.max_conscript_ratio)
+                # Track consecutive drafts for fatigue
+                streak = self._draft_streak.get(fid, 0) + 1
+                self._draft_streak[fid] = streak
+                # Fatigue: each consecutive draft quarter reduces effective pool
+                fatigue_mult = max(0.3, 1.0 - (streak - 1) * p.conscription_fatigue_factor)
+                adjusted_pool = int(total_pop * fatigue_mult)
+                # Cap: can't conscript more than max_conscript_ratio of adjusted population
+                max_draft = int(adjusted_pool * p.max_conscript_ratio)
                 actual_amount = min(conscript_amount, max_draft)
                 # Cap: can't spend more than available treasury
                 max_affordable = int(treasury / p.conscript_cost) if p.conscript_cost > 0 else actual_amount
@@ -230,7 +253,11 @@ class QuarterlyEngine:
                     treasury = faction.treasury  # update local for subsequent cost calcs
                     # Drafting reduces food output
                     result.food_delta[fid] -= actual_amount * p.conscript_food_penalty
-                    result.notable_events.append(f"{fid}征兵{actual_amount}人，花费{cost:.0f}金")
+                    fatigue_note = f"（连续第{streak}季征兵，效率{int(fatigue_mult*100)}%）" if streak > 1 else ""
+                    result.notable_events.append(f"{fid}征兵{actual_amount}人，花费{cost:.0f}金{fatigue_note}")
+            else:
+                # Reset draft streak when no conscription
+                self._draft_streak[fid] = 0
 
             # ── Military Maintenance ──
             # Every soldier costs gold each quarter (pay, equipment, supplies beyond food)
