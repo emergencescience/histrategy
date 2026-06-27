@@ -988,7 +988,7 @@ def create_app(llm_provider: str | None = None) -> Any:
     ):
         """创建房间。
 
-        pre_assigned = {"caocao": "张三", "liubei": "李四"}
+        pre_assigned = {"cao": "张三", "shu": "李四"}
         → Host 预分配势力，每个玩家获得专属链接。
         → 未分配的势力自动变 AI NPC。
 
@@ -1002,7 +1002,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         if not pre_assigned:
             return {
                 "ok": False,
-                "error": "pre_assigned is required — e.g. {\"caocao\": \"张三\", \"liubei\": \"李四\"}",
+                "error": "pre_assigned is required — e.g. {\"cao\": \"张三\", \"shu\": \"李四\"}",
             }
 
         result = create_room(
@@ -1233,7 +1233,7 @@ def create_app(llm_provider: str | None = None) -> Any:
                 "start_year": 207,
                 "epoch": "",
             },
-            "shanhe-dingge": {
+            "nanming": {
                 "name": "山河鼎革",
                 "name_cn": "山河鼎革",
                 "period": "公元1644年 明末清初",

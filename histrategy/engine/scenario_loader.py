@@ -63,7 +63,7 @@ def _validate_scenario_id(scenario_id: str) -> str:
 
     Raises ValueError if *scenario_id* is not a known canonical name.
     """
-    if scenario_id not in ("three-kingdoms", "rome-triumvirate"):
+    if scenario_id not in ("three-kingdoms", "rome-triumvirate", "nanming"):
         raise ValueError(
             f"Unknown scenario {scenario_id!r}. "
             f"Expected one of: 'three-kingdoms', 'rome-triumvirate'"

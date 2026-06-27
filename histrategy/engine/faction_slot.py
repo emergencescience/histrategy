@@ -11,12 +11,19 @@ OccupantType:
     OPEN   — 等待人类加入（仅大厅阶段）
 
 NPC数量限制：
-    主要势力 (cao/shu/wu) 使用LLM独立决策
-    次要势力 (liubiao/liuzhang/machao/zhanglu) 使用启发式规则
+    主要势力 (cao/shu/wu / octavian/antony/cleopatra/senate) 使用LLM独立决策
+    次要势力 (liubiao/yuanshao/liuzhang/dongzhuo) 使用启发式规则
     防止过多LLM调用导致行为偏离历史和成本膨胀
 
 histrategy 不追踪 user_id —— 身份由 orchestrator 代理层处理。
 势力槽位仅通过 faction_id 识别「谁在控制这个势力」。
+
+Faction ID 命名约定（统一后）：
+    内部引擎统一使用短码：
+      三國志略: cao, shu, wu, liubiao, yuanshao, liuzhang, dongzhuo
+      Rome:     octavian, antony, cleopatra, senate, sextus_pompey, lepidus,
+                decimus_brutus, cassius_brutus
+    FACTION_DISPLAY_TO_ID 映射旧名 (caocao→cao, liubei→shu, wei→cao 等) 保证向后兼容。
 """
 
 from __future__ import annotations
@@ -31,23 +38,44 @@ class OccupantType(Enum):
     OPEN = "open"
 
 
-# ── 势力 ID 映射 ────────────────────────────────────
-# 用户界面使用全名（caocao/liubei/sunquan），内部引擎使用短ID（cao/shu/wu）
-# 这是 histrategy_engine pip 包使用的 faction ID，不能改
+# ── 势力 ID 映射（canonical source of truth）─────────────────
+# 内部引擎统一使用短码 (cao/shu/wu/octavian/antony...)。
+# 用户界面和 API 接受全名 (caocao/liubei/sunquan)，
+# 通过 FACTION_DISPLAY_TO_ID 映射到内部 ID。
 FACTION_DISPLAY_TO_ID: dict[str, str] = {
     "caocao": "cao",
     "liubei": "shu",
     "sunquan": "wu",
+    # Alternate / legacy names
+    "wei": "cao",
+    "sunjian": "wu",
 }
 FACTION_ID_TO_DISPLAY: dict[str, str] = {v: k for k, v in FACTION_DISPLAY_TO_ID.items()}
 
-# 三大势力（cao/shu/wu 作为内部 ID，caocao/liubei/sunquan 作为显示名）
-# 只有这三大势力使用 LLM 独立决策（Three Kingdoms 默认）
-LLM_NPC_FACTIONS = {"cao", "shu", "wu", "liuzhang"}
+# 统一 legacy → canonical 映射（供 offline_sim_engine / game.py 等模块引用）
+FACTION_LEGACY_MAP: dict[str, str] = {
+    "caocao": "cao",
+    "liubei": "shu",
+    "sunquan": "wu",
+    "sunjian": "wu",
+    "wei": "cao",
+}
+
+
+def normalize_faction_id(fid: str) -> str:
+    """归一化 faction_id：legacy 名 → canonical 短码。"""
+    return FACTION_LEGACY_MAP.get(fid, fid)
+
+
+# Three Kingdoms 主要 NPC 势力（LLM 独立决策）
+# liubiao/yuanshao/liuzhang/dongzhuo 是纯 NPC，使用启发式规则，不用 LLM
+LLM_NPC_FACTIONS = {"cao", "shu", "wu"}
 LLM_NPC_DISPLAY = {"caocao", "liubei", "sunquan"}
 
-# 场景感知的 NPC 势力映射（非 TK 场景的 NPC 势力从场景配置动态加载，
-# 此映射仅作为 room_manager 中 create_room 的 fallback）
+# 单人模式 / 默认 AI NPC 势力（包括启发式次要势力）
+DEFAULT_AI_FACTIONS = {"cao", "shu", "wu", "liuzhang"}
+
+# 场景感知的 NPC 势力映射
 SCENARIO_NPC_FACTIONS: dict[str, set[str]] = {
     "rome-triumvirate": {"senate", "octavian", "antony", "cleopatra"},
 }
@@ -58,8 +86,8 @@ def get_npc_factions(scenario: str) -> set[str]:
     return SCENARIO_NPC_FACTIONS.get(scenario, LLM_NPC_FACTIONS)
 
 
-# 用户可见的势力列表（全名）
-PLAYABLE_FACTIONS = ["caocao", "liubei", "sunquan"]
+# 用户可见的势力列表（内部短码，API 层通过 FACTION_ID_TO_DISPLAY 转为显示名）
+PLAYABLE_FACTIONS = ["cao", "shu", "wu"]
 
 
 @dataclass

@@ -118,17 +118,9 @@ def create_initial_world(player_faction_id: str) -> WorldState:
 
 
 # ─── V2 faction maps ──────────────────────────────────────────────
+# Re-exported from faction_slot.py (canonical source of truth)
 
-V2_FACTION_MAP: dict[str, str] = {
-    "cao": "cao",
-    "wei": "cao",
-    "shu": "shu",
-    "wu": "wu",
-    "liubei": "shu",
-    "caocao": "cao",
-    "sunquan": "wu",
-    "sunjian": "wu",
-}
+from .faction_slot import FACTION_LEGACY_MAP as V2_FACTION_MAP  # noqa: F401 — backward compat
 
 
 class GameEngine:

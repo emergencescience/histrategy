@@ -16,9 +16,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("histrategy.single_player")
 
-# 旧 faction key → 内部 ID 映射
+# 旧 faction key → 内部 ID 映射（已统一为短码，保留映射仅为兼容）
+from histrategy.engine.faction_slot import FACTION_ID_TO_DISPLAY, normalize_faction_id
+
 FACTION_KEY_TO_ID = {"cao": "cao", "shu": "shu", "wu": "wu"}
-FACTION_KEY_TO_DISPLAY = {"cao": "caocao", "shu": "liubei", "wu": "sunquan"}
+FACTION_KEY_TO_DISPLAY = FACTION_ID_TO_DISPLAY  # {"cao": "caocao", "shu": "liubei", "wu": "sunquan"}
 
 # 轮询参数
 RESOLVE_POLL_INTERVAL = 2.0  # 秒

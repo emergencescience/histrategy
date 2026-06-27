@@ -88,11 +88,11 @@ class TestGameRoom:
     def test_create_single_player_room(self):
         room = create_single_player_room("cao", "test-user")
         assert room.phase == RoomPhase.WAITING
-        assert len(room.slots) == 4  # 4 major factions (cao/shu/wu/liuzhang)
+        assert len(room.slots) == 4  # 3 major (cao/shu/wu) + 1 minor (liuzhang)
         assert len(room.human_slots()) == 1
         assert len(room.ai_slots()) == 3
-        assert len(room.major_ai_slots()) == 3  # wu, shu, liuzhang
-        assert len(room.minor_ai_slots()) == 0  # no minor factions
+        assert len(room.major_ai_slots()) == 2  # shu, wu (LLM NPCs)
+        assert len(room.minor_ai_slots()) == 1  # liuzhang (heuristic NPC)
 
     def test_create_multi_player_room(self):
         room = create_multi_player_room(["cao", "shu"])

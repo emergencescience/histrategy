@@ -1,12 +1,12 @@
-# 山河鼎革 — Scenario Configuration (SKELETON)
-# histrategy/scenarios/shanhe-dingge/scenario.toml
+# 山河鼎革 (The Southern Ming) — Scenario Configuration (SKELETON)
+# histrategy/scenarios/nanming/scenario.toml
 #
 # 状态: 骨架 — knowledge/prompts/rules/web 待充实
 
 [meta]
-id = "shanhe-dingge"
+id = "nanming"
 name = "山河鼎革"
-name_en = "Shanhe Dingge"
+name_en = "The Southern Ming"
 era = "TBD"
 start_year = 0
 start_season = "春"

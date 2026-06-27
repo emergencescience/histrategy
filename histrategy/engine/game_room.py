@@ -224,13 +224,14 @@ def create_single_player_room(
     room = GameRoom(scenario=scenario)
     room.slots[faction_id] = create_human_slot(faction_id)
 
-    # 其他主要势力 → AI NPC
-    major_npc_ids = set()
-    for fid in LLM_NPC_FACTIONS:
+    # 其他主要势力 → AI NPC（含启发式次要势力）
+    from .faction_slot import DEFAULT_AI_FACTIONS, LLM_NPC_FACTIONS
+
+    for fid in DEFAULT_AI_FACTIONS:
         if fid != faction_id:
             room.slots[fid] = create_ai_slot(fid)
-            major_npc_ids.add(fid)
-    room.major_npc_ids = major_npc_ids
+    # major_npc_ids 控制哪些 NPC 使用 LLM（仅三大势力）
+    room.major_npc_ids = {fid for fid in LLM_NPC_FACTIONS if fid != faction_id}
 
     room.phase = RoomPhase.WAITING
     return room
@@ -251,8 +252,10 @@ def create_multi_player_room(
     for fid in faction_ids:
         room.slots[fid] = create_open_slot(fid)
 
-    # 未指定势力 → AI NPC（仅三大势力）
-    for fid in LLM_NPC_FACTIONS:
+    # 未指定势力 → AI NPC（主要+次要势力）
+    from .faction_slot import DEFAULT_AI_FACTIONS
+
+    for fid in DEFAULT_AI_FACTIONS:
         if fid not in room.slots:
             room.slots[fid] = create_ai_slot(fid)
 

@@ -4,34 +4,38 @@ from __future__ import annotations
 
 import copy
 
+from .faction_slot import normalize_faction_id as _normalize
 from ..engine.offline_sim import simulate_turn_offline
 from ..engine.world import GameWorld
 from ..engine.world_sim_interface import SimResult, WorldSimEngine
 from ..state.world_state import WorldState, save_world
 
+# ── Legacy offline_sim.py 使用的 faction_id 格式 ──
+# offline_sim.py 内部使用旧格式 (liu_biao, yuan_shao, caocao, liubei...)，
+# 这些映射桥接 canonical 短码 (cao, shu, liubiao, yuanshao) 与旧格式。
+_STATE_TO_LEGACY: dict[str, str] = {
+    "liubiao": "liu_biao",
+    "yuanshao": "yuan_shao",
+}
+_LEGACY_TO_STATE: dict[str, str] = {
+    "caocao": "cao",
+    "liubei": "shu",
+    "sunjian": "wu",
+    "yuanshao": "yuanshao",
+    "liu_biao": "liubiao",
+    "liubiao": "liubiao",
+    **{v: k for k, v in _STATE_TO_LEGACY.items()},
+}
 
-def _map_state_id_to_legacy(fid: str) -> str:
-    mapping = {
-        "cao": "cao",
-        "shu": "shu",
-        "wu": "wu",
-        "yuan_shao": "yuan_shao",
-        "liu_biao": "liu_biao",
-        "liubiao": "liu_biao",
-    }
-    return mapping.get(fid, fid)
+
+def _to_legacy_id(fid: str) -> str:
+    """Canonical ID → legacy offline_sim ID."""
+    return _STATE_TO_LEGACY.get(fid, fid)
 
 
-def _map_legacy_id_to_state(fid: str) -> str:
-    mapping = {
-        "caocao": "cao",
-        "liubei": "shu",
-        "sunjian": "wu",
-        "yuanshao": "yuan_shao",
-        "liu_biao": "liubiao",
-        "liubiao": "liubiao",
-    }
-    return mapping.get(fid, fid)
+def _from_legacy_id(fid: str) -> str:
+    """Legacy offline_sim ID → canonical ID."""
+    return _LEGACY_TO_STATE.get(fid, fid)
 
 
 class OfflineSimEngine(WorldSimEngine):
@@ -60,35 +64,31 @@ class OfflineSimEngine(WorldSimEngine):
         This adapter bridges from WorldState to GameWorld and back.
         """
         if self._legacy_world is None:
-            self._legacy_world = GameWorld(scenario=state.scenario or "three-kingdoms")
+            self._legacy_world = GameWorld(
+                scenario=state.scenario or "three-kingdoms"
+            )
 
-        # Sync WorldState values to legacy world
         legacy_world = self._legacy_world
         legacy_world.current_year = state.year
         legacy_world.current_season = state.current_season
-        # Set current season index
         try:
-            legacy_world.season_index = legacy_world.seasons.index(state.current_season)
+            legacy_world.season_index = legacy_world.seasons.index(
+                state.current_season
+            )
         except ValueError:
             legacy_world.season_index = 0
         legacy_world.turn_count = state.turn
-        legacy_world.player_faction_id = _map_state_id_to_legacy(state.player_faction_id)
+        legacy_world.player_faction_id = _to_legacy_id(
+            _normalize(state.player_faction_id)
+        )
 
         # Sync faction stats to legacy world
         for fid, state_faction in state.factions.items():
-            legacy_fid = _map_state_id_to_legacy(fid)
-            # Try to match direct ID, otherwise map standard ones
+            legacy_fid = _to_legacy_id(_normalize(fid))
             legacy_faction = legacy_world.factions.get(legacy_fid)
             if not legacy_faction:
-                # check mapped names
-                for k, v in {
-                    "caocao": "cao",
-                    "liubei": "shu",
-                    "sunjian": "wu",
-                    "yuanshao": "yuan_shao",
-                    "liubiao": "liu_biao",
-                }.items():
-                    if v == legacy_fid:
+                for k, v in _LEGACY_TO_STATE.items():
+                    if v == legacy_fid or _to_legacy_id(v) == legacy_fid:
                         legacy_faction = legacy_world.factions.get(k)
                         break
             if legacy_faction:
@@ -101,10 +101,10 @@ class OfflineSimEngine(WorldSimEngine):
         # Run offline simulation
         result = simulate_turn_offline(legacy_world, player_action)
 
-        # Advance turns on both
+        # Advance turns
         legacy_world.advance_turn()
 
-        # Create a copy/update of WorldState
+        # Create updated WorldState
         new_state = copy.deepcopy(state)
         new_state.year = legacy_world.current_year
         new_state.season_index = {
@@ -116,23 +116,31 @@ class OfflineSimEngine(WorldSimEngine):
         new_state.turn = legacy_world.turn_count
 
         # Sync legacy faction stats back to WorldState
-        for fid, legacy_faction in legacy_world.factions.items():
-            state_fid = _map_legacy_id_to_state(fid)
+        for legacy_fid, legacy_faction in legacy_world.factions.items():
+            state_fid = _from_legacy_id(legacy_fid)
             if state_fid in new_state.factions:
-                state_faction = new_state.factions[state_fid]
-                state_faction.strength = legacy_faction.strength
-                state_faction.economy = legacy_faction.economy
-                state_faction.morale = legacy_faction.morale
-                state_faction.treasury = legacy_faction.treasury
-                state_faction.food = legacy_faction.food
+                sf = new_state.factions[state_fid]
+                sf.strength = legacy_faction.strength
+                sf.economy = legacy_faction.economy
+                sf.morale = legacy_faction.morale
+                sf.treasury = legacy_faction.treasury
+                sf.food = legacy_faction.food
 
         save_world(new_state)
 
-        # Wrap into SimResult
         return SimResult(
-            narrative=result.get("narrative", f"政令「{player_action[:60]}」已下达。"),
-            aftermath=result.get("aftermath", f"政令「{player_action[:60]}」已下达。"),
-            npc_reactions=result.get("npc_actions", result.get("npc_reactions", ["各方势力继续行动，天下纷争不休。"])),
+            narrative=result.get(
+                "narrative", f"政令「{player_action[:60]}」已下达。"
+            ),
+            aftermath=result.get(
+                "aftermath", f"政令「{player_action[:60]}」已下达。"
+            ),
+            npc_reactions=result.get(
+                "npc_actions",
+                result.get(
+                    "npc_reactions", ["各方势力继续行动，天下纷争不休。"]
+                ),
+            ),
             engine_id=self.engine_id,
             used_llm=False,
             world_state=new_state,
