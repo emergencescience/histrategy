@@ -5,9 +5,8 @@ from __future__ import annotations
 import json
 import warnings
 from dataclasses import dataclass
-from pathlib import Path
 
-DATA_DIR = Path(__file__).parent.parent / "knowledge" / "data"
+from ..llm.context_helpers import KNOWLEDGE_DATA_DIR as DATA_DIR
 
 
 @dataclass

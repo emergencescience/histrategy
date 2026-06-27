@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 # ─── Load knowledge base ────────────────────────────────────────
 
-DATA_DIR = Path(__file__).parent.parent / "knowledge" / "data"
+from ..llm.context_helpers import KNOWLEDGE_DATA_DIR as DATA_DIR
 
 
 def _load_knowledge(filename: str) -> list[dict]:

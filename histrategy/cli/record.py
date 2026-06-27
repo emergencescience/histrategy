@@ -378,7 +378,6 @@ def render_turn_html(turn: dict, template: str) -> str:
     for s in suggestions[:4]:
         tag = ""
         text = s
-        s[:12]
         if "【" in s and "】" in s:
             parts = s.split("】", 1)
             tag = parts[0][1:]

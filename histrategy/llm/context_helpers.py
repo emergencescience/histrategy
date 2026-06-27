@@ -5,6 +5,7 @@ Centralizes logic that was duplicated across game_master.py and narrative.py.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -37,3 +38,7 @@ def collect_dead_characters(world_state: WorldState) -> list[str]:
             dead.append(char_name)
 
     return dead
+
+
+# Shared knowledge data directory (was duplicated in world.py and offline_sim.py)
+KNOWLEDGE_DATA_DIR = Path(__file__).parent.parent / "knowledge" / "data"

@@ -15,6 +15,50 @@ from .helpers import (
     apply_event_effects,
 )
 
+# ── Shared helpers (deduplicated from methods below) ──────────
+
+def _advance_season_and_year(ws) -> None:
+    """Advance season and year in a WorldState.
+
+    Was duplicated identically at L1053 and L1193.
+    """
+    from histrategy_engine.world import Season as _Season
+
+    _seasons = list(_Season)
+    try:
+        _idx = _seasons.index(ws.season)
+        ws.season = _seasons[(_idx + 1) % len(_seasons)]
+        if ws.season == _seasons[0]:  # wrapped around → new year
+            ws.year += 1
+    except (ValueError, IndexError):
+        pass
+
+
+def _check_player_game_over(ws, player) -> dict | None:
+    """Check for defeat (player dead) or victory (only player faction remains).
+
+    Was duplicated at L154-171 and L596-609.
+    """
+    # Defeat: player faction is gone
+    if not player or not player.is_active or getattr(player, "strength_actual", 0) <= 0:
+        return {
+            "type": "defeat",
+            "message": "# 势力覆灭\n\n你的势力已经不复存在。\n乱世之中，成王败寇。\n\n感谢游玩《三國志略》。",
+        }
+
+    # Victory: player is the only active faction
+    active_factions = [
+        fid for fid, f in ws.factions.items()
+        if f.is_active and getattr(f, "strength_actual", 0) > 0
+    ]
+    if len(active_factions) == 1 and active_factions[0] == ws.player_faction_id:
+        return {
+            "type": "victory",
+            "message": "# 天下一统\n\n经过多年的征战，你终于平定了天下。\n海内归一，万民归心。\n\n你就是这个时代最伟大的君主！\n\n感谢游玩《三國志略》。",  # noqa: E501
+        }
+
+    return None
+
 
 class TurnProcessorMixin:
     """Mixin providing turn processing methods for GameEngine."""
@@ -150,26 +194,7 @@ class TurnProcessorMixin:
 
         # Step 7: Build result dict
         player = ws.factions.get(ws.player_faction_id)
-        game_over = None
-        if not player or not player.is_active or player.strength_actual <= 0:
-            game_over = {
-                "type": "defeat",
-                "message": ("# 势力覆灭\n\n你的势力已经不复存在。\n乱世之中，成王败寇。\n\n感谢游玩《三國志略》。"),
-            }
-
-        # Check if all territory has been unified
-        active_factions = [fid for fid, f in ws.factions.items() if f.is_active and f.strength_actual > 0]
-        if len(active_factions) == 1 and active_factions[0] == ws.player_faction_id:
-            game_over = {
-                "type": "victory",
-                "message": (
-                    "# 天下一统\n\n"
-                    "经过多年的征战，你终于平定了天下。\n"
-                    "海内归一，万民归心。\n\n"
-                    "你就是这个时代最伟大的君主！\n\n"
-                    "感谢游玩《三國志略》。"
-                ),
-            }
+        game_over = _check_player_game_over(ws, player)
 
         # Extract state changes from resource_changes
         resource_changes = turn_result.resource_changes.get(ws.player_faction_id, {})
@@ -592,21 +617,7 @@ class TurnProcessorMixin:
 
         # ── Build result dict (v2-compatible + v3 extras) ──
 
-        game_over = None
-        if not player or not player.is_active or getattr(player, "strength_actual", 0) <= 0:
-            game_over = {
-                "type": "defeat",
-                "message": "# 势力覆灭\n\n你的势力已经不复存在。\n乱世之中，成王败寇。\n\n感谢游玩《三國志略》。",
-            }
-
-        active_factions = [
-            fid for fid, f in ws.factions.items() if f.is_active and getattr(f, "strength_actual", 0) > 0
-        ]
-        if len(active_factions) == 1 and active_factions[0] == ws.player_faction_id:
-            game_over = {
-                "type": "victory",
-                "message": "# 天下一统\n\n经过多年的征战，你终于平定了天下。",
-            }
+        game_over = _check_player_game_over(ws, player)
 
         self._save_v2()
 
@@ -1050,16 +1061,7 @@ class TurnProcessorMixin:
 
         # Advance turn and season
         ws.turn_number += 1
-        from histrategy_engine.world import Season as _Season
-
-        _seasons = list(_Season)
-        try:
-            _idx = _seasons.index(ws.season)
-            ws.season = _seasons[(_idx + 1) % len(_seasons)]
-            if ws.season == _seasons[0]:  # wrapped around → new year
-                ws.year += 1
-        except (ValueError, IndexError):
-            pass
+        _advance_season_and_year(ws)
 
         # ── Record turn summary for LLM context in future turns ──
         narrative_seeds = llm_delta.get("narrative_seeds", []) if llm_delta else []
@@ -1188,16 +1190,7 @@ class TurnProcessorMixin:
                 npc_actions.append(f"{name}: {dr.decision_text[:80]}")
 
         # ── Advance season/year ──
-        from histrategy_engine.world import Season as _Season
-
-        _seasons = list(_Season)
-        try:
-            _idx = _seasons.index(ws.season)
-            ws.season = _seasons[(_idx + 1) % len(_seasons)]
-            if ws.season == _seasons[0]:
-                ws.year += 1
-        except (ValueError, IndexError):
-            pass
+        _advance_season_and_year(ws)
         ws.turn_number += 1
 
         # ── Game over check ──
