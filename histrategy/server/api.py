@@ -1,8 +1,14 @@
 """
 三國志略 — REST API Server
 
-Thin FastAPI wrapper around the v2 GameEngine.
-Provides HTTP endpoints for the Web client and external integrations.
+Thin FastAPI wrapper around the SQL-backed room system.
+Provides HTTP endpoints for the Web client, orchestrator proxy, and external integrations.
+
+API groups:
+  /api/rooms/*        — Multiplayer rooms (PostgreSQL, symmetric)
+  /api/single-player/* — Single-player thin wrapper over rooms
+  /api/scenarios/*    — Scenario metadata + timeline
+  /api/health         — Health check (LLM, engine, DB)
 
 Usage:
     histrategy serve                 # Start server on :8080
@@ -12,251 +18,9 @@ Usage:
 
 from __future__ import annotations
 
-import contextlib
-import logging
-import uuid
 from typing import Any
 
-from pydantic import BaseModel
-
-# ─── Models ──────────────────────────────────────────────────────
-
-
-
-class CreateGameRequest(BaseModel):
-    faction: str = "shu"  # shu | cao | wu
-    scenario: str = "three-kingdoms"
-    new: bool = True
-    session_id: str | None = None  # Orchestrator session ID
-    llm_api_key: str | None = None  # User's own DeepSeek API Key (not persisted)
-    language_style: str | None = None  # "classical" | "vernacular" — narrative style preference
-
-
-class CommandRequest(BaseModel):
-    decision: str
-    session_id: str | None = None  # Orchestrator session ID for debug logging
-
-
-class GameSummary(BaseModel):
-    game_id: str
-    scenario: str
-    faction: str
-    faction_name: str
-    year: int
-    season: str
-    turn: int
-    strength: int
-    food: int
-    treasury: int
-    territories: int
-    is_active: bool
-    is_game_over: bool
-
-
-class PlanResponse(BaseModel):
-    game_id: str
-    court_dialogue: str
-    suggestions: list[str]
-    season_summary: str
-    year: int
-    season: str
-    turn: int
-    faction_status: dict[str, Any]
-
-
-class CommandResponse(BaseModel):
-    game_id: str
-    narrative: str
-    aftermath: str
-    state_changes: dict[str, int]
-    events_occurred: list[str]
-    npc_actions: list[str]
-    new_suggestions: list[str]
-    game_over: dict | None
-    faction_status: dict[str, Any]
-    year: int
-    season: str
-    turn: int
-
-
-class FactionStatus(BaseModel):
-    name: str
-    strength: int
-    food: int
-    treasury: int
-    territories: list[str]
-    morale: int
-    is_active: bool
-
-
-class RestoreGameRequest(BaseModel):
-    world_state: dict  # Full world_state dict from orchestrator save
-    session_id: str | None = None
-    llm_api_key: str | None = None
-
-
-# ─── Engine Pool ─────────────────────────────────────────────────
-
-# In-memory game pool: {game_id: GameEngine}
-_games: dict[str, Any] = {}
-# Game metadata: {game_id: {"session_id": str, "jwt_token": str}}
-_game_meta: dict[str, dict] = {}
-# Turn narrative history: {game_id: [{turn, year, season, narrative, npc_actions}]}
-_game_turns: dict[str, list[dict]] = {}
-_llm_provider: str | None = None  # Set by run_server / create_app
-
-
-def _get_or_create_engine(
-    faction: str = "shu", scenario: str = "three-kingdoms", new: bool = True, llm_api_key: str | None = None
-) -> tuple[str, Any]:
-    """Get existing game by ID or create a new one."""
-    if not new and _games:
-        return list(_games.keys())[-1], list(_games.values())[-1]
-
-    from histrategy.engine.game import GameEngine
-    from histrategy.llm.adapter import LLMAdapter
-
-    # Build LLM adapter if API key or server provider is available
-    llm = None
-    # Temporarily set the key so detect_provider() can find it
-    if llm_api_key:
-        import os as _os
-
-        _os.environ["DEEPSEEK_API_KEY"] = llm_api_key
-    with contextlib.suppress(Exception):
-        llm = LLMAdapter(provider=_llm_provider or None)
-
-    game_id = uuid.uuid4().hex  # full UUID v4
-    engine = GameEngine(scenario=scenario, new_game=True, llm=llm)
-    engine.set_player_faction(faction)
-
-    _games[game_id] = engine
-    return game_id, engine
-
-
-def _get_engine(game_id: str) -> Any | None:
-    """Get engine by game ID."""
-    return _games.get(game_id)
-
-
-def _format_character_events(events: list) -> list[str]:
-    """Convert v2 character event dicts to human-readable Chinese strings.
-
-    The v2 engine returns rich event dicts (e.g. loyalty_change, natural_death,
-    defection). The frontend expects a list of strings — React cannot render
-    raw objects as children (React error #31).
-    """
-    formatted: list[str] = []
-    for evt in events:
-        if not isinstance(evt, dict):
-            formatted.append(str(evt))
-            continue
-        etype = evt.get("type", "unknown")
-        name = evt.get("character_name", evt.get("character_id", "?"))
-        if etype == "loyalty_change":
-            delta = evt.get("delta", 0)
-            sign = "+" if delta > 0 else ""
-            new_val = evt.get("new_loyalty", "?")
-            reason = evt.get("reason", "")
-            formatted.append(f"{name} 忠诚度 {sign}{delta} (→{new_val}): {reason}")
-        elif etype == "natural_death":
-            year = evt.get("year", "?")
-            formatted.append(f"{name} 自然死亡（{year}年）")
-        elif etype == "loyalty_impact":
-            cname = evt.get("character_name", evt.get("character_id", "?"))
-            delta = evt.get("delta", 0)
-            reason = evt.get("reason", "")
-            formatted.append(f"{cname} 忠诚度受影响 {delta:+d}: {reason}")
-        elif etype == "defection":
-            from_faction = evt.get("from_faction", "?")
-            to_faction = evt.get("to_faction", "?")
-            reason = evt.get("reason", "")
-            formatted.append(f"{name} 从{from_faction}叛逃至{to_faction}: {reason}")
-        else:
-            # Fallback: JSON serialize unknown event types
-            formatted.append(str(evt))
-    return formatted
-
-
-def _build_faction_status(engine) -> dict:
-    """Extract player faction status from engine."""
-    # City-to-Chinese-name mapping (engine stores city IDs, not province IDs)
-    _CITY_NAMES: dict[str, str] = {
-        "xinye": "新野",
-        "xiangyang": "襄阳",
-        "jiangling": "江陵",
-        "jiangxia": "江夏",
-        "changsha": "长沙",
-        "chengdu": "成都",
-        "jiangzhou": "江州",
-        "yongchang": "永昌",
-        "jianye": "建业",
-        "lujiang": "庐江",
-        "wujun": "吴郡",
-        "kuaiji": "会稽",
-        "nanhai": "南海",
-        "luoyang": "洛阳",
-        "xuchang": "许昌",
-        "changan": "长安",
-        "yecheng": "邺城",
-        "beiping": "北平",
-        "hanshong": "汉中",
-        "jinyang": "晋阳",
-        "tianshui": "天水",
-        "wuwei": "武威",
-        "runan": "汝南",
-        "xiapi": "下邳",
-        "beihai": "北海",
-        "jixian": "蓟县",
-    }
-
-    if engine._use_v2:
-        ws = engine.world_state_v2
-        player = ws.factions.get(ws.player_faction_id)
-        if not player:
-            return {}
-        # Resolve territory names from engine
-        territory_names = []
-        for tid in player.territories:
-            t = ws.territories.get(tid)
-            if t:
-                territory_names.append(t.name)
-            else:
-                territory_names.append(_CITY_NAMES.get(tid, tid))
-
-        return {
-            "name": player.name,
-            "faction_id": ws.player_faction_id,
-            "strength": player.strength_actual,
-            "food": player.food,
-            "treasury": player.treasury,
-            "territories": player.territories,
-            "territory_names": territory_names,
-            "morale": player.morale_actual,
-            "is_active": player.is_active,
-            "year": ws.year,
-            "season": ws.season.cn,
-            "turn": ws.turn_number,
-        }
-    else:
-        player = engine.world_state.get_player_faction()
-        if not player:
-            return {}
-        return {
-            "name": player.name,
-            "strength": player.strength,
-            "food": player.food,
-            "treasury": player.treasury,
-            "territories": player.territories,
-            "morale": player.morale,
-            "is_active": player.is_active,
-            "year": getattr(engine.world_state, "year", 207),
-            "season": getattr(engine.world_state, "current_season_cn", "春"),
-            "turn": getattr(engine.world_state, "turn", 1),
-        }
-
-
-# ─── FastAPI App ─────────────────────────────────────────────────
+# ─── Shared Helpers ──────────────────────────────────────────────
 
 
 def _safe_json_loads(value: str | None, default: Any = None) -> Any:
@@ -269,6 +33,11 @@ def _safe_json_loads(value: str | None, default: Any = None) -> Any:
         return _json.loads(value)
     except (TypeError, ValueError):
         return default
+
+
+# ─── FastAPI App ─────────────────────────────────────────────────
+
+_llm_provider: str | None = None  # Set by run_server / create_app
 
 
 def create_app(llm_provider: str | None = None) -> Any:
@@ -292,14 +61,12 @@ def create_app(llm_provider: str | None = None) -> Any:
         elif _os.environ.get("LLM_API_KEY") or _os.environ.get("LLM_API_BASE"):
             _llm_provider = "custom"
 
-    from fastapi import FastAPI, Header
-
-    from histrategy.server.persistence_adapter import create_persistence_adapter
+    from fastapi import FastAPI
 
     app = FastAPI(
         title="三國志略 API",
-        description="Histrategy v2 — Three Kingdoms Strategy Game Engine API",
-        version="0.2.0",
+        description="Histrategy — Multiplayer Three Kingdoms Strategy Game Engine API",
+        version="0.3.0",
     )
 
     # ── Database initialization ─────────────────────────
@@ -312,7 +79,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         _logging.getLogger("histrategy").warning(f"DB init skipped: {_db_err}")
 
-    # ─── Routes ──────────────────────────────────────────
+    # ─── Static File Routes ─────────────────────────────
 
     @app.get("/")
     def root():
@@ -364,9 +131,21 @@ def create_app(llm_provider: str | None = None) -> Any:
         web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
         return FileResponse(_os.path.join(web_dir, "images", path))
 
+    @app.get("/mp")
+    def serve_multiplayer_page():
+        """Serve the multiplayer web client."""
+        import os as _os
+
+        from fastapi.responses import FileResponse
+
+        web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
+        return FileResponse(_os.path.join(web_dir, "mp.html"))
+
+    # ─── Health ─────────────────────────────────────────
+
     @app.get("/api/health")
     def health():
-        # Actually probe LLM availability
+        """Health check: LLM availability, engine mode, DB type."""
         llm_available = False
         llm_provider_name = _llm_provider or "none"
         llm_debug: dict[str, Any] = {}
@@ -390,7 +169,6 @@ def create_app(llm_provider: str | None = None) -> Any:
             except Exception as e:
                 llm_debug = {"error": f"{type(e).__name__}: {e}"}
 
-            # Also show raw env state (safely)
             raw_key = _os.environ.get("DEEPSEEK_API_KEY", "")
             llm_debug["env_key_exists"] = bool(raw_key)
             llm_debug["env_key_length"] = len(raw_key) if raw_key else 0
@@ -417,7 +195,6 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         return {
             "status": "ok",
-            "games_active": len(_games),
             "llm": {
                 "available": llm_available,
                 "provider": llm_provider_name,
@@ -436,535 +213,35 @@ def create_app(llm_provider: str | None = None) -> Any:
         }
 
     # ═══════════════════════════════════════════════════════════
-    # Single-Player API (/api/games)
-    #
-    # In-memory game pool for single-player vs AI NPC mode.
-    # Orchestrator calls these endpoints; games survive per pod restart.
-    # Contrast with /api/rooms (multiplayer, DB-persisted).
-    # ═══════════════════════════════════════════════════════════
-
-    @app.post("/api/games")
-    def create_game(req: CreateGameRequest, authorization: str | None = Header(default=None)):
-        """Create a new game and return the intro scene."""
-        game_id, engine = _get_or_create_engine(
-            faction=req.faction, scenario=req.scenario, new=req.new, llm_api_key=req.llm_api_key
-        )
-
-        # Store session metadata if provided
-        if req.session_id:
-            jwt_token = None
-            if authorization and authorization.startswith("Bearer "):
-                jwt_token = authorization[len("Bearer ") :]
-            _game_meta[game_id] = {"session_id": req.session_id, "jwt_token": jwt_token}
-            # Also store on engine directly (survives _game_meta loss on restart)
-            engine.set_debug_context(req.session_id, jwt_token or "")
-
-        # Store language style preference for use by engine
-        if req.language_style:
-            meta = _game_meta.setdefault(game_id, {})
-            meta["language_style"] = req.language_style
-
-        # Get intro scene
-        from histrategy.engine.game import _suppress_stderr
-
-        with _suppress_stderr():
-            intro = engine.get_intro_scene()
-
-        status = _build_faction_status(engine)
-
-        # Clear LLM key from env after engine creation
-        if req.llm_api_key:
-            import os as _os
-
-            _os.environ.pop("DEEPSEEK_API_KEY", None)
-
-        return {
-            "game_id": game_id,
-            "scenario": engine.scenario,
-            "faction": engine.world_state_v2.player_faction_id
-            if engine._use_v2
-            else engine.world_state.player_faction_id,
-            "intro": intro,
-            "faction_status": status,
-        }
-
-    class RestoreGameRequest(BaseModel):  # noqa: F811 — redefined for use inside create_app closure
-        world_state: dict
-        session_id: str | None = None
-        llm_api_key: str | None = None
-
-    @app.post("/api/games/restore")
-    def restore_game(req: RestoreGameRequest, authorization: str | None = Header(default=None)):
-        """Restore a game from a saved world_state dict.
-
-        Used when resuming a game from the orchestrator. The frontend passes
-        the world_state from GET /sessions/{id} and gets back a game_id for
-        subsequent commands.
-
-        On restore failure, returns a partial state with restore_error for
-        the frontend to handle gracefully (e.g. show error + offer new game).
-        """
-        import traceback as _tb
-
-        _logger = logging.getLogger(__name__)
-
-        import os as _os
-
-        from histrategy.engine.game import GameEngine
-        from histrategy.llm.adapter import LLMAdapter
-
-        if req.llm_api_key:
-            _os.environ["DEEPSEEK_API_KEY"] = req.llm_api_key
-
-        try:
-            llm = LLMAdapter(provider=_llm_provider or None)
-        except Exception:
-            llm = None
-
-        restore_error = None
-        try:
-            ws = dict(req.world_state)
-            engine = GameEngine.from_dict(ws, llm=llm)
-        except Exception as e:
-            _logger.error("Game restore failed: %s\n%s", e, _tb.format_exc())
-            # Try to extract at least faction info for a new game fallback
-            faction = req.world_state.get("player_faction_id", "shu")
-            saved_turn = req.world_state.get("turn_number", 1)
-            saved_year = req.world_state.get("year", 207)
-            restore_error = {
-                "message": f"Save restore failed: {str(e)[:200]}",
-                "faction": faction,
-                "saved_turn": saved_turn,
-                "saved_year": saved_year,
-            }
-            # Create a new game with the same faction so player can continue
-            game_id, engine = _get_or_create_engine(faction=faction, new=True, llm_api_key=req.llm_api_key)
-            if req.session_id:
-                jwt_token = None
-                if authorization and authorization.startswith("Bearer "):
-                    jwt_token = authorization[len("Bearer ") :]
-                _game_meta[game_id] = {"session_id": req.session_id, "jwt_token": jwt_token}
-                engine.set_debug_context(req.session_id, jwt_token or "")
-            status = _build_faction_status(engine)
-            return {
-                "game_id": game_id,
-                "faction": faction,
-                "faction_status": status,
-                "restored": False,
-                "restore_error": restore_error,
-            }
-
-        game_id = uuid.uuid4().hex  # full UUID v4
-        _games[game_id] = engine
-
-        if req.session_id:
-            jwt_token = None
-            if authorization and authorization.startswith("Bearer "):
-                jwt_token = authorization[len("Bearer ") :]
-            _game_meta[game_id] = {"session_id": req.session_id, "jwt_token": jwt_token}
-
-        status = _build_faction_status(engine)
-
-        if req.llm_api_key:
-            _os.environ.pop("DEEPSEEK_API_KEY", None)
-
-        intro = _build_resume_narrative(engine)
-
-        return {
-            "game_id": game_id,
-            "scenario": engine.scenario,
-            "faction": engine.world_state_v2.player_faction_id
-            if engine._use_v2
-            else engine.world_state.player_faction_id,
-            "intro": intro,
-            "faction_status": status,
-            "restored": True,
-            "restored_turn": status.get("turn", 1),
-            "restored_year": status.get("year", 207),
-        }
-
-    @app.get("/api/games/{game_id}")
-    def get_game(game_id: str):
-        """Get current game state including turn history."""
-        engine = _get_engine(game_id)
-        if not engine:
-            from fastapi.responses import JSONResponse
-
-            return JSONResponse(status_code=404, content={"error": "Game not found"})
-
-        status = _build_faction_status(engine)
-        turns = _game_turns.get(game_id, [])
-        return {
-            "game_id": game_id,
-            "faction_status": status,
-            "turns": turns,
-        }
-
-    @app.post("/api/games/{game_id}/plan")
-    def get_plan(game_id: str):
-        """Get Plan Mode: advisor court + strategic suggestions."""
-        engine = _get_engine(game_id)
-        if not engine:
-            from fastapi.responses import JSONResponse
-
-            return JSONResponse(status_code=404, content={"error": "Game not found"})
-
-        from histrategy.engine.game import _suppress_stderr
-
-        with _suppress_stderr():
-            plan = engine.get_plan_data()
-
-        status = _build_faction_status(engine)
-
-        # Extract token usage for credit billing
-        _usage = plan.get("_usage", {})
-
-        return {
-            "game_id": game_id,
-            "court_dialogue": plan.get("court_dialogue", ""),
-            "suggestions": plan.get("suggestions", []),
-            "season_summary": plan.get("season_summary", ""),
-            "year": status.get("year", 207),
-            "season": status.get("season", "春"),
-            "turn": status.get("turn", 1),
-            "faction_status": status,
-            "_usage": _usage,
-        }
-
-    @app.post("/api/games/{game_id}/command")
-    def execute_command(game_id: str, req: CommandRequest, authorization: str | None = Header(default=None)):
-        """Submit a decision and process the turn. Persists turn history to orchestrator."""
-        import os as _os
-
-        engine = _get_engine(game_id)
-        if not engine:
-            from fastapi.responses import JSONResponse
-
-            return JSONResponse(status_code=404, content={"error": "Game not found"})
-
-        from histrategy.engine.game import _suppress_stderr
-
-        # Set debug context for Postgres logging
-        # Prefer session_id from request (survives multi-worker), fallback to _game_meta
-        session_id = req.session_id or _game_meta.get(game_id, {}).get("session_id", game_id)
-        jwt_token = _game_meta.get(game_id, {}).get("jwt_token", "")
-        engine.set_debug_context(session_id, jwt_token)
-
-        with _suppress_stderr():
-            result = engine.process_turn(req.decision)
-
-        status = _build_faction_status(engine)
-
-        # ── Accumulate turn narrative history for resume/replay ──
-        if game_id not in _game_turns:
-            _game_turns[game_id] = []
-        _game_turns[game_id].append(
-            {
-                "turn": status.get("turn", 1),
-                "year": status.get("year", 207),
-                "season": status.get("season", "春"),
-                "narrative": result.get("narrative", ""),
-                "aftermath": result.get("aftermath", ""),
-                "npc_actions": result.get("npc_actions", result.get("npc_reactions", [])),
-                "events_occurred": _format_character_events(result.get("events_occurred", [])),
-                "player_decision": req.decision,
-            }
-        )
-        # Keep last 30 turns max
-        if len(_game_turns[game_id]) > 30:
-            _game_turns[game_id] = _game_turns[game_id][-30:]
-
-        # Extract new suggestions from result
-        new_suggestions = result.get("new_choices", [])
-
-        response_data = {
-            "game_id": game_id,
-            "narrative": result.get("narrative", ""),
-            "aftermath": result.get("aftermath", ""),
-            "state_changes": result.get("state_changes", {}),
-            "events_occurred": _format_character_events(result.get("events_occurred", [])),
-            "npc_actions": result.get("npc_actions", result.get("npc_reactions", [])),
-            "new_suggestions": new_suggestions,
-            "game_over": result.get("game_over"),
-            "faction_status": status,
-            "year": status.get("year", 207),
-            "season": status.get("season", "春"),
-            "turn": status.get("turn", 1),
-            "_usage": result.get("_usage", {}),
-        }
-
-        # ── Persist turn AND world_state via adapter ──
-        try:
-            meta = _game_meta.get(game_id, {})
-            session_id = meta.get("session_id", game_id)
-            jwt_token = meta.get("jwt_token")
-            if not jwt_token and authorization and authorization.startswith("Bearer "):
-                jwt_token = authorization[len("Bearer ") :]
-
-            if session_id:
-                adapter = create_persistence_adapter(jwt_token or "")
-                usage = result.get("_usage", {})
-                # Save state
-                try:
-                    world_dict = engine.to_dict()
-                    adapter.save_state(
-                        session_id,
-                        world_dict,
-                        status.get("turn", 1),
-                        status.get("year", 207),
-                        status.get("season", "春"),
-                    )
-                except Exception:
-                    pass
-                # Append turn history
-                with contextlib.suppress(Exception):
-                    adapter.append_turn(
-                        session_id,
-                        turn_number=status.get("turn", 1),
-                        year=status.get("year", 207),
-                        season=status.get("season", "春"),
-                        player_decision=req.decision,
-                        narrative=result.get("narrative", ""),
-                        aftermath=result.get("aftermath", ""),
-                        state_changes=result.get("state_changes"),
-                        tokens=usage,
-                    )
-        except Exception:
-            pass  # Non-blocking — don't fail the game on persistence error
-
-        # ── Debug log: token usage to stdout (Railway captures) + Postgres ──
-        _usage = result.get("_usage", {})
-        _sim_tokens = _usage.get("sim_tokens") or _usage.get("command_tokens", 0)
-        if _sim_tokens > 0:
-            log_entry = {
-                "session_id": session_id,
-                "turn_number": status.get("turn", 1),
-                "year": status.get("year", 207),
-                "season": status.get("season", "春"),
-                "tokens": _sim_tokens,
-                "model": _os.environ.get("LLM_MODEL", "deepseek-v4-flash"),
-            }
-            # Log to stdout (visible in railway logs)
-            import json as _json
-
-            print(f"[HISTRATEGY_LOG] {_json.dumps(log_entry, ensure_ascii=False)}", flush=True)
-
-        return response_data
-
-    @app.get("/api/games")
-    def list_games():
-        """List all active games."""
-        games = []
-        for gid, engine in _games.items():
-            status = _build_faction_status(engine)
-            games.append(
-                {
-                    "game_id": gid,
-                    "faction_name": status.get("name", "?"),
-                    "year": status.get("year", 0),
-                    "season": status.get("season", "?"),
-                    "turn": status.get("turn", 0),
-                    "is_active": status.get("is_active", True),
-                }
-            )
-        return {"games": games, "count": len(games)}
-
-    # /api/credit/status removed (H27a) — balance displayed on emergence.science/profile.
-    # Frontend had no consumer for this endpoint; hardcoded pricing drifted from reality.
-
-    @app.post("/api/games/{game_id}/summary")
-    def get_game_summary(game_id: str):
-        """Generate/fetch endgame summary (chronicle) for a game."""
-        import json
-        import os
-        from pathlib import Path
-
-        from histrategy.llm.adapter import LLMAdapter
-        from histrategy.llm.endgame_summary import generate_chronicle
-
-        # Check if the game is active in memory
-        engine = _get_engine(game_id)
-
-        player_events = []
-
-        # 1. Try to load from session directory
-        data_dir = Path(os.environ.get("HISTRATEGY_DATA_DIR", os.path.expanduser("~/.histrategy")))
-        session_dir = data_dir / "sessions" / game_id
-
-        world_paths = [
-            session_dir / "world_v2.json",
-            session_dir / "world.json",
-            session_dir / "event_history.json",
-            data_dir / "world_v2.json",
-        ]
-
-        loaded_data = None
-        for path in world_paths:
-            if path.exists():
-                try:
-                    with open(path, encoding="utf-8") as f:
-                        loaded_data = json.load(f)
-                    break
-                except Exception:
-                    pass
-
-        # If we loaded data, try to extract event history or completed events
-        if loaded_data:
-            if isinstance(loaded_data, dict):
-                # Try getting event_history or completed_events
-                if "event_history" in loaded_data:
-                    player_events = loaded_data["event_history"]
-                elif "completed_events" in loaded_data:
-                    # Try to map completed_events if we can, or just use them as titles
-                    completed = loaded_data["completed_events"]
-                    if engine and getattr(engine, "history_engine", None):
-                        for evt_id in completed:
-                            evt = next((e for e in engine.history_engine.all_events if e["id"] == evt_id), None)
-                            if evt:
-                                player_events.append(
-                                    {"title": evt.get("title", evt_id), "description": evt.get("description", "")}
-                                )
-                            else:
-                                player_events.append({"title": evt_id, "description": ""})
-                    else:
-                        player_events = [{"title": evt_id, "description": ""} for evt_id in completed]
-            elif isinstance(loaded_data, list):
-                player_events = loaded_data
-
-        # 2. If player_events is still empty, try to get from active engine
-        if not player_events and engine and getattr(engine, "_use_v2", False) and engine.world_state_v2:
-            ws = engine.world_state_v2
-            completed = ws.completed_events
-            if getattr(engine, "history_engine", None):
-                for evt_id in completed:
-                    evt = next((e for e in engine.history_engine.all_events if e["id"] == evt_id), None)
-                    if evt:
-                        player_events.append(
-                            {"title": evt.get("title", evt_id), "description": evt.get("description", "")}
-                        )
-                    else:
-                        player_events.append({"title": evt_id, "description": ""})
-            else:
-                player_events = [{"title": evt_id, "description": ""} for evt_id in completed]
-
-        # 3. Fallback: try loading from global or local current_session_log.json
-        if not player_events:
-            log_path = data_dir / "current_session_log.json"
-            if log_path.exists():
-                try:
-                    with open(log_path, encoding="utf-8") as f:
-                        log_entries = json.load(f)
-                    for entry in log_entries:
-                        player_events.append(
-                            {
-                                "title": f"第{entry.get('turn')}回合 政令: 「{entry.get('player_decision')}」",
-                                "description": entry.get("aftermath", entry.get("narrative", "")),
-                            }
-                        )
-                except Exception:
-                    pass
-
-        # Build LLM adapter if available
-        llm = None
-        if _llm_provider:
-            with contextlib.suppress(Exception):
-                llm = LLMAdapter(provider=_llm_provider)
-
-        summary_text = generate_chronicle(player_events, llm_adapter=llm)
-        return {
-            "game_id": game_id,
-            "summary": summary_text,
-            "events_count": len(player_events),
-        }
-
-    @app.post("/api/games/{game_id}/export_video")
-    def export_video(game_id: str):
-        """Export replay video for a game."""
-        from fastapi import HTTPException
-
-        from histrategy.cli.record import generate_video
-
-        try:
-            video_path = generate_video(game_id)
-            return {"game_id": game_id, "video_path": video_path, "status": "success"}
-        except FileNotFoundError as e:
-            raise HTTPException(status_code=404, detail=str(e)) from e
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to generate video: {str(e)}") from e
-
-    @app.post("/api/games/{game_id}/autosave")
-    def autosave_game(game_id: str, authorization: str | None = Header(default=None)):
-        """Auto-save: persist game state to Orchestrator slot 0.
-
-        Requires Authorization Bearer JWT.
-        Degrades gracefully if no JWT.
-        """
-        engine = _get_engine(game_id)
-        if not engine:
-            from fastapi.responses import JSONResponse
-
-            return JSONResponse(status_code=404, content={"error": "Game not found"})
-
-        # Check for JWT
-        jwt_token = None
-        if authorization and authorization.startswith("Bearer "):
-            jwt_token = authorization[len("Bearer ") :]
-
-        if not jwt_token:
-            return {"ok": False, "reason": "No JWT token provided"}
-
-        status = _build_faction_status(engine)
-        meta = _game_meta.get(game_id, {})
-
-        # Build world state dict from engine
-        world_state = engine.to_dict() if engine._use_v2 and engine.world_state_v2 else {"faction": status}
-
-        try:
-            adapter = create_persistence_adapter(jwt_token or "")
-            session_id = meta.get("session_id", game_id)
-            adapter.save_state(
-                session_id,
-                world_state,
-                status.get("turn", 1),
-                status.get("year", 207),
-                status.get("season", "春"),
-            )
-            return {"ok": True, "session_id": session_id}
-        except Exception as e:
-            return {"ok": False, "reason": f"Save failed: {e}"}
-
-    # ═══════════════════════════════════════════════════════════
     # Multiplayer Room API (/api/rooms)
     #
     # PostgreSQL-persisted room-based multiplayer (symmetric, DB-backed).
-    # Survives pod restarts. Contrast with /api/games (single-player, in-memory).
-    # Auth handled by orchestrator proxy (X-User-Id header).
+    # Survives pod restarts. Auth handled by orchestrator proxy (X-User-Id header).
     # ═══════════════════════════════════════════════════════════
 
-    from fastapi import Body
+    from fastapi import Body, Header
 
     @app.post("/api/rooms")
     def api_create_room(
         body: dict = Body(...),
         x_user_id: str = Header(default="", alias="X-User-Id"),
     ):
-        """创建房间。
+        """Create a multiplayer room.
 
         pre_assigned = {"cao": "张三", "shu": "李四"}
-        → Host 预分配势力，每个玩家获得专属链接。
-        → 未分配的势力自动变 AI NPC。
+        → Host pre-assigns factions; each player gets a join link.
+        → Unassigned factions become AI NPCs.
 
-        Orchestrator proxy 注入 X-User-Id 头部（真实 user UUID）。
+        Orchestrator proxy injects X-User-Id header (real user UUID).
         """
         from histrategy.server.room_manager import create_room
 
         # Prefer X-User-Id (injected by orchestrator proxy) over body user_id
-
         pre_assigned = body.get("pre_assigned")
         if not pre_assigned:
             return {
                 "ok": False,
-                "error": "pre_assigned is required — e.g. {\"cao\": \"张三\", \"shu\": \"李四\"}",
+                "error": 'pre_assigned is required — e.g. {"cao": "张三", "shu": "李四"}',
             }
 
         result = create_room(
@@ -977,16 +254,15 @@ def create_app(llm_provider: str | None = None) -> Any:
     @app.post("/api/rooms/{room_id}/enter")
     @app.post("/api/rooms/{room_id}/pick")
     @app.post("/api/rooms/{room_id}/start")
-    @app.post("/api/rooms/{room_id}/start")
     def api_start_room(room_id: str):
-        """开始游戏。histrategy 不追踪 user_id，auth 由 orchestrator 处理。"""
+        """Start game. Auth handled by orchestrator."""
         from histrategy.server.room_manager import start_game
 
         return start_game(room_id)
 
     @app.post("/api/rooms/{room_id}/decide")
     def api_submit_decision(room_id: str, body: dict = Body(...)):
-        """提交本季度决策。"""
+        """Submit this quarter's decision."""
         from histrategy.server.room_manager import submit_decision
 
         return submit_decision(
@@ -997,7 +273,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
     @app.get("/api/rooms/{room_id}/status")
     def api_room_status(room_id: str, faction_id: str = ""):
-        """获取房间状态。"""
+        """Get room status."""
         from histrategy.server.room_manager import get_room_status
 
         fid = faction_id if faction_id else None
@@ -1077,7 +353,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
     @app.get("/api/rooms/{room_id}/state")
     def api_room_state(room_id: str):
-        """返回 game_state 和 policy_state，用于游戏恢复。"""
+        """Return game_state and policy_state for game restoration."""
         from fastapi.responses import JSONResponse
 
         from histrategy.db.models import get_active_policies, get_latest_game_states
@@ -1145,25 +421,23 @@ def create_app(llm_provider: str | None = None) -> Any:
         )
         return {"ok": True, "room_id": room_id, "is_public": is_public}
 
-    # (GET /api/rooms removed in H20 — orchestrator has game_participation table)
-
     # ═══════════════════════════════════════════════════════════
-    # Single-Player (Direct) API (/api/single-player)
+    # Single-Player API (/api/single-player)
     #
-    # Lightweight single-player mode without orchestrator middleware.
-    # Uses the same engine stack as /api/games but with direct HTTP.
+    # Thin wrapper over the multiplayer room system.
+    # Creates 1-human + N-AI rooms behind the scenes.
     # ═══════════════════════════════════════════════════════════
 
     @app.get("/api/single-player/{game_id}/status")
     def api_sp_status(game_id: str):
-        """单人模式 — 获取游戏状态。"""
+        """Single-player — get game status."""
         from histrategy.server.single_player import status
 
         return status(game_id)
 
     @app.post("/api/single-player/{game_id}/command")
     def api_sp_command(game_id: str, body: dict = Body(...)):
-        """单人模式 — 执行命令（阻塞等待 LLM 推演完成）。"""
+        """Single-player — submit command (blocks until LLM resolution completes)."""
         from histrategy.server.single_player import command
 
         return command(game_id, body.get("decision") or body.get("command", ""), lang=body.get("lang", "zh"))
@@ -1173,7 +447,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         body: dict = Body(...),
         x_user_id: str = Header(default="", alias="X-User-Id"),
     ):
-        """单人模式 — 开始新游戏。"""
+        """Single-player — start new game."""
         from histrategy.server.single_player import start
 
         return start(
@@ -1183,9 +457,13 @@ def create_app(llm_provider: str | None = None) -> Any:
             lang=body.get("lang", "zh"),
         )
 
+    # ═══════════════════════════════════════════════════════════
+    # Scenario Metadata API (/api/scenarios)
+    # ═══════════════════════════════════════════════════════════
+
     @app.get("/api/scenarios")
     def api_list_scenarios():
-        """列出所有可用场景，含势力列表（标记 playable/npc_only）。"""
+        """List all available scenarios with faction metadata."""
         from histrategy.engine.faction_slot import (
             FACTION_DISPLAY_TO_ID,
             FACTION_ID_TO_DISPLAY,
@@ -1292,15 +570,6 @@ def create_app(llm_provider: str | None = None) -> Any:
             "has_timeline": len(events) > 0,
         }
 
-    @app.get("/mp")
-    def serve_multiplayer_page():
-        import os as _os
-
-        from fastapi.responses import FileResponse
-
-        web_dir = _os.path.join(_os.path.dirname(__file__), "..", "web")
-        return FileResponse(_os.path.join(web_dir, "mp.html"))
-
     return app
 
 
@@ -1332,62 +601,3 @@ def run_server(host: str = "127.0.0.1", port: int = 8080, api_key: str | None = 
         print("   💡 设置: export DEEPSEEK_API_KEY='sk-...' 或 histrategy --serve --api-key sk-...")
 
     uvicorn.run(app, host=host, port=port, log_level="info")
-
-
-def _build_resume_narrative(engine) -> dict:
-    """Generate a context-aware resume summary for restored games.
-
-    Returns an intro dict matching the GameCreatedResponse.intro shape
-    with narrative text summarizing the current game state.
-    """
-    status = _build_faction_status(engine)
-    if not status:
-        return {"narrative": "游戏已恢复", "new_choices": [], "npc_actions": []}
-
-    name = status.get("name", "未知势力")
-    year = status.get("year", 207)
-    season = status.get("season", "春")
-    turn = status.get("turn", 1)
-    strength = status.get("strength", 0)
-    food = status.get("food", 0)
-    treasury = status.get("treasury", 0)
-    morale = status.get("morale", 0)
-    territory_names = status.get("territory_names", [])
-    territories_str = "、".join(territory_names) if territory_names else "无领地"
-
-    # Build narrative
-    narrative = (
-        f"## 📜 存档恢复 · 公元{year}年{season} · 第{turn}回合\n\n"
-        f"**{name}** 势力，当前坐拥 **{territories_str}**。\n\n"
-        f"| 兵力 | 粮草 | 库金 | 民心 |\n"
-        f"|------|------|------|------|\n"
-        f"| {strength} | {food} | {treasury} | {morale} |\n\n"
-        f"谋臣武将已在帐中候命。请颁布君令，继续你的霸业。"
-    )
-
-    # Generate suggestions based on current state
-    suggestions = []
-    if hasattr(engine, "_use_v2") and engine._use_v2 and engine.world_state_v2:
-        ws = engine.world_state_v2
-        player = ws.factions.get(ws.player_faction_id)
-        if player:
-            if player.food < 5000:
-                suggestions.append("粮草不足，建议发展农业或征粮")
-            if player.treasury < 3000:
-                suggestions.append("库金紧张，可考虑征税或贸易")
-            if player.strength_actual < 10000:
-                suggestions.append("兵力薄弱，宜招募乡勇壮大军队")
-
-    # Check for NPC actions since last save
-    npc_actions = []
-    if hasattr(engine, "_use_v2") and engine._use_v2 and engine.world_state_v2:
-        ws = engine.world_state_v2
-        for fid, f in ws.factions.items():
-            if fid != ws.player_faction_id and f.is_active:
-                npc_actions.append(f"{f.name}势力仍在活跃")
-
-    return {
-        "narrative": narrative,
-        "new_choices": suggestions,
-        "npc_actions": npc_actions,
-    }

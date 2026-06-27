@@ -13,10 +13,6 @@ import json
 import os
 import time
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    pass
 
 # ═══════════════════════════════════════════════════════════════
 # Abstract Interface
