@@ -168,22 +168,11 @@ def create_room(
         if fid not in room.slots:
             room.slots[fid] = create_ai_slot(fid)
 
-    # Also add npc_only minor factions as AI (heuristic) — they have 0 territories
-    # but real troops/treasury and political relationships
-    try:
-        npc_only_factions = []
-        for fid, fdata in all_factions.items():
-            if fdata.get("npc_only", False) and fid not in room.slots:
-                npc_only_factions.append(fid)
-                room.slots[fid] = create_ai_slot(fid)
-        if npc_only_factions:
-            logger.info(
-                f"Room {room.id}: added {len(npc_only_factions)} npc_only minor factions as AI: {npc_only_factions}"
-            )
-    except NameError:
-        pass  # fallback scenario — no npc_only to add
+    # npc_only factions (dead warlords, minor powers) are NOT added as AI slots.
+    # They exist only as passive territory holders in initial_state.json for
+    # historical accuracy — no LLM tokens, no narratives, no decisions.
 
-    # 标记这些为场景的主要 NPC（用于 LLM 决策生成）
+    # Mark these as major NPCs for LLM decision generation
     room.major_npc_ids = set(npc_factions)
 
     # host 进入房间
@@ -382,8 +371,12 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
 
     if faction_id and hasattr(room, "_last_narratives"):
         narratives = getattr(room, "_last_narratives", {})
-        status["narrative"] = narratives.get(faction_id, "")
-        status["npc_actions"] = getattr(room, "_last_npc_actions", [])
+        # Unified narrative (public, same for all factions)
+        status["narrative"] = narratives.get("global", "")
+        # NPC decisions are private per faction
+        npc_actions = getattr(room, "_last_npc_actions", [])
+        if npc_actions:
+            status["npc_actions"] = npc_actions
 
     # ── Return turn history for new-tab replay ──
     history = getattr(room, "_narrative_history", [])
@@ -401,8 +394,8 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
                         "quarter": row["quarter_number"],
                         "year": row.get("year", 207),
                         "season": row.get("season", "春"),
-                        "narratives": narratives,
-                        "npc_actions": [],  # NPC actions not in quarter_turn table
+                        "narrative": narratives.get("global", ""),  # unified
+                        "npc_decisions": {},  # not in quarter_turn table
                     }
                 )
             # Cache for subsequent calls
@@ -800,13 +793,18 @@ def _resolve_and_advance(room: GameRoom):
     # ── Accumulate narrative history for turn replay ──
     if not hasattr(room, "_narrative_history"):
         room._narrative_history = []
+    # Store unified narrative (global key) + per-faction NPC decisions
     room._narrative_history.append(
         {
             "quarter": room.quarter_number + 1,  # upcoming quarter number
             "year": room.year,
             "season": room.season,
-            "narratives": dict(result.narratives),
-            "npc_actions": list(npc_actions),
+            "narrative": result.narratives.get("global", ""),  # unified, public
+            "npc_decisions": {
+                fid: dr.decision_text[:120]
+                for fid, dr in decisions.items()
+                if room.slots.get(fid) and room.slots[fid].is_ai()
+            },  # private per faction
         }
     )
     # Keep last 20 turns in memory
@@ -1047,46 +1045,57 @@ class _V1Result:
 
 
 def _build_v1_result(room, ws, decisions, v1_result, fd, lang):
-    """Build narratives + battle summary + V1Result from LLM output."""
+    """Build unified narrative + battle summary + V1Result from LLM output.
+
+    Uses a single global narrative for all factions (no per-faction duplication).
+    """
     faction_narratives = v1_result.get("narratives", v1_result.get("faction_narratives", {}))
     global_narrative = v1_result.get("narrative", "")
-    factions_data = v1_result.get("factions", {})
 
+    # Prefer explicit global narrative; fall back to first faction narrative or summary
     narratives = {}
-    for fid in decisions:
-        fn = faction_narratives.get(fid, "")
-        if fn and fn.strip():
-            narratives[fid] = fn
+    if global_narrative and global_narrative.strip():
+        narratives["global"] = global_narrative
+    else:
+        # Build a unified summary from faction narratives
+        parts = []
+        for fid in decisions:
+            fn = faction_narratives.get(fid, "")
+            if fn and fn.strip():
+                faction = ws.factions.get(fid)
+                fname = faction.name if faction else fid
+                parts.append(f"【{fname}】{fn[:200]}")
+        if parts:
+            narratives["global"] = "\n\n".join(parts)
         else:
-            faction = ws.factions.get(fid)
-            if faction:
-                troops = getattr(faction, "strength_actual", 0)
-                food = faction.food
-                territory_names = [ws.territories[tid].name for tid in faction.territories if tid in ws.territories]
-                territory_str = "、".join(territory_names[:3]) if territory_names else "无领地"
-                fname = faction.name
-            else:
-                fdata = factions_data.get(fid, {})
-                fname = fdata.get("name", fid)
-                troops = fdata.get("troops", 0)
-                food = fdata.get("food", 0)
-                territory_names = [t["name"] if isinstance(t, dict) else str(t) for t in fdata.get("territories", [])]
-                territory_str = "、".join(territory_names[:3]) if territory_names else "无领地"
-
+            # Absolute fallback: basic state summary
+            season_str = getattr(ws, "current_season", "?")
+            yr = getattr(ws, "year", 207)
+            summary_parts = []
+            for fid in decisions:
+                faction = ws.factions.get(fid)
+                if faction:
+                    troops = getattr(faction, "strength_actual", 0)
+                    food = faction.food
+                    territory_names = [ws.territories[tid].name for tid in faction.territories if tid in ws.territories]
+                    territory_str = "、".join(territory_names[:3]) if territory_names else "无领地"
+                    fname = faction.name
+                    if lang != "en":
+                        summary_parts.append(f"{fname}拥兵{troops:,}，积粟{food:,}斛，据{territory_str}")
+                    else:
+                        summary_parts.append(
+                            f"{fname} commands {troops:,} troops, "
+                            f"stores {food:,} grain, holds {territory_str}"
+                        )
             if lang != "en":
-                narratives[fid] = (
-                    f"{global_narrative}\n\n【{fname}方纪】是季，{fname}拥兵{troops:,}，积粟{food:,}斛，据{territory_str}。"
-                    if global_narrative
-                    else f"【{fname}】是季，{fname}拥兵{troops:,}，积粟{food:,}斛，据{territory_str}。"
-                )
+                narratives["global"] = f"【{yr}年{season_str}】天下大势，" + "；".join(summary_parts) + "。"
             else:
-                narratives[fid] = (
-                    f"{global_narrative}\n\n[{fname}] This quarter, {fname} commands {troops:,} troops, "
-                    f"stores {food:,} grain, holds {territory_str}."
-                    if global_narrative
-                    else f"[{fname}] This quarter, {fname} commands {troops:,} troops, "
-                    f"stores {food:,} grain, holds {territory_str}."
-                )
+                narratives["global"] = f"[{yr} {season_str}] " + "; ".join(summary_parts) + "."
+
+    # Backward-compat: copy global to each faction
+    global_text = narratives.get("global", "")
+    for fid in decisions:
+        narratives[fid] = global_text
 
     # Build battle summary for NPC reference
     battle_events = []
@@ -1384,13 +1393,11 @@ def _collect_quarter_tokens(room_id: str, quarter_number: int) -> dict | None:
 
 
 def _get_faction_names(room, lang: str = "zh") -> dict[str, str]:
-    """Build {internal_id: display_name} from scenario faction data.
+    """Build {internal_id: display_name} for active room slots only.
 
-    Returns a dict mapping every faction_id known to the room's scenario
-    to its display name (Chinese name or name_en fallback).
+    Only returns names for factions that are actually in the room's slots
+    (human + active AI). Dead npc_only factions are excluded.
     When lang="en", returns English names (name_en) with Chinese fallback.
-    Used by get_room_status and api_room_turns to provide dynamic
-    faction name mappings without hardcoding Three Kingdoms factions.
     """
     names: dict[str, str] = {}
     # Try scenario faction data first
@@ -1398,8 +1405,9 @@ def _get_faction_names(room, lang: str = "zh") -> dict[str, str]:
         from histrategy.engine.scenario_loader import ScenarioLoader
 
         loader = ScenarioLoader(room.scenario)
-        factions = loader.load_factions()
-        for fid, f in factions.items():
+        all_factions = loader.load_factions()
+        for fid in getattr(room, "slots", {}):
+            f = all_factions.get(fid, {})
             if lang == "en":
                 names[fid] = f.get("name_en", f.get("name", fid))
             else:
@@ -1410,9 +1418,10 @@ def _get_faction_names(room, lang: str = "zh") -> dict[str, str]:
     ws = getattr(room, "world_state", None)
     if ws:
         for fid in getattr(room, "slots", {}):
-            faction = ws.factions.get(fid) if hasattr(ws, "factions") else None
-            if faction and fid not in names:
-                names[fid] = getattr(faction, "name", fid)
+            if fid not in names:
+                faction = ws.factions.get(fid) if hasattr(ws, "factions") else None
+                if faction:
+                    names[fid] = getattr(faction, "name", fid)
     # Ensure all room slots have names
     for fid in getattr(room, "slots", {}):
         if fid not in names:

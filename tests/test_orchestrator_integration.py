@@ -184,21 +184,21 @@ class TestCaesarYearAndSeason:
 
 
 class TestNpcOnlyFactionsExcluded:
-    """Verify npc_only factions are not created as AI slots."""
+    """Verify npc_only factions are NOT created as AI slots."""
 
-    def test_caesar_slots_includes_npc_only_minors(self, room_id):
+    def test_caesar_slots_excludes_npc_only_minors(self, room_id):
         from histrategy.server.room_manager import _get_room
 
         room = _get_room(room_id)
         assert room is not None
-        # Major playable factions + npc_only minor factions are all added as AI slots
-        assert len(room.slots) >= 4, f"Expected at least 4 slots, got {len(room.slots)}"
+        # Only major playable factions should be in slots
         faction_ids = set(room.slots.keys())
         major_factions = {"octavian", "antony", "cleopatra", "senate"}
         assert major_factions <= faction_ids, f"Missing major factions: {major_factions - faction_ids}"
-        # npc_only minor factions with real troops should be present as AI heuristic slots
-        expected_minors = {"sextus_pompey", "lepidus", "decimus_brutus", "cassius_brutus"}
-        assert expected_minors <= faction_ids, f"Missing npc_only minors: {expected_minors - faction_ids}"
+        # npc_only minor factions should NOT be present
+        excluded_minors = {"sextus_pompey", "lepidus", "decimus_brutus", "cassius_brutus"}
+        overlap = excluded_minors & faction_ids
+        assert not overlap, f"npc_only minors should be excluded but found: {overlap}"
 
 
 class TestFactionNamesAllScenarios:
