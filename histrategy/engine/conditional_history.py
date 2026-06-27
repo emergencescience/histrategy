@@ -106,7 +106,16 @@ class ConditionalHistoryEngine:
                 if f1_obj is None:
                     return False
                 relations = getattr(f1_obj, "relations", {})
-                return relations.get(f2, 0) < -30
+                return relations.get(f2, 0) < -60  # below -60 = active war
+            elif key == "faction_dead":
+                # Faction is dead/eliminated from the game
+                f = ws.factions.get(value)
+                return f is None or not getattr(f, "is_active", True)
+            elif key == "territory_captured":
+                # In cancel context: territory was captured from its original faction.
+                # Currently treated as a no-op — most events rely on faction_dead instead.
+                # TODO: compare owner against event's territory_owned precondition faction.
+                return False  # No-op until per-event faction inference is implemented
         return True
 
     # ── Main interface ─────────────────────────────────────
@@ -123,7 +132,7 @@ class ConditionalHistoryEngine:
         header = _HEADERS["en" if is_en else "zh"]
         footer = _FOOTERS["en" if is_en else "zh"]
         current_year = ws.year
-        current_season = getattr(ws, "current_season", "spring")
+        current_season = getattr(ws, "season", "spring")
         if hasattr(current_season, "value"):
             current_season = current_season.value
 

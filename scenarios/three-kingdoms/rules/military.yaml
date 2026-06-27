@@ -22,7 +22,9 @@ recruitment:
 
 supply:
   # Per 1000 troops per quarter, in abstract food units
-  base_per_1000: 200
+  # At this rate, 10,000 troops consume 1,000 food/quarter.
+  # A developed territory produces ~800-1,200/quarter in summer.
+  base_per_1000: 100
   terrain_modifier:
     plains: 1.0
     hills: 1.3

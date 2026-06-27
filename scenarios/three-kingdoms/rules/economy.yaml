@@ -11,10 +11,10 @@ food:
   pop_contribution_rate: 0.02  # food = pop × 0.02
   # Season multipliers (applied on top)
   season_mult:
-    spring: 0.3    # planting season, low output
+    spring: 0.4    # planting season, modest output
     summer: 1.0    # growing season
-    autumn: 1.2    # harvest season
-    winter: 0.05   # dead season
+    autumn: 1.3    # harvest season
+    winter: 0.3    # stored grain — not zero, but much reduced
   # Development multiplier: each development point = 1% more food
   dev_multiplier: 0.01
   # Fertility contribution
