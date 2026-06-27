@@ -1428,3 +1428,174 @@ def _write_backup(room, ws_dict):
         cleanup_old_backups(room.id, keep=20)
     except Exception:
         pass
+
+
+# ── Single-Player API Helpers ────────────────────────────────────
+# Shared between single_player.py and api.py.
+# These operate on GameRoom + WorldState, producing the response shape
+# expected by the frontend (GameCreatedResponse / CommandResponse format).
+
+
+def build_faction_status_for_api(room, faction_id: str) -> dict:
+    """Build faction_status dict from GameRoom for API responses."""
+    ws = room.world_state
+    faction = ws.factions.get(faction_id) if ws else None
+
+    if not faction:
+        return {
+            "name": faction_id,
+            "faction_id": faction_id,
+            "strength": 0,
+            "food": 0,
+            "treasury": 0,
+            "territories": [],
+            "morale": 50,
+            "is_active": False,
+            "year": room.year,
+            "season": room.season,
+            "turn": room.quarter_number,
+        }
+
+    territories = []
+    pop_sum = 0
+    for tid in getattr(faction, "territories", []) or []:
+        tid_str = getattr(tid, "id", None) or str(tid)
+        territories.append(tid_str)
+        if ws and hasattr(ws, "territories"):
+            t_obj = ws.territories.get(tid_str)
+            if t_obj:
+                pop_sum += getattr(t_obj, "population", 0) or 0
+
+    return {
+        "name": getattr(faction, "name", faction_id),
+        "faction_id": faction_id,
+        "strength": getattr(faction, "strength", 0) or getattr(faction, "strength_actual", 0) or 0,
+        "food": int(getattr(faction, "food", 0) or 0),
+        "treasury": int(getattr(faction, "treasury", 0) or 0),
+        "territories": territories,
+        "morale": getattr(faction, "morale", 50) or getattr(faction, "morale_actual", 50) or 50,
+        "is_active": getattr(faction, "is_active", True),
+        "population": pop_sum,
+        "year": room.year,
+        "season": room.season,
+        "turn": room.quarter_number,
+    }
+
+
+def build_aftermath_text(faction_status: dict, lang: str = "zh") -> str:
+    """Build aftermath summary string from faction status."""
+    if lang == "en":
+        return (
+            f"Troops {faction_status.get('strength', 0):,}. "
+            f"Food {faction_status.get('food', 0):,}. "
+            f"Treasury {faction_status.get('treasury', 0):,}. "
+            f"Morale {faction_status.get('morale', 50)}. "
+            f"Population {faction_status.get('population', 0):,}."
+        )
+    return (
+        f"兵力{faction_status.get('strength', 0):,}。"
+        f"粮草{faction_status.get('food', 0):,}。"
+        f"资金{faction_status.get('treasury', 0):,}。"
+        f"民心{faction_status.get('morale', 50)}。"
+        f"人口{faction_status.get('population', 0):,}。"
+    )
+
+
+def extract_turn_events(room) -> list[str]:
+    """Extract historical events from the room's turn summaries."""
+    events = []
+    turn_summaries = getattr(room, "turn_summaries", [])
+    if turn_summaries:
+        last = turn_summaries[-1]
+        if isinstance(last, dict):
+            outcome = last.get("outcome_summary", "")
+            if outcome and "→" in outcome:
+                events_part = outcome.split("→")[-1].strip()
+                if events_part and events_part != "天下无事":
+                    events = [e.strip() for e in events_part.split(";") if e.strip()]
+    return events
+
+
+def build_strategic_suggestions(room, faction_id: str, lang: str = "zh") -> list[str]:
+    """Generate strategic suggestions based on faction state."""
+    ws = room.world_state
+    faction = ws.factions.get(faction_id) if ws else None
+    suggestions = []
+    is_en = lang == "en"
+
+    if faction:
+        food = getattr(faction, "food", 0) or 0
+        treasury = getattr(faction, "treasury", 0) or 0
+        morale = getattr(faction, "morale_actual", 50) or 50
+        strength = getattr(faction, "strength_actual", 0) or 0
+        territories = len(getattr(faction, "territories", []) or [])
+
+        if food < 5000:
+            suggestions.append(
+                "Low food — develop agriculture, establish supply lines" if is_en
+                else "粮草不足，宜发展农业、推行屯田"
+            )
+        if treasury < 5000:
+            suggestions.append(
+                "Low treasury — cut spending, develop trade" if is_en
+                else "资金短缺，宜降低开支、发展商业"
+            )
+        if morale < 40:
+            suggestions.append(
+                "Low morale — reduce taxes, appease the people" if is_en
+                else "民心不稳，宜减轻赋税、安抚百姓"
+            )
+        if strength < 5000:
+            suggestions.append(
+                "Low troops — recruit soldiers, train forces" if is_en
+                else "兵力薄弱，宜招募新兵、训练士卒"
+            )
+        if territories <= 1:
+            suggestions.append(
+                "Small territory — seek expansion opportunities" if is_en
+                else "领地狭小，宜伺机扩张"
+            )
+
+    # Fill with generic suggestions if short
+    if len(suggestions) < 3:
+        defaults = (
+            ["Hold council for strategic advice", "Send spies to assess rivals", "Develop new technologies"]
+            if is_en
+            else ["召开朝会听取谋士建议", "派遣细作探查邻国动向", "发展科技树解锁新政"]
+        )
+        for d in defaults:
+            if d not in suggestions:
+                suggestions.append(d)
+            if len(suggestions) >= 3:
+                break
+
+    return suggestions[:3]
+
+
+def build_single_player_intro(room, faction_id: str, language_style: str, lang: str = "zh") -> dict:
+    """Build the intro scene for a single-player game.
+
+    Returns the old IntroScene format expected by the frontend.
+    """
+    from histrategy.server.intro_narratives import INTRO_NARRATIVES_EN, INTRO_NARRATIVES_ZH
+
+    if lang == "en" and faction_id in INTRO_NARRATIVES_EN:
+        narrative = INTRO_NARRATIVES_EN[faction_id]
+    else:
+        faction_narratives = INTRO_NARRATIVES_ZH.get(faction_id, {})
+        narrative = faction_narratives.get(language_style, faction_narratives.get("vernacular", ""))
+        if not narrative:
+            narrative = f"历史进入了关键的时刻。你将以{faction_id}势力的身份，在这乱世中书写自己的篇章。"
+
+    is_en = lang == "en"
+    return {
+        "narrative": narrative,
+        "npc_actions": [],
+        "new_choices": (
+            ["Develop Economy", "Military Action", "Recruit Talent", "Consolidate"]
+            if is_en
+            else ["发展内政", "对外用兵", "广纳贤才", "休养生息"]
+        ),
+        "state_changes": {},
+        "events_occurred": [],
+    }
