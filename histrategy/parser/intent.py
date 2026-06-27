@@ -20,93 +20,12 @@ if TYPE_CHECKING:
     from histrategy.llm.adapter import LLMAdapter
 
 
+# ─── Name → ID mappings (canonical source: faction_slot.py) ─────
+from histrategy.engine.faction_slot import (
+    FACTION_NAME_MAP,
+    TERRITORY_NAME_MAP,
+)
 from histrategy.llm.prompt_loader import INTENT_PARSE_SYSTEM
-
-# ─── Territory name → ID mapping ───────────────────────────────
-
-TERRITORY_NAME_MAP: dict[str, str] = {
-    # 曹操领地
-    "许昌": "xuchang",
-    "xuchang": "xuchang",
-    "洛阳": "luoyang",
-    "luoyang": "luoyang",
-    "邺城": "ye",
-    "邺": "ye",
-    "ye": "ye",
-    "宛城": "wancheng",
-    "wancheng": "wancheng",
-    "常山": "changshan",
-    "changshan": "changshan",
-    "蓟县": "ji",
-    "蓟": "ji",
-    "ji": "ji",
-    "濮阳": "puyang",
-    "puyang": "puyang",
-    "北海": "beihai",
-    "beihai": "beihai",
-    "下邳": "xiapi",
-    "xiapi": "xiapi",
-    # 刘备领地
-    "新野": "xinye",
-    "xinye": "xinye",
-    "平原": "pingyuan",
-    "pingyuan": "pingyuan",
-    # 孙权领地
-    "建业": "jianye",
-    "建業": "jianye",
-    "jianye": "jianye",
-    "吴郡": "wu",
-    "吳郡": "wu",
-    "会稽": "kuaiji",
-    "會稽": "kuaiji",
-    "kuaiji": "kuaiji",
-    "柴桑": "chaisang",
-    "chaisang": "chaisang",
-    "庐江": "lujiang",
-    "廬江": "lujiang",
-    "lujiang": "lujiang",
-    "豫章": "yuzhang",
-    "yuzhang": "yuzhang",
-    "丹阳": "danyang",
-    "danyang": "danyang",
-    # 刘表领地
-    "襄阳": "xiangyang",
-    "襄陽": "xiangyang",
-    "xiangyang": "xiangyang",
-    "江陵": "jiangling",
-    "jiangling": "jiangling",
-    "长沙": "changsha",
-    "長沙": "changsha",
-    "changsha": "changsha",
-    "江口": "jiangkou",
-    "jiangkou": "jiangkou",
-    # 刘璋领地
-    "成都": "chengdu",
-    "chengdu": "chengdu",
-}
-
-FACTION_NAME_MAP: dict[str, str] = {
-    "曹操": "cao",
-    "曹军": "cao",
-    "曹": "cao",
-    "cao": "cao",
-    "刘备": "shu",
-    "刘军": "shu",
-    "刘": "shu",
-    "蜀": "shu",
-    "shu": "shu",
-    "孙权": "wu",
-    "孙军": "wu",
-    "孙": "wu",
-    "吴": "wu",
-    "wu": "wu",
-    "刘表": "liubiao",
-    "liubiao": "liubiao",
-    "袁绍": "yuanshao",
-    "yuanshao": "yuanshao",
-    "董卓": "dongzhuo",
-    "dongzhuo": "dongzhuo",
-}
 
 
 class IntentParser:
