@@ -32,7 +32,7 @@ class EconomyParams:
     base_population_growth: float = 0.003  # per quarter (1.2%/year, down from 2%)
 
     # ── Food ──
-    base_food_per_soldier: float = 0.015  # food per soldier per quarter (increased — soldiers eat more)
+    base_food_per_soldier: float = 0.012  # food per soldier per quarter (balanced: 10k troops eat 120/qtr)
     base_food_per_civilian: float = 0.002  # food per civilian per quarter
     food_production_multiplier: float = 0.025  # food output per population * dev * fertility (halved from 0.05)
 
