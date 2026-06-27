@@ -673,6 +673,19 @@ class NPCDecisionEngine:
                             last_attack_quarter = qnum
             lines.append("")
 
+            # Show NPC's own last decision so they can deliberately change strategy
+            last_own = turn_memory[-1] if turn_memory else None
+            if last_own:
+                last_decision = (
+                    last_own.get(f"decision_{faction_id}", "")
+                    or last_own.get("decision", "")
+                )
+                if last_decision:
+                    lines.append("## ⚠️ 你的上一轮决策 (Your Last Quarter's Decision)")
+                    lines.append(f"上一轮你决定: {last_decision}")
+                    lines.append("**你必须在本轮采取不同的策略。不可重复相同的行动。**")
+                    lines.append("")
+
             # 只在最近一回合有进攻行为时显示策略提醒（避免死循环）
             current_quarter = getattr(ws, "turn", 0) or 0
             if last_attack_target and last_attack_quarter >= current_quarter - 1:
