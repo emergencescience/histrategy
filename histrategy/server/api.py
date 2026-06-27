@@ -435,6 +435,14 @@ def create_app(llm_provider: str | None = None) -> Any:
             },
         }
 
+    # ═══════════════════════════════════════════════════════════
+    # Single-Player API (/api/games)
+    #
+    # In-memory game pool for single-player vs AI NPC mode.
+    # Orchestrator calls these endpoints; games survive per pod restart.
+    # Contrast with /api/rooms (multiplayer, DB-persisted).
+    # ═══════════════════════════════════════════════════════════
+
     @app.post("/api/games")
     def create_game(req: CreateGameRequest, authorization: str | None = Header(default=None)):
         """Create a new game and return the intro scene."""
@@ -761,58 +769,8 @@ def create_app(llm_provider: str | None = None) -> Any:
             )
         return {"games": games, "count": len(games)}
 
-    @app.get("/api/credit/status")
-    def credit_status():
-        """Return credit cost estimation for the game engine.
-
-        Called by the frontend to show per-turn cost estimates.
-        Actual credit deduction happens in the Orchestrator proxy.
-        """
-        PRICING = {
-            "provider": "deepseek",
-            "model": "deepseek-v4-pro",
-            "input_cost_per_1m_tokens": 0.55,
-            "output_cost_per_1m_tokens": 2.19,
-            "markup_percent": 50,
-            "credit_exchange_rate_usd": 1.0,
-            "micro_credits_per_credit": 1_000_000,
-        }
-        ESTIMATED_TOKENS = {
-            "plan_prompt": 3500,
-            "plan_completion": 3200,
-            "command_prompt": 4000,
-            "command_completion": 2500,
-            "npc_prompt": 1500,
-            "npc_completion": 800,
-        }
-        total_prompt = (
-            ESTIMATED_TOKENS["plan_prompt"] + ESTIMATED_TOKENS["command_prompt"] + ESTIMATED_TOKENS["npc_prompt"]
-        )
-        total_completion = (
-            ESTIMATED_TOKENS["plan_completion"]
-            + ESTIMATED_TOKENS["command_completion"]
-            + ESTIMATED_TOKENS["npc_completion"]
-        )
-        base_cost_usd = (
-            total_prompt * PRICING["input_cost_per_1m_tokens"] / 1_000_000
-            + total_completion * PRICING["output_cost_per_1m_tokens"] / 1_000_000
-        )
-        markup_usd = base_cost_usd * PRICING["markup_percent"] / 100
-        total_cost_usd = base_cost_usd + markup_usd
-        estimated_cost_micro = round(total_cost_usd * PRICING["micro_credits_per_credit"])
-        return {
-            "pricing": PRICING,
-            "estimated_tokens_per_turn": ESTIMATED_TOKENS,
-            "estimated_cost_per_turn": {
-                "base_usd": round(base_cost_usd, 6),
-                "markup_usd": round(markup_usd, 6),
-                "total_usd": round(total_cost_usd, 6),
-                "micro_credits": estimated_cost_micro,
-                "credits_display": f"{estimated_cost_micro / 1_000_000:.4f}",
-            },
-            "estimated_turns_per_credit": round(1_000_000 / estimated_cost_micro, 1),
-            "llm_available": _llm_provider is not None,
-        }
+    # /api/credit/status removed (H27a) — balance displayed on emergence.science/profile.
+    # Frontend had no consumer for this endpoint; hardcoded pricing drifted from reality.
 
     @app.post("/api/games/{game_id}/summary")
     def get_game_summary(game_id: str):
@@ -976,7 +934,11 @@ def create_app(llm_provider: str | None = None) -> Any:
             return {"ok": False, "reason": f"Save failed: {e}"}
 
     # ═══════════════════════════════════════════════════════════
-    # Multiplayer Room Endpoints (v2: room_player symmetric)
+    # Multiplayer Room API (/api/rooms)
+    #
+    # PostgreSQL-persisted room-based multiplayer (symmetric, DB-backed).
+    # Survives pod restarts. Contrast with /api/games (single-player, in-memory).
+    # Auth handled by orchestrator proxy (X-User-Id header).
     # ═══════════════════════════════════════════════════════════
 
     from fastapi import Body
@@ -1184,6 +1146,13 @@ def create_app(llm_provider: str | None = None) -> Any:
         return {"ok": True, "room_id": room_id, "is_public": is_public}
 
     # (GET /api/rooms removed in H20 — orchestrator has game_participation table)
+
+    # ═══════════════════════════════════════════════════════════
+    # Single-Player (Direct) API (/api/single-player)
+    #
+    # Lightweight single-player mode without orchestrator middleware.
+    # Uses the same engine stack as /api/games but with direct HTTP.
+    # ═══════════════════════════════════════════════════════════
 
     @app.get("/api/single-player/{game_id}/status")
     def api_sp_status(game_id: str):
