@@ -1,0 +1,157 @@
+# ============================================================
+# Conditional Historical Events — Three Kingdoms 207-220 CE
+#
+# Events are injected into NPC LLM context ONLY when:
+#   1. The current year/season matches the trigger window
+#   2. The preconditions are still met (event is still possible)
+#   3. The player has NOT taken actions that cancel this event
+#
+# This makes NPCs appear strategically prescient — they know
+# what COULD happen, without the game forcing it to happen.
+# ============================================================
+
+events:
+  # ─── 207 CE ───────────────────────────────────────────
+  - id: liubiao_decline
+    title: "刘表病重，荆州内部不稳 (Liu Biao is gravely ill, Jingzhou unstable)"
+    year_range: [207, 208]
+    season: autumn
+    preconditions:
+      - faction_exists: liubiao
+      - faction_alive: liubiao
+      - territory_owned: [liubiao, xiangyang]
+    cancel_if:
+      - faction_dead: liubiao          # Liu Biao already eliminated
+      - territory_captured: xiangyang  # Xiangyang already taken
+    context_for_npc: |
+      刘表已病入膏肓，荆州内部蔡瑁、蒯越各怀异心。刘表一旦去世，荆州可能不战而降。
+      若有意取荆州，此时应做好准备，但不必急于强攻——等待刘表去世后政治接收可能代价更小。
+    context_for_npc_en: |
+      Liu Biao is terminally ill. The Jingzhou court is divided between Cai Mao and Kuai Yue.
+      When Liu Biao dies, Jingzhou may surrender without a fight. Prepare for this opportunity
+      but don't waste troops assaulting now — political reception after his death costs less.
+
+  - id: cao_cao_northern_campaign
+    title: "曹操北征乌桓，中原空虚 (Cao Cao campaigns north against Wuhuan)"
+    year_range: [207, 207]
+    season: autumn
+    preconditions:
+      - faction_exists: cao
+      - faction_alive: cao
+    cancel_if:
+      - faction_at_war: [cao, wu]     # Cao Cao already fighting Wu — can't go north
+      - faction_at_war: [cao, shu]     # Cao Cao fighting Shu — campaign delayed
+      - territory_owned: [cao, liucheng]  # Already conquered
+    context_for_npc: |
+      曹操正亲率大军北征乌桓，许昌空虚。若有偷袭许昌之心，此时是最佳时机。
+      但曹操用兵如神，北征最多持续两个季度便会回师——机会窗口有限。
+    context_for_npc_en: |
+      Cao Cao leads his main army north against the Wuhuan tribes. Xuchang is lightly defended.
+      This is the best moment to strike his capital — but Cao Cao campaigns fast and will return
+      within two quarters. The window is narrow.
+
+  - id: zhugeliang_longzhong
+    title: "诸葛亮隆中对策 (Zhuge Liang's Longzhong Plan)"
+    year_range: [207, 208]
+    season: spring
+    preconditions:
+      - faction_exists: shu
+      - faction_alive: shu
+    cancel_if:
+      - faction_dead: shu
+      - faction_owns: [shu, jingzhou]  # Already has Jingzhou — plan partially realized
+    context_for_npc: |
+      诸葛亮已为刘备提出"隆中对"：先取荆州为家，再图益州，待天下有变则命一上将
+      从荆州出兵宛洛，刘备自率益州之众出秦川。刘备目前寄居新野，急需根据地。
+    context_for_npc_en: |
+      Zhuge Liang has proposed the "Longzhong Plan" to Liu Bei: first take Jingzhou as a base,
+      then conquer Yizhou (Sichuan). When the realm shifts, launch a two-pronged attack.
+      Liu Bei currently has no real territory — he needs a base immediately.
+
+  # ─── 208 CE ───────────────────────────────────────────
+  - id: cao_cao_southern_invasion
+    title: "曹操平定北方，即将南征 (Cao Cao pacifies the north, prepares southern campaign)"
+    year_range: [208, 208]
+    season: autumn
+    preconditions:
+      - faction_exists: cao
+      - faction_alive: cao
+      - faction_exists: wu
+    cancel_if:
+      - faction_dead: cao
+      - faction_at_war: [cao, wu]     # Already at war — event is live, not a "prediction"
+      - territory_owned: [cao, jianye]  # Wu already conquered
+    context_for_npc: |
+      曹操已平定河北四州，正在邺城整军备战，预计秋季将率大军南征。
+      主要目标可能是荆州（刘表病重，襄阳易取）或直接威胁江东。
+      刘备若不联合孙权，将被曹操各个击破。
+    context_for_npc_en: |
+      Cao Cao has pacified the four northern provinces and prepares his main army for a southern
+      campaign this autumn. His primary target is likely Jingzhou (Liu Biao is dying), after which
+      he threatens Jiangdong directly. Liu Bei MUST ally with Sun Quan or be destroyed piecemeal.
+
+  - id: sun_wu_internal_unrest
+    title: "东吴内部尚不稳定，孙权动员能力有限 (Sun Wu's internal stability limits mobilization)"
+    year_range: [207, 210]
+    season: any
+    preconditions:
+      - faction_exists: wu
+      - faction_alive: wu
+      - faction_stat_lt: [wu, morale_actual, 60]   # morale below 60 = internal issues
+    cancel_if:
+      - faction_stat_gte: [wu, morale_actual, 70]  # Stability achieved
+    context_for_npc: |
+      孙权虽坐拥江东六郡，但内部山越叛乱不断，士族尚未完全归心。
+      实际动员能力远低于账面兵力——山越地区需留驻大量守军，
+      真正能用于远征的机动兵力可能不足三成。周瑜、鲁肃正在努力稳定内部。
+    context_for_npc_en: |
+      Sun Quan controls six commanderies of Jiangdong, but Shanyue tribes rebel constantly
+      and the local gentry haven't fully submitted. His actual mobilization capacity is far
+      below paper strength — garrisons against Shanyue consume most troops. Zhou Yu and Lu Su
+      are working to stabilize the realm. Mobile troops for external campaigns may be under 30%.
+
+  # ─── 209-210 CE ───────────────────────────────────────
+  - id: zhouyu_nanjun_campaign
+    title: "周瑜谋取南郡 (Zhou Yu plans the Nanjun campaign)"
+    year_range: [209, 210]
+    season: any
+    preconditions:
+      - faction_exists: wu
+      - faction_alive: wu
+      - faction_exists: cao
+      - territory_owned: [cao, jiangling]   # Cao Cao still holds Jiangling
+    cancel_if:
+      - territory_owned: [wu, jiangling]    # Wu already took it
+      - faction_dead: wu
+    context_for_npc: |
+      周瑜正筹划攻取南郡（江陵），这是控制长江中游的关键要塞。
+      若取得南郡，东吴可溯江而上威胁益州。但此战需耗时一年以上，
+      且曹仁守城有方，不可轻敌。
+    context_for_npc_en: |
+      Zhou Yu plans to seize Nanjun (Jiangling), the key fortress controlling the middle Yangtze.
+      Taking it would let Wu project power upstream toward Yizhou. But this siege could last
+      over a year — Cao Ren is a skilled defender.
+
+  # ─── 211 CE ───────────────────────────────────────────
+  - id: liuzhang_invites_liubei
+    title: "刘璋邀刘备入蜀 (Liu Zhang invites Liu Bei into Yizhou)"
+    year_range: [211, 212]
+    season: any
+    preconditions:
+      - faction_exists: liuzhang
+      - faction_alive: liuzhang
+      - faction_exists: shu
+      - faction_alive: shu
+    cancel_if:
+      - faction_dead: liuzhang
+      - faction_dead: shu
+      - faction_at_war: [shu, liuzhang]    # Already fighting — opportunity lost
+    context_for_npc: |
+      刘璋暗弱，汉中张鲁威胁益州北境。刘璋可能邀请刘备入蜀协助防御。
+      这对刘备而言是取益州的绝佳机会——以"助防"为名入蜀，寻机反客为主。
+      但需注意：如果刘备与刘璋已经开战，此策则已失时效。
+    context_for_npc_en: |
+      Liu Zhang is weak — Zhang Lu in Hanzhong threatens Yizhou's northern border.
+      Liu Zhang may invite Liu Bei into Sichuan for defense. This is Liu Bei's best chance
+      to seize Yizhou — enter as a "helper," then turn the tables. But if Liu Bei and
+      Liu Zhang are already at war, this window has closed.

@@ -1,0 +1,82 @@
+# ============================================================
+# Economy Rules — Three Kingdoms v2 Deterministic Engine
+#
+# All values in abstracted units (折算数值).
+# ============================================================
+
+food:
+  # Base food production per territory per quarter
+  base_per_territory: 500
+  # Population contribution to food output
+  pop_contribution_rate: 0.02  # food = pop × 0.02
+  # Season multipliers (applied on top)
+  season_mult:
+    spring: 0.3    # planting season, low output
+    summer: 1.0    # growing season
+    autumn: 1.2    # harvest season
+    winter: 0.05   # dead season
+  # Development multiplier: each development point = 1% more food
+  dev_multiplier: 0.01
+  # Fertility contribution
+  fertility_mult: 0.05  # each fertility point = 5% more
+
+tax:
+  # Tax revenue = tax_rate × population × economy / 100
+  base_economy_divisor: 100
+  # Tax rate limits
+  min_rate: 0.10    # 10% minimum
+  max_rate: 0.50    # 50% maximum
+  default_rate: 0.30
+
+  # Morale impact of tax rate
+  morale_thresholds:
+    - rate: 0.10
+      morale_delta: 2      # light taxes → +2 morale/quarter
+    - rate: 0.30
+      morale_delta: 0      # moderate taxes → neutral
+    - rate: 0.40
+      morale_delta: -1     # heavy taxes → -1 morale/quarter
+    - rate: 0.50
+      morale_delta: -3     # crushing taxes → -3 morale/quarter
+
+  # Corruption: tax_revenue × corruption_rate is lost
+  corruption_base: 0.05    # 5% base corruption
+  corruption_per_dev_below_50: 0.01  # +1% per development point below 50
+
+population:
+  # Population growth per quarter
+  growth_rate: 0.005        # 0.5% base growth
+  growth_morale_mult: 0.0001 # +0.01% per morale point above 50
+  growth_food_mult: 0.0005  # +0.05% per 1000 surplus food
+  # Population decline from starvation
+  starvation_threshold: 0   # food below 0 → pop decline
+  starvation_rate: 0.03     # 3% die per quarter of starvation
+  # Disease/climate impact
+  pestilence_mortality: 0.10 # 10% population loss from pestilence event
+
+development:
+  # Cost to develop a territory by 1 point
+  base_cost: 500            # gold
+  cost_per_current_dev: 10  # +10 gold per existing development point
+  max_development: 100
+  # Development effects
+  food_bonus_per_point: 10  # +10 food per dev point per quarter
+  tax_bonus_per_point: 5     # +5 gold per dev point per quarter
+
+morale:
+  base: 50
+  max: 100
+  min: 0
+  # Sources of morale change
+  victory_bonus: 5           # +5 for winning a battle
+  defeat_penalty: -8         # -8 for losing a battle
+  territory_lost_penalty: -3 # -3 when a territory is captured
+  territory_gained_bonus: 4  # +4 when a territory is captured
+  conscription_penalty: -2   # per draft action
+  starvation_penalty: -5     # per quarter with food < 0
+  leadership_bonus: 1        # per point of ruler charisma above 50
+
+treasury:
+  # Base gold income per territory per quarter (from commerce, not tax)
+  commerce_per_territory: 200
+  commerce_dev_mult: 0.01    # +1% per development point
