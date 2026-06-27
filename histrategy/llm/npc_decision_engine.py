@@ -217,6 +217,11 @@ class NPCDecisionEngine:
         self.llm_available = llm is not None and llm.is_available
         self.scenario = scenario
         self.language = language
+        self._history_engine = None  # set via set_history_engine()
+
+    def set_history_engine(self, engine) -> None:
+        """Attach a ConditionalHistoryEngine for context injection."""
+        self._history_engine = engine
 
     def generate(
         self,
@@ -605,6 +610,13 @@ class NPCDecisionEngine:
         lines.append(f"{L['aggression']}: {aggression:.1f} | {L['caution']}: {caution:.1f}")
         lines.append(f"{L['diplomacy']}: {diplomacy:.1f} | {L['mercy']}: {mercy:.1f}")
         lines.append("")
+
+        # Conditional historical events — inject what could happen
+        if self._history_engine is not None:
+            history_ctx = self._history_engine.get_active_context(ws)
+            if history_ctx:
+                lines.append(history_ctx)
+                lines.append("")
 
         # Diplomatic relations
         relations = getattr(faction, "relations", {})

@@ -211,6 +211,16 @@ def _collect_ai_decisions_parallel(
 
     engine = NPCDecisionEngine(llm, scenario=scenario, language=lang)
 
+    # Attach conditional history engine if scenario rules exist
+    try:
+        from histrategy.engine.conditional_history import ConditionalHistoryEngine
+
+        _hist = ConditionalHistoryEngine(scenario, language=lang)
+        if _hist.event_count > 0:
+            engine.set_history_engine(_hist)
+    except Exception:
+        pass  # history injection is optional — don't block NPC decisions
+
     def _generate_one(slot: FactionSlot) -> DecisionResult:
         t0 = time.time()
         try:

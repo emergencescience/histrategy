@@ -1,0 +1,89 @@
+# ============================================================
+# Military Rules — Three Kingdoms v2 Deterministic Engine
+#
+# All values are in "abstracted units" (折算数值), NOT historical
+# troop counts. Small factions get ~2x scaling; large ~1:1.
+#
+# Reference: Koei RTK "小放大、大保真" philosophy.
+# ============================================================
+
+recruitment:
+  # Maximum conscription per quarter = min(population * max_rate, labor_pool)
+  max_rate: 0.05              # 5% of territory population per quarter
+  labor_floor: 0.30           # Below 30% of original pop, conscription blocked
+  morale_penalty_per_draft: 2 # Each draft action reduces morale by this amount
+  consecutive_decay: 0.02     # Each consecutive draft quarter reduces rate by 2%
+
+  cost:
+    infantry: 3    # gold per soldier
+    cavalry: 10    # gold per horseman
+    archer: 6      # gold per archer
+    navy: 8         # gold per sailor
+
+supply:
+  # Per 1000 troops per quarter, in abstract food units
+  base_per_1000: 200
+  terrain_modifier:
+    plains: 1.0
+    hills: 1.3
+    mountain: 1.8
+    wetland: 1.5
+    forest: 1.2
+    river: 1.1
+    coast: 1.0
+  # Distance-based expedition attrition: +N% per territory crossed
+  distance_decay_pct: 5       # 5% extra per territory step
+  siege_defender_bonus: 0.5   # Defenders in siege consume 50% less
+  winter_multiplier: 1.5      # Winter adds 50% to all supply consumption
+
+combat:
+  # Lanchester square law: power = Σ(unit_power × count)²
+  unit_power:
+    infantry: 1.0
+    cavalry: 1.8
+    archer: 1.3
+    navy: 0.6    # weak on land, strong in river/coastal battles
+
+  # Rock-paper-scissors multipliers (applied to power before Lanchester)
+  counter:
+    cavalry_vs_infantry: 1.5
+    archer_vs_cavalry: 1.4
+    infantry_vs_archer: 1.3
+
+  # Terrain defense bonus (multiplier on defender power)
+  terrain_defense:
+    mountain: 2.0
+    hills: 1.5
+    forest: 1.3
+    wetland: 1.2
+    river: 1.4    # crossing a river is hard
+    coast: 1.1
+    plains: 1.0
+
+  # Morale effects on combat
+  morale_power_mult: 0.01      # Each morale point = 1% power boost
+  collapse_threshold: 20       # Below this, army routs
+  rout_casualty_mult: 1.8      # Pursuit casualties after rout
+  leader_bonus_max: 1.25       # Max bonus from commander skill
+
+  # Battle resolution thresholds (power ratio attacker:defender)
+  decisive_victory_ratio: 2.0  # Attacker ≥ 2× defender power
+  victory_ratio: 1.3           # Attacker ≥ 1.3× defender power
+  draw_range: [0.77, 1.3]     # Both sides within ~30% power
+  defeat_ratio: 0.5            # Attacker ≤ 0.5× defender power
+  # ratios in between map to "victory" or "defeat" respectively
+
+mobilization:
+  # Auto-mobilize when a faction attacks — minimum troops to leave behind
+  garrison_min_pct: 0.15       # 15% of faction strength stays home
+  # Maximum troops that can be committed to a single campaign
+  campaign_max_pct: 0.70       # 70% of total strength
+
+march:
+  # Territories crossed per quarter (base)
+  speed_plains: 3
+  speed_hills: 2
+  speed_mountain: 1
+  speed_forest: 2
+  speed_wetland: 1
+  speed_river: 1      # need navy or crossing penalty
