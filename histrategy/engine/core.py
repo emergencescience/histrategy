@@ -240,7 +240,7 @@ class GameEngineCore:
             # PolicyParser uses the default LLM
             self._macro_parser = PolicyParser(llm)
             self._macro_validator = PolicyValidator()
-            self._quarterly_engine = QuarterlyEngine()
+            self._quarterly_engine = QuarterlyEngine(scenario=self.scenario)
             self._black_swan = BlackSwanInjector()
 
             # MacroPolicyEngine uses chat model for creative simulation

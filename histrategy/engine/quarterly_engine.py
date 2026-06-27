@@ -8,7 +8,7 @@ The LLM MacroPolicyEngine then layers nonlinear historical events on top.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 if TYPE_CHECKING:
     from histrategy_engine.world import WorldState
@@ -37,7 +37,34 @@ class EconomyParams:
     food_production_multiplier: float = 0.025  # food output per population * dev * fertility (halved from 0.05)
 
     # ── Seasonal food coefficients (spring=0, summer=1, autumn=2, winter=3) ──
+    # Default: East Asian monsoon climate (spring planting, autumn harvest, winter barren)
+    # Mediterranean: mild wet winter, dry summer, spring harvest, autumn sowing
     season_food_multipliers: tuple = (1.0, 1.2, 1.5, 0.3)
+
+    # Climate-aware seasonal presets (class-level constants)
+    SEASONAL_PRESETS: ClassVar[dict[str, tuple]] = {
+        # East Asian monsoon: spring=planting, summer=growing, autumn=harvest, winter=barren
+        "east_asian": (1.0, 1.2, 1.5, 0.3),
+        # Mediterranean: spring=harvest, summer=dry/dormant, autumn=sowing, winter=mild/growing
+        "mediterranean": (1.4, 0.8, 1.1, 0.9),
+    }
+
+    # Scenario → climate preset mapping (class-level constant)
+    SCENARIO_CLIMATE: ClassVar[dict[str, str]] = {
+        "three-kingdoms": "east_asian",
+        "rome-triumvirate": "mediterranean",
+        "nanming": "east_asian",
+    }
+
+    @classmethod
+    def for_scenario(cls, scenario: str | None = None) -> "EconomyParams":
+        """Create EconomyParams with climate-appropriate seasonal multipliers."""
+        params = cls()
+        if scenario and scenario in cls.SCENARIO_CLIMATE:
+            climate = cls.SCENARIO_CLIMATE[scenario]
+            if climate in cls.SEASONAL_PRESETS:
+                params.season_food_multipliers = cls.SEASONAL_PRESETS[climate]
+        return params
 
     # ── Taxation (revenue = pop × base_tax_revenue_per_pop × tax_rate) ──
     base_tax_revenue_per_pop: float = 0.015  # tax revenue per population unit per quarter (reduced from 0.02)
@@ -107,8 +134,9 @@ class QuarterlyEngine:
     that the LLM then modifies with historical events and battle outcomes.
     """
 
-    def __init__(self, params: EconomyParams | None = None):
-        self.params = params or EconomyParams()
+    def __init__(self, params: EconomyParams | None = None, scenario: str | None = None):
+        self.params = params or EconomyParams.for_scenario(scenario)
+        self.scenario = scenario
         self._draft_streak: dict[str, int] = {}  # faction_id → consecutive draft quarters
 
     def execute_quarter(
