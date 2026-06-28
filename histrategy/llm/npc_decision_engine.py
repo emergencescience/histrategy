@@ -560,6 +560,15 @@ class NPCDecisionEngine:
         L = _NPC_LABELS.get(self.language, _NPC_LABELS["zh"])
         lines: list[str] = []
 
+        # Explicit language instruction at the very top
+        if self.language == "en":
+            lines.append(
+                "IMPORTANT: You MUST write the decision_text in English. "
+                "All narrative output must be in English. "
+                "Do NOT output Chinese characters."
+            )
+            lines.append("")
+
         # Time
         season_cn = getattr(ws, "current_season_cn", str(getattr(ws, "season_index", "?")))
         turn = getattr(ws, "turn", 0)

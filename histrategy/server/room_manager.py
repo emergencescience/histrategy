@@ -880,11 +880,11 @@ def _resolve_v1(room, ws, decisions, llm):
             fd[slot.faction_id] = {"decision": decision_text, "commands": commands, "source": "human"}
 
     # Run V1 simulation with timeout.
-    # V1 sends the full world state to the LLM in one call — DeepSeek v4-pro
-    # sometimes takes 60-90s for complex multi-faction scenarios. We use 95s
-    # to give the LLM enough time while still providing a fallback for users.
+    # V1 sends the full world state to the LLM in one call. deepseek-v4-flash
+    # thinking mode can take 60-120s for complex multi-faction scenarios.
+    # We use 130s with one retry before falling back to heuristic.
     # If the first attempt times out, retry once before falling back.
-    _TIMEOUT = 95
+    _TIMEOUT = 130
     lang = getattr(room, "metadata", {}).get("lang", "zh")
     v1_result = None
     for attempt in (1, 2):
