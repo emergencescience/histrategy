@@ -36,8 +36,6 @@ def _load_knowledge(filename: str) -> list[dict]:
 CHARACTERS = _load_knowledge("characters.json")
 FACTIONS_RAW = _load_knowledge("factions.json")
 REGIONS_RAW = _load_knowledge("regions.json")
-EVENTS_RAW = _load_knowledge("events.json")
-
 
 # ─── Character personality-driven behaviors ─────────────────────
 
@@ -361,7 +359,7 @@ def simulate_turn_offline(world: GameWorld, player_decision: str) -> dict:
         return _make_result(narrative_parts, npc_actions, {}, [], game_over, aftermath_text)
 
     # ── Events from knowledge base ──
-    events_occurred = _check_knowledge_events(world)
+    events_occurred = []
 
     return _make_result(narrative_parts, npc_actions, {}, events_occurred, aftermath=aftermath_text)
 
@@ -631,15 +629,6 @@ def _generate_faction_dynamics(world: GameWorld, player: Faction) -> list[dict]:
             )
 
     return events
-
-
-def _check_knowledge_events(world: GameWorld) -> list[str]:
-    """Check and trigger knowledge-base events."""
-    occurred = []
-    for event in world.get_available_events()[:2]:
-        occurred.append(event.title)
-        world.mark_event_occurred(event.title)
-    return occurred
 
 
 def _check_game_over(world: GameWorld, memory: dict) -> dict | None:
