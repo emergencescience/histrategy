@@ -507,6 +507,27 @@ def _worldstate_from_dict(self, data: dict) -> None:
         )
         self.factions[fid] = fs
 
+    # Restore territories (added for to_dict/from_dict round-trip)
+    territories_data = data.get("territories", {})
+    for tid, td in territories_data.items():
+        t = Territory(
+            id=tid,
+            name=td.get("name", tid),
+            owner_id=td.get("owner_id", ""),
+            fertility=td.get("fertility", 5),
+            terrain_type=TerrainType(td.get("terrain_type", "plains")),
+            climate_zone=td.get("climate_zone", "central"),
+            has_river=td.get("has_river", False),
+            has_coast=td.get("has_coast", False),
+            population=td.get("population", 50000),
+            development=td.get("development", 30),
+            garrison=td.get("garrison", 1000),
+            fortification=td.get("fortification", 20),
+            unrest=td.get("unrest", 0),
+            neighbors=td.get("neighbors", []),
+        )
+        self.territories[tid] = t
+
 
 WorldState.from_dict = _worldstate_from_dict  # type: ignore[attr-defined]
 
