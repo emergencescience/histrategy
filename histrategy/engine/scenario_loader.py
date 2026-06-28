@@ -233,15 +233,6 @@ class ScenarioLoader:
             territories[t.id] = t
         return territories
 
-    def load_events(self) -> list[dict]:
-        """Read knowledge/events.json."""
-        events_path = self._dir / "knowledge" / "events.json"
-        if events_path.is_file():
-            with open(events_path, encoding="utf-8") as f:
-                data = json.load(f)
-            return data if isinstance(data, list) else []
-        return []
-
     def load_initial_state(self) -> dict | None:
         """Read knowledge/initial_state.json."""
         init_path = self._dir / "knowledge" / "initial_state.json"
