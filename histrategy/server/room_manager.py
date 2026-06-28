@@ -879,28 +879,45 @@ def _resolve_v1(room, ws, decisions, llm):
             commands = slot.pending_commands or []
             fd[slot.faction_id] = {"decision": decision_text, "commands": commands, "source": "human"}
 
-    # Run V1 simulation with a timeout (80s < Cloudflare 100s)
-    _TIMEOUT = 80
+    # Run V1 simulation with timeout.
+    # V1 sends the full world state to the LLM in one call — DeepSeek v4-pro
+    # sometimes takes 60-90s for complex multi-faction scenarios. We use 95s
+    # to give the LLM enough time while still providing a fallback for users.
+    # If the first attempt times out, retry once before falling back.
+    _TIMEOUT = 95
     lang = getattr(room, "metadata", {}).get("lang", "zh")
-    try:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(
-                simulator.simulate,
-                ws,
-                fd,
-                room.turn_summaries,
-                room_id=room.id,
-                quarter_number=room.quarter_number + 1,
-                scenario=room.scenario,
-                lang=lang,
-            )
-            v1_result = future.result(timeout=_TIMEOUT)
-    except concurrent.futures.TimeoutError:
-        logger.warning(f"V1 simulate timed out after {_TIMEOUT}s for room {room.id}, falling back")
-        v1_result = simulator._fallback(ws, fd, lang=lang)
-    except Exception as e:
-        logger.error(f"V1 simulate failed for room {room.id}: {e}, falling back")
-        v1_result = simulator._fallback(ws, fd, lang=lang)
+    v1_result = None
+    for attempt in (1, 2):
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(
+                    simulator.simulate,
+                    ws,
+                    fd,
+                    room.turn_summaries,
+                    room_id=room.id,
+                    quarter_number=room.quarter_number + 1,
+                    scenario=room.scenario,
+                    lang=lang,
+                )
+                v1_result = future.result(timeout=_TIMEOUT)
+            break  # success
+        except concurrent.futures.TimeoutError:
+            if attempt == 1:
+                logger.warning(
+                    f"V1 simulate timed out after {_TIMEOUT}s for room {room.id} "
+                    f"(attempt {attempt}/2), retrying..."
+                )
+            else:
+                logger.warning(
+                    f"V1 simulate timed out after {_TIMEOUT}s for room {room.id} "
+                    f"(attempt {attempt}/2), falling back"
+                )
+                v1_result = simulator._fallback(ws, fd, lang=lang, reason="timeout")
+        except Exception as e:
+            logger.error(f"V1 simulate failed for room {room.id}: {e}, falling back")
+            v1_result = simulator._fallback(ws, fd, lang=lang, reason="error")
+            break
 
     # ── 先捕获旧状态（用于 turn_delta 计算）──
     old_state = _capture_faction_state(ws)
