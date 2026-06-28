@@ -15,6 +15,7 @@ QuarterlyResolver — 对称多 faction 季度引擎。
 from __future__ import annotations
 
 import logging
+import os
 import time
 from typing import TYPE_CHECKING
 
@@ -139,9 +140,15 @@ class QuarterlyResolver:
             except Exception as e:
                 logger.warning("[room=%s] BlackSwanInjector failed: %s", room.id, e)
 
-        # ── Step 4: LLM 宏观模拟 ──
+        # ── Step 4: LLM 宏观模拟 (skip if TurnController baseline is sufficient) ──
+        # TurnController already computes food/tax/morale deterministically for all
+        # factions. The macro LLM adds nonlinear effects (battle outcomes, diplomatic
+        # shifts, black swans) but doubles latency. For now, skip it to keep turns
+        # fast (<50s vs 85-110s). The narrative engine (Step 6) provides the LLM
+        # flavor. Re-enable with HISTRATEGY_MACRO=1 when nonlinear layer is needed.
         macro_delta = {}
-        if self.macro_policy_engine and llm:
+        _macro_enabled = os.environ.get("HISTRATEGY_MACRO", "").lower() in ("1", "true", "yes")
+        if _macro_enabled and self.macro_policy_engine and llm:
             try:
                 macro_delta = self._run_macro_simulation(
                     world_state,
@@ -277,7 +284,7 @@ class QuarterlyResolver:
                     }
                 )
 
-            return self.macro_policy_engine.simulate(
+        return self.macro_policy_engine.simulate(
                 ws,
                 policy_commands=player_commands,
                 player_decision=player_decision,

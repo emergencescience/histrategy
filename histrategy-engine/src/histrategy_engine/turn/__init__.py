@@ -140,6 +140,23 @@ class TurnController:
                     resource_changes[fid] = {"food_delta": 0, "tax_revenue": 0}
                 resource_changes[fid]["famine_occurred"] = True
 
+        # ── Landless faction upkeep ──
+        # Factions with troops but no territories still consume food.
+        # Each 100 troops consume 1 food per quarter (base maintenance).
+        for fid, faction in world_state.factions.items():
+            if not faction.is_active:
+                continue
+            if getattr(faction, "territories", None) and len(faction.territories) > 0:
+                continue  # Already processed via territory_results above
+            troops = getattr(faction, "strength_actual", 0)
+            if troops <= 0:
+                continue
+            upkeep = max(1, troops // 100)  # At least 1 food for any troop presence
+            faction.food = max(0, faction.food - upkeep)
+            if fid not in resource_changes:
+                resource_changes[fid] = {"food_delta": 0, "tax_revenue": 0}
+            resource_changes[fid]["food_delta"] -= upkeep
+
         # ── Step 3: Collect commands ──
         all_commands: list[Command] = list(player_commands or [])
 

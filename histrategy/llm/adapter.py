@@ -147,6 +147,7 @@ class LLMAdapter:
         self.current_room_id: str | None = None
         self.current_quarter: int = 0
         self.current_scenario: str | None = None
+        self.current_lang: str = "zh"
 
         self._logger.info(
             "LLMAdapter init: provider=%s model=%s base=%s available=%s",
@@ -174,15 +175,18 @@ class LLMAdapter:
         """Check if API is configured and ready."""
         return bool(self.api_key) and self.client is not None
 
-    def set_room_context(self, room_id: str, quarter_number: int, scenario: str = "") -> None:
-        """Set the current room context for billing/logging.
+    def set_room_context(self, room_id: str, quarter_number: int, scenario: str = "", lang: str = "zh") -> None:
+        """Set the current room context for billing/logging and language enforcement.
 
         Call this at the start of each turn resolution so all LLM calls
         within the turn are automatically attributed to the correct room.
+        When lang="en", all chat() calls auto-inject an English-only instruction
+        into the system message — no need to hardcode it in individual prompt files.
         """
         self.current_room_id = room_id
         self.current_quarter = quarter_number
         self.current_scenario = scenario
+        self.current_lang = lang
 
     def chat(
         self,
@@ -191,11 +195,33 @@ class LLMAdapter:
         max_tokens: int = 16384,
         metadata: dict | None = None,
     ) -> str:
-        """Send a chat completion request with exponential backoff retry."""
+        """Send a chat completion request with exponential backoff retry.
+
+        When current_lang="en", auto-injects an English-only instruction
+        into the system message. No need to hardcode language rules in
+        individual prompt files.
+        """
         if not self.is_available:
             raise RuntimeError(
                 "No API key configured. Set DEEPSEEK_API_KEY, OPENAI_API_KEY, or TONGYI_API_KEY environment variable."
             )
+
+        # ── Language enforcement (auto-injected, not per-prompt) ──
+        messages = list(messages)  # shallow copy to avoid mutating caller
+        if self.current_lang == "en":
+            _LANG_INSTRUCTION = (
+                "\n\nCRITICAL LANGUAGE RULE: You MUST respond entirely in English. "
+                "All narrative text, NPC decisions, event descriptions, "
+                "faction names, territory names, and any other output "
+                "MUST be in English. Chinese characters are FORBIDDEN."
+            )
+            # Inject into the first system message, or prepend a new one
+            for i, msg in enumerate(messages):
+                if msg.get("role") == "system":
+                    messages[i] = {**msg, "content": msg["content"] + _LANG_INSTRUCTION}
+                    break
+            else:
+                messages.insert(0, {"role": "system", "content": _LANG_INSTRUCTION.strip()})
 
         import time
 

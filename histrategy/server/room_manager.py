@@ -760,10 +760,11 @@ def _resolve_and_advance(room: GameRoom):
 
     engine_mode = detect_engine_mode()
     llm = _get_llm()
-    # Set room context on adapter so all LLM calls in this turn are logged
-    if hasattr(llm, "set_room_context"):
-        llm.set_room_context(room.id, room.quarter_number + 1, room.scenario)
     lang = getattr(room, "metadata", {}).get("lang", "zh")
+    # Set room context on adapter so all LLM calls in this turn are logged
+    # and language is auto-enforced (no per-prompt hardcoding needed)
+    if hasattr(llm, "set_room_context"):
+        llm.set_room_context(room.id, room.quarter_number + 1, room.scenario, lang=lang)
     decisions = collect_all_decisions(room, ws, llm=llm, turn_memory=room.turn_summaries, lang=lang)
 
     # 根据引擎模式选择仿真器
@@ -1224,11 +1225,22 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
             # resolve 在 advance_quarter() 之前执行，当前 quarter 尚未递增。
             # 写入的 quarter 是「这个 resolve 产出的数据对应的新季度」。
             next_quarter = room.quarter_number + 1
+
+            # Compute population from territory objects (FactionState has no
+            # native population field — it's derived from Territory.population)
+            computed_population = _safe_int(getattr(faction, "population", 0))
+            if computed_population == 0 and ws:
+                computed_population = sum(
+                    ws.territories[tid].population
+                    for tid in getattr(faction, "territories", [])
+                    if tid in ws.territories
+                )
+
             save_game_state(
                 room_id=room.id,
                 quarter_number=next_quarter,
                 faction_id=fid,
-                population=_safe_int(getattr(faction, "population", 0)),
+                population=computed_population,
                 troops=_safe_int(getattr(faction, "strength_actual", 0)),
                 food=_safe_float(faction.food),
                 treasury=_safe_float(faction.treasury),
@@ -1285,7 +1297,7 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
                             old_value=old_val,
                             new_value=new_val,
                             reason="V3 hybrid simulation",
-                            source="llm",
+                            source="v3_hybrid",
                         )
                 except Exception as delta_err:
                     logger.warning(
