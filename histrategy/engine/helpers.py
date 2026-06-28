@@ -61,7 +61,7 @@ def create_initial_world(player_faction_id: str) -> WorldState:
     rather than hardcoded Python dicts.
     """
     from ..engine.log_exporter import clear_session_log
-    from .loader import load_scenario
+    from .loader import load_scenario, load_territories
 
     clear_session_log()
 
@@ -85,6 +85,12 @@ def create_initial_world(player_faction_id: str) -> WorldState:
             food=fd.get("food", 3000),
             territories=list(fd.get("territories", [])),
         )
+
+    # Load territories so build_faction_status_for_api can compute population
+    import contextlib
+
+    with contextlib.suppress(Exception):
+        state.territories = load_territories("three-kingdoms")
 
     save_world(state)
     return state
