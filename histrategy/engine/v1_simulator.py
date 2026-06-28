@@ -473,8 +473,12 @@ class V1Simulator:
             "knowledge_cards": [],
         }
 
-    def _fallback(self, ws: WorldState, faction_decisions: dict, lang: str = "zh") -> dict:
-        """V1 不可用时的回退：简单确定性计算。"""
+    def _fallback(self, ws: WorldState, faction_decisions: dict, lang: str = "zh", reason: str = "unavailable") -> dict:
+        """Fallback when V1 LLM is unavailable, timed out, or errored.
+
+        Args:
+            reason: 'unavailable' (no API key), 'timeout' (LLM too slow), 'error' (LLM threw)
+        """
         factions = {}
         for fid, faction in ws.factions.items():
             if not faction.is_active:
@@ -494,11 +498,26 @@ class V1Simulator:
                 "policies": {},
                 "is_active": True,
             }
-        narrative = (
-            "(Offline mode: LLM unavailable, state unchanged)"
-            if lang == "en"
-            else "（离线模式：无 LLM 可用，状态未变化）"
-        )
+        if reason == "timeout":
+            narrative = (
+                "AI response timed out — the server is busy. "
+                "Your orders have been saved. Please submit again."
+                if lang == "en"
+                else "AI 响应超时，服务器繁忙。你的指令已保存，请重新提交。"
+            )
+        elif reason == "error":
+            narrative = (
+                "AI encountered an error. "
+                "Your orders have been saved. Please try again."
+                if lang == "en"
+                else "AI 处理出错，你的指令已保存，请重试。"
+            )
+        else:
+            narrative = (
+                "(Offline mode: LLM unavailable, state unchanged)"
+                if lang == "en"
+                else "（离线模式：无 LLM 可用，状态未变化）"
+            )
         return {
             "narrative": narrative,
             "factions": factions,
