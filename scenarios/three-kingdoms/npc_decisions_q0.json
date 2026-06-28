@@ -26,7 +26,7 @@
     },
     "cao": {
       "en": {
-        "decision_text": "孤已平河北，挟天子以令诸侯。今刘备屯新野，兵不过五千，然得诸葛亮为辅，日久必为大患。当趁其羽翼未丰，速遣上将讨之。另刘表病重，荆州人心浮动，可遣使招降襄阳豪族，以图不战而取荆州。",
+        "decision_text": "Having pacified Hebei, I now hold the Emperor and command the nobles in his name. Liu Bei, entrenched at Xinye with fewer than five thousand troops, has gained Zhuge Liang as his strategist — left unchecked, he will become a grave threat. I must strike before his wings fully spread, dispatching a superior force to crush him. Meanwhile, Liu Biao lies gravely ill, and the hearts of Jing Province waver; I shall send envoys to pressure the Xiangyang gentry into surrender, aiming to take Jingzhou without a battle.",
         "commands": [
           {
             "type": "attack",
@@ -36,7 +36,7 @@
               "amount": 50000,
               "unit_type": "infantry, cavalry"
             },
-            "reasoning": "刘备势弱，以十倍兵力碾压可一举攻克新野。从宛城出兵距离最近",
+            "reasoning": "Liu Bei's forces are weak — a ten-to-one advantage ensures a swift capture of Xinye. Wancheng is the nearest staging point.",
             "faction_id": "cao"
           },
           {
@@ -45,7 +45,7 @@
               "target_faction": "liubiao",
               "action": "threaten"
             },
-            "reasoning": "趁刘表病重，施加外交压力迫使荆州投降",
+            "reasoning": "With Liu Biao gravely ill, diplomatic pressure may force Jingzhou's surrender without bloodshed.",
             "faction_id": "cao"
           },
           {
@@ -53,7 +53,7 @@
             "params": {
               "territory": "xuchang"
             },
-            "reasoning": "首都许昌继续屯田，保障南征粮草供给",
+            "reasoning": "Develop the capital Xuchang's agricultural colonies to secure grain supplies for the southern campaign.",
             "faction_id": "cao"
           }
         ]
@@ -94,7 +94,7 @@
     },
     "shu": {
       "en": {
-        "decision_text": "备以微末之资，暂居新野。曹操势大，虎视眈眈，不可力敌。当外结孙权，以犄角之势抗曹；内修农政，广积粮草，安抚百姓。今春耕在即，宜劝农植谷，休养生息。另遣使江东，议盟约以定外患。再募精壮，稍充守备。如此，进可伺机而动，退可固守待时。",
+        "decision_text": "With meager resources, I hold Xinye for now. Cao Cao's power looms like a tiger watching its prey — we cannot face him directly. I must ally with Sun Quan to the east, striking Cao from two fronts like a pair of horns; internally, I will develop agriculture, stockpile grain, and pacify the people. Spring planting approaches — it is time to encourage farming and let the people recover. I will also send envoys to Jiangdong to seal an alliance against external threats, and recruit able-bodied men to strengthen our garrison. Thus, we can seize opportunity when the moment comes, or hold firm and wait for the right season.",
         "commands": [
           {
             "type": "diplomacy",
@@ -102,7 +102,7 @@
               "target_faction": "wu",
               "action": "ally"
             },
-            "reasoning": "曹操势大，东联孙权可成南北呼应，共抗曹军，减轻新野正面压力。",
+            "reasoning": "Cao Cao's strength is overwhelming — allying with Sun Quan in the east creates a north-south pincer and relieves pressure on Xinye.",
             "faction_id": "shu"
           },
           {
@@ -110,7 +110,7 @@
             "params": {
               "territory": "xinye"
             },
-            "reasoning": "发展新野农业与经济，充实粮仓，为长期防守和后续征兵提供物资基础。",
+            "reasoning": "Develop agriculture and economy in Xinye to stockpile grain for a long defensive campaign and future recruitment.",
             "faction_id": "shu"
           },
           {
@@ -120,7 +120,7 @@
               "amount": 1000,
               "unit_type": "infantry"
             },
-            "reasoning": "新野直面曹军，兵力仅五千，稍有闪失则危，招募千人加强守备，同时不过度消耗粮饷。",
+            "reasoning": "Xinye faces Cao's army directly with only five thousand troops — recruiting a thousand more bolsters the garrison without overtaxing our grain supplies.",
             "faction_id": "shu"
           }
         ]
@@ -160,7 +160,7 @@
     },
     "wu": {
       "en": {
-        "decision_text": "曹操势大，然其河北未定，不宜轻犯江东。刘表病笃，荆州内乱将起，此天赐良机。孤当内修政理，外结盟好，先固柴桑以为西进之基。命鲁肃使刘备，约为唇齿；周瑜练水师于柴桑，待秋粮既足，即取长沙，以成全据长江之势。",
+        "decision_text": "Cao Cao's might is vast, but with Hebei still unsettled, he dares not lightly cross the Yangtze. Liu Biao is on his deathbed, and chaos will soon engulf Jing Province — a heaven-sent opportunity. I shall govern wisely at home and forge alliances abroad. First, I will fortify Chaisang as the springboard for our westward advance. I will send Lu Su to Liu Bei to bind us as close as lips and teeth; Zhou Yu shall drill the navy at Chaisang. When the autumn harvest fills our granaries, we shall seize Changsha and secure control over the entire Yangtze.",
         "commands": [
           {
             "type": "diplomacy",
@@ -168,7 +168,7 @@
               "target_faction": "shu",
               "action": "ally"
             },
-            "reasoning": "联刘抗曹，牵制曹操兵力，为我西进创造战略窗口",
+            "reasoning": "Ally with Liu Bei to tie down Cao Cao's forces, creating a strategic opening for our westward expansion.",
             "faction_id": "wu"
           },
           {
@@ -176,7 +176,7 @@
             "params": {
               "territory": "chaisang"
             },
-            "reasoning": "柴桑为西进前线，发展经济以充军资，保障后续作战",
+            "reasoning": "Chaisang is the forward base for our western campaign — developing its economy will fund the coming operations.",
             "faction_id": "wu"
           },
           {
@@ -186,7 +186,7 @@
               "amount": 8000,
               "unit_type": "navy"
             },
-            "reasoning": "江东以水军称雄，扩充水师可制江面，为渡江攻击荆州提供保障",
+            "reasoning": "The Jiangdong navy is our greatest strength — expanding the fleet secures command of the river for our assault on Jing Province.",
             "faction_id": "wu"
           },
           {
@@ -197,7 +197,7 @@
               "amount": 20000,
               "unit_type": "infantry, navy"
             },
-            "reasoning": "抽调建业部分兵力至柴桑，集结三万水陆精兵，准备下季度进攻长沙",
+            "reasoning": "Transfer forces from Jianye to Chaisang, assembling thirty thousand naval and land troops for next quarter's attack on Changsha.",
             "faction_id": "wu"
           }
         ]
