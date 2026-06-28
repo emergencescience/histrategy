@@ -135,6 +135,22 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
     if not room:
         return {"ok": False, "error": "Game lost during resolution"}
 
+    # Restore _last_narratives from quarter_turn table — survives DB reload
+    if not getattr(room, "_last_narratives", None):
+        try:
+            from histrategy.db.models import get_quarter_turns
+
+            db_turns = get_quarter_turns(game_id, limit=1)
+            if db_turns:
+                latest = db_turns[-1]
+                narratives_raw = latest.get("narratives")
+                import json as _json
+
+                narratives = _json.loads(narratives_raw) if isinstance(narratives_raw, str) else (narratives_raw or {})
+                room._last_narratives = narratives
+        except Exception:
+            pass
+
     if room.quarter_number <= prev_quarter:
         # NPC decisions may not have been generated yet (async thread delay).
         # Attempt synchronous NPC trigger and re-resolve.

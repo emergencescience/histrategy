@@ -511,6 +511,79 @@ def _worldstate_from_dict(self, data: dict) -> None:
 WorldState.from_dict = _worldstate_from_dict  # type: ignore[attr-defined]
 
 
+def _worldstate_to_dict(self) -> dict:
+    """Serialize WorldState to dict (mirrors from_dict for round-trip safety)."""
+    season_map = {0: "spring", 1: "summer", 2: "autumn", 3: "winter"}
+    factions_dict = {}
+    for fid, fs in self.factions.items():
+        factions_dict[fid] = {
+            "name": fs.name,
+            "name_en": getattr(fs, "name_en", ""),
+            "ruler_id": fs.ruler_id,
+            "capital": fs.capital,
+            "territories": list(fs.territories),
+            "strength": fs.strength_actual,
+            "strength_actual": fs.strength_actual,
+            "economy": fs.economy_actual,
+            "economy_actual": fs.economy_actual,
+            "morale": fs.morale_actual,
+            "morale_actual": fs.morale_actual,
+            "food": fs.food,
+            "treasury": fs.treasury,
+            "is_active": fs.is_active,
+            "tax_rate": fs.tax_rate,
+            "prestige": fs.prestige,
+            "personality": {
+                "aggression": fs.aggression,
+                "cunning": fs.cunning,
+                "caution": fs.caution,
+                "diplomacy": fs.diplomacy,
+                "development": fs.development_focus,
+                "mercy": fs.mercy,
+            },
+            "allies": list(fs.allies),
+            "enemies": list(fs.enemies),
+            "relations": dict(fs.relations),
+            "policies": getattr(fs, "policies", {}),
+        }
+    territories_dict = {}
+    for tid, t in self.territories.items():
+        territories_dict[tid] = {
+            "id": t.id,
+            "name": t.name,
+            "owner_id": t.owner_id,
+            "fertility": t.fertility,
+            "terrain_type": t.terrain_type.value if hasattr(t.terrain_type, "value") else str(t.terrain_type),
+            "climate_zone": t.climate_zone,
+            "has_river": t.has_river,
+            "has_coast": t.has_coast,
+            "population": t.population,
+            "development": t.development,
+            "garrison": t.garrison,
+            "fortification": t.fortification,
+            "unrest": t.unrest,
+            "neighbors": list(t.neighbors),
+        }
+    return {
+        "turn": self.turn_number,
+        "turn_number": self.turn_number,
+        "year": self.year,
+        "season": season_map.get(self.season_index, "spring"),
+        "season_index": self.season_index,
+        "player_faction_id": self.player_faction_id,
+        "scenario": self.scenario,
+        "player_deviation": self.player_deviation,
+        "completed_events": list(self.completed_events),
+        "event_log": list(self.event_history),
+        "event_history": list(self.event_history),
+        "factions": factions_dict,
+        "territories": territories_dict,
+    }
+
+
+WorldState.to_dict = _worldstate_to_dict  # type: ignore[attr-defined]
+
+
 def _worldstate_get_player_faction(self) -> FactionState | None:
     """Backward-compat: return the player's faction."""
     return self.factions.get(self.player_faction_id)
