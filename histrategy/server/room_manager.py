@@ -1492,6 +1492,20 @@ def build_faction_status_for_api(room, faction_id: str) -> dict:
             if t_obj:
                 pop_sum += getattr(t_obj, "population", 0) or 0
 
+    # Fallback: if territories dict is empty (old WorldState doesn't
+    # survive to_dict/from_dict round-trip), read population from game_state table
+    if pop_sum == 0 and territories:
+        try:
+            from histrategy.db.models import get_latest_game_states
+
+            raw_states = get_latest_game_states(room.id, room.quarter_number)
+            for row in raw_states:
+                if row.get("faction_id") == faction_id:
+                    pop_sum = row.get("population", 0) or 0
+                    break
+        except Exception:
+            pass
+
     return {
         "name": getattr(faction, "name", faction_id),
         "faction_id": faction_id,
