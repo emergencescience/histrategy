@@ -7,8 +7,8 @@ legacy_id = "207"                          # 向后兼容 GameRoom.scenario = "2
 name = "三國志略"
 name_en = "Histrategy"
 era = "东汉末年至三国时期 (190-280)"
-start_year = 207
-start_season = "冬"
+start_year = 208
+start_season = "春"
 end_year = 280
 description = """
 群雄割据的三国乱世，扮演一方诸侯逐鹿天下。

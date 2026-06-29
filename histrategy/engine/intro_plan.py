@@ -2,7 +2,25 @@
 from __future__ import annotations
 
 from ..llm.game_master import GameMaster
-from .helpers import FIRST_TURN_SUGGESTIONS, _suppress_stderr
+from .helpers import EARLY_TURNS_SUGGESTIONS, FIRST_TURN_SUGGESTIONS, _suppress_stderr
+
+
+def _resolve_early_suggestions(scenario: str, faction_id: str, turn: int, lang: str) -> list[str]:
+    """Resolve suggestions from EARLY_TURNS_SUGGESTIONS dict.
+    
+    Args:
+        scenario: Scenario ID (e.g. 'three-kingdoms', 'rome-triumvirate')
+        faction_id: Faction identifier
+        turn: Turn number (1-based, 1-4 supported)
+        lang: Language ('zh' or 'en')
+    
+    Returns:
+        List of suggestion strings, or empty list if not found.
+    """
+    scenario_data = EARLY_TURNS_SUGGESTIONS.get(scenario, {})
+    faction_data = scenario_data.get(faction_id, {})
+    turn_data = faction_data.get(turn, {})
+    return turn_data.get(lang, turn_data.get("zh", []))
 
 
 class IntroPlanMixin:
@@ -31,11 +49,18 @@ class IntroPlanMixin:
         if capital_territory and capital_territory.name:
             capital_name = capital_territory.name
 
-        # Use faction-specific deterministic suggestions for intro
-        faction_suggestions = FIRST_TURN_SUGGESTIONS.get(
+        # Use faction-specific deterministic suggestions for intro (turn 1)
+        faction_suggestions = _resolve_early_suggestions(
+            getattr(self, "scenario", "three-kingdoms"),
             ws.player_faction_id,
-            FIRST_TURN_SUGGESTIONS["cao"],
+            1,
+            getattr(self, "_scenario_language", "zh"),
         )
+        if not faction_suggestions:
+            faction_suggestions = FIRST_TURN_SUGGESTIONS.get(
+                ws.player_faction_id,
+                FIRST_TURN_SUGGESTIONS["cao"],
+            )
         suggestions = [
             s.split("】", 1)[0] + "】" + s.split("】", 1)[1].split("，")[0] + "等" if "】" in s else s[:30]
             for s in faction_suggestions
@@ -110,12 +135,23 @@ class IntroPlanMixin:
                 _tok_before = llm.total_all_tokens
 
         # Generate suggestions from narrative engine
-        if ws.turn_number <= 1:
-            # ── First turn: hard-coded suggestions (no LLM needed) ──
-            suggestions = FIRST_TURN_SUGGESTIONS.get(
+        turn_num = getattr(ws, "turn_number", 1) or 1
+        if turn_num <= 4:
+            # ── Early turns (1-4): hard-coded per-scenario suggestions (no LLM) ──
+            early = _resolve_early_suggestions(
+                getattr(self, "scenario", "three-kingdoms"),
                 ws.player_faction_id,
-                FIRST_TURN_SUGGESTIONS["cao"],
+                turn_num,
+                getattr(self, "_scenario_language", "zh"),
             )
+            if early:
+                suggestions = early
+            else:
+                # Fallback: use FIRST_TURN_SUGGESTIONS for backward compat
+                suggestions = FIRST_TURN_SUGGESTIONS.get(
+                    ws.player_faction_id,
+                    FIRST_TURN_SUGGESTIONS.get("cao", []),
+                )
         elif self.narrative_engine and self.narrative_engine.is_available:
             with _suppress_stderr():
                 suggestions = self.narrative_engine.generate_plan_suggestions(ws, ws.player_faction_id)

@@ -19,7 +19,12 @@
     "ships": 0,
     "government": "heir",
     "diplomacy_tendency": "calculating",
-    "relations": {"antony": -40, "senate": 30, "cleopatra": -10, "lepidus": 0, "sextus_pompey": -30, "decimus_brutus": 10, "cassius_brutus": -20}
+    "relations": {
+      "antony": -40,
+      "senate": 30,
+      "cleopatra": -10,
+      "sextus_pompey": -30
+    }
   },
   {
     "id": "antony",
@@ -35,16 +40,29 @@
       "roma",
       "cisalpine_gaul"
     ],
-    "strength": 12000,
+    "strength": 27000,
     "economy": 65,
     "morale": 70,
     "intel_level": 60,
     "aggression": 60,
-    "legions": 3,
+    "legions": 7,
     "ships": 20,
     "government": "consul",
     "diplomacy_tendency": "domineering",
-    "relations": {"octavian": -40, "senate": -80, "cleopatra": 40, "lepidus": 50, "sextus_pompey": -40, "decimus_brutus": -80, "cassius_brutus": -80}
+    "relations": {
+      "octavian": -40,
+      "senate": -80,
+      "cleopatra": 40,
+      "sextus_pompey": -40
+    },
+    "territories": [
+      "roma",
+      "cisalpine_gaul",
+      "hispania_citerior",
+      "narbonensis"
+    ],
+    "treasury": 35000,
+    "grain": 16000
   },
   {
     "id": "cleopatra",
@@ -70,7 +88,12 @@
     "ships": 80,
     "government": "pharaoh",
     "diplomacy_tendency": "pragmatic",
-    "relations": {"antony": 40, "octavian": -10, "senate": -30, "lepidus": 0, "sextus_pompey": 0, "decimus_brutus": -20, "cassius_brutus": -30}
+    "relations": {
+      "antony": 40,
+      "octavian": -10,
+      "senate": -30,
+      "sextus_pompey": 0
+    }
   },
   {
     "id": "senate",
@@ -83,18 +106,33 @@
     "description_en": "The Republican faction led by Cicero. The last guardians of the Republic. They have no legions, but they have Rome's treasury, the people's voice, and five centuries of tradition. In this war of titans, words may be the sharpest weapon.",
     "capital": "roma",
     "starting_territories": [],
-    "strength": 8000,
+    "strength": 43000,
     "economy": 80,
     "morale": 45,
     "intel_level": 85,
     "aggression": 10,
-    "legions": 0,
+    "legions": 8,
     "ships": 5,
     "government": "senate",
     "diplomacy_tendency": "manipulative",
     "no_military": true,
     "political_capital": 80,
-    "relations": {"antony": -80, "octavian": 30, "cleopatra": -30, "lepidus": -10, "sextus_pompey": -50, "decimus_brutus": 80, "cassius_brutus": 80}
+    "relations": {
+      "antony": -80,
+      "octavian": 30,
+      "cleopatra": -30,
+      "sextus_pompey": -50
+    },
+    "territories": [
+      "macedonia",
+      "graecia",
+      "syria",
+      "asia",
+      "illyria",
+      "mesopotamia"
+    ],
+    "treasury": 38000,
+    "grain": 21000
   },
   {
     "id": "sextus_pompey",
@@ -116,80 +154,11 @@
     "ships": 60,
     "government": "pirate_lord",
     "diplomacy_tendency": "vengeful",
-    "relations": {"antony": -60, "octavian": -40, "senate": -30, "cleopatra": 0, "lepidus": -20, "decimus_brutus": 20, "cassius_brutus": 30}
-  },
-  {
-    "id": "lepidus",
-    "name": "马尔库斯·雷必达",
-    "name_en": "Marcus Lepidus",
-    "ruler_id": "lepidus",
-    "color": "orange",
-    "npc_only": true,
-    "description": "恺撒的骑兵长官（Magister Equitum），西班牙总督。手握重兵但政治野心温和。忠于恺撒的记忆——自然倾向于安东尼。是恺撒派中的稳定力量，但也是各方争相拉拢的关键人物。",
-    "description_en": "Caesar's Master of Horse, governor of Spain. Holds a strong army but modest political ambition. Loyal to Caesar's memory — naturally leans toward Antony. A stabilizing force among the Caesarians, but also a key swing figure courted by all sides.",
-    "capital": "hispania_citerior",
-    "starting_territories": [
-      "hispania_citerior",
-      "narbonensis"
-    ],
-    "strength": 15000,
-    "economy": 45,
-    "morale": 65,
-    "intel_level": 50,
-    "aggression": 25,
-    "legions": 4,
-    "ships": 15,
-    "government": "governor",
-    "diplomacy_tendency": "cautious",
-    "relations": {"antony": 50, "octavian": 10, "senate": 10, "cleopatra": 0, "sextus_pompey": -20, "decimus_brutus": 0, "cassius_brutus": -10}
-  },
-  {
-    "id": "decimus_brutus",
-    "name": "狄奇穆斯·布鲁图",
-    "name_en": "Decimus Brutus",
-    "ruler_id": "decimus_brutus",
-    "color": "teal",
-    "npc_only": true,
-    "description": "恺撒的刺杀者之一。现任山南高卢总督，手握3个军团。忠于共和制——与西塞罗的元老院天然同盟。占据北意大利，切断了安东尼与高卢军团之间的联系。",
-    "description_en": "One of Caesar's assassins. Governor of Cisalpine Gaul with 3 legions. Loyal to the Republic — natural ally of Cicero's Senate. Holds northern Italy, cutting Antony's link to his Gallic legions.",
-    "capital": "illyria",
-    "starting_territories": [
-      "illyria"
-    ],
-    "strength": 15000,
-    "economy": 35,
-    "morale": 55,
-    "intel_level": 60,
-    "aggression": 40,
-    "legions": 3,
-    "ships": 5,
-    "government": "governor",
-    "diplomacy_tendency": "republican",
-    "relations": {"senate": 80, "antony": -80, "octavian": 20, "cleopatra": -10, "lepidus": 0, "sextus_pompey": 10, "cassius_brutus": 60}
-  },
-  {
-    "id": "cassius_brutus",
-    "name": "卡西乌斯与布鲁图斯",
-    "name_en": "Cassius & Brutus",
-    "ruler_id": "cassius",
-    "color": "darkgreen",
-    "npc_only": true,
-    "description": "刺杀恺撒的主导者。卡西乌斯已前往叙利亚接收军团，布鲁图斯在马其顿聚集共和派力量。他们是元老院在东方的武装臂膀——理想主义的共和派，手握东方行省的兵权。",
-    "description_en": "The lead assassins of Caesar. Cassius has gone to Syria to take command of the legions there; Brutus is rallying Republican forces in Macedonia. They are the Senate's armed wing in the East — idealistic Republicans with real military power.",
-    "capital": "syria",
-    "starting_territories": [
-      "syria",
-      "mesopotamia"
-    ],
-    "strength": 20000,
-    "economy": 55,
-    "morale": 60,
-    "intel_level": 70,
-    "aggression": 50,
-    "legions": 5,
-    "ships": 30,
-    "government": "republican",
-    "diplomacy_tendency": "idealistic",
-    "relations": {"senate": 80, "antony": -80, "octavian": -30, "cleopatra": -30, "lepidus": -10, "sextus_pompey": 30, "decimus_brutus": 60}
+    "relations": {
+      "antony": -60,
+      "octavian": -40,
+      "senate": -30,
+      "cleopatra": 0
+    }
   }
 ]

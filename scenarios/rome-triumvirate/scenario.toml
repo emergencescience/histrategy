@@ -28,9 +28,9 @@ max_quarters = 60
 
 [factions]
 available = ["octavian", "antony", "cleopatra", "senate"]
-npc_only = ["sextus_pompey", "lepidus", "brutus", "parthia"]
+npc_only = ["sextus_pompey"]
 major_npc = ["octavian", "antony", "cleopatra", "senate"]
-minor_npc = ["sextus_pompey", "lepidus", "brutus", "parthia"]
+minor_npc = ["sextus_pompey"]
 default_player_faction = "octavian"
 
 [display]

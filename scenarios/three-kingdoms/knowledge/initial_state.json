@@ -1,25 +1,30 @@
 {
-  "scenario_id": "207_liubei",
-  "name": "三顾茅庐",
-  "year": 207,
+  "scenario_id": "208_spring",
+  "name": "赤壁前夜",
+  "year": 208,
   "season": "spring",
   "player_faction": "shu",
-  "description": "刘备寄居新野，三顾茅庐请诸葛亮出山。荆州刘表病危，曹操虎视眈眈。",
-
+  "description": "公元208年春。诸葛亮已出山辅佐刘备，隆中对策初定。曹操彻底平定北方，正于邺城集结大军准备南征；孙权厉兵秣马准备西讨黄祖，大战阴云密布。",
   "factions": {
     "shu": {
       "name": "刘备",
       "name_en": "Liu Bei",
       "ruler": "liubei",
       "capital": "xinye",
-      "territories": ["xinye"],
+      "territories": [
+        "xinye"
+      ],
       "treasury": 5000,
       "food": 3500,
       "strength": 10000,
       "prestige": 35,
       "tax_rate": 0.2,
       "morale_actual": 70,
-      "tech_levels": {"agriculture": 1, "commerce": 1, "military": 1},
+      "tech_levels": {
+        "agriculture": 1,
+        "commerce": 1,
+        "military": 1
+      },
       "relations": {
         "cao": -80,
         "wu": 20,
@@ -33,7 +38,8 @@
         "diplomacy": 0.8,
         "development": 0.8,
         "mercy": 0.95
-      }
+      },
+      "advisor": "zhugeliang"
     },
     "cao": {
       "name": "曹操",
@@ -41,8 +47,15 @@
       "ruler": "caocao",
       "capital": "xuchang",
       "territories": [
-        "xuchang", "wancheng", "luoyang", "ye",
-        "ji", "puyang", "beihai", "xiapi", "changshan"
+        "xuchang",
+        "wancheng",
+        "luoyang",
+        "ye",
+        "ji",
+        "puyang",
+        "beihai",
+        "xiapi",
+        "changshan"
       ],
       "treasury": 50000,
       "food": 30000,
@@ -50,7 +63,11 @@
       "prestige": 90,
       "tax_rate": 0.4,
       "morale_actual": 80,
-      "tech_levels": {"agriculture": 3, "commerce": 3, "military": 4},
+      "tech_levels": {
+        "agriculture": 3,
+        "commerce": 3,
+        "military": 4
+      },
       "relations": {
         "shu": -80,
         "wu": -30,
@@ -72,8 +89,13 @@
       "ruler": "sunquan",
       "capital": "jianye",
       "territories": [
-        "jianye", "wu", "chaisang", "lujiang",
-        "kuaiji", "yuzhang", "danyang"
+        "jianye",
+        "wu",
+        "chaisang",
+        "lujiang",
+        "kuaiji",
+        "yuzhang",
+        "danyang"
       ],
       "treasury": 15000,
       "food": 10000,
@@ -81,7 +103,11 @@
       "prestige": 60,
       "tax_rate": 0.3,
       "morale_actual": 75,
-      "tech_levels": {"agriculture": 2, "commerce": 2, "military": 3},
+      "tech_levels": {
+        "agriculture": 2,
+        "commerce": 2,
+        "military": 3
+      },
       "relations": {
         "shu": 20,
         "cao": -30,
@@ -102,7 +128,12 @@
       "name_en": "Liu Biao",
       "ruler": "liubiao",
       "capital": "xiangyang",
-      "territories": ["xiangyang", "jiangling", "jiangkou", "changsha"],
+      "territories": [
+        "xiangyang",
+        "jiangling",
+        "jiangkou",
+        "changsha"
+      ],
       "treasury": 10000,
       "food": 8000,
       "strength": 60000,
@@ -110,7 +141,11 @@
       "tax_rate": 0.3,
       "morale_actual": 50,
       "is_active_manually": true,
-      "tech_levels": {"agriculture": 2, "commerce": 2, "military": 2},
+      "tech_levels": {
+        "agriculture": 2,
+        "commerce": 2,
+        "military": 2
+      },
       "personality": {
         "aggression": 0.2,
         "cunning": 0.4,
@@ -130,14 +165,23 @@
       "name_en": "Liu Zhang",
       "ruler": "liuzhang",
       "capital": "chengdu",
-      "territories": ["chengdu", "hanshui", "jiangzhou", "nanjun"],
+      "territories": [
+        "chengdu",
+        "hanshui",
+        "jiangzhou",
+        "nanjun"
+      ],
       "treasury": 12000,
       "food": 15000,
       "strength": 50000,
       "prestige": 30,
       "tax_rate": 0.3,
       "morale_actual": 55,
-      "tech_levels": {"agriculture": 2, "commerce": 1, "military": 1},
+      "tech_levels": {
+        "agriculture": 2,
+        "commerce": 1,
+        "military": 1
+      },
       "relations": {
         "shu": 10,
         "cao": -10,
@@ -145,7 +189,6 @@
       }
     }
   },
-
   "territories": {
     "xinye": {
       "name": "新野",
@@ -235,27 +278,14 @@
       "fertility": 5
     }
   },
-
   "initial_events": [
-    {
-      "event_id": "three_visits_207",
-      "status": "pending",
-      "trigger_condition": "player decides to visit zhugeliang"
-    },
     {
       "event_id": "liubiao_death_208",
       "status": "pending",
       "trigger_condition": "year >= 208 and liubiao is alive"
     }
   ],
-
   "objectives": [
-    {
-      "id": "find_advisor",
-      "description": "三顾茅庐请诸葛亮出山",
-      "type": "main",
-      "reward": "获得军师"
-    },
     {
       "id": "survive_cao_invasion",
       "description": "在曹操南下中存活",
