@@ -4,26 +4,6 @@
   "generated_at": "2026-06-16T14:15:55.650478+00:00",
   "generated_by": "deepseek-v4-pro",
   "decisions": {
-    "dongzhuo": {
-      "en": {
-        "decision_text": "This faction no longer exists. No decision needed.",
-        "commands": []
-      },
-      "zh": {
-        "decision_text": "该势力已不存在，无需决策。",
-        "commands": []
-      }
-    },
-    "yuan_shao": {
-      "en": {
-        "decision_text": "This faction no longer exists. No decision needed.",
-        "commands": []
-      },
-      "zh": {
-        "decision_text": "该势力已不存在，无需决策。",
-        "commands": []
-      }
-    },
     "cao": {
       "en": {
         "decision_text": "Having pacified Hebei, I now hold the Emperor and command the nobles in his name. Liu Bei, entrenched at Xinye with fewer than five thousand troops, has gained Zhuge Liang as his strategist — left unchecked, he will become a grave threat. I must strike before his wings fully spread, dispatching a superior force to crush him. Meanwhile, Liu Biao lies gravely ill, and the hearts of Jing Province waver; I shall send envoys to pressure the Xiangyang gentry into surrender, aiming to take Jingzhou without a battle.",
@@ -244,16 +224,6 @@
             "faction_id": "wu"
           }
         ]
-      }
-    },
-    "yuan_shu": {
-      "en": {
-        "decision_text": "This faction no longer exists. No decision needed.",
-        "commands": []
-      },
-      "zh": {
-        "decision_text": "该势力已不存在，无需决策。",
-        "commands": []
       }
     }
   }
