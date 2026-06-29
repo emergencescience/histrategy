@@ -245,7 +245,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             }
 
         result = create_room(
-            scenario=body.get("scenario", "three-kingdoms"),
+            scenario=body.get("scenario_id") or body.get("scenario", "three-kingdoms"),
             pre_assigned=pre_assigned,
             metadata=body.get("metadata"),
         )
