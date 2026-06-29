@@ -296,7 +296,7 @@ class GameMaster:
                 messages,
                 response_format={"type": "json_object"},
                 temperature=0.85,
-                max_tokens=4096,
+                max_tokens=16384,
                 metadata=metadata,
             )
 
@@ -396,7 +396,7 @@ class GameMaster:
                 messages,
                 response_format={"type": "json_object"},
                 temperature=0.85,
-                max_tokens=4096,
+                max_tokens=16384,
                 metadata=metadata,
             )
             return {
@@ -475,7 +475,7 @@ class GameMaster:
                 messages,
                 response_format={"type": "json_object"},
                 temperature=0.8,
-                max_tokens=8192,
+                max_tokens=16384,
                 metadata=metadata,
             )
 

@@ -115,9 +115,6 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
         room_lang = getattr(room, "metadata", {}).get("lang", "zh")
         if room_lang and room_lang != "zh":
             lang = room_lang
-    # Ensure lang is persisted in room metadata (survives DB round-trip)
-    if room.metadata:
-        room.metadata["lang"] = lang
 
     # Find the human faction
     human_slots = list(room.human_slots())

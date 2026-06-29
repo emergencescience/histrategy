@@ -352,7 +352,7 @@ class V1Simulator:
             response = self.llm.chat(
                 messages,
                 temperature=0.7,
-                max_tokens=16384,
+                max_tokens=32768,
                 metadata={
                     "category": "v1_simulate",
                     "room_id": room_id,

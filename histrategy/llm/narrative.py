@@ -133,7 +133,7 @@ class NarrativeEngine:
             result = self.llm.chat(
                 messages,
                 temperature=0.75,
-                max_tokens=3072,
+                max_tokens=8192,
                 metadata=metadata,
             )
             return result.strip()
@@ -279,7 +279,7 @@ class NarrativeEngine:
             result = self.llm.chat(
                 [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
                 temperature=0.7,
-                max_tokens=3072,
+                max_tokens=8192,
                 metadata={"category": "global_narrative", "room_id": room_id, "scenario": scenario},
             )
             return result.strip()
@@ -641,7 +641,7 @@ class NarrativeEngine:
             result = self.llm.chat(
                 messages,
                 temperature=0.7,
-                max_tokens=3072,
+                max_tokens=8192,
                 metadata=metadata,
             )
             return self._parse_suggestions(result.strip())
