@@ -608,7 +608,18 @@ class NPCDecisionEngine:
             if t in ("jianye", "chaishang", "lujiang", "wujun"):
                 lines.append("- **合肥(hefei)**: 曹操从合肥渡淮南下可直逼建业，是东线牵制的关键")
                 break
-        lines.append("")
+        # ── Rome-specific political constraints (44 BC) ──
+        if getattr(self, "_scenario", "") == "rome-triumvirate" or "rome" in str(getattr(ws, "scenario", "")):
+            lines.append("## ⚖️ Rome Political Reality (44 BC)")
+            lines.append("- **Res Publica**: The Republic still exists in name. Direct military attacks on Rome or fellow citizens without Senatorial authorization = tyranny = ALL factions unite against you.")
+            lines.append("- **Legitimacy > Legions**: Consuls, tribunes, and Senatorial decrees carry legal weight. A faction with Senate backing can raise troops legally; one without it is a warlord.")
+            lines.append("- **Cicero's Game**: The Senate (Cicero) will try to play Antony and Octavian against each other. The young Octavian is their 'tool to be praised, used, and discarded.'")
+            lines.append("- **Antony's Burden**: As consul, Antony controls Rome legally — but every move he makes is scrutinized. Attacking Octavian directly would justify Cicero's 'Antony is a tyrant' narrative.")
+            lines.append("- **Octavian's Weapon**: He has no army but possesses Caesar's name. Veterans will flock to him if he can secure his inheritance. His best move is political: ally with Senate, demand inheritance, build legitimacy.")
+            lines.append("- **Cleopatra's Position**: Egypt is rich but vulnerable. She must back a Roman strongman to survive — but backing the wrong one means ruin.")
+            lines.append("- **The Real Enemy**: Brutus and Cassius are raising armies in the East. The Caesarian factions must eventually deal with the Liberators — or be destroyed by them.")
+            lines.append("")
+            lines.append("")
 
         # Personality params
         aggression = getattr(faction, "aggression", 0.5)

@@ -90,26 +90,15 @@
     },
     "antony": {
       "en": {
-        "decision_text": "Consul Antony, seeing Octavian weak in Rome with only 3,000 troops, decides to crush him before he grows strong. He leads the legions south from Cisalpine Gaul to seize the Eternal City. He sends envoys to Cleopatra, seeking to strengthen their alliance with Egypt's fleet and grain. Meanwhile, he orders fresh levies raised in Transalpine Gaul to guard against the Senate or Sextus Pompey.",
+        "decision_text": "Consul Mark Antony stands at the center of Roman power. He holds Caesar's treasury, the loyalty of the legions, and the consulship — but the city seethes with intrigue. Cicero thunders against him in the Senate. The young Octavian has arrived demanding Caesar's inheritance. Antony refuses to hand over a single denarius. Instead, he summons the Senate to ratify his provincial commands, quietly transfers treasury funds to his Gallic base, and sends envoys to Lepidus in Hispania and Cleopatra in Alexandria — seeking allies for the storm ahead. Military action against a fellow citizen would make him a tyrant; politics must win this round.",
         "commands": [
           {
-            "type": "attack",
+            "type": "diplomacy",
             "params": {
-              "target_territory": "roma",
-              "from_territory": "cisalpine_gaul",
-              "amount": 15000
+              "target_faction": "senate",
+              "action": "negotiate"
             },
-            "reasoning": "屋大维仅3000兵力，我以五倍之众突袭罗马，可速战速决，夺取意大利政治核心，奠定合法地位。",
-            "faction_id": "antony"
-          },
-          {
-            "type": "recruit",
-            "params": {
-              "territory": "transalpine_gaul",
-              "amount": 5000,
-              "unit_type": "legion"
-            },
-            "reasoning": "补充兵力，加强后方守备，以应对可能的元老院干涉或庞培威胁。",
+            "reasoning": "As consul, Antony must maintain the facade of Republican legality. Negotiating with the Senate over provincial assignments buys time and legitimacy.",
             "faction_id": "antony"
           },
           {
@@ -118,40 +107,39 @@
               "target_faction": "cleopatra",
               "action": "ally"
             },
-            "reasoning": "克利奥帕特拉关系友好，且掌控东方粮仓与海军，结盟可确保东方无虞，并获取关键资源。",
+            "reasoning": "Egypt's grain and fleet are strategic assets. A formal alliance with Cleopatra secures the eastern flank and provides resources for future campaigns.",
             "faction_id": "antony"
           },
           {
-            "type": "tax",
+            "type": "develop",
             "params": {
-              "tax_rate": 0.3
+              "territory": "cisalpine_gaul"
             },
-            "reasoning": "适当降低税率至三成，可提升民心，稳固高卢基地，为长期内战蓄积民力。",
+            "reasoning": "Cisalpine Gaul is Antony's military base. Strengthening its economy and infrastructure prepares for the inevitable confrontation with Decimus Brutus.",
+            "faction_id": "antony"
+          },
+          {
+            "type": "recruit",
+            "params": {
+              "territory": "cisalpine_gaul",
+              "amount": 3000,
+              "unit_type": "legion"
+            },
+            "reasoning": "Antony needs troops to confront Decimus Brutus who refuses to surrender Cisalpine Gaul — the Senate's puppet must be removed.",
             "faction_id": "antony"
           }
         ]
       },
       "zh": {
-        "decision_text": "在公元前44年春季，安东尼见屋大维在罗马根基未固，麾下兵微将寡，决意趁此良机亲率大军南下，一举攻取罗马，将这座永恒之城纳入掌控。他遣密使赴亚历山大里亚，加强与克利奥帕特拉的同盟，欲借埃及的舰队与粮秣支持。同时，他谕令在山外高卢广募兵士，以备东方元老院或塞克斯图斯·庞培来犯。",
+        "decision_text": "执政官安东尼稳坐罗马权力中心。他手握恺撒的国库、军团的忠诚和执政官的权杖——但这座永恒之城暗流涌动。西塞罗在元老院中对他口诛笔伐，年轻的屋大维从希腊渡海而来，当众要求继承恺撒的遗产。安东尼分文不给。相反，他召见元老院批准他的行省任命，暗中将国库资金转移至山南高卢大营，并遣使联络西班牙的雷必达和亚历山大的克利奥帕特拉——为即将到来的风暴寻找盟友。直接对一位罗马公民动武会让他成为暴君；这一轮，必须用政治来赢。",
         "commands": [
           {
-            "type": "attack",
+            "type": "diplomacy",
             "params": {
-              "target_territory": "roma",
-              "from_territory": "cisalpine_gaul",
-              "amount": 15000
+              "target_faction": "senate",
+              "action": "negotiate"
             },
-            "reasoning": "屋大维仅3000兵力，我以五倍之众突袭罗马，可速战速决，夺取意大利政治核心，奠定合法地位。",
-            "faction_id": "antony"
-          },
-          {
-            "type": "recruit",
-            "params": {
-              "territory": "transalpine_gaul",
-              "amount": 5000,
-              "unit_type": "legion"
-            },
-            "reasoning": "补充兵力，加强后方守备，以应对可能的元老院干涉或庞培威胁。",
+            "reasoning": "作为执政官，安东尼必须维持共和合法性的表象。与元老院就行省分配进行谈判可以争取时间和政治资本。",
             "faction_id": "antony"
           },
           {
@@ -160,15 +148,25 @@
               "target_faction": "cleopatra",
               "action": "ally"
             },
-            "reasoning": "克利奥帕特拉关系友好，且掌控东方粮仓与海军，结盟可确保东方无虞，并获取关键资源。",
+            "reasoning": "埃及的粮仓和舰队是战略资产。与克利奥帕特拉正式结盟可以巩固东方，为未来战事提供资源。",
             "faction_id": "antony"
           },
           {
-            "type": "tax",
+            "type": "develop",
             "params": {
-              "tax_rate": 0.3
+              "territory": "cisalpine_gaul"
             },
-            "reasoning": "适当降低税率至三成，可提升民心，稳固高卢基地，为长期内战蓄积民力。",
+            "reasoning": "山南高卢是安东尼的军事根据地。加强其经济和基础设施为必然到来的对德西穆斯·布鲁图的军事行动做准备。",
+            "faction_id": "antony"
+          },
+          {
+            "type": "recruit",
+            "params": {
+              "territory": "cisalpine_gaul",
+              "amount": 3000,
+              "unit_type": "legion"
+            },
+            "reasoning": "德西穆斯·布鲁图拒不交出山南高卢行省——必须除掉元老院的这个傀儡。招募更多军团为必然的军事行动做准备。",
             "faction_id": "antony"
           }
         ]
