@@ -1502,6 +1502,21 @@ def _write_backup(room, ws_dict):
 # expected by the frontend (GameCreatedResponse / CommandResponse format).
 
 
+
+def _compute_navy(ws, faction_id: str) -> int:
+    """Compute total navy (trireme/naval) units for a faction from WorldState armies."""
+    navy = 0
+    try:
+        for army in getattr(ws, "armies", {}).values():
+            if getattr(army, "faction_id", "") == faction_id:
+                for unit_type, count in getattr(army, "units", {}).items():
+                    unit_str = str(unit_type).lower() if hasattr(unit_type, "lower") else str(unit_type)
+                    if "trireme" in unit_str or "navy" in unit_str or "naval" in unit_str:
+                        navy += count
+    except Exception:
+        pass  # Old WorldState may not have armies
+    return navy
+
 def build_faction_status_for_api(room, faction_id: str) -> dict:
     """Build faction_status dict from GameRoom for API responses."""
     ws = room.world_state
@@ -1555,20 +1570,8 @@ def build_faction_status_for_api(room, faction_id: str) -> dict:
         "territories": territories,
         "morale": getattr(faction, "morale", 50) or getattr(faction, "morale_actual", 50) or 50,
         "is_active": getattr(faction, "is_active", True),
-        # Compute navy from faction armies (Rome scenario)
-        navy = 0
-        try:
-            from histrategy_engine.world import UnitType
-            for army_id, army in getattr(ws, "armies", {}).items():
-                if getattr(army, "faction_id", "") == faction_id:
-                    navy += army.units.get(UnitType.TRIREME if hasattr(UnitType, "TRIREME") else "navy", 0)
-                    navy += army.units.get("trireme", 0)
-                    navy += army.units.get("navy", 0)
-        except Exception:
-            pass  # Old WorldState may not have armies attribute
-
         "population": pop_sum,
-        "navy": navy,
+        "navy": _compute_navy(ws, faction_id),
         "year": room.year,
         "season": room.season,
         "turn": room.quarter_number,
@@ -1699,14 +1702,27 @@ def build_single_player_intro(room, faction_id: str, language_style: str, lang: 
             narrative = f"历史进入了关键的时刻。你将以{faction_id}势力的身份，在这乱世中书写自己的篇章。"
 
     is_en = lang == "en"
-    return {
-        "narrative": narrative,
-        "npc_actions": [],
-        "new_choices": (
+    # ── Use deterministic per-scenario suggestions for turn 1 ──
+    new_choices = None
+    try:
+        from histrategy.engine.intro_plan import _resolve_early_suggestions
+
+        scenario = getattr(room, "scenario", "three-kingdoms")
+        early = _resolve_early_suggestions(scenario, faction_id, 1, lang)
+        if early:
+            new_choices = early[:4]
+    except Exception:
+        pass
+    if not new_choices:
+        new_choices = (
             ["Develop Economy", "Military Action", "Recruit Talent", "Consolidate"]
             if is_en
             else ["发展内政", "对外用兵", "广纳贤才", "休养生息"]
-        ),
+        )
+    return {
+        "narrative": narrative,
+        "npc_actions": [],
+        "new_choices": new_choices,
         "state_changes": {},
         "events_occurred": [],
     }
