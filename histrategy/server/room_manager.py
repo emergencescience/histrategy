@@ -617,6 +617,19 @@ def _init_world_state(room: GameRoom):
         else:
             room.season = "spring"
 
+    # ── Override year from scenario.toml (allows Three Kingdoms 208 Spring start) ──
+    try:
+        from histrategy.engine.scenario_loader import ScenarioLoader
+
+        loader = ScenarioLoader(room.scenario or "three-kingdoms")
+        meta = loader._toml.get("meta", {})
+        if "start_year" in meta:
+            room.year = meta["start_year"]
+            if room.world_state:
+                room.world_state.year = meta["start_year"]
+    except Exception:
+        pass  # Graceful: keep existing year if TOML parse fails
+
     # ── Defensive check: after fallback, verify slot factions exist in WorldState ──
     if room.world_state is not None and room.scenario not in ("", "three-kingdoms"):
         ws_factions = set(room.world_state.factions.keys()) if hasattr(room.world_state, "factions") else set()
