@@ -371,54 +371,6 @@
           }
         ]
       }
-    },
-    "sextus_pompey": {
-      "en": {
-        "decision_text": "Son of Pompey the Great patrols the Sicilian waters with his fleet, watching the Caesarian vultures tear at each other. He dispatches swift Liburnian galleys to raid grain shipments bound for Rome, starving the Caesarian cause while enriching his own coffers. His captains are ordered to recruit veteran sailors in Sardinia and Sicily, expanding his naval dominance.",
-        "commands": [
-          {
-            "type": "recruit",
-            "params": {
-              "territory": "sicilia",
-              "amount": 2000,
-              "unit_type": "navy"
-            },
-            "reasoning": "A stronger fleet is the foundation of Pompeian power — without ships, we are nothing.",
-            "faction_id": "sextus_pompey"
-          },
-          {
-            "type": "develop",
-            "params": {
-              "territory": "sicilia"
-            },
-            "reasoning": "Sicily's grain fields can feed our crews and provide trade goods to fund the fleet.",
-            "faction_id": "sextus_pompey"
-          }
-        ]
-      },
-      "zh": {
-        "decision_text": "庞培之子巡弋于西西里海域，冷眼旁观恺撒派的群鸦争夺罗马尸骸。他派出快速利布尼亚战船劫掠运往罗马的粮船——既使恺撒派饿殍遍野，又为自己充实府库。他命船长在西西里和撒丁尼亚招募退伍水手，令庞培舰队重新成为地中海不可忽视的力量。",
-        "commands": [
-          {
-            "type": "recruit",
-            "params": {
-              "territory": "sicilia",
-              "amount": 2000,
-              "unit_type": "navy"
-            },
-            "reasoning": "更强舰队是庞培派安身立命之本——无战舰则无一切。",
-            "faction_id": "sextus_pompey"
-          },
-          {
-            "type": "develop",
-            "params": {
-              "territory": "sicilia"
-            },
-            "reasoning": "西西里谷仓可养舰队和水手，亦可贸易换取军资。",
-            "faction_id": "sextus_pompey"
-          }
-        ]
-      }
     }
   }
 }

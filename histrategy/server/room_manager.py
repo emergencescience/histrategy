@@ -1582,7 +1582,25 @@ def extract_turn_events(room) -> list[str]:
 
 
 def build_strategic_suggestions(room, faction_id: str, lang: str = "zh") -> list[str]:
-    """Generate strategic suggestions based on faction state."""
+    """Generate strategic suggestions based on faction state.
+
+    For turns 1-4, uses deterministic EARLY_TURNS_SUGGESTIONS from scenario data.
+    After turn 4, falls back to heuristic based on faction resources.
+    """
+    # ── Turns 1-4: deterministic per-scenario suggestions ──
+    turn = room.quarter_number
+    if 1 <= turn <= 4:
+        try:
+            from histrategy.engine.intro_plan import _resolve_early_suggestions
+
+            scenario = getattr(room, "scenario", "three-kingdoms")
+            early = _resolve_early_suggestions(scenario, faction_id, turn, lang)
+            if early:
+                return early[:4]  # max 4 suggestions
+        except Exception:
+            pass  # Fall through to heuristic
+
+    # ── Heuristic fallback (turn 5+) ──
     ws = room.world_state
     faction = ws.factions.get(faction_id) if ws else None
     suggestions = []
