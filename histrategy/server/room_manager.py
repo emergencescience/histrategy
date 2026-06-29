@@ -410,9 +410,24 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
         from histrategy.db.models import get_latest_game_states
 
         raw_states = get_latest_game_states(room_id, room.quarter_number)
+
+        # ── Get npc_only factions to exclude from ranking ──
+        npc_only_ids = set()
+        try:
+            from histrategy.engine.scenario_loader import ScenarioLoader
+            room = _get_room(room_id)
+            if room:
+                loader = ScenarioLoader(room.scenario)
+                factions_raw = loader.load_factions()
+                npc_only_ids = {fid for fid, f in factions_raw.items() if f.get("npc_only", False)}
+        except Exception:
+            pass
+
         ranking = []
         for row in raw_states:
             fid = row["faction_id"]
+            if fid in npc_only_ids:
+                continue  # Skip npc_only factions (e.g. sextus_pompey)
             # Composite score: troops + population/2 + treasury/1000 + morale/100
             composite = (
                 (row.get("troops") or 0)
@@ -1540,7 +1555,20 @@ def build_faction_status_for_api(room, faction_id: str) -> dict:
         "territories": territories,
         "morale": getattr(faction, "morale", 50) or getattr(faction, "morale_actual", 50) or 50,
         "is_active": getattr(faction, "is_active", True),
+        # Compute navy from faction armies (Rome scenario)
+        navy = 0
+        try:
+            from histrategy_engine.world import UnitType
+            for army_id, army in getattr(ws, "armies", {}).items():
+                if getattr(army, "faction_id", "") == faction_id:
+                    navy += army.units.get(UnitType.TRIREME if hasattr(UnitType, "TRIREME") else "navy", 0)
+                    navy += army.units.get("trireme", 0)
+                    navy += army.units.get("navy", 0)
+        except Exception:
+            pass  # Old WorldState may not have armies attribute
+
         "population": pop_sum,
+        "navy": navy,
         "year": room.year,
         "season": room.season,
         "turn": room.quarter_number,
