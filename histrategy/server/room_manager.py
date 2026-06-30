@@ -346,6 +346,7 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
     status = {
         "ok": True,
         "room_id": room.id,
+        "scenario": getattr(room, "scenario", "") or "three-kingdoms",
         "phase": room.phase.value,
         "year": room.year,
         "season": room.season,
