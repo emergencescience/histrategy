@@ -1612,76 +1612,88 @@ def extract_turn_events(room) -> list[str]:
     return events
 
 
+# ── I18n: generic suggestion strings (no longer inline) ────────────
+_GENERIC_SUGGESTIONS = {
+    "zh": {
+        "low_food": "粮草不足，宜发展农业、推行屯田",
+        "low_treasury": "资金短缺，宜降低开支、发展商业",
+        "low_morale": "民心不稳，宜减轻赋税、安抚百姓",
+        "low_strength": "兵力薄弱，宜招募新兵、训练士卒",
+        "small_territory": "领地狭小，宜伺机扩张",
+        "defaults": [
+            "召开朝会听取谋士建议",
+            "派遣细作探查邻国动向",
+            "发展科技树解锁新政",
+        ],
+        "intro_choices": ["发展内政", "对外用兵", "广纳贤才", "休养生息"],
+    },
+    "en": {
+        "low_food": "Low food — develop agriculture, establish supply lines",
+        "low_treasury": "Low treasury — cut spending, develop trade",
+        "low_morale": "Low morale — reduce taxes, appease the people",
+        "low_strength": "Low troops — recruit soldiers, train forces",
+        "small_territory": "Small territory — seek expansion opportunities",
+        "defaults": [
+            "Hold council for strategic advice",
+            "Send spies to assess rivals",
+            "Develop new technologies",
+        ],
+        "intro_choices": ["Develop Economy", "Military Action", "Recruit Talent", "Consolidate"],
+    },
+}
+
+
+def _try_early_suggestions(scenario: str, faction_id: str, turn: int, lang: str) -> list[str]:
+    """Try to resolve per-scenario early-turn suggestions, silences all errors."""
+    try:
+        from histrategy.engine.intro_plan import _resolve_early_suggestions  # noqa: F811
+        return _resolve_early_suggestions(scenario, faction_id, turn, lang) or []
+    except Exception:
+        return []
+
+
 def build_strategic_suggestions(room, faction_id: str, lang: str = "zh") -> list[str]:
     """Generate strategic suggestions based on faction state.
 
-    For turns 1-4, uses deterministic EARLY_TURNS_SUGGESTIONS from scenario data.
-    After turn 4, falls back to heuristic based on faction resources.
+    Turns 1-4: deterministic per-scenario suggestions from EARLY_TURNS_SUGGESTIONS.
+    Turn 5+: heuristic based on faction resources.
     """
-    # ── Turns 1-4: deterministic per-scenario suggestions ──
+    i18n = _GENERIC_SUGGESTIONS.get(lang, _GENERIC_SUGGESTIONS["zh"])
     turn = room.quarter_number
-    if 1 <= turn <= 4:
-        try:
-            from histrategy.engine.intro_plan import _resolve_early_suggestions
+    scenario = getattr(room, "scenario", "three-kingdoms")
 
-            scenario = getattr(room, "scenario", "three-kingdoms")
-            early = _resolve_early_suggestions(scenario, faction_id, turn, lang)
-            if early:
-                return early[:4]  # max 4 suggestions
-        except Exception:
-            pass  # Fall through to heuristic
+    if 1 <= turn <= 4:
+        early = _try_early_suggestions(scenario, faction_id, turn, lang)
+        if early:
+            return early[:4]
 
     # ── Heuristic fallback (turn 5+) ──
     ws = room.world_state
     faction = ws.factions.get(faction_id) if ws else None
     suggestions = []
-    is_en = lang == "en"
 
     if faction:
-        food = getattr(faction, "food", 0) or 0
-        treasury = getattr(faction, "treasury", 0) or 0
-        morale = getattr(faction, "morale_actual", 50) or 50
-        strength = getattr(faction, "strength_actual", 0) or 0
+        checks = [
+            ("low_food", lambda f: (getattr(f, "food", 0) or 0) < 5000),
+            ("low_treasury", lambda f: (getattr(f, "treasury", 0) or 0) < 5000),
+            ("low_morale", lambda f: (getattr(f, "morale_actual", 50) or 50) < 40),
+            ("low_strength", lambda f: (getattr(f, "strength_actual", 0) or 0) < 5000),
+        ]
+        for key, check in checks:
+            if check(faction):
+                suggestions.append(i18n[key])
+
         territories = len(getattr(faction, "territories", []) or [])
-
-        if food < 5000:
-            suggestions.append(
-                "Low food — develop agriculture, establish supply lines" if is_en
-                else "粮草不足，宜发展农业、推行屯田"
-            )
-        if treasury < 5000:
-            suggestions.append(
-                "Low treasury — cut spending, develop trade" if is_en
-                else "资金短缺，宜降低开支、发展商业"
-            )
-        if morale < 40:
-            suggestions.append(
-                "Low morale — reduce taxes, appease the people" if is_en
-                else "民心不稳，宜减轻赋税、安抚百姓"
-            )
-        if strength < 5000:
-            suggestions.append(
-                "Low troops — recruit soldiers, train forces" if is_en
-                else "兵力薄弱，宜招募新兵、训练士卒"
-            )
         if territories <= 1:
-            suggestions.append(
-                "Small territory — seek expansion opportunities" if is_en
-                else "领地狭小，宜伺机扩张"
-            )
+            suggestions.append(i18n["small_territory"])
 
-    # Fill with generic suggestions if short
-    if len(suggestions) < 3:
-        defaults = (
-            ["Hold council for strategic advice", "Send spies to assess rivals", "Develop new technologies"]
-            if is_en
-            else ["召开朝会听取谋士建议", "派遣细作探查邻国动向", "发展科技树解锁新政"]
-        )
-        for d in defaults:
-            if d not in suggestions:
-                suggestions.append(d)
-            if len(suggestions) >= 3:
-                break
+    # Fill with generic defaults if short
+    defaults = i18n["defaults"]
+    for d in defaults:
+        if d not in suggestions:
+            suggestions.append(d)
+        if len(suggestions) >= 3:
+            break
 
     return suggestions[:3]
 
@@ -1701,28 +1713,16 @@ def build_single_player_intro(room, faction_id: str, language_style: str, lang: 
         if not narrative:
             narrative = f"历史进入了关键的时刻。你将以{faction_id}势力的身份，在这乱世中书写自己的篇章。"
 
-    is_en = lang == "en"
-    # ── Use deterministic per-scenario suggestions for turn 1 ──
-    new_choices = None
-    try:
-        from histrategy.engine.intro_plan import _resolve_early_suggestions
-
-        scenario = getattr(room, "scenario", "three-kingdoms")
-        early = _resolve_early_suggestions(scenario, faction_id, 1, lang)
-        if early:
-            new_choices = early[:4]
-    except Exception:
-        pass
+    scenario = getattr(room, "scenario", "three-kingdoms")
+    new_choices = _try_early_suggestions(scenario, faction_id, 1, lang)
     if not new_choices:
-        new_choices = (
-            ["Develop Economy", "Military Action", "Recruit Talent", "Consolidate"]
-            if is_en
-            else ["发展内政", "对外用兵", "广纳贤才", "休养生息"]
-        )
+        i18n = _GENERIC_SUGGESTIONS.get(lang, _GENERIC_SUGGESTIONS["zh"])
+        new_choices = i18n["intro_choices"]
+
     return {
         "narrative": narrative,
         "npc_actions": [],
-        "new_choices": new_choices,
+        "new_choices": new_choices[:4],
         "state_changes": {},
         "events_occurred": [],
     }

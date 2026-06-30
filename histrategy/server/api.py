@@ -251,15 +251,6 @@ def create_app(llm_provider: str | None = None) -> Any:
         )
         return result
 
-    @app.post("/api/rooms/{room_id}/enter")
-    @app.post("/api/rooms/{room_id}/pick")
-    @app.post("/api/rooms/{room_id}/start")
-    def api_start_room(room_id: str):
-        """Start game. Auth handled by orchestrator."""
-        from histrategy.server.room_manager import start_game
-
-        return start_game(room_id)
-
     @app.post("/api/rooms/{room_id}/decide")
     def api_submit_decision(room_id: str, body: dict = Body(...)):  # noqa: B008
         """Submit this quarter's decision."""

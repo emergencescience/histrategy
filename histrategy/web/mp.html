@@ -335,13 +335,11 @@ async function doCreateRoom() {
 async function doJoinRoom(rid, fid) {
   if (!rid) { alert('请输入房间 ID'); return; }
 
-  const r = await api('POST', `/api/rooms/${rid}/enter`, { user_id: myUserId, faction: fid });
-  if (!r.ok) { alert(r.error); return; }
-
+  // Game is auto-started on room creation — no /enter call needed.
+  // Just fetch status and begin the game loop.
   roomId = rid;
   myFaction = fid;
-  myRole = r.role || 'player';
-  myUserId = r.user_id || myUserId;
+  myUserId = 'player-' + fid;
 
   hide('home-panel');
   hide('room-created-panel');
