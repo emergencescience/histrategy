@@ -543,6 +543,177 @@ class V1Simulator:
 # ── V1 状态写入 DB ──────────────────────────────────
 
 
+def _normalize_territory_ids(
+    territory_ids: list[str],
+    available_ids: set[str],
+    territory_name_map: dict[str, str],
+) -> list[str]:
+    """将 LLM 生成的领地名称标准化为规范 ID。
+
+    LLM 经常输出变体名称（如 cisalpina、rome、narbonese_gaul），
+    需要映射回 territories.json 中定义的规范 ID。
+
+    使用三层策略：
+    1. 精确匹配 — 直接命中规范 ID
+    2. 名称映射 — 通过预构建的变体表匹配
+    3. 模糊匹配 — lowercase 子串匹配（最后的兜底）
+    """
+    import re
+
+    normalized = []
+    for tid in territory_ids:
+        # 已是 dict（{id, name} 格式）→ 提取 id
+        if isinstance(tid, dict):
+            raw = tid.get("id", "")
+            if raw:
+                tid = raw
+            else:
+                continue
+
+        if not isinstance(tid, str) or not tid.strip():
+            continue
+
+        clean = tid.strip().lower().replace(" ", "_").replace("-", "_")
+
+        # 1. 精确匹配
+        if clean in available_ids:
+            normalized.append(clean)
+            continue
+
+        # 2. 名称映射（变体 → 规范）
+        if clean in territory_name_map:
+            normalized.append(territory_name_map[clean])
+            continue
+
+        # 3. 模糊匹配 — 直接在 available_ids 中找最匹配的
+        best_match = None
+        best_score = 0
+        for canonical in available_ids:
+            # 子串包含
+            if clean in canonical or canonical in clean:
+                score = min(len(clean), len(canonical)) / max(len(clean), len(canonical))
+                if score > best_score:
+                    best_match = canonical
+                    best_score = score
+
+        if best_match and best_score >= 0.5:
+            logger.debug(
+                f"Territory fuzzy match: '{tid}' → '{best_match}' "
+                f"(score={best_score:.2f})"
+            )
+            normalized.append(best_match)
+        else:
+            # 无法匹配 — 保留原值并警告
+            logger.warning(
+                f"Territory name '{tid}' not recognized in available IDs. "
+                f"Available: {sorted(available_ids)}"
+            )
+            normalized.append(clean)
+
+    return normalized
+
+
+def _build_territory_name_map(scenario: str) -> tuple[set[str], dict[str, str]]:
+    """从场景知识库构建领地名称映射表。
+
+    Returns:
+        (available_ids, name_map)
+        - available_ids: 所有规范 ID 的集合
+        - name_map: 变体名 → 规范 ID 的映射
+    """
+    import json as _json
+    from pathlib import Path as _Path
+
+    available_ids: set[str] = set()
+    name_map: dict[str, str] = {}
+
+    candidates = [
+        _Path(f"scenarios/{scenario}/knowledge/territories.json"),
+        _Path(f"scenarios/{scenario}/territories.json"),
+    ]
+
+    for p in candidates:
+        if not p.exists():
+            continue
+        try:
+            data = _json.loads(p.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+
+        if isinstance(data, list):
+            for t in data:
+                if not isinstance(t, dict):
+                    continue
+                tid = t.get("id", "")
+                if not tid:
+                    continue
+                available_ids.add(tid)
+
+                # 添加英文名映射
+                en = t.get("name_en", "")
+                if en:
+                    key = en.strip().lower().replace(" ", "_").replace("-", "_")
+                    name_map[key] = tid
+
+                # 添加中文名映射
+                cn = t.get("name", "")
+                if cn:
+                    key = cn.strip().lower()
+                    # 移除常见后缀
+                    for suffix in ["行省", "省", "地区", "区域"]:
+                        if key.endswith(suffix):
+                            key = key[:-len(suffix)]
+                    name_map[key] = tid
+
+                # 添加常见 LLM 变体（从英文名推导）
+                if en:
+                    parts = en.strip().lower().split()
+                    # 如 "Cisalpine Gaul" → cisalpine
+                    if len(parts) >= 2:
+                        name_map[parts[0]] = tid
+                    # 如 "Hispania Citerior" → hispania
+                    for part in parts:
+                        if len(part) > 3:
+                            name_map[part] = tid
+        break
+
+    # 罗马场景专用：LLM 常见变体映射
+    _rome_variants = {
+        "rome": "roma",
+        "roma": "roma",
+        "cisalpine": "cisalpine_gaul",
+        "cisalpina": "cisalpine_gaul",
+        "narbonensis": "narbonensis",
+        "narbonese_gaul": "narbonensis",
+        "narbonese": "narbonensis",
+        "narbonne": "narbonensis",
+        "hispania": "hispania_citerior",
+        "transalpine": "transalpine_gaul",
+        "sicily": "sicilia",
+        "egypt": "aegyptus",
+        "aegypt": "aegyptus",
+        "illyricum": "illyria",
+        "italy": "italia",
+        "greece": "graecia",
+        "macedon": "macedonia",
+        "mesopotamia": "mesopotamia",
+        "cyrene": "cyrenaica",
+        "cyprus": "cyprus",
+        "sardinia": "sardinia",
+        "africa": "africa",
+        "syria": "syria",
+        "asia": "asia",
+        "senate": None,  # 非领地，忽略
+    }
+    for variant, canonical in _rome_variants.items():
+        if canonical is None:
+            name_map.pop(variant, None)
+        elif variant not in name_map and canonical in available_ids:
+            name_map[variant] = canonical
+
+    return available_ids, name_map
+
+
 def _apply_v1_state_to_world(ws: WorldState, v1_factions: dict) -> WorldState:
     """将 V1 输出的状态写回 WorldState。
 
@@ -553,6 +724,16 @@ def _apply_v1_state_to_world(ws: WorldState, v1_factions: dict) -> WorldState:
     超过边界时 clamp 并记录警告。
     """
     _MAX_TROOP_CHANGE_RATIO = 0.30
+
+    # ── 领地名称标准化准备 ──
+    available_territory_ids = set(ws.territories.keys()) if hasattr(ws, "territories") else set()
+    scenario = getattr(ws, "scenario", "") or ""
+    if scenario:
+        _scenario_ids, _scenario_map = _build_territory_name_map(scenario)
+        if _scenario_ids:
+            available_territory_ids = _scenario_ids
+    else:
+        _scenario_map = {}
 
     for fid, data in v1_factions.items():
         if fid not in ws.factions:
@@ -606,7 +787,11 @@ def _apply_v1_state_to_world(ws: WorldState, v1_factions: dict) -> WorldState:
 
         # 城池易手
         if "territories" in data:
-            new_territory_ids = [t["id"] if isinstance(t, dict) else t for t in data["territories"]]
+            raw_territory_ids = [t["id"] if isinstance(t, dict) else t for t in data["territories"]]
+            # 标准化领地名称（LLM 输出变体 → 规范 ID）
+            new_territory_ids = _normalize_territory_ids(
+                raw_territory_ids, available_territory_ids, _scenario_map
+            )
             # 城池易手：新占城池从原所有者移除，并同步 territory.owner_id
             lost_ids = set(faction.territories) - set(new_territory_ids)
             for tid in new_territory_ids:
