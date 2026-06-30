@@ -771,14 +771,14 @@ def _resolve_and_advance(room: GameRoom):
 
     # ── Pre-turn credit check (blocks if insufficient balance) ──
     if not _check_credit_before_turn(room):
-        room.phase = RoomPhase.DECISION  # Reset phase so user can retry later
+        room.phase = RoomPhase.WAITING  # Reset phase so user can retry later
         raise CreditInsufficientError(
             "余额不足，无法开始新回合。请充值后再试。\nInsufficient credits. Please top up and try again."
         )
 
     # ── Rate limit: minimum 30s between turns ──
     if not _check_rate_limit(room.id):
-        room.phase = RoomPhase.DECISION
+        room.phase = RoomPhase.WAITING
         raise RateLimitError("操作过快，请等待 30 秒后再试。\nToo fast. Please wait 30 seconds between turns.")
 
     room.phase = RoomPhase.RESOLVING
