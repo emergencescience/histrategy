@@ -1105,11 +1105,11 @@ def _build_v1_result(room, ws, decisions, v1_result, fd, lang):
     else:
         # Build a unified summary from faction narratives
         parts = []
+        fnames = _get_faction_names(room, lang=lang)
         for fid in decisions:
             fn = faction_narratives.get(fid, "")
             if fn and fn.strip():
-                faction = ws.factions.get(fid)
-                fname = (faction.name_en if lang == "en" and getattr(faction, "name_en", "") else faction.name) if faction else fid
+                fname = fnames.get(fid, fid)
                 bracket = "[]" if lang == "en" else "【】"
                 parts.append(f"{bracket[0]}{fname}{bracket[1]}{fn[:200]}")
         if parts:
@@ -1126,7 +1126,7 @@ def _build_v1_result(room, ws, decisions, v1_result, fd, lang):
                     food = faction.food
                     territory_names = [ws.territories[tid].name for tid in faction.territories if tid in ws.territories]
                     territory_str = "、".join(territory_names[:3]) if territory_names else "无领地"
-                    fname = (faction.name_en if lang == "en" and getattr(faction, "name_en", "") else faction.name)
+                    fname = fnames.get(fid, fid)
                     if lang != "en":
                         summary_parts.append(f"{fname}拥兵{troops:,}，积粟{food:,}斛，据{territory_str}")
                     else:
