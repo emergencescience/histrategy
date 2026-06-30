@@ -594,6 +594,11 @@ def _apply_v1_state_to_world(ws: WorldState, v1_factions: dict) -> WorldState:
                 faction.morale_actual = data["morale"]
             elif hasattr(faction, "morale"):
                 faction.morale = data["morale"]
+        if "navy" in data:
+            if hasattr(faction, "navy"):
+                faction.navy = int(data["navy"])
+            elif hasattr(faction, "naval_strength"):
+                faction.naval_strength = int(data["navy"])
         if "policies" in data:
             faction.policies = data["policies"]
         if "is_active" in data:
@@ -602,13 +607,21 @@ def _apply_v1_state_to_world(ws: WorldState, v1_factions: dict) -> WorldState:
         # 城池易手
         if "territories" in data:
             new_territory_ids = [t["id"] if isinstance(t, dict) else t for t in data["territories"]]
-            # 城池易手：新占城池从原所有者移除
+            # 城池易手：新占城池从原所有者移除，并同步 territory.owner_id
+            lost_ids = set(faction.territories) - set(new_territory_ids)
             for tid in new_territory_ids:
                 if tid not in faction.territories:
                     # 从原所有者移除
                     for other_fid, other_f in ws.factions.items():
                         if other_fid != fid and tid in other_f.territories:
                             other_f.territories.remove(tid)
+                # 同步 territory.owner_id（V1 prompt 不保证此字段正确）
+                if hasattr(ws, "territories") and tid in ws.territories:
+                    ws.territories[tid].owner_id = fid
+            # 失去的城池清除 owner_id
+            for tid in lost_ids:
+                if hasattr(ws, "territories") and tid in ws.territories:
+                    ws.territories[tid].owner_id = ""
             faction.territories = new_territory_ids
 
     return ws
