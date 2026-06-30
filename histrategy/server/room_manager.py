@@ -1180,9 +1180,18 @@ def _build_v1_result(room, ws, decisions, v1_result, fd, lang):
         ),
     }
 
+    # Extract territory ownership from world state
+    territory_owners = {}
+    if hasattr(ws, "territories") and ws.territories:
+        for tid, t in ws.territories.items():
+            if hasattr(t, "owner_id"):
+                territory_owners[tid] = t.owner_id
+            elif isinstance(t, dict):
+                territory_owners[tid] = t.get("owner_id", "")
+
     return _V1Result(
         narratives=narratives,
-        state_changes={},
+        state_changes={"territory_owners": territory_owners},
         turn_summary=v1_summary,
         faction_decisions=fd,
     )
