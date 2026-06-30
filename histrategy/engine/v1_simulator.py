@@ -146,7 +146,7 @@ def _build_context(
         if not faction.is_active:
             continue
         territories_str = (
-            "、".join([ws.territories[tid].name for tid in faction.territories if tid in ws.territories])
+            "、".join([f"{ws.territories[tid].name}({tid})" for tid in faction.territories if tid in ws.territories])
             or L["no_territory"]
         )
         # Compute total population from territories (H15e fix: FactionState has no population field)
