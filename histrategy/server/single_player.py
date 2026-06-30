@@ -216,7 +216,7 @@ def status(game_id: str) -> dict:
     Returns:
         {game_id, year, season, turn, faction_status, npc_actions, is_waiting}
     """
-    from histrategy.server.room_manager import _get_room, build_faction_status_for_api
+    from histrategy.server.room_manager import _get_room, build_faction_status_for_api, build_strategic_suggestions
 
     room = _get_room(game_id)
     if not room:
