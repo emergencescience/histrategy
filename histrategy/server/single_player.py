@@ -135,19 +135,25 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
     if not room:
         return {"ok": False, "error": "Game lost during resolution"}
 
-    # Restore _last_narratives from quarter_turn table — survives DB reload
-    if not getattr(room, "_last_narratives", None):
+    # Restore _last_narratives and _last_state_changes from quarter_turn table — survives DB reload
+    if not getattr(room, "_last_narratives", None) or not getattr(room, "_last_state_changes", None):
         try:
             from histrategy.db.models import get_quarter_turns
 
             db_turns = get_quarter_turns(game_id, limit=1)
             if db_turns:
                 latest = db_turns[-1]
-                narratives_raw = latest.get("narratives")
                 import json as _json
 
-                narratives = _json.loads(narratives_raw) if isinstance(narratives_raw, str) else (narratives_raw or {})
-                room._last_narratives = narratives
+                if not getattr(room, "_last_narratives", None):
+                    narratives_raw = latest.get("narratives")
+                    narratives = _json.loads(narratives_raw) if isinstance(narratives_raw, str) else (narratives_raw or {})
+                    room._last_narratives = narratives
+
+                if not getattr(room, "_last_state_changes", None):
+                    sc_raw = latest.get("state_changes")
+                    sc = _json.loads(sc_raw) if isinstance(sc_raw, str) else (sc_raw or {})
+                    room._last_state_changes = sc
         except Exception:
             pass
 
@@ -181,11 +187,14 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
     faction_status = build_faction_status_for_api(room, human_fid)
     suggestions = build_strategic_suggestions(room, human_fid, lang)
 
+    # Retrieve state_changes from resolution result (stored on room by _resolve_and_advance)
+    state_changes = getattr(room, "_last_state_changes", {}) or {}
+
     return {
         "game_id": game_id,
         "narrative": narrative or "The realm is at peace.",
         "aftermath": build_aftermath_text(faction_status, lang),
-        "state_changes": {},
+        "state_changes": state_changes,
         "events_occurred": extract_turn_events(room),
         "npc_actions": npc_actions,
         "new_suggestions": suggestions,

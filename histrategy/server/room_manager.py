@@ -805,6 +805,7 @@ def _resolve_and_advance(room: GameRoom):
         result = _resolve_v2_or_v3(room, ws, decisions, llm, mode="v3")
 
     room._last_narratives = result.narratives
+    room._last_state_changes = getattr(result, "state_changes", {}) or {}
     npc_actions = []
     for fid, dr in decisions.items():
         if room.slots.get(fid) and room.slots[fid].is_ai():
@@ -1185,13 +1186,38 @@ def _build_v1_result(room, ws, decisions, v1_result, fd, lang):
     if hasattr(ws, "territories") and ws.territories:
         for tid, t in ws.territories.items():
             if hasattr(t, "owner_id"):
-                territory_owners[tid] = t.owner_id
+                territory_owners[tid] = t.owner_id or ""
             elif isinstance(t, dict):
-                territory_owners[tid] = t.get("owner_id", "")
+                territory_owners[tid] = t.get("owner_id", "") or ""
+
+    # Extract per-faction stats (population, troops, food, treasury, morale, navy)
+    faction_stats = {}
+    for fid in decisions:
+        faction = ws.factions.get(fid)
+        if not faction:
+            continue
+        stats = {
+            "population": getattr(faction, "population", 0),
+            "troops": getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0,
+            "food": getattr(faction, "food", 0),
+            "treasury": getattr(faction, "treasury", 0),
+            "morale": getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50) or 50,
+        }
+        navy = getattr(faction, "navy", None) or getattr(faction, "naval_strength", 0) or 0
+        if navy:
+            stats["navy"] = navy
+        territories_list = getattr(faction, "territories", []) or []
+        stats["territories"] = territories_list
+        faction_stats[fid] = stats
+
+    state_changes = {
+        "territory_owners": territory_owners,
+        "faction_stats": faction_stats,
+    }
 
     return _V1Result(
         narratives=narratives,
-        state_changes={"territory_owners": territory_owners},
+        state_changes=state_changes,
         turn_summary=v1_summary,
         faction_decisions=fd,
     )
