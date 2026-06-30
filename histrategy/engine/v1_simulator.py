@@ -374,8 +374,11 @@ class V1Simulator:
             # If JSON parsing failed (V1 解析失败), use heuristic fallback
             # instead of returning empty factions with zero stats
             if not result.get("factions") and "V1 解析失败" in str(result.get("narrative", "")):
-                logger.warning(f"V1 parse failed (len={len(response)}), falling back to heuristic")
-                result = self._fallback(ws, faction_decisions)
+                logger.warning(
+                    f"V1 parse failed (len={len(response)}), falling back to heuristic. "
+                    f"Raw response prefix: {response[:200]}"
+                )
+                result = self._fallback(ws, faction_decisions, lang=lang, reason="error")
                 # Preserve token usage from the failed attempt
                 result["token_usage"] = {
                     "prompt_tokens": len(context) // 3,
@@ -396,7 +399,7 @@ class V1Simulator:
             return result
         except Exception as e:
             logger.error(f"V1 simulation failed: {e}")
-            return self._fallback(ws, faction_decisions)
+            return self._fallback(ws, faction_decisions, lang=lang, reason="error")
 
     @staticmethod
     def _log_sim_events_to_db(room_id: str, quarter_number: int, result: dict) -> None:
@@ -558,7 +561,6 @@ def _normalize_territory_ids(
     2. 名称映射 — 通过预构建的变体表匹配
     3. 模糊匹配 — lowercase 子串匹配（最后的兜底）
     """
-    import re
 
     normalized = []
     for tid in territory_ids:
