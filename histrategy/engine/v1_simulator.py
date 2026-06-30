@@ -116,6 +116,16 @@ _LABELS = {
 }
 
 
+def _get_faction_display_name(faction, lang: str = "zh") -> str:
+    """Return the faction's display name in the requested language.
+
+    Falls back to faction.name (Chinese) if name_en is not available.
+    """
+    if lang == "en" and getattr(faction, "name_en", ""):
+        return faction.name_en
+    return faction.name
+
+
 def _build_context(
     ws: WorldState,
     faction_decisions: dict[str, dict],
@@ -145,8 +155,9 @@ def _build_context(
             computed_population = sum(
                 ws.territories[tid].population for tid in faction.territories if tid in ws.territories
             )
+        display_name = _get_faction_display_name(faction, lang)
         parts.append(
-            f"### {faction.name} ({fid})\n"
+            f"### {display_name} ({fid})\n"
             f"- {L['cities']}: {territories_str}\n"
             f"- {L['population']}: {computed_population}\n"
             f"- {L['troops']}: {getattr(faction, 'strength_actual', 0)}\n"
@@ -165,7 +176,7 @@ def _build_context(
     parts.append(f"\n## {L['decisions']}\n")
     for fid, decision_info in faction_decisions.items():
         faction = ws.factions.get(fid)
-        name = faction.name if faction else fid
+        name = _get_faction_display_name(faction, lang) if faction else fid
         decision_text = decision_info.get("decision", "") if isinstance(decision_info, dict) else str(decision_info)
         commands = decision_info.get("commands", []) if isinstance(decision_info, dict) else []
 
@@ -242,8 +253,8 @@ def _build_diplomatic_context(ws: WorldState, lang: str = "zh") -> str:
             ally_names = []
             for aid in allies:
                 ally_f = ws.factions.get(aid)
-                ally_names.append(ally_f.name if ally_f else aid)
-            lines.append(f"- {faction.name} {L['ally_with']} " + "、".join(ally_names))
+                ally_names.append(_get_faction_display_name(ally_f, lang) if ally_f else aid)
+            lines.append(f"- {_get_faction_display_name(faction, lang)} {L['ally_with']} " + "、".join(ally_names))
     if not any_allies:
         lines.append(f"- {L['no_allies']}")
     lines.append(
@@ -255,7 +266,7 @@ def _build_diplomatic_context(ws: WorldState, lang: str = "zh") -> str:
     # ── Status section ──
     for fid, faction in ws.factions.items():
         if not faction.is_active:
-            lines.append(f"- {faction.name} ({fid}): 💀 {L['destroyed']}")
+            lines.append(f"- {_get_faction_display_name(faction, lang)} ({fid}): 💀 {L['destroyed']}")
             continue
         has_territory = bool(getattr(faction, "territories", []))
         troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
@@ -270,11 +281,11 @@ def _build_diplomatic_context(ws: WorldState, lang: str = "zh") -> str:
                     if other_fid == fid:
                         continue
                     if getattr(other_f, "territories", []):
-                        lines.append(f"- {faction.name} ({fid}): ⚠️ {L['lost_territory']} {other_f.name}")
+                        lines.append(f"- {_get_faction_display_name(faction, lang)} ({fid}): ⚠️ {L['lost_territory']} {_get_faction_display_name(other_f, lang)}")
                         found_overlord = True
                         break
             if not found_overlord:
-                lines.append(f"- {faction.name} ({fid}): ⚠️ {L['exile']} {troops})")
+                lines.append(f"- {_get_faction_display_name(faction, lang)} ({fid}): ⚠️ {L['exile']} {troops})")
         # Detect extreme power imbalance (likely de facto vassal)
         elif troops < 1000:
             for other_fid, other_f in ws.factions.items():
@@ -283,7 +294,7 @@ def _build_diplomatic_context(ws: WorldState, lang: str = "zh") -> str:
                 other_troops = getattr(other_f, "strength_actual", 0) or getattr(other_f, "strength", 0) or 0
                 if other_troops > troops * 10 and getattr(other_f, "territories", []):
                     lines.append(
-                        f"- {faction.name} ({fid}): {L['vassal']} {other_f.name} "
+                        f"- {_get_faction_display_name(faction, lang)} ({fid}): {L['vassal']} {_get_faction_display_name(other_f, lang)} "
                         f"({L['troops_vs']} {troops} {L['vs']} {other_troops}{L['de_facto_vassal']}"
                     )
                     break
