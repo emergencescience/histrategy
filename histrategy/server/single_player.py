@@ -186,6 +186,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
     # 4. Build response
     faction_status = build_faction_status_for_api(room, human_fid)
     suggestions = build_strategic_suggestions(room, human_fid, lang)
+    room._last_suggestions = suggestions  # persist for status() API
 
     # Retrieve state_changes from resolution result (stored on room by _resolve_and_advance)
     state_changes = getattr(room, "_last_state_changes", {}) or {}
@@ -225,6 +226,7 @@ def status(game_id: str) -> dict:
     human_fid = human_slots[0].faction_id if human_slots else None
     faction_status = build_faction_status_for_api(room, human_fid) if human_fid else {}
     npc_actions = getattr(room, "_last_npc_actions", [])
+    suggestions = getattr(room, "_last_suggestions", []) or (build_strategic_suggestions(room, human_fid, "zh") if human_fid else [])
 
     return {
         "game_id": game_id,
@@ -233,5 +235,6 @@ def status(game_id: str) -> dict:
         "turn": room.quarter_number,
         "faction_status": faction_status,
         "npc_actions": npc_actions,
+        "new_suggestions": suggestions,
         "is_waiting": room.phase.value == "waiting",
     }

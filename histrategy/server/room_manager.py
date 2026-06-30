@@ -1593,8 +1593,12 @@ def build_faction_status_for_api(room, faction_id: str) -> dict:
                 pop_sum += getattr(t_obj, "population", 0) or 0
 
     # Fallback: if territories dict is empty (old WorldState doesn't
-    # survive to_dict/from_dict round-trip), read population from game_state table
-    if pop_sum == 0 and territories:
+    # survive to_dict/from_dict round-trip), read population from game_state table.
+    # Also triggers when faction has territories in WS but no population sum
+    # (territories survived but population field is 0).
+    # AND triggers when faction has NO territories (pop_sum==0, territories==[])
+    # — use the last known population from game_state.
+    if pop_sum == 0:
         try:
             from histrategy.db.models import get_latest_game_states
 
