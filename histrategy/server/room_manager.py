@@ -370,24 +370,33 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
         "pending": pending,
     }
 
-    if faction_id and hasattr(room, "_last_narratives"):
-        narratives = getattr(room, "_last_narratives", {})
+    if faction_id:
+        narratives = getattr(room, "_last_narratives", None) or {}
+        npc_actions = getattr(room, "_last_npc_actions", None) or []
+        # If room was reloaded from DB, restore _last_narratives and _last_npc_actions
+        if not narratives or not npc_actions:
+            try:
+                from histrategy.db.models import get_quarter_turns as _gqt
+                db_turns = _gqt(room.id, limit=1)
+                if db_turns:
+                    latest = db_turns[-1]
+                    nr = latest.get("narratives")
+                    loaded = _json.loads(nr) if isinstance(nr, str) else (nr or {})
+                    if not narratives and loaded:
+                        narratives = loaded
+                        room._last_narratives = loaded
+                    if not npc_actions and loaded:
+                        nr2 = loaded.get("_npc_actions")
+                        if isinstance(nr2, str):
+                            npc_actions = _json.loads(nr2)
+                        elif isinstance(nr2, list):
+                            npc_actions = nr2
+                        if npc_actions:
+                            room._last_npc_actions = npc_actions
+            except Exception:
+                pass
         # Unified narrative (public, same for all factions)
-        status["narrative"] = narratives.get("global", "")
-        # NPC decisions are private per faction
-        npc_actions = getattr(room, "_last_npc_actions", [])
-        if not npc_actions:
-            # Fallback: extract from narratives that were saved to quarter_turn
-            npc_raw = narratives.get("_npc_actions")
-            if isinstance(npc_raw, str):
-                try:
-                    npc_actions = _json.loads(npc_raw)
-                except Exception:
-                    npc_actions = []
-            elif isinstance(npc_raw, list):
-                npc_actions = npc_raw
-            if npc_actions:
-                room._last_npc_actions = npc_actions  # cache for next call
+        status["narrative"] = narratives.get("global", "") if narratives else ""
         if npc_actions:
             status["npc_actions"] = npc_actions
 
