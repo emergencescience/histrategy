@@ -24,7 +24,8 @@
       "senate": 30,
       "cleopatra": -10,
       "sextus_pompey": -30
-    }
+    },
+    "population": 500000
   },
   {
     "id": "antony",
@@ -62,7 +63,8 @@
       "narbonensis"
     ],
     "treasury": 35000,
-    "grain": 16000
+    "grain": 16000,
+    "population": 800000
   },
   {
     "id": "cleopatra",
@@ -93,7 +95,8 @@
       "octavian": -10,
       "senate": -30,
       "sextus_pompey": 0
-    }
+    },
+    "population": 3000000
   },
   {
     "id": "senate",
@@ -132,7 +135,8 @@
       "mesopotamia"
     ],
     "treasury": 38000,
-    "grain": 21000
+    "grain": 21000,
+    "population": 1500000
   },
   {
     "id": "sextus_pompey",
@@ -159,6 +163,7 @@
       "octavian": -40,
       "senate": -30,
       "cleopatra": 0
-    }
+    },
+    "population": 200000
   }
 ]
