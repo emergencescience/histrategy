@@ -1191,11 +1191,20 @@ def _build_v1_result(room, ws, decisions, v1_result, fd, lang):
             elif isinstance(t, dict):
                 territory_owners[tid] = t.get("owner_id", "") or ""
 
+    # Fallback: if ws.territories is empty (WorldState lost territory objects
+    # during DB round-trip), rebuild territory_owners from faction territory lists.
+    if not territory_owners:
+        for fid in ws.factions:
+            faction = ws.factions[fid]
+            for tid in getattr(faction, "territories", []) or []:
+                territory_owners[tid] = fid
+
     # Extract per-faction stats (population, troops, food, treasury, morale, navy)
+    # Include ALL active factions (major from decisions + minor NPC factions)
     faction_stats = {}
-    for fid in decisions:
-        faction = ws.factions.get(fid)
-        if not faction:
+    for fid in ws.factions:
+        faction = ws.factions[fid]
+        if not faction.is_active:
             continue
         stats = {
             "population": getattr(faction, "population", 0),
@@ -1204,9 +1213,8 @@ def _build_v1_result(room, ws, decisions, v1_result, fd, lang):
             "treasury": getattr(faction, "treasury", 0),
             "morale": getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50) or 50,
         }
-        navy = getattr(faction, "navy", None) or getattr(faction, "naval_strength", 0) or 0
-        if navy:
-            stats["navy"] = navy
+        navy = getattr(faction, "navy", 0) or getattr(faction, "naval_strength", 0) or 0
+        stats["navy"] = navy
         territories_list = getattr(faction, "territories", []) or []
         stats["territories"] = territories_list
         faction_stats[fid] = stats
