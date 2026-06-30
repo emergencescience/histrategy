@@ -234,6 +234,24 @@ def status(game_id: str) -> dict:
     human_fid = human_slots[0].faction_id if human_slots else None
     faction_status = build_faction_status_for_api(room, human_fid) if human_fid else {}
     npc_actions = getattr(room, "_last_npc_actions", [])
+    if not npc_actions:
+        # Fallback: load from quarter_turn DB (survives pod restart / DB reload)
+        try:
+            from histrategy.db.models import get_quarter_turns as _gqt3
+            db_turns = _gqt3(game_id, limit=1)
+            if db_turns:
+                nr = db_turns[-1].get("narratives")
+                import json as _json3
+                loaded = _json3.loads(nr) if isinstance(nr, str) else (nr or {})
+                na_raw = loaded.get("_npc_actions")
+                if isinstance(na_raw, str):
+                    npc_actions = _json3.loads(na_raw)
+                elif isinstance(na_raw, list):
+                    npc_actions = na_raw
+                if npc_actions:
+                    room._last_npc_actions = npc_actions  # cache
+        except Exception:
+            pass
     suggestions = getattr(room, "_last_suggestions", []) or (build_strategic_suggestions(room, human_fid, "zh") if human_fid else [])
 
     return {
