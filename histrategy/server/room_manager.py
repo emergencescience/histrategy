@@ -1110,7 +1110,8 @@ def _build_v1_result(room, ws, decisions, v1_result, fd, lang):
             if fn and fn.strip():
                 faction = ws.factions.get(fid)
                 fname = (faction.name_en if lang == "en" and getattr(faction, "name_en", "") else faction.name) if faction else fid
-                parts.append(f"【{fname}】{fn[:200]}")
+                bracket = "[]" if lang == "en" else "【】"
+                parts.append(f"{bracket[0]}{fname}{bracket[1]}{fn[:200]}")
         if parts:
             narratives["global"] = "\n\n".join(parts)
         else:
