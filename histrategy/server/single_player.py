@@ -136,7 +136,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
         return {"ok": False, "error": "Game lost during resolution"}
 
     # Restore _last_narratives and _last_state_changes from quarter_turn table — survives DB reload
-    if not getattr(room, "_last_narratives", None) or not getattr(room, "_last_state_changes", None):
+    if not getattr(room, "_last_narratives", None) or not getattr(room, "_last_state_changes", None) or not getattr(room, "_last_npc_actions", None):
         try:
             from histrategy.db.models import get_quarter_turns
 
@@ -145,6 +145,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
                 latest = db_turns[-1]
                 import json as _json
 
+                narratives = {}
                 if not getattr(room, "_last_narratives", None):
                     narratives_raw = latest.get("narratives")
                     narratives = _json.loads(narratives_raw) if isinstance(narratives_raw, str) else (narratives_raw or {})
@@ -154,6 +155,13 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
                     sc_raw = latest.get("state_changes")
                     sc = _json.loads(sc_raw) if isinstance(sc_raw, str) else (sc_raw or {})
                     room._last_state_changes = sc
+
+                if not getattr(room, "_last_npc_actions", None):
+                    npc_raw = narratives.get("_npc_actions") if narratives else None
+                    if isinstance(npc_raw, str):
+                        room._last_npc_actions = _json.loads(npc_raw)
+                    elif isinstance(npc_raw, list):
+                        room._last_npc_actions = npc_raw
         except Exception:
             pass
 

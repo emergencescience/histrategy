@@ -376,6 +376,18 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
         status["narrative"] = narratives.get("global", "")
         # NPC decisions are private per faction
         npc_actions = getattr(room, "_last_npc_actions", [])
+        if not npc_actions:
+            # Fallback: extract from narratives that were saved to quarter_turn
+            npc_raw = narratives.get("_npc_actions")
+            if isinstance(npc_raw, str):
+                try:
+                    npc_actions = _json.loads(npc_raw)
+                except Exception:
+                    npc_actions = []
+            elif isinstance(npc_raw, list):
+                npc_actions = npc_raw
+            if npc_actions:
+                room._last_npc_actions = npc_actions  # cache for next call
         if npc_actions:
             status["npc_actions"] = npc_actions
 
@@ -396,7 +408,9 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
                         "year": row.get("year", 207),
                         "season": row.get("season", "春"),
                         "narrative": narratives.get("global", ""),  # unified
-                        "npc_decisions": {},  # not in quarter_turn table
+                        "npc_decisions": _json.loads(narratives.get("_npc_actions", "[]"))
+                        if isinstance(narratives.get("_npc_actions"), str)
+                        else narratives.get("_npc_actions", []),
                     }
                 )
             # Cache for subsequent calls
@@ -820,6 +834,9 @@ def _resolve_and_advance(room: GameRoom):
                 name = fid
             npc_actions.append(f"{name}: {dr.decision_text[:80]}")
     room._last_npc_actions = npc_actions
+    # Embed npc_actions into narratives so they survive DB reload
+    import json as _json_persist
+    result.narratives["_npc_actions"] = _json_persist.dumps(npc_actions)
 
     # ── Accumulate narrative history for turn replay ──
     if not hasattr(room, "_narrative_history"):
