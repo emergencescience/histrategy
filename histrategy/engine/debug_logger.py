@@ -29,13 +29,9 @@ class TurnLogCollector:
         self,
         session_id: str,
         turn_number: int,
-        orchestrator_url: str = "",
-        jwt_token: str = "",
     ):
         self.session_id = session_id
         self.turn_number = turn_number
-        # orchestrator_url + jwt_token accepted for backward compat but ignored.
-        # Dependency arrow is unilateral: orchestrator → histrategy, never reverse.
         self._llm_calls: list[dict[str, Any]] = []
         self._sim_events: list[dict[str, Any]] = []
 
