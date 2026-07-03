@@ -713,6 +713,7 @@ class GameEngineCore:
             self._set_player_faction_v2(faction_id)
         else:
             self._set_player_faction_v1(faction_id)
+        self.game_started = True
 
     def _set_player_faction_v2(self, faction_id: str) -> None:
         """v2 path: build WorldState from scenario data via ScenarioLoader."""
@@ -737,13 +738,11 @@ class GameEngineCore:
         self.map_engine.load_territories(self.world_state_v2.territories)
         self.char_engine.load_characters(self.world_state_v2.characters)
 
-        self.game_started = True
         self._save_v2()
 
     def _set_player_faction_v1(self, faction_id: str) -> None:
         """v1 path: original faction setup."""
         self.world_state = create_initial_world(faction_id, self.scenario)
-        self.game_started = True
 
         self.legacy_world = GameWorld(scenario=self.scenario)
         self.legacy_world.player_faction_id = faction_id
