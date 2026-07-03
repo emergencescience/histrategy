@@ -51,6 +51,36 @@ INTRO_NARRATIVES_EN: dict[str, str] = {
         "but Antony's legions are marching. The Republic is dying. The only question left: who will "
         "strike the final blow?"
     ),
+    "nanming": (
+        "Spring 1645 AD. Over a year has passed since the Chongzhen Emperor hanged himself on Coal Hill. "
+        "Prince Fu has ascended the throne in Nanjing as the Hongguang Emperor. Yet factional strife "
+        "tears at the court, the four northern garrisons plot their own ambitions, and Qing forces "
+        "occupying Beijing prepare to march south. Shi Kefa commands the defense at Yangzhou — a lone "
+        "pillar. The Southern Ming still holds half the empire, but division and distrust gnaw at its "
+        "foundations."
+    ),
+    "qing": (
+        "Spring 1645 AD. Regent Dorgon governs from Beijing. The Eight Banners now control Zhili, "
+        "Shanxi, Shaanxi, and Shandong. Wu Sangui's elite Shanhai Pass garrison has pledged "
+        "allegiance to the Qing, becoming the vanguard for the southern campaign. Yet Ming remnants "
+        "regroup in Nanjing, Li Zicheng's peasant army still operates in Sichuan, and the wealthy "
+        "Jiangnan region remains unconquered. Half the empire is won — but the road to unification "
+        "stretches long."
+    ),
+    "nongminjun": (
+        "Spring 1645 AD. Li Zicheng's Shun dynasty has retreated into Sichuan. Beijing was taken "
+        "and lost; Qing forces flood into the Central Plains like a tide. The once-mighty peasant army "
+        "is reduced to remnants, struggling to unite Zhang Xianzhong's old turf with Li Zicheng's "
+        "survivors. The Tibetan Plateau to the west, the Southern Ming to the south, the Qing to "
+        "the north — survival is the first priority."
+    ),
+    "zheng": (
+        "Spring 1645 AD. Zheng Zhilong controls the coasts of Fujian and Guangdong. He commands East "
+        "Asia's most powerful maritime force — the Zheng merchant fleet boasts over a thousand warships "
+        "and trading vessels, monopolizing sea trade between China, Japan, and Southeast Asia. But the "
+        "flames of war in the north will eventually reach the south. Zheng Zhilong faces a choice: "
+        "remain the overlord of the seas, or enter the game of continental power?"
+    ),
 }
 
 INTRO_NARRATIVES_ZH: dict[str, dict[str, str]] = {
