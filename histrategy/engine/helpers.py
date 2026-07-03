@@ -412,6 +412,240 @@ EARLY_TURNS_SUGGESTIONS = {
             },
         },
     },
+    "nanming": {
+        "nanming": {
+            1: {
+                "zh": [
+                    "【整肃朝纲】召集内阁廷议，命马士英与东林党和解，调史可法督师江北四镇",
+                    "【布置江淮防线】命史可法赴扬州整编刘泽清、高杰、黄得功、刘良佐四镇兵马",
+                    "【拉拢左良玉】遣使赴武昌以楚王爵位安抚左良玉，确保上江不叛",
+                    "【安抚江南士绅】降低苏松常镇四府赋税，开江南恩科招揽士心",
+                ],
+                "en": [
+                    "【Court Reform】Convene the Grand Council, order Ma Shiying to reconcile with the Donglin faction; dispatch Shi Kefa to Jiangbei",
+                    "【Yangtze–Huai Defense】Send Shi Kefa to Yangzhou to reorganize the Four Garrisons of Jiangbei",
+                    "【Secure Zuo Liangyu】Send envoys to Wuchang offering princely titles to keep Zuo Liangyu loyal",
+                    "【Tax Relief】Lower taxes across Jiangnan prefectures and open civil service examinations to win scholar support",
+                ],
+            },
+            2: {
+                "zh": [
+                    "【整顿漕运】疏通京杭大运河，确保江南粮饷北运供应前线",
+                    "【整军经武】在南京设军器局打造火器，命各镇加紧操练",
+                    "【联清拒闯？】内阁激烈辩论：联清剿闯还是联闯抗清，必须定策",
+                    "【外交郑氏】遣使赴闽，以海防总兵官衔拉拢郑芝龙，合击清军水师",
+                ],
+                "en": [
+                    "【Secure the Canal】Clear the Grand Canal to ensure Jiangnan grain reaches the front lines",
+                    "【Arms Industry】Establish an armory in Nanjing; mass-produce firearms for the garrisons",
+                    "【Grand Strategy Debate】The court is divided — ally with Qing against the peasant rebels, or ally with the rebels against Qing?",
+                    "【Court the Zhengs】Dispatch envoys to Fujian offering Zheng Zhilong an admiralty to unite against Qing naval forces",
+                ],
+            },
+            3: {
+                "zh": [
+                    "【扬州告急】清军多铎部兵临扬州城下，史可法血书求援，命各镇火速增援",
+                    "【迁都之议】朝中分为两派：留守南京决战还是迁都杭州或福州以保存社稷",
+                    "【调左良玉东下】以'清君侧'之名调左良玉大军沿江东下，实则避其与清军合流",
+                    "【郑氏勤王】急诏郑芝龙率水师溯江而上，在长江口截击清军渡江船队",
+                ],
+                "en": [
+                    "【Yangzhou Under Siege】Dodo's Qing forces surround Yangzhou; Shi Kefa writes in blood for reinforcements",
+                    "【Relocate the Court?】The court splits — defend Nanjing to the death, or evacuate to Hangzhou or Fuzhou?",
+                    "【Summon Zuo Liangyu】Call Zuo Liangyu's army eastward down the Yangtze under the pretext of 'purging corrupt ministers'",
+                    "【Naval Reinforcement】Issue an urgent edict to Zheng Zhilong — sail up the Yangtze and intercept Qing crossing fleets",
+                ],
+            },
+            4: {
+                "zh": [
+                    "【扬州十日】扬州城破，史可法殉国。清军屠城十日，江南震怖。必须决断",
+                    "【南京保卫战】或御驾亲征激励士气，或君臣南逃避难——弘光朝的最后一搏",
+                    "【求和与死战】多尔衮遣使劝降：称臣纳贡可保社稷。是降是战，三思而行",
+                    "【联合农民军残部】李自成余部已退入湖南，遣使联络，共抗清军南下",
+                ],
+                "en": [
+                    "【Fall of Yangzhou】The city falls; Shi Kefa dies a martyr. Qing forces massacre the city for ten days — all Jiangnan trembles",
+                    "【Defend or Flee】Either the Hongguang Emperor leads the defense of Nanjing in person, or the court flees south — the dynasty's final gamble",
+                    "【Surrender or Fight】Dorgon sends an envoy: submit as a vassal and the dynasty survives. Choose carefully",
+                    "【Rebel Alliance】Li Zicheng's scattered forces have retreated into Hunan — send envoys to unite against the Qing advance",
+                ],
+            },
+        },
+        "qing": {
+            1: {
+                "zh": [
+                    "【三路南征】命多铎出潼关攻河南，阿济格出居庸关经山西攻陕西，豪格镇守北京",
+                    "【招降汉臣】发布《登极诏》宣称'灭流寇而安天下'，号召前明官员归附",
+                    "【稳固京畿】圈地安置八旗将士家眷于北京周边，整顿顺天府治安收拢民心",
+                    "【吴三桂封王】册封吴三桂为平西王，命其率关宁铁骑为南征先锋",
+                ],
+                "en": [
+                    "【Three-Pronged Invasion】Order Dodo through Tong Pass into Henan, Ajige through Juyong Pass into Shaanxi, Haoge to hold Beijing",
+                    "【Recruit Han Officials】Issue the Ascension Edict — 'Exterminate the rebels to pacify the realm'; call on former Ming officials to submit",
+                    "【Secure the Capital】Allot lands around Beijing for the Eight Banners families; restore order in the metropolitan prefecture",
+                    "【Ennoble Wu Sangui】Invest Wu Sangui as Prince Who Pacifies the West; order his elite Ningyuan cavalry to lead the southern campaign",
+                ],
+            },
+            2: {
+                "zh": [
+                    "【攻取山东】命济尔哈朗率六万铁骑出直隶取山东，招降山东州县官吏",
+                    "【西追闯贼】命阿济格吴三桂追击李自成残部入陕，绝其东山再起之机",
+                    "【剃发令试行】在已占领州县颁布剃发令，'留头不留发，留发不留头'，震慑汉人",
+                    "【试探江南】遣使赴南京以'吊崇祯帝、共讨闯贼'为名，试探南明朝廷虚实",
+                ],
+                "en": [
+                    "【Conquer Shandong】Dispatch Jirgalang with 60,000 cavalry from Zhili into Shandong to subdue prefectural officials",
+                    "【Hunt Li Zicheng】Order Ajige and Wu Sangui to pursue Li Zicheng's remnants into Shaanxi — crush them before they recover",
+                    "【Queue Order】Issue the queue-cutting edict in occupied prefectures: 'Keep your hair, lose your head; keep your head, lose your hair'",
+                    "【Probe Jiangnan】Send envoys to Nanjing under the pretext of 'mourning Chongzhen and hunting the rebels together' — test the Southern Ming",
+                ],
+            },
+            3: {
+                "zh": [
+                    "【围攻扬州】多尔衮命多铎率主力十五万兵临扬州，限期七日破城",
+                    "【招降史可法】多次遣使致书史可法劝降，以高官厚禄相诱，瓦解南明抵抗意志",
+                    "【整编汉军八旗】收编降清的明军将领，组建汉军八旗，以汉制汉",
+                    "【运河封锁】命水师封锁京杭运河，断绝南明漕运补给线",
+                ],
+                "en": [
+                    "【Siege of Yangzhou】Dorgon orders Dodo with 150,000 troops to surround Yangzhou — the city must fall within seven days",
+                    "【Demand Shi Kefa's Surrender】Send repeated letters to Shi Kefa offering high rank and riches — break the Ming resistance's spirit",
+                    "【Form Han Banners】Integrate surrendered Ming generals into the Han Eight Banners — use Han to subdue Han",
+                    "【Blockade the Canal】Order the navy to blockade the Grand Canal, cutting off Southern Ming's grain supply line",
+                ],
+            },
+            4: {
+                "zh": [
+                    "【扬州屠城】城破后纵兵屠掠十日以震慑江南，'扬州十日'永载史册",
+                    "【渡江作战】在瓜洲渡口集结战船，乘南明内讧之机强渡长江",
+                    "【招抚江南】预先准备安民告示，承诺'官仍其职、民复其业'以减少抵抗",
+                    "【南京受降】遣使赴南京诱降弘光朝臣，以'保全宗庙、不杀宗室'为条件",
+                ],
+                "en": [
+                    "【Yangzhou Massacre】After breaching the walls, allow ten days of slaughter to terrorize Jiangnan into submission",
+                    "【Cross the Yangtze】Assemble warships at Guazhou Ferry — exploit the Southern Ming's internal strife to force a crossing",
+                    "【Pacify the South】Prepare proclamations promising officials keep their posts and civilians keep their land — minimize resistance",
+                    "【Demand Nanjing's Surrender】Send envoys to Nanjing offering to spare the imperial temples and Ming princes — on condition of submission",
+                ],
+            },
+        },
+        "nongminjun": {
+            1: {
+                "zh": [
+                    "【收编残部】李自成退至襄阳后收拢各地溃散义军，重整大顺政权旗号",
+                    "【据守襄阳】加固襄阳城防，以汉水为屏障抵御清军南下和南明西进",
+                    "【联明抗清试探】遣密使赴南京试探联合抗清——但南明视尔为'弑君之贼'，谈判极难",
+                    "【分兵入蜀】命部将率偏师入川联络张献忠，建立川陕根据地互为犄角",
+                ],
+                "en": [
+                    "【Rally the Scattered】Li Zicheng regroups broken units at Xiangyang; raise the Shun dynasty banner once more",
+                    "【Hold Xiangyang】Fortify Xiangyang's walls, use the Han River as a barrier against both Qing and Southern Ming advances",
+                    "【Probe Ming Alliance】Send secret envoys to Nanjing — but the Southern Ming sees you as the 'emperor-killer'; negotiations will be brutal",
+                    "【Send Forces to Sichuan】Dispatch a detachment into Sichuan to link up with Zhang Xianzhong; establish a Shaanxi–Sichuan base",
+                ],
+            },
+            2: {
+                "zh": [
+                    "【大西建国】张献忠在成都正式称帝建国号'大西'，改元大顺，与李自成互为呼应",
+                    "【征粮养兵】在控制区实行'追赃助饷'，没收官绅田产充军，但小心激起民变",
+                    "【防御清军西进】阿济格吴三桂已入陕，部署汉中防线阻止清军南下四川",
+                    "【春耕屯田】在襄阳周边组织军屯，'高筑墙、广积粮'，准备长期对抗",
+                ],
+                "en": [
+                    "【Great Western Kingdom】Zhang Xianzhong proclaims himself emperor in Chengdu — the 'Great Western' dynasty is born, echoing Li Zicheng",
+                    "【Forced Requisitions】Seize gentry estates and granaries to feed the army, but peasant backlash could undo everything",
+                    "【Block Qing's Western Push】Ajige and Wu Sangui have entered Shaanxi; deploy defenses at Hanzhong to stop Qing from entering Sichuan",
+                    "【Garrison Farms】Organize military farms around Xiangyang — 'build high walls, stockpile grain' for the long war ahead",
+                ],
+            },
+            3: {
+                "zh": [
+                    "【李过守襄阳】李自成已死，侄李过（李锦）继统大顺军，死守襄阳",
+                    "【张献忠抗清】清军豪格部由陕西入川，张献忠率军迎击于川北",
+                    "【转移根据地】若襄阳不守则西撤入川与张献忠合流，或南下湖南开辟新区",
+                    "【联络南明残部】局势危急——何腾蛟在湖南拥立永历帝，或可暂时联手",
+                ],
+                "en": [
+                    "【Li Guo Defends Xiangyang】Li Zicheng is dead; his nephew Li Guo commands the Shun army — hold Xiangyang at all costs",
+                    "【Zhang Xianzhong Resists】Haoge's Qing forces enter Sichuan from Shaanxi; Zhang Xianzhong marches north to intercept",
+                    "【Relocate the Base】If Xiangyang falls, retreat west into Sichuan to join Zhang Xianzhong, or push south into Hunan",
+                    "【Contact Ming Remnants】Desperate times — He Tengjiao in Hunan has proclaimed the Yongli Emperor; a temporary alliance may be possible",
+                ],
+            },
+            4: {
+                "zh": [
+                    "【川北血战】张献忠在凤凰山中箭身亡（或：成功伏击清军），大西军由李定国孙可望接管",
+                    "【李过南下】襄阳失守，李过率余部沿汉水南下进入湖南，与何腾蛟联防",
+                    "【联合抗清前线】李过与南明何腾蛟在湖南组成'十三镇'联军，开创农民军与明军合作先例",
+                    "【入湘扎根】在湖南推行'均田免赋'政策，收拢流民充实兵力",
+                ],
+                "en": [
+                    "【Bloody Northern Sichuan】Zhang Xianzhong falls to an arrow at Fenghuang Mountain — Li Dingguo and Sun Kewang take command of the Great Western Army",
+                    "【Li Guo Retreats South】Xiangyang is lost; Li Guo leads remnants down the Han River into Hunan to join He Tengjiao's defense",
+                    "【United Front】Li Guo and Ming loyalist He Tengjiao form the 'Thirteen Garrisons' coalition in Hunan — rebels and Ming forces fighting side by side",
+                    "【Root in Hunan】Implement 'equal field, tax exempt' policies in Hunan; absorb refugees to swell the ranks",
+                ],
+            },
+        },
+        "zheng": {
+            1: {
+                "zh": [
+                    "【扩建水师】在泉州、福州、厦门大造海船，招募沿海渔民入伍，打造东亚最强舰队",
+                    "【控制海上贸易】垄断福建广东海上丝路贸易，征收'海商税'充实府库",
+                    "【与南明结盟】遣使赴南京表示臣服弘光朝廷，换取'福建总兵'合法名分",
+                    "【拒清拉拢】清廷密使来闽招降——拖延而不拒，观望天下大势",
+                ],
+                "en": [
+                    "【Expand the Fleet】Build warships at Quanzhou, Fuzhou, and Xiamen; recruit coastal fishermen to forge East Asia's strongest navy",
+                    "【Monopolize Maritime Trade】Seize control of the Fujian–Guangdong Silk Road sea lanes; impose merchant taxes to fill the treasury",
+                    "【Pledge to the Ming】Send envoys to Nanjing swearing fealty to the Hongguang court in exchange for the official title 'Fujian Commander'",
+                    "【Stall Qing Envoys】Qing secret emissaries arrive in Fujian with offers — stall without refusing; watch how the wind blows",
+                ],
+            },
+            2: {
+                "zh": [
+                    "【经略台湾】遣水师进驻台湾大员（安平），设立屯垦据点作为家族退路",
+                    "【与荷兰贸易】与盘踞台湾南部的荷兰东印度公司谈判，以生丝瓷器换取火器火炮",
+                    "【勤王准备】清军南逼日急，命郑彩、郑联整合水师备战，随时准备北上勤王",
+                    "【招揽士人】在福建开设'储贤馆'，招揽不愿降清的江南士大夫入幕",
+                ],
+                "en": [
+                    "【Fortify Taiwan】Send the fleet to occupy Tayouan (Anping) in Taiwan; establish farming colonies as the family's fallback",
+                    "【Trade with the Dutch】Negotiate with the Dutch East India Company in southern Taiwan — silk and porcelain for firearms and cannon",
+                    "【Prepare to Save the Throne】Qing forces press south; order Zheng Cai and Zheng Lian to ready the fleet for a northern expedition",
+                    "【Recruit Ming Scholars】Open a 'Talent Pavilion' in Fujian to attract Jiangnan scholar-officials who refuse to serve the Qing",
+                ],
+            },
+            3: {
+                "zh": [
+                    "【北上勤王】郑芝龙亲率水师三千艘沿东海北上，进入长江口威慑清军",
+                    "【控制长江口】在崇明岛、舟山群岛建立水寨，封锁清军渡江南下的海上通道",
+                    "【隆武即位】唐王朱聿键逃至福建，郑芝龙在福州拥立其为隆武帝——挟天子以令诸侯",
+                    "【南北通商】趁天下大乱维持福建中立通商地位，清、明双方的生意都要做",
+                ],
+                "en": [
+                    "【Sail North】Zheng Zhilong personally leads 3,000 warships up the East China Sea to the Yangtze estuary, intimidating Qing forces",
+                    "【Control the Estuary】Build naval forts on Chongming Island and the Zhoushan Archipelago; blockade Qing's sea route across the Yangtze",
+                    "【Enthrone Longwu】The Tang Prince Zhu Yujian flees to Fujian; Zheng Zhilong crowns him the Longwu Emperor in Fuzhou — control the throne, command the realm",
+                    "【Trade with Both Sides】In the chaos, maintain Fujian as a neutral trading hub — do business with Qing and Ming alike",
+                ],
+            },
+            4: {
+                "zh": [
+                    "【隆武北伐筹备】隆武帝锐意北伐复兴明室，郑芝龙暗阻之——保存实力为上",
+                    "【海上帝国】正式建立以福建为核心、北至日本南至马六甲的海上贸易帝国",
+                    "【清廷招抚】清廷许以'闽粤王'之爵——降清则保富贵，但一旦剃发则失民心",
+                    "【建设厦门基地】在厦门鼓浪屿修建水师大营和军械库，打造永不陷落的海上堡垒",
+                ],
+                "en": [
+                    "【Longwu's Northern Crusade】The Longwu Emperor burns to retake the north; Zheng Zhilong quietly stalls — preserving strength comes first",
+                    "【Maritime Empire】Formally build a sea-trade empire centered on Fujian, reaching from Japan in the north to Malacca in the south",
+                    "【Qing's Offer】Qing offers the title 'Prince of Fujian and Guangdong' — submit and keep your wealth, but shaving your head means losing the people",
+                    "【Fortify Xiamen】Build the naval headquarters and armory on Gulangyu Island opposite Xiamen — an unconquerable fortress at sea",
+                ],
+            },
+        },
+    },
 }
 
 # ── Backward compat alias ──
