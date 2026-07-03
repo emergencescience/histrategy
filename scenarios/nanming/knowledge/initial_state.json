@@ -11,7 +11,12 @@
       "name_en": "Southern Ming",
       "ruler": "hongguang",
       "capital": "nanjing",
-      "territories": ["nanjing", "zhejiang", "jiangxi", "huguang", "shandong", "henan"],
+      "territories": [
+        "nanjing",
+        "zhejiang",
+        "jiangxi",
+        "huguang"
+      ],
       "treasury": 50000,
       "food": 45000,
       "strength": 80000,
@@ -43,7 +48,15 @@
       "name_en": "Qing Dynasty",
       "ruler": "duoduo",
       "capital": "beijing",
-      "territories": ["beijing", "shengjing", "shanxi", "shaanxi", "gansu"],
+      "territories": [
+        "beijing",
+        "shengjing",
+        "shandong",
+        "shanxi",
+        "henan",
+        "shaanxi",
+        "gansu"
+      ],
       "treasury": 40000,
       "food": 35000,
       "strength": 120000,
@@ -74,7 +87,10 @@
       "name_en": "Peasant Army",
       "ruler": "lizicheng",
       "capital": "xiangyang",
-      "territories": ["xiangyang", "sichuan"],
+      "territories": [
+        "xiangyang",
+        "sichuan"
+      ],
       "treasury": 8000,
       "food": 10000,
       "strength": 90000,
@@ -105,7 +121,10 @@
       "name_en": "Zheng Clan",
       "ruler": "zhengchenggong",
       "capital": "fuzhou",
-      "territories": ["fujian", "guangdong"],
+      "territories": [
+        "fujian",
+        "guangdong"
+      ],
       "treasury": 35000,
       "food": 12000,
       "strength": 35000,
@@ -130,25 +149,6 @@
         "development": 0.7,
         "mercy": 0.5
       }
-    },
-    "other": {
-      "name": "其他势力",
-      "name_en": "Minor Powers",
-      "ruler": null,
-      "capital": "",
-      "territories": ["guangxi", "yunnan", "taiwan"],
-      "treasury": 5000,
-      "food": 5000,
-      "strength": 10000,
-      "prestige": 15,
-      "tax_rate": 0.2,
-      "morale_actual": 40,
-      "tech_levels": {
-        "agriculture": 1,
-        "commerce": 1,
-        "military": 1
-      },
-      "is_active_manually": true
     }
   },
   "territories": {
