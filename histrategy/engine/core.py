@@ -280,7 +280,6 @@ class GameEngineCore:
 
         # v1 compat: not used in v2 mode
         self.world_state = None
-        self._legacy_world = None
         self.sim_engine = None
 
         self._setup_rules_logging()
