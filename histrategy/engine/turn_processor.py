@@ -681,7 +681,6 @@ class TurnProcessorMixin:
             _debug_log = TurnLogCollector(
                 _session_id,
                 ws.turn_number + 1,
-                jwt_token=getattr(self, "_debug_jwt", ""),
             )
             _debug_log.event(
                 "turn_start",

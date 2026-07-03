@@ -702,10 +702,9 @@ class GameEngineCore:
         self.legacy_world.player_faction_id = faction_id
 
     # ─── Intro Scene ──────────────────────────────────────────
-    def set_debug_context(self, session_id: str, jwt_token: str = "") -> None:
-        """Set session context for Postgres debug logging (called from API layer)."""
+    def set_debug_context(self, session_id: str) -> None:
+        """Set session context for debug logging (called from API layer)."""
         self._debug_session_id = session_id
-        self._debug_jwt = jwt_token
         import logging
 
         short_sid = session_id[:12] if len(session_id) > 12 else session_id
