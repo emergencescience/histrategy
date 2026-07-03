@@ -11,6 +11,7 @@ Offline fallback returns deterministic text when no LLM key is available.
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -57,10 +58,11 @@ class NarrativeEngine:
     Offline fallback generates deterministic text when no LLM key is available.
     """
 
-    def __init__(self, llm_adapter: LLMAdapter | None = None, language: str = "zh"):
+    def __init__(self, llm_adapter: LLMAdapter | None = None, language: str = "zh", scenario: str = ""):
         self.llm = llm_adapter
         self.llm_available = llm_adapter is not None and llm_adapter.is_available
         self._language = language  # "zh" or "en"
+        self._scenario = scenario  # e.g. "three-kingdoms", "nanming", "rome-triumvirate"
 
         # Initialize RAG
         self._knowledge_path = _resolve_knowledge_path()
@@ -84,6 +86,64 @@ class NarrativeEngine:
     @lang.setter
     def lang(self, value: str):
         self._language = value
+
+    @property
+    def scenario(self) -> str:
+        return self._scenario
+
+    @scenario.setter
+    def scenario(self, value: str):
+        self._scenario = value
+
+    def _get_narrative_system_prompt(self, is_en: bool = False) -> str:
+        """Load the narrative system prompt, preferring a scenario-specific one."""
+        scenario = self._scenario
+        # Try scenario-specific prompts first
+        if scenario:
+            candidates = []
+            if is_en:
+                candidates = [
+                    Path(f"scenarios/{scenario}/prompts/narrative_en.md"),
+                    Path(f"scenarios/{scenario}/prompts/narrative.md"),
+                ]
+            else:
+                candidates = [
+                    Path(f"scenarios/{scenario}/prompts/narrative_zh.md"),
+                    Path(f"scenarios/{scenario}/prompts/narrative.md"),
+                ]
+            for p in candidates:
+                if p.is_file():
+                    return p.read_text(encoding="utf-8")
+
+        # Fall back to default prompts
+        if is_en:
+            return NARRATIVE_SYSTEM_EN if NARRATIVE_SYSTEM_EN else NARRATIVE_SYSTEM
+        return NARRATIVE_SYSTEM
+
+    def _get_global_narrative_system_prompt(self, is_en: bool = False) -> str:
+        """Load the global narrative system prompt, preferring a scenario-specific one."""
+        from .prompt_loader import GLOBAL_NARRATIVE_SYSTEM, GLOBAL_NARRATIVE_SYSTEM_EN
+
+        scenario = self._scenario
+        if scenario:
+            candidates = []
+            if is_en:
+                candidates = [
+                    Path(f"scenarios/{scenario}/prompts/global_narrative_en.md"),
+                    Path(f"scenarios/{scenario}/prompts/global_narrative.md"),
+                ]
+            else:
+                candidates = [
+                    Path(f"scenarios/{scenario}/prompts/global_narrative_zh.md"),
+                    Path(f"scenarios/{scenario}/prompts/global_narrative.md"),
+                ]
+            for p in candidates:
+                if p.is_file():
+                    return p.read_text(encoding="utf-8")
+
+        if is_en:
+            return GLOBAL_NARRATIVE_SYSTEM_EN if GLOBAL_NARRATIVE_SYSTEM_EN else GLOBAL_NARRATIVE_SYSTEM
+        return GLOBAL_NARRATIVE_SYSTEM
 
     @property
     def rag_available(self) -> bool:
@@ -123,7 +183,7 @@ class NarrativeEngine:
         )
 
         messages = [
-            {"role": "system", "content": NARRATIVE_SYSTEM},
+            {"role": "system", "content": self._get_narrative_system_prompt()},
             {"role": "user", "content": context},
         ]
 
@@ -180,7 +240,7 @@ class NarrativeEngine:
         if macro_delta:
             lines.append(f"Macro adjustments: {macro_delta}")
 
-        system_prompt = NARRATIVE_SYSTEM_EN if self._language == "en" else NARRATIVE_SYSTEM
+        system_prompt = self._get_narrative_system_prompt(is_en=(self._language == "en"))
         if self._language == "en":
             lines.append("\nIMPORTANT: Write the entire narrative in English.")
         messages = [
@@ -214,9 +274,7 @@ class NarrativeEngine:
             return self._offline_global_narrative(ws, faction_decisions)
 
         is_en = self._language == "en"
-        from .prompt_loader import GLOBAL_NARRATIVE_SYSTEM, GLOBAL_NARRATIVE_SYSTEM_EN
-
-        system_prompt = GLOBAL_NARRATIVE_SYSTEM_EN if is_en else GLOBAL_NARRATIVE_SYSTEM
+        system_prompt = self._get_global_narrative_system_prompt(is_en)
 
         # Build context
         lines: list[str] = []
@@ -351,7 +409,19 @@ class NarrativeEngine:
     ) -> str:
         """Build a structured text context from a TurnResult for LLM input."""
         lines: list[str] = []
-        lines.append(f"## 当前时间\n{tr.year}年{tr.season.cn} | 第{tr.turn_number}回合\n")
+
+        # ── Time context with scenario/era awareness ──
+        time_line = f"## 当前时间\n{tr.year}年{tr.season.cn} | 第{tr.turn_number}回合"
+        if self._scenario:
+            scenario_names = {
+                "three-kingdoms": "三國志略（三国时期）",
+                "nanming": "山河鼎革（南明弘光时期）",
+                "rome-triumvirate": "Rome Triumvirate",
+            }
+            sn = scenario_names.get(self._scenario, self._scenario)
+            time_line += f"\n时代背景: {sn}（{tr.year}年）"
+        time_line += "\n"
+        lines.append(time_line)
 
         # Player's original decision — critical for narrative accuracy
         if getattr(tr, "player_decision", ""):
@@ -484,6 +554,42 @@ class NarrativeEngine:
 
         return "\n".join(lines)
 
+    # ── Era formatting (scenario-aware) ────────────────────────
+
+    # Era definitions for known scenarios: (reign_name, base_year)
+    _ERA_MAP: dict[str, tuple[str, int]] = {
+        "three-kingdoms": ("建安", 196),
+        "nanming": ("弘光", 1645),
+    }
+
+    def _format_era_line(self, year: int, season: str) -> str:
+        """Format an era-name line like '建安十二年春，天下纷争未休。'"""
+        era_info = self._ERA_MAP.get(self._scenario)
+        if era_info:
+            reign_name, base_year = era_info
+            era_year = year - base_year + 1  # era years are 1-indexed
+            if era_year < 1:
+                era_str = f"{reign_name}前{abs(era_year - 1)}年"
+            elif era_year == 1:
+                era_str = f"{reign_name}元年"
+            else:
+                era_str = f"{reign_name}{self._number_to_chinese(era_year)}年"
+            return f"{era_str}{season}，天下纷争未休。"
+        return f"{year}年{season}，天下纷争未休。"
+
+    @staticmethod
+    def _number_to_chinese(n: int) -> str:
+        """Convert a number < 100 to Chinese numerals (e.g. 12 -> 十二)."""
+        if n < 1 or n >= 100:
+            return str(n)
+        digits = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"]
+        tens_digit = ["", "十", "二十", "三十", "四十", "五十", "六十", "七十", "八十", "九十"]
+        if n < 10:
+            return digits[n]
+        t = n // 10
+        u = n % 10
+        return tens_digit[t] + digits[u]
+
     def _offline_narrative(self, tr: TurnResult) -> str:
         """Deterministic offline narrative from TurnResult data."""
         parts: list[str] = []
@@ -496,7 +602,8 @@ class NarrativeEngine:
             parts.append(f"Year {tr.year}, {tr.season.cn} — the realm remains in turmoil.")
         else:
             parts.append(f"### {tr.year}年{tr.season.cn} · 大事纪")
-            parts.append(f"建安{tr.year - 196}年{tr.season.cn}，天下纷争未休。")
+            era_line = self._format_era_line(tr.year, tr.season.cn)
+            parts.append(era_line)
 
         # Climate
         not_normal = {tid: ev for tid, ev in tr.climate_events.items() if ev.value != "normal"}

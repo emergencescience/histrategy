@@ -68,7 +68,8 @@ class DirectEngine:
             if hasattr(self._engine, "narrative_engine") and self._engine.narrative_engine:
                 from histrategy.llm.narrative import NarrativeEngine
 
-                self._engine.narrative_engine = NarrativeEngine(llm, language=lang)
+                scenario = getattr(self._engine, "scenario", "") or getattr(self._engine, "_scenario", "")
+                self._engine.narrative_engine = NarrativeEngine(llm, language=lang, scenario=scenario)
         self._game_id = self._engine.world_state_v2.player_faction_id if self._engine._use_v2 else "local"
 
     @staticmethod
@@ -239,7 +240,8 @@ class DirectEngine:
             from histrategy.llm.narrative import NarrativeEngine
 
             if hasattr(engine, "narrative_engine"):
-                engine.narrative_engine = NarrativeEngine(llm, language=lang)
+                scenario = getattr(engine, "scenario", "")
+                engine.narrative_engine = NarrativeEngine(llm, language=lang, scenario=scenario)
         instance = cls.__new__(cls)
         instance._engine = engine
         instance._game_id = engine.world_state_v2.player_faction_id

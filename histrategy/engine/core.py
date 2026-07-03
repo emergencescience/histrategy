@@ -216,7 +216,7 @@ class GameEngineCore:
             from ..llm.narrative import NarrativeEngine
 
             lang = getattr(self, "_scenario_language", "zh")
-            self.narrative_engine = NarrativeEngine(llm, language=lang)
+            self.narrative_engine = NarrativeEngine(llm, language=lang, scenario=self.scenario)
 
             # IntentParser: use fast model in v3 mode for speed
             if self._use_v3:
