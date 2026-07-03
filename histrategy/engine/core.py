@@ -742,7 +742,7 @@ class GameEngineCore:
 
     def _set_player_faction_v1(self, faction_id: str) -> None:
         """v1 path: original faction setup."""
-        self.world_state = create_initial_world(faction_id)
+        self.world_state = create_initial_world(faction_id, self.scenario)
         self.game_started = True
 
         self.legacy_world = GameWorld(scenario=self.scenario)

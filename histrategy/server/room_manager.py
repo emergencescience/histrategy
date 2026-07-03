@@ -646,7 +646,7 @@ def _init_world_state(room: GameRoom):
             )
             # Fall through to default Three Kingdoms create_initial_world()
 
-    room.world_state = create_initial_world(player_faction)
+    room.world_state = create_initial_world(player_faction, room.scenario or "three-kingdoms")
     if room.world_state is not None:
         room.year = getattr(room.world_state, "year", 207)
         # Old WorldState (v1) doesn't have 'season' — default to spring

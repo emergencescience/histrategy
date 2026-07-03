@@ -421,11 +421,14 @@ FIRST_TURN_SUGGESTIONS = {
 }
 
 
-def create_initial_world(player_faction_id: str) -> WorldState:
+def create_initial_world(player_faction_id: str, scenario: str = "three-kingdoms") -> WorldState:
     """Create a fresh world state for a new game (v1).
 
     Faction data is loaded from the scenario JSON (e.g. 207_liubei.json)
     rather than hardcoded Python dicts.
+
+    This function is only designed for the Three Kingdoms scenario. Other
+    scenarios are handled by ScenarioLoader in room_manager.py.
     """
     from ..engine.log_exporter import clear_session_log
     from .loader import load_scenario, load_territories
@@ -433,11 +436,11 @@ def create_initial_world(player_faction_id: str) -> WorldState:
     clear_session_log()
 
     state = WorldState()
-    state.scenario = "three-kingdoms"
+    state.scenario = scenario
     state.player_faction_id = player_faction_id
 
-    scenario = load_scenario("three-kingdoms")
-    factions_data = scenario.get("factions", {}) if scenario else {}
+    scenario_data = load_scenario(scenario)
+    factions_data = scenario_data.get("factions", {}) if scenario_data else {}
 
     for fid, fd in factions_data.items():
         state.factions[fid] = FactionState(
@@ -457,7 +460,7 @@ def create_initial_world(player_faction_id: str) -> WorldState:
     import contextlib
 
     with contextlib.suppress(Exception):
-        state.territories = load_territories("three-kingdoms")
+        state.territories = load_territories(scenario)
 
     save_world(state)
     return state
