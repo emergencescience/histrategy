@@ -38,7 +38,7 @@
     "ruler_id": "zhengchenggong",
     "color": "cyan",
     "description": "东亚最强水师，掌控海上贸易。据福建、广东沿海，台湾为退路。陆地战力有限。",
-    "capital": "fuzhou",
+    "capital": "fujian",
     "starting_territories": ["fujian", "guangdong"],
     "strength": 35000, "economy": 70, "morale": 60, "intel_level": 65, "aggression": 30,
     "diplomacy_tendency": "pragmatic"

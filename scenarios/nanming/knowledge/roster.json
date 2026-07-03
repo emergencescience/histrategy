@@ -86,7 +86,7 @@
       "name": "郑成功",
       "alias": "国姓爷",
       "faction": "zheng",
-      "location": "fuzhou",
+      "location": "fujian",
       "birth": 1624,
       "death": 1662,
       "stats": {"leadership": 85, "might": 70, "intelligence": 80, "politics": 70, "charisma": 90},

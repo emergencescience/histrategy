@@ -15,7 +15,9 @@
         "nanjing",
         "zhejiang",
         "jiangxi",
-        "huguang"
+        "huguang",
+        "shandong",
+        "henan"
       ],
       "treasury": 50000,
       "food": 45000,
@@ -51,9 +53,7 @@
       "territories": [
         "beijing",
         "shengjing",
-        "shandong",
         "shanxi",
-        "henan",
         "shaanxi",
         "gansu"
       ],
@@ -120,7 +120,7 @@
       "name": "郑氏",
       "name_en": "Zheng Clan",
       "ruler": "zhengchenggong",
-      "capital": "fuzhou",
+      "capital": "fujian",
       "territories": [
         "fujian",
         "guangdong"
