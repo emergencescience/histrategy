@@ -38,7 +38,7 @@ from histrategy_engine import (
 log_dir = os.path.join(os.path.dirname(__file__), "..", "logs")
 os.makedirs(log_dir, exist_ok=True)
 
-KNOWLEDGE_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "histrategy-knowledge")
+KNOWLEDGE_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "scenarios", "three-kingdoms", "knowledge")
 
 
 def header(text: str) -> str:

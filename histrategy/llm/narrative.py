@@ -25,15 +25,22 @@ from .prompt_loader import NARRATIVE_SYSTEM, NARRATIVE_SYSTEM_EN, PLAN_SUGGESTIO
 
 
 def _resolve_knowledge_path() -> str:
+    """Find the scenario knowledge directory (three-kingdoms)."""
+    narrative_dir = os.path.dirname(__file__)
     candidates = [
-        os.path.join(os.path.dirname(__file__), "..", "..", "histrategy-knowledge"),
-        os.path.join(os.path.dirname(__file__), "..", "..", "..", "histrategy-knowledge"),
+        os.path.join(narrative_dir, "..", "..", "scenarios", "three-kingdoms", "knowledge"),
+        os.path.join(narrative_dir, "..", "..", "..", "scenarios", "three-kingdoms", "knowledge"),
+        os.path.join(narrative_dir, "..", "..", "histrategy-knowledge"),   # legacy symlink
+        os.path.join(narrative_dir, "..", "..", "..", "histrategy-knowledge"),
     ]
     for p in candidates:
         if os.path.isdir(os.path.join(p, "timeline")):
             return os.path.abspath(p)
-    # Fallback for installed package
-    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "histrategy-knowledge"))
+    # Fallback: return the first candidate that exists
+    for p in candidates:
+        if os.path.isdir(p):
+            return os.path.abspath(p)
+    return os.path.abspath(os.path.join(narrative_dir, "..", "..", "scenarios", "three-kingdoms", "knowledge"))
 
 
 # ─── Narrative generation prompt (read-only, no state mutation) ──

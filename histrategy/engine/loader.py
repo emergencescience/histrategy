@@ -1,7 +1,7 @@
 """
 Knowledge data loader for v2 engine integration.
 
-Maps histrategy-knowledge/ JSON data to histrategy_engine.world dataclasses.
+Maps scenarios/{id}/knowledge/ JSON data to histrategy_engine.world dataclasses.
 
 .. deprecated::
     Prefer :class:`histrategy.engine.scenario_loader.ScenarioLoader` for new code.
@@ -44,17 +44,25 @@ TERRAIN_MAP: dict[str, TerrainType] = {
 }
 
 
-def resolve_knowledge_path() -> str:
-    """Find the histrategy-knowledge directory."""
+def resolve_knowledge_path(scenario_id: str = "three-kingdoms") -> str:
+    """Find the knowledge directory for a given scenario.
+
+    Resolves to scenarios/{scenario_id}/knowledge/ (canonical).
+    The histrategy-knowledge/ symlink at repo root points here for
+    backward compatibility.
+    """
+    loader_dir = Path(__file__).resolve().parent
     candidates = [
-        os.path.join(os.path.dirname(__file__), "..", "..", "histrategy-knowledge"),
-        os.path.join(os.path.dirname(__file__), "..", "..", "..", "histrategy-knowledge"),
+        loader_dir / ".." / ".." / "scenarios" / scenario_id / "knowledge",
+        loader_dir / ".." / ".." / ".." / "scenarios" / scenario_id / "knowledge",
+        loader_dir / ".." / ".." / "histrategy-knowledge",   # legacy symlink
+        loader_dir / ".." / ".." / ".." / "histrategy-knowledge",
     ]
     for p in candidates:
-        norm = os.path.abspath(p)
+        norm = os.path.abspath(str(p))
         if os.path.isdir(norm):
             return norm
-    raise FileNotFoundError("Cannot locate histrategy-knowledge/")
+    raise FileNotFoundError(f"Cannot locate scenarios/{scenario_id}/knowledge/")
 
 
 def _find_scenarios_root() -> Path:
@@ -160,14 +168,30 @@ def load_territories(
     return territories
 
 
-def load_characters(knowledge_path: str | None = None) -> dict[str, Character]:
-    """Load character data from knowledge base."""
-    if knowledge_path is None:
-        knowledge_path = resolve_knowledge_path()
+def load_characters(knowledge_path: str | None = None, scenario_id: str = "three-kingdoms") -> dict[str, Character]:
+    """Load character data from knowledge base.
 
-    char_path = os.path.join(knowledge_path, "characters", "207_roster.json")
-    if not os.path.isfile(char_path):
-        return _default_characters()
+    Reads from scenarios/{scenario_id}/knowledge/roster.json or falls back
+    to the default 207 character set.
+    """
+    if knowledge_path is None:
+        knowledge_path = resolve_knowledge_path(scenario_id)
+
+    # Try roster.json first (new scenario format), then 207_roster.json (legacy)
+    for fname in ("roster.json", "207_roster.json"):
+        char_path = os.path.join(knowledge_path, fname)
+        if os.path.isfile(char_path):
+            break
+    else:
+        # Try characters subdirectory (old format)
+        char_path = os.path.join(knowledge_path, "characters", "207_roster.json")
+        if not os.path.isfile(char_path):
+            # Also try legacy path from old histrategy-knowledge/
+            legacy = os.path.join(knowledge_path, "..", "..", "histrategy-knowledge", "characters", "207_roster.json")
+            if os.path.isfile(legacy):
+                char_path = os.path.abspath(legacy)
+            else:
+                return _default_characters()
 
     with open(char_path) as f:
         data = json.load(f)
@@ -350,11 +374,19 @@ def load_scenario(
     scenario_id: str,
     knowledge_path: str | None = None,
 ) -> dict | None:
-    """Load a scenario definition from knowledge base."""
-    if knowledge_path is None:
-        knowledge_path = resolve_knowledge_path()
+    """Load a scenario definition from knowledge base.
 
-    scenario_dir = os.path.join(knowledge_path, "scenarios")
+    Reads from scenarios/{scenario_id}/knowledge/ directory.
+    """
+    if knowledge_path is None:
+        knowledge_path = resolve_knowledge_path(scenario_id)
+
+    # New format: scenarios/<id>/knowledge/<id>_*.json or any .json
+    scenario_dir = os.path.join(knowledge_path, "..", "..", "scenarios", scenario_id, "knowledge")
+    if not os.path.isdir(scenario_dir):
+        # Try the knowledge_path directly (it may already be the scenario knowledge dir)
+        scenario_dir = knowledge_path
+
     if not os.path.isdir(scenario_dir):
         return None
 
@@ -388,7 +420,7 @@ def build_world_state(
     Args:
         player_faction_id: The faction the player controls ("shu", "cao", "wu")
         scenario_id: Scenario identifier (e.g. "three-kingdoms")
-        knowledge_path: Deprecated; path to histrategy-knowledge/
+        knowledge_path: Deprecated; path to scenario knowledge
 
     Returns:
         Fully initialized WorldState ready for engine use.
@@ -404,7 +436,7 @@ def build_world_state(
         # fully-inline legacy path below.
         pass
 
-    # ── fully-inline legacy fallback (kept for histrategy-knowledge/ only) ──
+    # ── fully-inline legacy fallback ──
     if knowledge_path is None:
         knowledge_path = resolve_knowledge_path()
 

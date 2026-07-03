@@ -31,7 +31,7 @@ from histrategy_engine import (
 
 # ─── Knowledge path ───────────────────────────────────────────────
 
-KNOWLEDGE_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "histrategy-knowledge")
+KNOWLEDGE_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "scenarios", "three-kingdoms", "knowledge")
 
 
 # ═══════════════════════════════════════════════════════════════

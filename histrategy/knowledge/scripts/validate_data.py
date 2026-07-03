@@ -17,7 +17,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
-DATA_DIR = Path(__file__).parent.parent / "data"
+ROOT_DIR = Path(__file__).parent.parent.parent
+DATA_DIR = ROOT_DIR / "scenarios" / "three-kingdoms" / "knowledge"
 SCHEMA_FILE = DATA_DIR / "schema.json"
 
 DATA_FILES = ["characters.json", "factions.json", "regions.json", "events.json"]

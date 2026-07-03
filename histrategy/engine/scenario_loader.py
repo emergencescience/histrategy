@@ -19,7 +19,7 @@ standardised scenarios/ directory structure:
             *.yaml             — rule configuration files
 
 For backwards compatibility, when a scenario does not yet have its own data
-files the loader falls back to the old histrategy-knowledge/ directory.
+files the loader falls back to the three-kingdoms scenario knowledge.
 """
 
 from __future__ import annotations
@@ -158,7 +158,7 @@ class ScenarioLoader:
         if init and "factions" in init:
             return _coerce_factions_to_dict(init["factions"])
 
-        # 3) Try old histrategy-knowledge/ scenario JSON
+        # 3) Try legacy scenario JSON via loader
         try:
             from .loader import load_scenario as _legacy_load_scenario
 
@@ -192,7 +192,7 @@ class ScenarioLoader:
             if characters:
                 return characters
 
-        # Fall back to legacy loader (histrategy-knowledge/)
+        # Fall back to legacy loader
         try:
             return _legacy_load_characters()
         except Exception:
@@ -281,7 +281,7 @@ class ScenarioLoader:
         if init and "factions" in init:
             return self._build_from_initial_state(init, player_faction_id, territories, characters)
 
-        # Legacy path: use old histrategy-knowledge/ scenario JSON
+        # Legacy path: build from scenario JSON
         from .loader import load_scenario as _legacy_load_scenario
 
         scenario = _legacy_load_scenario(self.scenario_id)
@@ -362,7 +362,7 @@ class ScenarioLoader:
         characters: dict[str, Character],
         knowledge_path: str,
     ) -> WorldState:
-        """Build WorldState from legacy histrategy-knowledge/ scenario JSON."""
+        """Build WorldState from legacy scenario JSON."""
         # Apply territory overrides from scenario
         if scenario and "territories" in scenario:
             for tid, td in scenario["territories"].items():

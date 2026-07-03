@@ -40,5 +40,6 @@ def collect_dead_characters(world_state: WorldState) -> list[str]:
     return dead
 
 
-# Shared knowledge data directory (was duplicated in world.py and offline_sim.py)
+# Shared knowledge data directory — V1 legacy engine data
+# (schema differs from scenarios/three-kingdoms/knowledge/ — keep separate)
 KNOWLEDGE_DATA_DIR = Path(__file__).parent.parent / "knowledge" / "data"
