@@ -140,15 +140,9 @@ class QuarterlyResolver:
             except Exception as e:
                 logger.warning("[room=%s] BlackSwanInjector failed: %s", room.id, e)
 
-        # ── Step 4: LLM 宏观模拟 (skip if TurnController baseline is sufficient) ──
-        # TurnController already computes food/tax/morale deterministically for all
-        # factions. The macro LLM adds nonlinear effects (battle outcomes, diplomatic
-        # shifts, black swans) but doubles latency. For now, skip it to keep turns
-        # fast (<50s vs 85-110s). The narrative engine (Step 6) provides the LLM
-        # flavor. Re-enable with HISTRATEGY_MACRO=1 when nonlinear layer is needed.
+        # ── Step 4: LLM 宏观模拟 (V3 mode — runs when macro_policy_engine is available) ──
         macro_delta = {}
-        _macro_enabled = os.environ.get("HISTRATEGY_MACRO", "").lower() in ("1", "true", "yes")
-        if _macro_enabled and self.macro_policy_engine and llm:
+        if self.macro_policy_engine and llm:
             try:
                 macro_delta = self._run_macro_simulation(
                     world_state,

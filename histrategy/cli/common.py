@@ -13,8 +13,6 @@ from ..llm.game_master import GameMaster
 
 def is_v2_engine_available() -> bool:
     """Check if the histrategy-engine v2 (histrategy_engine) is installed."""
-    if os.environ.get("HISTRATEGY_FORCE_V1", "").lower() in ("true", "1"):
-        return False
     try:
         from histrategy_engine import TurnController  # noqa: F401
 

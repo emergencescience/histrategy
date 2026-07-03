@@ -12,11 +12,6 @@ def test_cli_playthrough_simulation(tmp_path) -> None:
     # Set isolated data directory using tmp_path to prevent interference with local dev files
     os.environ["HISTRATEGY_DATA_DIR"] = str(tmp_path)
 
-    # Disable force v1 if any to allow engine detection if available
-    orig_v1 = os.environ.get("HISTRATEGY_FORCE_V1")
-    if "HISTRATEGY_FORCE_V1" in os.environ:
-        del os.environ["HISTRATEGY_FORCE_V1"]
-
     try:
         sys.argv = ["histrategy", "--simulate-playthrough", "--loglevel", "DEBUG"]
 
@@ -57,6 +52,3 @@ def test_cli_playthrough_simulation(tmp_path) -> None:
             os.environ["HISTRATEGY_DATA_DIR"] = orig_env
         else:
             os.environ.pop("HISTRATEGY_DATA_DIR", None)
-
-        if orig_v1 is not None:
-            os.environ["HISTRATEGY_FORCE_V1"] = orig_v1

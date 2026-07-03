@@ -64,8 +64,7 @@ class GameEngineCore:
     ):
         self.llm = llm
         self.scenario = scenario
-        force_v1_env = os.environ.get("HISTRATEGY_FORCE_V1", "").lower() in ("true", "1")
-        self._use_v2 = not force_v1 and not force_v1_env
+        self._use_v2 = not force_v1
         self._use_v3 = False
         self._use_macro = False
 

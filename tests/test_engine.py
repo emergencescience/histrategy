@@ -21,7 +21,6 @@ from histrategy.engine.world import GameWorld
 def isolated_save_dir(tmp_path, monkeypatch):
     """Keep tests away from the user's real ~/.histrategy save directory."""
     monkeypatch.setenv("HISTRATEGY_DATA_DIR", str(tmp_path / ".histrategy"))
-    monkeypatch.setenv("HISTRATEGY_FORCE_V1", "true")
     yield
 
 
@@ -84,7 +83,7 @@ class TestSimulation:
         """Game engine advances turns correctly."""
         from histrategy.engine.game import GameEngine
 
-        engine = GameEngine()
+        engine = GameEngine(force_v1=True)
         engine.set_player_faction("cao")
         assert engine.world_state.turn == 0
         engine.process_turn("发展经济")
@@ -108,7 +107,7 @@ class TestFactionSpecificity:
         """Cao Cao intro mentions Cao's advisors."""
         from histrategy.engine.game import GameEngine
 
-        engine = GameEngine()
+        engine = GameEngine(force_v1=True)
         engine.set_player_faction("cao")
         intro = engine._offline_intro()
         assert "曹操" in intro["narrative"]
@@ -140,7 +139,7 @@ class TestFactionSpecificity:
         """Liu Bei intro mentions Guan Yu and Zhang Fei."""
         from histrategy.engine.game import GameEngine
 
-        engine = GameEngine()
+        engine = GameEngine(force_v1=True)
         engine.set_player_faction("shu")
         intro = engine._offline_intro()
         assert "刘备" in intro["narrative"]
@@ -289,7 +288,7 @@ class TestOfflineTurnProgression:
         """Offline reports should not be stuck in 190 spring forever."""
         from histrategy.engine.game import GameEngine
 
-        engine = GameEngine(new_game=True)
+        engine = GameEngine(force_v1=True, new_game=True)
         engine.set_player_faction("cao")
         engine.process_turn("发展经济")
         assert engine.world_state.turn == 1
