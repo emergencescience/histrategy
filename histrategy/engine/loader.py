@@ -390,12 +390,7 @@ def load_scenario(
     if not os.path.isdir(scenario_dir):
         return None
 
-    # Legacy alias: "three-kingdoms" → "207" for old filename compatibility
-    search_ids = [scenario_id]
-    if scenario_id == "three-kingdoms":
-        search_ids.append("207")
-
-    for sid in search_ids:
+    for sid in [scenario_id]:
         for fname in os.listdir(scenario_dir):
             if fname.endswith(".json") and sid in fname:
                 fpath = os.path.join(scenario_dir, fname)
