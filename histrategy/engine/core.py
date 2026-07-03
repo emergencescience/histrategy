@@ -66,7 +66,6 @@ class GameEngineCore:
         self.scenario = scenario
         self._use_v2 = not force_v1
         self._use_v3 = False
-        self._use_macro = False
 
         # Detect scenario language early (needed by NarrativeEngine in _build_engine_stack)
         self._scenario_language = "zh"
@@ -164,7 +163,6 @@ class GameEngineCore:
 
         engine_mode = detect_engine_mode()
         self._use_v3 = engine_mode == EngineMode.V3
-        self._use_macro = self._use_v3
 
         if llm and llm.is_available:
             from ..llm.narrative import NarrativeEngine
@@ -228,7 +226,7 @@ class GameEngineCore:
 
         # ── macro: quarterly policy engine ──
         self._turn_summaries: list[dict] = []  # recent turn summaries for LLM context
-        if self._use_macro and llm and llm.is_available:
+        if self._use_v3 and llm and llm.is_available:
             from ..engine.black_swan import BlackSwanInjector
             from ..engine.knowledge_layer import KnowledgeBase
             from ..engine.macro_policy_engine import MacroPolicyEngine
