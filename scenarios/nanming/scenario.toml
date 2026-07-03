@@ -1,42 +1,51 @@
-# 山河鼎革 — Scenario Configuration
+# 山河鼎革 (The Southern Ming) — Scenario Configuration
 # histrategy/scenarios/nanming/scenario.toml
 
 [meta]
 id = "nanming"
 name = "山河鼎革"
 name_en = "The Southern Ming"
-era = "明末清初 (1645-1662)"
+era = "late_ming"
 start_year = 1645
 start_season = "春"
 end_year = 1662
 description = """
-1645年春，李自成攻破北京后一年。崇祯自缢，清军入关，弘光朝廷匆匆建于南京。
-史可法督师扬州，左良玉拥兵自重，郑氏海商坐观时局。
-四方角逐，山河鼎革。
+山河鼎革 — 1645年·南明抗清。
+
+公元1645年春，崇祯帝煤山自缢已近一年，李自成被清军逐出北京，
+多尔衮定鼎燕京。弘光帝朱由崧坐镇南京，史可法督师扬州誓死抗清。
+
+四方角逐：南明（正统但内斗）、大清（军事最强）、起义军（兵多但极穷）、
+郑氏（海权+贸易）。三方联手可敌清，但历史正因无法联手而败。
+
+核心机制：
+  海权维度 — 郑氏专属贸易/封锁/海上退路
+  联盟博弈 — 南明+农民军+郑氏 vs 大清
+  不对称平衡 — 四方各有独特优势/劣势
 """
 
 [engine]
-default_version = "v3"                    # v1=纯LLM, v2=rule-based, v3=混合
+default_version = "v3"
 quarter_per_year = 4
 quarters = ["春", "夏", "秋", "冬"]
-turn_timeout_human = 300                  # 人类玩家决策超时（秒）
-turn_timeout_ai = 120                     # AI NPC 决策超时（秒）
-max_quarters = 72                         # 18年 × 4季度 (1645春→1662冬)
+turn_timeout_human = 300
+turn_timeout_ai = 120
+max_quarters = 72
 
 [factions]
 available = ["nanming", "qing", "nongminjun", "zheng"]
 major_npc = ["qing", "nongminjun", "zheng"]
-minor_npc = []
+minor_npc = ["other"]
 default_player_faction = "nanming"
 
 [display]
 icon = "⛰️"
 color_scheme = "shanhe"
+map_svg = "web/map.svg"
 language = "zh-CN"
 style = "文白相间"
 
 [knowledge]
-# 知识库文件（相对于 knowledge/ 目录）
 factions_file = "factions.json"
 characters_file = "characters.json"
 regions_file = "regions.json"
@@ -47,9 +56,15 @@ territories_file = "territories.json"
 timeline_file = "timeline.json"
 initial_state_file = "initial_state.json"
 
+[rules]
+economy_file = "economy.yaml"
+military_file = "military.yaml"
+historical_events_file = "historical_events.yaml"
+
 [llm]
-# LLM 配置覆盖（可选，默认使用环境变量）
+# Prompt files for macro simulator
+prompt_zh = "prompts/macro_simulator_zh.md"
+prompt_en = "prompts/macro_simulator_en.md"
 
 [db]
-# 场景在 DB 中的标识
 scenario_id_column = "scenario"

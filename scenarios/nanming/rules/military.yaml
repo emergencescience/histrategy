@@ -1,25 +1,27 @@
 # ============================================================
-# Military Rules — Nanming (Southern Ming) v2 Deterministic Engine
+# Military Rules — Southern Ming (山河鼎革)
 #
-# 1645-1662: 八旗、农民军、郑氏水师、南明官军
-# Asymmetric warfare: banners vs guerrillas vs naval power
+# Adapted for 17th century warfare:
+#   - Gunpowder weapons (arquebus, cannon)
+#   - Eight Banners (八旗) elite cavalry
+#   - Naval warfare (郑氏水师 dominates sea)
+#   - Peasant armies (large numbers, low quality)
+#   - River defense (长江天险)
 # ============================================================
 
 recruitment:
-  max_rate: 0.05
-  labor_floor: 0.30
+  max_rate: 0.05              # 5% of territory population per quarter
+  labor_floor: 0.25           # Below 25% of original pop, conscription blocked
   morale_penalty_per_draft: 2
-  consecutive_decay: 0.02
+  consecutive_decay: 0.02     # Each consecutive draft quarter reduces rate by 2%
 
   cost:
-    infantry: 3
-    cavalry: 10
-    archer: 6
-    navy: 8
-    # ─── Nanming-specific unit types ───
-    banner_cavalry: 15           # Eight Banners elite cavalry (Qing only)
-    guerrilla: 2                 # Peasant guerrilla fighters (nongminjun only)
-    war_junk: 12                 # Zheng war junks (Zheng only)
+    infantry: 3     # gold per soldier
+    cavalry: 12     # gold per horseman (horses expensive in south)
+    archer: 6       # gold per archer
+    arquebusier: 8  # gold per gunpowder infantry (new unit type)
+    navy: 8          # gold per sailor
+    cannon: 15       # gold per artillery piece (abstracted)
 
 supply:
   base_per_1000: 100
@@ -27,65 +29,53 @@ supply:
     plains: 1.0
     hills: 1.3
     mountain: 1.8
-    wetland: 1.5
-    forest: 1.2
-    river: 1.1
     coast: 1.0
-  distance_decay_pct: 5
-  siege_defender_bonus: 0.5
-  winter_multiplier: 1.5
-
-  # ─── Nanming-specific: River crossing logistics ───
-  river_crossing_penalty: 1.5    # +50% supply cost when crossing rivers (non-Zheng)
+    river: 1.1
+  distance_decay_pct: 5       # 5% extra per territory step
+  siege_defender_bonus: 0.5   # Defenders in siege consume 50% less
+  winter_multiplier: 1.5      # Winter adds 50% to all supply consumption
 
 combat:
-  # Lanchester square law: power = Σ(unit_power × count)²
   unit_power:
     infantry: 1.0
     cavalry: 1.8
     archer: 1.3
-    navy: 0.6
-    # ─── Nanming-specific ───
-    banner_cavalry: 2.2          # Eight Banners: elite heavy cavalry
-    guerrilla: 0.8               # Peasant army: weak individually but high morale
-    war_junk: 1.5                # Zheng naval power
+    arquebusier: 1.5    # gunpowder weapons — strong but slow reload
+    navy: 0.6            # weak on land
+    cannon: 2.0          # powerful in siege, weak in field
 
-  # ─── Nanming-specific faction combat modifiers ───
-  faction_modifiers:
+  # Faction-specific unit bonuses
+  faction_unit_bonus:
     qing:
-      attack_bonus: 1.20         # +20% attack (Eight Banners discipline)
-      southern_terrain_penalty: 0.90  # -10% defense in southern terrain (hills/forest/wetland/river)
-      description: "八旗精锐，冲锋凌厉，然不谙南方水网"
-    nongminjun:
-      guerrilla_bonus: 1.30      # +30% guerrilla tactics
-      siege_penalty: 0.80        # -20% siege warfare
-      low_equipment: 0.70        # -30% base equipment quality
-      description: "流寇战术，长于奔袭游击，短于攻坚守城"
+      cavalry: 1.3        # Eight Banners — best cavalry in the world
+      description: "八旗骑兵天下无敌"
     zheng:
-      naval_bonus: 1.40          # +40% naval combat
-      land_penalty: 0.80         # -20% land combat
-      description: "海上霸主，陆战稍逊"
+      navy: 2.0           # Dominant navy — can't be challenged at sea
+      description: "郑氏水师东亚最强"
+    nongminjun:
+      infantry_cost_mult: 0.5  # Half cost for peasant conscripts
+      infantry_power_mult: 0.7 # But lower quality
+      description: "农民军数量庞大但训练不足"
     nanming:
-      description: "标准官军，兵种均衡"
+      arquebusier: 1.2    # Better firearms from European trade
+      description: "南明火器精良，得自澳门葡萄牙人"
 
   # Rock-paper-scissors multipliers
   counter:
     cavalry_vs_infantry: 1.5
+    cavalry_vs_arquebusier: 0.8  # Gunpowder counters cavalry
     archer_vs_cavalry: 1.4
+    arquebusier_vs_cavalry: 1.6   # Arquebus especially deadly vs cavalry
     infantry_vs_archer: 1.3
-    # ─── Nanming-specific counters ───
-    banner_vs_guerrilla: 0.7     # Banners struggle against guerrilla hit-and-run
-    guerrilla_vs_banner: 1.4     # Guerrillas excel at harassing heavy cavalry
-    war_junk_vs_navy: 1.6        # Zheng war junks dominate standard naval units
-    war_junk_vs_infantry: 0.5    # Ships can't fight on land
+    cannon_vs_wall: 2.5           # Cannon vs fortifications
+    navy_vs_transport: 2.0        # Warships vs transport ships
 
   terrain_defense:
     mountain: 2.0
     hills: 1.5
     forest: 1.3
-    wetland: 1.2
-    river: 1.4
     coast: 1.1
+    river: 1.4
     plains: 1.0
 
   morale_power_mult: 0.01
@@ -93,30 +83,29 @@ combat:
   rout_casualty_mult: 1.8
   leader_bonus_max: 1.25
 
-  decisive_victory_ratio: 2.0
-  victory_ratio: 1.3
-  draw_range: [0.77, 1.3]
-  defeat_ratio: 0.5
-
-  # ─── Nanming-specific: River crossing combat penalty ───
-  river_crossing_combat_penalty: 0.65  # Attacker power × 0.65 when crossing river (non-Zheng)
+  battle_resolution:
+    decisive_victory_ratio: 2.0
+    victory_ratio: 1.3
+    draw_range: [0.77, 1.3]
+    defeat_ratio: 0.5
 
 mobilization:
   garrison_min_pct: 0.15
   campaign_max_pct: 0.70
-
-  # ─── Nanming-specific: Zheng fleet mobilization ───
-  zheng_naval_reserve: 0.30      # Zheng keeps 30% of naval power in reserve for trade protection
 
 march:
   speed_plains: 3
   speed_hills: 2
   speed_mountain: 1
   speed_forest: 2
-  speed_wetland: 1
   speed_river: 1
+  speed_coast: 3
 
-  # ─── Nanming-specific: Naval speed ───
-  naval_speed_coast: 4           # Zheng coastal movement speed
-  naval_speed_river: 2           # River movement speed for naval units
-  river_crossing_delay: 1        # Extra quarter for river crossing without naval support
+naval:
+  # Naval-specific rules (unique to this scenario)
+  blockade_effectiveness: 0.5     # 50% reduction in trade income for blockaded port
+  amphibious_assault_penalty: 0.7 # Attacker power reduced to 70% in amphibious
+  fleet_capacity_per_port: 5000   # Max naval troops per coastal territory
+  taiwan_retreat:
+    available: true
+    description: "郑氏可退守台湾，建立海上根据地"
