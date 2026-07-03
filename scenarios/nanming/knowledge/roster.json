@@ -1,7 +1,7 @@
 {
   "roster_id": "1645_initial",
-  "scenario": "1645年春·山河鼎革剧本",
-  "description": "弘光元年（1645年）春初始人物，包含四大势力的核心统治者和关键将领及其五维属性",
+  "scenario": "1645年·山河鼎革剧本",
+  "description": "1645年春初始人物，包含四方核心武将谋士及其五维属性",
   "characters": [
     {
       "id": "shikefa",
@@ -11,49 +11,88 @@
       "location": "nanjing",
       "birth": 1602,
       "death": 1645,
-      "stats": {"leadership": 80, "might": 70, "intelligence": 75, "politics": 70, "charisma": 90},
-      "skills": ["统帅", "治军", "守城", "忠烈"],
+      "stats": {"leadership": 80, "might": 55, "intelligence": 75, "politics": 70, "charisma": 90},
+      "skills": ["守城", "号召", "忠烈"],
+      "role": "advisor",
+      "description": "南明兵部尚书、扬州督师。忠贞不二，但无权调动江北四镇。"
+    },
+    {
+      "id": "hongguang",
+      "name": "朱由崧",
+      "alias": "福王",
+      "faction": "nanming",
+      "location": "nanjing",
+      "birth": 1607,
+      "death": 1646,
+      "stats": {"leadership": 20, "might": 10, "intelligence": 30, "politics": 25, "charisma": 60},
+      "skills": ["名分"],
       "role": "ruler",
-      "description": "南明弘光朝首辅、兵部尚书、督师。东林党人，忠正刚直，鞠躬尽瘁。1645年困守扬州孤城，城破不屈而死，为南明第一忠烈。"
+      "description": "弘光帝，南明第一位皇帝。昏庸享乐，大权旁落。"
+    },
+    {
+      "id": "mashiying",
+      "name": "马士英",
+      "alias": "瑶草",
+      "faction": "nanming",
+      "location": "nanjing",
+      "birth": 1591,
+      "death": 1646,
+      "stats": {"leadership": 40, "might": 25, "intelligence": 65, "politics": 78, "charisma": 35},
+      "skills": ["权术", "结党"],
+      "role": "advisor",
+      "description": "南明首辅，与阮大铖结党，排挤史可法等忠臣。"
     },
     {
       "id": "duoduo",
       "name": "多尔衮",
-      "alias": "",
+      "alias": "睿亲王",
       "faction": "qing",
       "location": "beijing",
       "birth": 1612,
       "death": 1650,
-      "stats": {"leadership": 90, "might": 85, "intelligence": 85, "politics": 80, "charisma": 80},
-      "skills": ["统帅", "谋略", "骑射", "摄政"],
+      "stats": {"leadership": 90, "might": 75, "intelligence": 85, "politics": 80, "charisma": 80},
+      "skills": ["统率", "谋略", "政治", "八旗指挥"],
       "role": "ruler",
-      "description": "清太祖努尔哈赤第十四子，睿亲王、摄政王。率八旗入主中原的实际决策者，推行剃发令奴化汉人，然军事才能卓绝，为清朝奠基人。"
+      "description": "清摄政王，实际最高统治者。雄才大略，率军入关定鼎。"
     },
     {
       "id": "lizicheng",
       "name": "李自成",
-      "alias": "",
+      "alias": "闯王",
       "faction": "nongminjun",
       "location": "xiangyang",
       "birth": 1606,
       "death": 1645,
       "stats": {"leadership": 70, "might": 75, "intelligence": 55, "politics": 40, "charisma": 85},
-      "skills": ["骑兵", "号召", "劫掠"],
+      "skills": ["号召", "游击", "骑兵"],
       "role": "ruler",
-      "description": "大顺皇帝，号闯王。原为银川驿卒，崇祯年间率饥民揭竿，1644年破北京亡明。然为清军所败西撤，退守襄阳，政权风雨飘摇。"
+      "description": "大顺皇帝。推翻明朝但被清军逐出北京，退守襄阳。"
+    },
+    {
+      "id": "zhangxianzhong",
+      "name": "张献忠",
+      "alias": "八大王",
+      "faction": "nongminjun",
+      "location": "sichuan",
+      "birth": 1606,
+      "death": 1647,
+      "stats": {"leadership": 75, "might": 78, "intelligence": 58, "politics": 35, "charisma": 55},
+      "skills": ["游击", "攻城"],
+      "role": "ruler",
+      "description": "大西皇帝，据四川。与李自成时分时合。"
     },
     {
       "id": "zhengchenggong",
       "name": "郑成功",
-      "alias": "明俨",
+      "alias": "国姓爷",
       "faction": "zheng",
       "location": "fuzhou",
       "birth": 1624,
       "death": 1662,
-      "stats": {"leadership": 85, "might": 80, "intelligence": 80, "politics": 70, "charisma": 90},
-      "skills": ["水战", "海贸", "火器", "忠义"],
+      "stats": {"leadership": 85, "might": 70, "intelligence": 80, "politics": 70, "charisma": 90},
+      "skills": ["水战", "贸易", "海军指挥"],
       "role": "ruler",
-      "description": "郑芝龙之子，名森。1645年隆武帝赐国姓朱，人称「国姓爷」。时年二十一岁，随父在福州，尚未独立掌兵，然忠明之心已显。"
+      "description": "东亚最强海上力量。尊奉南明正朔，以金门厦门为基地。"
     },
     {
       "id": "wusangui",
@@ -63,10 +102,10 @@
       "location": "beijing",
       "birth": 1612,
       "death": 1678,
-      "stats": {"leadership": 80, "might": 85, "intelligence": 70, "politics": 65, "charisma": 60},
-      "skills": ["统帅", "骑兵", "笼络", "贰臣"],
+      "stats": {"leadership": 80, "might": 75, "intelligence": 70, "politics": 65, "charisma": 60},
+      "skills": ["骑兵", "关宁铁骑", "攻城"],
       "role": "general",
-      "description": "原明朝辽东总兵，镇守山海关。引清军入关受封平西王。为清军前驱追杀农民军、征伐南明，战功赫赫，然背明降清之名难洗。"
+      "description": "明朝降将，引清兵入关。率关宁铁骑为清军前锋。"
     }
   ]
 }

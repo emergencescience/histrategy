@@ -1,107 +1,386 @@
 {
   "timeline_id": "1645-1662",
-  "name": "山河鼎革——南明兴亡",
-  "description": "从弘光元年（1645年）到永历十六年（1662年），涵盖清军南下、扬州十日、南明诸帝更迭、农民军联明抗清、郑成功北伐与收复台湾等重大事件",
+  "name": "弘光元年至永历十六年",
+  "description": "南明从南京立国到永历帝被杀、郑成功收复台湾的核心历史区间",
   "events": [
     {
-      "id": "yangzhou_defense_1645",
-      "title_zh": "扬州保卫战",
+      "id": "qing_southward_1645_summer",
+      "title": "清军南下攻扬州",
       "year": 1645,
-      "season": "summer",
-      "event_type": "major_battle",
-      "description_zh": "豫亲王多铎率清军主力南下，围攻扬州。督师史可法困守孤城，粮尽援绝，城破后清军屠城十日，史称「扬州十日」。史可法殉国，弘光朝廷失去最后屏障。",
-      "affecting_factions": ["nanming", "qing"],
-      "gravity": 0.95
+      "month": 6,
+      "category": "major_battle",
+      "description": "多尔衮命多铎率八旗主力南下，史可法督师扬州死守。清军围城七日，城破后发生扬州十日。史可法不屈被杀。",
+      "participants": ["shikefa", "duoduo"],
+      "gravity": 0.95,
+      "preconditions": {
+        "qing_controls_north": true,
+        "nanming_exists": true,
+        "shikefa_alive": true
+      },
+      "outcomes": [
+        {
+          "id": "yangzhou_falls",
+          "description": "扬州城破，史可法殉国，清军屠城",
+          "effects": {
+            "shikefa_dead": true,
+            "nanming_north_lost": true
+          }
+        },
+        {
+          "id": "yangzhou_holds",
+          "description": "史可法成功守城，清军攻势受挫",
+          "effects": {
+            "qing_campaign_delayed": true,
+            "game_divergence": "high"
+          }
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["nanjing_falls_1645"],
+        "if_averted": "南明守住江北防线，清军南征推迟"
+      }
     },
     {
-      "id": "nanjing_falls_1645",
-      "title_zh": "南京陷落与弘光覆灭",
+      "id": "nanjing_falls_1645_autumn",
+      "title": "南京陷落",
       "year": 1645,
-      "season": "summer",
-      "event_type": "territory_change",
-      "description_zh": "扬州失陷后，清军直逼南京。弘光帝朱由崧弃城出逃，南京不战而下。弘光朝廷仅存一年即覆灭，清军尽占江南腹地。",
-      "affecting_factions": ["nanming", "qing"],
-      "gravity": 0.90
+      "month": 9,
+      "category": "territory_change",
+      "description": "清军渡江，弘光帝出逃芜湖，南京不战而降。马士英、阮大铖弃城而逃。南明第一个政权仅存一年即覆灭。",
+      "participants": ["hongguang", "mashiying", "duoduo"],
+      "gravity": 0.9,
+      "preconditions": {
+        "yangzhou_fallen": true,
+        "nanming_holds_nanjing": true
+      },
+      "outcomes": [
+        {
+          "id": "nanjing_falls",
+          "description": "南京陷落，弘光帝被俘，南明朝廷瓦解",
+          "effects": {
+            "nanjing_owner": "qing",
+            "hongguang_captured": true
+          }
+        },
+        {
+          "id": "nanming_retreats",
+          "description": "弘光帝安全南撤，朝廷迁至杭州",
+          "effects": {
+            "nanming_capital": "hangzhou",
+            "game_divergence": "high"
+          }
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["longwu_enthronement_1645"],
+        "if_averted": "弘光朝廷得以延续"
+      }
     },
     {
       "id": "lizicheng_death_1645",
-      "title_zh": "李自成之死与农民军转投",
+      "title": "李自成之死",
       "year": 1645,
-      "season": "autumn",
-      "event_type": "character_death",
-      "description_zh": "李自成在湖北通山九宫山被地方武装袭杀，大顺军余部由李过、高一功率领，转投南明隆武朝廷，改称「忠贞营」，开启联明抗清新篇章。",
-      "affecting_factions": ["nongminjun", "nanming"],
-      "gravity": 0.85
+      "month": 9,
+      "category": "character_death",
+      "description": "李自成在湖北通城九宫山被乡民误杀（一说病死），大顺军群龙无首，余部在襄阳一带分裂。",
+      "participants": ["lizicheng"],
+      "gravity": 0.8,
+      "preconditions": {
+        "lizicheng_alive": true,
+        "qing_expanding": true
+      },
+      "outcomes": [
+        {
+          "id": "lizicheng_dies",
+          "description": "李自成死亡，大顺军分裂",
+          "effects": {
+            "lizicheng_dead": true,
+            "nongminjun_fragmented": true
+          }
+        },
+        {
+          "id": "lizicheng_survives",
+          "description": "李自成突围成功，率残部入川与张献忠会合",
+          "effects": {
+            "nongminjun_united": true,
+            "game_divergence": "high"
+          }
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["longwu_enthronement_1645"],
+        "if_averted": "大顺军与南明联合抗清可能性增加"
+      }
     },
     {
-      "id": "longwu_enthroned_1645",
-      "title_zh": "隆武帝即位",
+      "id": "longwu_enthronement_1645_winter",
+      "title": "隆武帝即位",
       "year": 1645,
-      "season": "autumn",
-      "event_type": "political",
-      "description_zh": "唐王朱聿键在福州称帝，改元隆武。隆武帝励精图治，联合各路抗清力量，郑芝龙、郑成功父子受封。然郑芝龙心怀异志，朝政受制于郑氏。",
-      "affecting_factions": ["nanming", "zheng"],
-      "gravity": 0.75
+      "month": 12,
+      "category": "political",
+      "description": "弘光帝被俘后，唐王朱聿键在福州即位，年号隆武。郑芝龙、郑成功父子以福建为基地支持隆武政权。",
+      "participants": ["zhengchenggong"],
+      "gravity": 0.75,
+      "preconditions": {
+        "hongguang_captured": true,
+        "zheng_exists": true
+      },
+      "outcomes": [
+        {
+          "id": "longwu_established",
+          "description": "隆武朝廷在福州建立，郑氏支持",
+          "effects": {
+            "nanming_capital": "fuzhou",
+            "nanming_zheng_alliance": true
+          }
+        },
+        {
+          "id": "no_longwu",
+          "description": "各方争立，南明陷入内讧",
+          "effects": {
+            "nanming_civil_war": true,
+            "game_divergence": "high"
+          }
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["zhangxianzhong_death_1646"],
+        "if_averted": "南明缺乏新朝廷，抵抗分散"
+      }
     },
     {
-      "id": "qing_conquers_zhejiang_1646",
-      "title_zh": "清军攻略浙闽",
+      "id": "zhangxianzhong_death_1646",
+      "title": "张献忠战死",
       "year": 1646,
-      "season": "summer",
-      "event_type": "major_battle",
-      "description_zh": "清军博洛部南下浙江，连克杭州、绍兴。鲁王朱以海监国政权溃败，退入舟山。清军继而攻入福建，郑芝龙降清，隆武帝被俘殉国。",
-      "affecting_factions": ["nanming", "qing", "zheng"],
-      "gravity": 0.85
+      "month": 12,
+      "category": "character_death",
+      "description": "张献忠在四川西充凤凰山被清军射杀。大西军余部由李定国、孙可望率领南撤，后归附南明永历朝廷。",
+      "participants": ["zhangxianzhong"],
+      "gravity": 0.8,
+      "preconditions": {
+        "zhangxianzhong_alive": true,
+        "qing_present_in_shaanxi": true
+      },
+      "outcomes": [
+        {
+          "id": "daxi_joins_nanming",
+          "description": "大西余部投南明，李定国、孙可望成为南明大将",
+          "effects": {
+            "zhangxianzhong_dead": true,
+            "nongminjun_joins_nanming": true
+          }
+        },
+        {
+          "id": "daxi_holds_sichuan",
+          "description": "张献忠守住四川，成为独立势力",
+          "effects": {
+            "sichuan_independent": true,
+            "game_divergence": "high"
+          }
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["zhengchenggong_uprising_1646"],
+        "if_averted": "大西军不投南明，永历朝廷缺少主力"
+      }
     },
     {
-      "id": "zheng_chenggong_uprising_1646",
-      "title_zh": "郑成功起兵抗清",
+      "id": "zhengchenggong_uprising_1646",
+      "title": "郑成功起兵抗清",
       "year": 1646,
-      "season": "autumn",
-      "event_type": "political",
-      "description_zh": "郑芝龙降清后，其子郑成功拒不从父，焚儒衣以示决裂，在安平誓师起兵。以「招讨大将军」名义在金门、厦门建立抗清基地。",
-      "affecting_factions": ["zheng", "qing"],
-      "gravity": 0.80
+      "month": 12,
+      "category": "military",
+      "description": "郑芝龙降清后，郑成功拒不投降，焚儒服誓师，以金门厦门为基地起兵抗清。自此成为东南沿海最强抗清力量。",
+      "participants": ["zhengchenggong"],
+      "gravity": 0.85,
+      "preconditions": {
+        "zhengchenggong_alive": true,
+        "qing_expanding_south": true
+      },
+      "outcomes": [
+        {
+          "id": "zheng_resists",
+          "description": "郑成功独立抗清，控制东南沿海",
+          "effects": {
+            "zheng_independent": true,
+            "zheng_fleet_strength": "dominant"
+          }
+        },
+        {
+          "id": "zheng_surrenders",
+          "description": "郑成功随父降清",
+          "effects": {
+            "zheng_faction_gone": true,
+            "game_divergence": "extreme"
+          }
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["yongli_enthronement_1649"],
+        "if_averted": "东南抗清力量消失"
+      }
     },
     {
-      "id": "zhang_xianzhong_death_1647",
-      "title_zh": "张献忠之死与孙可望掌权",
-      "year": 1647,
-      "season": "spring",
-      "event_type": "character_death",
-      "description_zh": "大西皇帝张献忠在四川西充凤凰山被清军射杀。余部由孙可望、李定国等统率，南走云贵，后与南明永历朝廷联合抗清。",
-      "affecting_factions": ["nongminjun", "qing", "nanming"],
-      "gravity": 0.80
+      "id": "yongli_enthronement_1649",
+      "title": "永历帝即位",
+      "year": 1649,
+      "month": 12,
+      "category": "political",
+      "description": "桂王朱由榔在广东肇庆即位，年号永历。这是南明在位最长的皇帝，坚持抗清至1662年。",
+      "participants": [],
+      "gravity": 0.7,
+      "preconditions": {
+        "nanming_still_exists": true,
+        "qing_not_unified": true
+      },
+      "outcomes": [
+        {
+          "id": "yongli_established",
+          "description": "永历朝廷建立，成为南明最后旗帜",
+          "effects": {
+            "nanming_emperor": "yongli"
+          }
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["lidingguo_campaign_1652"],
+        "if_averted": "南明失去正统象征"
+      }
     },
     {
-      "id": "yongli_enthroned_1647",
-      "title_zh": "永历帝即位与联合抗清",
-      "year": 1647,
-      "season": "winter",
-      "event_type": "political",
-      "description_zh": "桂王朱由榔在肇庆称帝，改元永历。永历朝联合大西军余部孙可望、李定国等，形成南明与农民军合流抗清的新格局，一度扭转战局。",
-      "affecting_factions": ["nanming", "nongminjun"],
-      "gravity": 0.75
+      "id": "lidingguo_campaign_1652",
+      "title": "李定国两蹶名王",
+      "year": 1652,
+      "month": 12,
+      "category": "major_battle",
+      "description": "李定国率大西军余部东征，桂林之战逼死清定南王孔有德，衡阳之战阵斩清敬谨亲王尼堪。两蹶名王，天下震动。",
+      "participants": [],
+      "gravity": 0.85,
+      "preconditions": {
+        "nongminjun_joined_nanming": true,
+        "qing_still_strong": true
+      },
+      "outcomes": [
+        {
+          "id": "lidingguo_victory",
+          "description": "李定国大捷，南明光复大片领土",
+          "effects": {
+            "nanming_territories_gained": ["guangxi", "huguang_partial"],
+            "nanming_morale": 20
+          }
+        },
+        {
+          "id": "lidingguo_defeated",
+          "description": "李定国战败，大西军覆灭",
+          "effects": {
+            "nanming_last_army_lost": true,
+            "game_divergence": "extreme"
+          }
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["sun_kewang_defects_1657"],
+        "if_averted": "南明再无反攻能力"
+      }
     },
     {
-      "id": "zheng_northern_expedition_1659",
-      "title_zh": "郑成功北伐南京",
-      "year": 1659,
-      "season": "summer",
-      "event_type": "major_battle",
-      "description_zh": "郑成功联合张煌言率十七万水师北伐，溯长江而上，连克瓜洲、镇江，兵临南京城下。然中清军缓兵之计，功败垂成，退回厦门。此战为南明最大规模的北伐行动。",
-      "affecting_factions": ["zheng", "qing", "nanming"],
-      "gravity": 0.90
+      "id": "sun_kewang_defects_1657",
+      "title": "孙可望降清",
+      "year": 1657,
+      "month": 12,
+      "category": "political",
+      "description": "李定国与孙可望内讧，孙可望兵败后降清，献出南明所有军事部署和云贵地图。清军得以精准打击永历朝廷。",
+      "participants": [],
+      "gravity": 0.75,
+      "preconditions": {
+        "nongminjun_leaders_rivalry": true,
+        "nanming_still_exists": true
+      },
+      "outcomes": [
+        {
+          "id": "sun_defects",
+          "description": "孙可望降清，南明机密尽泄",
+          "effects": {
+            "qing_intel_bonus": "massive",
+            "nanming_security": "compromised"
+          }
+        },
+        {
+          "id": "internal_reconciliation",
+          "description": "孙可望与李定国和解，共同抗清",
+          "effects": {
+            "nongminjun_united": true,
+            "game_divergence": "high"
+          }
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["zheng_takes_taiwan_1661"],
+        "if_averted": "南明云贵防线稳固"
+      }
     },
     {
       "id": "zheng_takes_taiwan_1661",
-      "title_zh": "郑成功收复台湾",
+      "title": "郑成功收复台湾",
       "year": 1661,
-      "season": "spring",
-      "event_type": "territory_change",
-      "description_zh": "北伐失败后，郑成功率二万五千水师东渡台湾海峡，围攻荷兰人盘踞的热兰遮城。经九个月围城，荷兰总督揆一投降，台湾重回汉人治下。郑成功建立明郑政权，延续明朝正朔。",
-      "affecting_factions": ["zheng"],
-      "gravity": 0.85
+      "month": 12,
+      "category": "military",
+      "description": "郑成功率舰队东征，围攻热兰遮城九个月，驱逐荷兰殖民者，收复台湾。以此为抗清基地。",
+      "participants": ["zhengchenggong"],
+      "gravity": 0.9,
+      "preconditions": {
+        "zhengchenggong_alive": true,
+        "zheng_holds_coast": true,
+        "qing_pressure_high": true
+      },
+      "outcomes": [
+        {
+          "id": "taiwan_taken",
+          "description": "郑成功收复台湾，建立东宁王国",
+          "effects": {
+            "zheng_controls_taiwan": true,
+            "zheng_has_retreat": true
+          }
+        },
+        {
+          "id": "taiwan_fails",
+          "description": "攻台失败，郑氏退路断绝",
+          "effects": {
+            "zheng_trapped_on_coast": true,
+            "game_divergence": "high"
+          }
+        }
+      ],
+      "butterfly_effects": {
+        "triggered": ["final_endgame_1662"],
+        "if_averted": "郑氏无退路，被清军困死沿海"
+      }
+    },
+    {
+      "id": "final_endgame_1662",
+      "title": "终局：永历帝被杀，郑成功卒",
+      "year": 1662,
+      "month": 12,
+      "category": "endgame",
+      "description": "吴三桂率清军入缅甸擒获永历帝，在昆明绞杀。同年郑成功病逝台湾，南明抗清时代终结。",
+      "participants": ["wusangui", "zhengchenggong"],
+      "gravity": 0.95,
+      "preconditions": {
+        "yongli_alive": true,
+        "qing_has_entered_yunnan": true
+      },
+      "outcomes": [
+        {
+          "id": "ming_ends",
+          "description": "大明王朝彻底终结",
+          "effects": {
+            "ming_ended": true
+          }
+        }
+      ],
+      "butterfly_effects": {
+        "if_averted": "南明或可偏安西南一隅"
+      }
     }
   ]
 }
