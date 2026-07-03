@@ -41,6 +41,54 @@ from .helpers import (
 )
 
 
+class _ResilientSimEngine(WorldSimEngine):
+    """Auto-fallback wrapper: try primary (LLM), fall back to offline on failure.
+
+    This is intentionally kept simple — it's a thin compatibility shim that
+    ensures the game loop never breaks when the LLM API is unavailable.
+    Replaces the former engine/resilient_sim_engine.py module.
+    """
+
+    def __init__(self, primary: WorldSimEngine, fallback: WorldSimEngine) -> None:
+        self._primary = primary
+        self._fallback = fallback
+
+    @property
+    def engine_id(self) -> str:
+        return f"resilient({self._primary.engine_id})"
+
+    @property
+    def requires_llm(self) -> bool:
+        return False  # Always has a non-LLM fallback
+
+    def simulate(self, state, player_action):
+        import logging
+        logger = logging.getLogger(__name__)
+
+        if self._primary.requires_llm and not self._primary.health_check():
+            logger.warning(
+                "Primary engine %s unavailable, using fallback %s",
+                self._primary.engine_id,
+                self._fallback.engine_id,
+            )
+            result = self._fallback.simulate(state, player_action)
+            result.narrative = f"[离线模式] {result.narrative}"
+            return result
+
+        try:
+            return self._primary.simulate(state, player_action)
+        except Exception as exc:
+            logger.warning(
+                "Primary engine %s failed (%s), using fallback %s",
+                self._primary.engine_id,
+                exc,
+                self._fallback.engine_id,
+            )
+            result = self._fallback.simulate(state, player_action)
+            result.narrative = f"[离线模式] {result.narrative}"
+            return result
+
+
 class GameEngineCore:
     """Core engine: initialization, engine stack, save/load, faction setup."""
 
@@ -603,10 +651,12 @@ class GameEngineCore:
         if sim_engine is not None:
             self.sim_engine = sim_engine
         elif llm is not None:
-            from ..engine.resilient_sim_engine import ResilientSimEngine
             from ..llm.llm_sim_engine import LLMSimEngine
+            from ..engine.offline_sim_engine import OfflineSimEngine
 
-            self.sim_engine = ResilientSimEngine(LLMSimEngine(llm))
+            primary = LLMSimEngine(llm)
+            fallback = OfflineSimEngine()
+            self.sim_engine = _ResilientSimEngine(primary, fallback)
         else:
             from ..engine.offline_sim_engine import OfflineSimEngine
 

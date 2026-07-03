@@ -8,7 +8,8 @@ cron-driven, Rome-era, Red Alert, etc.) can be swapped in without changing the g
 Implementations:
   - LLMSimEngine        → llm/llm_sim_engine.py   (primary, requires API key)
   - OfflineSimEngine    → engine/offline_sim_engine.py  (fallback, always works)
-  - ResilientSimEngine  → engine/resilient_sim_engine.py (auto-fallback wrapper)
+
+  Auto-fallback (LLM→offline) is handled by _ResilientSimEngine in engine/core.py.
 
 Plugin authors: subclass WorldSimEngine and register via pyproject.toml entry points:
   [project.entry-points."histrategy.plugins"]
