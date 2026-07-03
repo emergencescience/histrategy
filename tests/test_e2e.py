@@ -80,8 +80,7 @@ class TestFactionSelection:
         output, _ = run_game("1\nexit\n", timeout=15)
         assert "曹操军" in output
         assert "刘备军" in output
-        assert "孙坚军" in output
-        assert "袁绍军" in output
+        assert "孙权军" in output
 
     def test_select_cao_cao(self):
         """Selecting Cao Cao should show his faction name."""
@@ -120,7 +119,7 @@ class TestMemorySystem:
         # Use "1\n1\nexit\n" to play one turn (select Cao Cao, then make a decision)
         run_game("1\n1\nexit\n", timeout=20)
         # World state should be saved
-        world_file = Path(os.environ["HISTRATEGY_DATA_DIR"]) / "world_state.json"
+        world_file = Path(os.environ["HISTRATEGY_DATA_DIR"]) / "world_v2.json"
         assert world_file.exists(), f"world_state.json not found at {world_file}"
 
     def test_memory_has_decisions(self):

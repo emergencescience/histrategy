@@ -376,14 +376,24 @@ def _print_llm_stats(llm: LLMAdapter | None):
 
 def _display_offline_plan_mode(engine: GameEngine):
     """Minimal Plan Mode prompt for offline play in unified layout."""
-    player = engine.world_state.get_player_faction()
+    v2 = getattr(engine, "_use_v2", False)
+    if v2:
+        ws = engine.world_state_v2
+        player = ws.factions.get(ws.player_faction_id) if ws else None
+    else:
+        player = engine.world_state.get_player_faction()
     if not player:
         return
 
     plan = engine.get_plan_data()
-    summary = plan.get(
-        "season_summary", f"{engine.world_state.year}年{engine.world_state.current_season_cn}，天下纷争未休。"
-    )
+    if v2:
+        summary = plan.get(
+            "season_summary", f"{ws.year}年{ws.season.cn}，天下纷争未休。"
+        )
+    else:
+        summary = plan.get(
+            "season_summary", f"{engine.world_state.year}年{engine.world_state.current_season_cn}，天下纷争未休。"
+        )
     suggestions = plan.get("suggestions", [])
 
     court_md = []

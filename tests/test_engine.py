@@ -118,7 +118,7 @@ class TestFactionSpecificity:
         """207 scenario: Yuan Shao (died 202) not supported — gets fallback intro."""
         from histrategy.engine.game import GameEngine
 
-        engine = GameEngine()
+        engine = GameEngine(force_v1=True)
         engine.set_player_faction("yuan_shao")
         intro = engine._offline_intro()
         # Fallback should not crash and should contain generic narrative
@@ -129,7 +129,7 @@ class TestFactionSpecificity:
         """207 scenario: Yuan Shao unsupported, choices should not reference self."""
         from histrategy.engine.game import GameEngine
 
-        engine = GameEngine()
+        engine = GameEngine(force_v1=True)
         engine.set_player_faction("yuan_shao")
         intro = engine._offline_intro()
         choices_text = " ".join(intro["new_choices"])
@@ -331,7 +331,7 @@ class TestNPCBetrayalTrigger:
         from histrategy.state.npc_state import NPCMood, NPCState
         from histrategy.state.world_state import CharacterState
 
-        engine = GameEngine(new_game=True)
+        engine = GameEngine(new_game=True, force_v1=True)
         engine.set_player_faction("cao")
 
         # Manually register an advisor 'xun_yu' in world characters and npc_states

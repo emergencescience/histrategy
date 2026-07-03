@@ -390,14 +390,24 @@ def load_scenario(
     if not os.path.isdir(scenario_dir):
         return None
 
-    for sid in [scenario_id]:
-        for fname in os.listdir(scenario_dir):
-            if fname.endswith(".json") and sid in fname:
-                fpath = os.path.join(scenario_dir, fname)
-                with open(fpath) as f:
-                    return json.load(f)
+    # Aggregate all .json files in the knowledge directory into a single dict.
+    # Supports both legacy single-file format (e.g. 207_xxx.json) and
+    # new multi-file format (factions.json, territories.json, etc.).
+    aggregated: dict = {}
+    json_files = sorted(
+        f for f in os.listdir(scenario_dir) if f.endswith(".json") and f != "schema.json"
+    )
+    if not json_files:
+        return None
 
-    return None
+    for fname in json_files:
+        fpath = os.path.join(scenario_dir, fname)
+        with open(fpath) as f:
+            data = json.load(f)
+            if isinstance(data, dict):
+                aggregated.update(data)
+
+    return aggregated if aggregated else None
 
 
 def build_world_state(
