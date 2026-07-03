@@ -34,7 +34,7 @@ engine = GameEngine(llm=llm, scenario="three-kingdoms", new_game=True)
 engine.set_player_faction("shu")
 
 ws = engine.world_state_v2
-print(f"Initial: Year {ws.year}, Player={ws.player_faction_id}, Macro={engine._use_macro}")
+print(f"Initial: Year {ws.year}, Player={ws.player_faction_id}, Macro={engine._use_v3}")
 print(f"  Territories: {list(ws.factions[ws.player_faction_id].territories)}")
 pf = ws.factions[ws.player_faction_id]
 print(f"  Starting: 兵{pf.strength_actual} 钱{pf.treasury} 粮{pf.food} 民心{pf.morale_actual}")

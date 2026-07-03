@@ -34,7 +34,7 @@ engine = GameEngine(llm=llm, scenario="three-kingdoms", new_game=True)
 engine.set_player_faction("cao")
 
 ws = engine.world_state_v2
-print(f"Initial: Year {ws.year}, Player={ws.player_faction_id}, Macro={engine._use_macro}")
+print(f"Initial: Year {ws.year}, Player={ws.player_faction_id}, Macro={engine._use_v3}")
 print(f"  Territories: {list(ws.factions[ws.player_faction_id].territories)}")
 print(f"  Treasury: {ws.factions[ws.player_faction_id].treasury}")
 
