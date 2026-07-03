@@ -1,43 +1,42 @@
-# 山河鼎革 (The Southern Ming) — Scenario Configuration (SKELETON)
+# 山河鼎革 — Scenario Configuration
 # histrategy/scenarios/nanming/scenario.toml
-#
-# 状态: 骨架 — knowledge/prompts/rules/web 待充实
 
 [meta]
 id = "nanming"
 name = "山河鼎革"
 name_en = "The Southern Ming"
-era = "TBD"
-start_year = 0
+era = "明末清初 (1645-1662)"
+start_year = 1645
 start_season = "春"
-end_year = 0
+end_year = 1662
 description = """
-山河鼎革 — 新时代策略游戏场景。
-（详细设定待定义）
+1645年春，李自成攻破北京后一年。崇祯自缢，清军入关，弘光朝廷匆匆建于南京。
+史可法督师扬州，左良玉拥兵自重，郑氏海商坐观时局。
+四方角逐，山河鼎革。
 """
 
 [engine]
-default_version = "v3"
+default_version = "v3"                    # v1=纯LLM, v2=rule-based, v3=混合
 quarter_per_year = 4
 quarters = ["春", "夏", "秋", "冬"]
-turn_timeout_human = 300
-turn_timeout_ai = 120
-max_quarters = 120
+turn_timeout_human = 300                  # 人类玩家决策超时（秒）
+turn_timeout_ai = 120                     # AI NPC 决策超时（秒）
+max_quarters = 72                         # 18年 × 4季度 (1645春→1662冬)
 
 [factions]
-available = []
-major_npc = []
+available = ["nanming", "qing", "nongminjun", "zheng"]
+major_npc = ["qing", "nongminjun", "zheng"]
 minor_npc = []
-default_player_faction = ""
+default_player_faction = "nanming"
 
 [display]
 icon = "⛰️"
 color_scheme = "shanhe"
-map_svg = "web/map.svg"
 language = "zh-CN"
 style = "文白相间"
 
 [knowledge]
+# 知识库文件（相对于 knowledge/ 目录）
 factions_file = "factions.json"
 characters_file = "characters.json"
 regions_file = "regions.json"
@@ -49,7 +48,8 @@ timeline_file = "timeline.json"
 initial_state_file = "initial_state.json"
 
 [llm]
-# 待定义
+# LLM 配置覆盖（可选，默认使用环境变量）
 
 [db]
+# 场景在 DB 中的标识
 scenario_id_column = "scenario"

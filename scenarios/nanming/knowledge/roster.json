@@ -1,0 +1,72 @@
+{
+  "roster_id": "1645_initial",
+  "scenario": "1645年春·山河鼎革剧本",
+  "description": "弘光元年（1645年）春初始人物，包含四大势力的核心统治者和关键将领及其五维属性",
+  "characters": [
+    {
+      "id": "shikefa",
+      "name": "史可法",
+      "alias": "宪之",
+      "faction": "nanming",
+      "location": "nanjing",
+      "birth": 1602,
+      "death": 1645,
+      "stats": {"leadership": 80, "might": 70, "intelligence": 75, "politics": 70, "charisma": 90},
+      "skills": ["统帅", "治军", "守城", "忠烈"],
+      "role": "ruler",
+      "description": "南明弘光朝首辅、兵部尚书、督师。东林党人，忠正刚直，鞠躬尽瘁。1645年困守扬州孤城，城破不屈而死，为南明第一忠烈。"
+    },
+    {
+      "id": "duoduo",
+      "name": "多尔衮",
+      "alias": "",
+      "faction": "qing",
+      "location": "beijing",
+      "birth": 1612,
+      "death": 1650,
+      "stats": {"leadership": 90, "might": 85, "intelligence": 85, "politics": 80, "charisma": 80},
+      "skills": ["统帅", "谋略", "骑射", "摄政"],
+      "role": "ruler",
+      "description": "清太祖努尔哈赤第十四子，睿亲王、摄政王。率八旗入主中原的实际决策者，推行剃发令奴化汉人，然军事才能卓绝，为清朝奠基人。"
+    },
+    {
+      "id": "lizicheng",
+      "name": "李自成",
+      "alias": "",
+      "faction": "nongminjun",
+      "location": "xiangyang",
+      "birth": 1606,
+      "death": 1645,
+      "stats": {"leadership": 70, "might": 75, "intelligence": 55, "politics": 40, "charisma": 85},
+      "skills": ["骑兵", "号召", "劫掠"],
+      "role": "ruler",
+      "description": "大顺皇帝，号闯王。原为银川驿卒，崇祯年间率饥民揭竿，1644年破北京亡明。然为清军所败西撤，退守襄阳，政权风雨飘摇。"
+    },
+    {
+      "id": "zhengchenggong",
+      "name": "郑成功",
+      "alias": "明俨",
+      "faction": "zheng",
+      "location": "fuzhou",
+      "birth": 1624,
+      "death": 1662,
+      "stats": {"leadership": 85, "might": 80, "intelligence": 80, "politics": 70, "charisma": 90},
+      "skills": ["水战", "海贸", "火器", "忠义"],
+      "role": "ruler",
+      "description": "郑芝龙之子，名森。1645年隆武帝赐国姓朱，人称「国姓爷」。时年二十一岁，随父在福州，尚未独立掌兵，然忠明之心已显。"
+    },
+    {
+      "id": "wusangui",
+      "name": "吴三桂",
+      "alias": "长伯",
+      "faction": "qing",
+      "location": "beijing",
+      "birth": 1612,
+      "death": 1678,
+      "stats": {"leadership": 80, "might": 85, "intelligence": 70, "politics": 65, "charisma": 60},
+      "skills": ["统帅", "骑兵", "笼络", "贰臣"],
+      "role": "general",
+      "description": "原明朝辽东总兵，镇守山海关。引清军入关受封平西王。为清军前驱追杀农民军、征伐南明，战功赫赫，然背明降清之名难洗。"
+    }
+  ]
+}

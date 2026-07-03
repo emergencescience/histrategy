@@ -1,0 +1,107 @@
+{
+  "timeline_id": "1645-1662",
+  "name": "山河鼎革——南明兴亡",
+  "description": "从弘光元年（1645年）到永历十六年（1662年），涵盖清军南下、扬州十日、南明诸帝更迭、农民军联明抗清、郑成功北伐与收复台湾等重大事件",
+  "events": [
+    {
+      "id": "yangzhou_defense_1645",
+      "title_zh": "扬州保卫战",
+      "year": 1645,
+      "season": "summer",
+      "event_type": "major_battle",
+      "description_zh": "豫亲王多铎率清军主力南下，围攻扬州。督师史可法困守孤城，粮尽援绝，城破后清军屠城十日，史称「扬州十日」。史可法殉国，弘光朝廷失去最后屏障。",
+      "affecting_factions": ["nanming", "qing"],
+      "gravity": 0.95
+    },
+    {
+      "id": "nanjing_falls_1645",
+      "title_zh": "南京陷落与弘光覆灭",
+      "year": 1645,
+      "season": "summer",
+      "event_type": "territory_change",
+      "description_zh": "扬州失陷后，清军直逼南京。弘光帝朱由崧弃城出逃，南京不战而下。弘光朝廷仅存一年即覆灭，清军尽占江南腹地。",
+      "affecting_factions": ["nanming", "qing"],
+      "gravity": 0.90
+    },
+    {
+      "id": "lizicheng_death_1645",
+      "title_zh": "李自成之死与农民军转投",
+      "year": 1645,
+      "season": "autumn",
+      "event_type": "character_death",
+      "description_zh": "李自成在湖北通山九宫山被地方武装袭杀，大顺军余部由李过、高一功率领，转投南明隆武朝廷，改称「忠贞营」，开启联明抗清新篇章。",
+      "affecting_factions": ["nongminjun", "nanming"],
+      "gravity": 0.85
+    },
+    {
+      "id": "longwu_enthroned_1645",
+      "title_zh": "隆武帝即位",
+      "year": 1645,
+      "season": "autumn",
+      "event_type": "political",
+      "description_zh": "唐王朱聿键在福州称帝，改元隆武。隆武帝励精图治，联合各路抗清力量，郑芝龙、郑成功父子受封。然郑芝龙心怀异志，朝政受制于郑氏。",
+      "affecting_factions": ["nanming", "zheng"],
+      "gravity": 0.75
+    },
+    {
+      "id": "qing_conquers_zhejiang_1646",
+      "title_zh": "清军攻略浙闽",
+      "year": 1646,
+      "season": "summer",
+      "event_type": "major_battle",
+      "description_zh": "清军博洛部南下浙江，连克杭州、绍兴。鲁王朱以海监国政权溃败，退入舟山。清军继而攻入福建，郑芝龙降清，隆武帝被俘殉国。",
+      "affecting_factions": ["nanming", "qing", "zheng"],
+      "gravity": 0.85
+    },
+    {
+      "id": "zheng_chenggong_uprising_1646",
+      "title_zh": "郑成功起兵抗清",
+      "year": 1646,
+      "season": "autumn",
+      "event_type": "political",
+      "description_zh": "郑芝龙降清后，其子郑成功拒不从父，焚儒衣以示决裂，在安平誓师起兵。以「招讨大将军」名义在金门、厦门建立抗清基地。",
+      "affecting_factions": ["zheng", "qing"],
+      "gravity": 0.80
+    },
+    {
+      "id": "zhang_xianzhong_death_1647",
+      "title_zh": "张献忠之死与孙可望掌权",
+      "year": 1647,
+      "season": "spring",
+      "event_type": "character_death",
+      "description_zh": "大西皇帝张献忠在四川西充凤凰山被清军射杀。余部由孙可望、李定国等统率，南走云贵，后与南明永历朝廷联合抗清。",
+      "affecting_factions": ["nongminjun", "qing", "nanming"],
+      "gravity": 0.80
+    },
+    {
+      "id": "yongli_enthroned_1647",
+      "title_zh": "永历帝即位与联合抗清",
+      "year": 1647,
+      "season": "winter",
+      "event_type": "political",
+      "description_zh": "桂王朱由榔在肇庆称帝，改元永历。永历朝联合大西军余部孙可望、李定国等，形成南明与农民军合流抗清的新格局，一度扭转战局。",
+      "affecting_factions": ["nanming", "nongminjun"],
+      "gravity": 0.75
+    },
+    {
+      "id": "zheng_northern_expedition_1659",
+      "title_zh": "郑成功北伐南京",
+      "year": 1659,
+      "season": "summer",
+      "event_type": "major_battle",
+      "description_zh": "郑成功联合张煌言率十七万水师北伐，溯长江而上，连克瓜洲、镇江，兵临南京城下。然中清军缓兵之计，功败垂成，退回厦门。此战为南明最大规模的北伐行动。",
+      "affecting_factions": ["zheng", "qing", "nanming"],
+      "gravity": 0.90
+    },
+    {
+      "id": "zheng_takes_taiwan_1661",
+      "title_zh": "郑成功收复台湾",
+      "year": 1661,
+      "season": "spring",
+      "event_type": "territory_change",
+      "description_zh": "北伐失败后，郑成功率二万五千水师东渡台湾海峡，围攻荷兰人盘踞的热兰遮城。经九个月围城，荷兰总督揆一投降，台湾重回汉人治下。郑成功建立明郑政权，延续明朝正朔。",
+      "affecting_factions": ["zheng"],
+      "gravity": 0.85
+    }
+  ]
+}

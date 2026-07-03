@@ -1,0 +1,255 @@
+# ============================================================
+# Conditional Historical Events — Southern Ming 1645-1662
+#
+# Events are injected into NPC LLM context ONLY when:
+#   1. The current quarter/year matches the trigger window
+#   2. The preconditions are still met (event is still possible)
+#   3. The player has NOT taken actions that cancel this event
+#
+# Quarter reference: Q1=1645春, Q2=1645夏, Q3=1645秋, Q4=1645冬
+# ============================================================
+
+events:
+  # ─── Q2: 1645 夏 ──────────────────────────────────────────
+  - id: qing_attack_yangzhou
+    title: "清军南下攻扬州 (Qing Army Marches South to Yangzhou)"
+    quarter_range: [2, 4]
+    year_range: [1645, 1645]
+    season: summer
+    preconditions:
+      - faction_exists: qing
+      - faction_alive: qing
+      - faction_exists: nanming
+      - territory_owned: [nanming, yangzhou]
+    cancel_if:
+      - faction_dead: qing
+      - faction_dead: nanming
+      - territory_owned: [qing, yangzhou]     # Already taken
+    trigger_if:
+      - faction_at_war: [qing, nanming]        # Qing attacks Nanjing region
+    context_for_npc: |
+      清豫亲王多铎率八旗精锐南下，兵锋直指扬州。史可法督师坚守，然明军兵力单薄、
+      士气低迷。扬州若失，南京门户洞开，弘光朝廷危在旦夕。
+    context_for_npc_en: |
+      Prince Dodo of the Qing leads the Eight Banners south toward Yangzhou.
+      Shi Kefa commands the defense, but Ming forces are thin and demoralized.
+      If Yangzhou falls, Nanjing is wide open — the Hongguang court faces annihilation.
+
+  # ─── Q3: 1645 秋 ──────────────────────────────────────────
+  - id: nanjing_fall_risk
+    title: "南京陷落风险 (Risk of Nanjing's Fall)"
+    quarter_range: [3, 6]
+    year_range: [1645, 1646]
+    season: autumn
+    preconditions:
+      - faction_exists: nanming
+      - faction_alive: nanming
+      - territory_owned: [nanming, nanjing]
+    cancel_if:
+      - faction_dead: nanming
+      - territory_owned: [qing, nanjing]
+    trigger_if:
+      - faction_stat_lt: [nanming, morale_actual, 30]  # Morale below 30
+    context_for_npc: |
+      弘光朝廷士气崩溃，南京城内人心惶惶。左良玉以"清君侧"为名东下，马士英、阮大铖
+      内斗不休。清军已在扬州得手，南京陷落似已不可避免。史可法血书求援，然援军何在？
+    context_for_npc_en: |
+      Hongguang court morale has collapsed. Panic grips Nanjing. Zuo Liangyu marches east
+      under the pretext of "purging evil ministers" while Ma Shiying and Ruan Dacheng feud.
+      Qing forces have already taken Yangzhou. Nanjing's fall seems inevitable.
+      Shi Kefa writes desperate pleas for reinforcements — but who will answer?
+
+  # ─── Q3: 1645 秋 ──────────────────────────────────────────
+  - id: lizicheng_death_risk
+    title: "李自成死亡风险 (Li Zicheng's Death Risk)"
+    quarter_range: [3, 6]
+    year_range: [1645, 1646]
+    season: autumn
+    preconditions:
+      - faction_exists: nongminjun
+      - faction_alive: nongminjun
+    cancel_if:
+      - faction_dead: nongminjun
+    trigger_if:
+      - faction_stat_lt: [nongminjun, territory_count, 2]  # Fewer than 2 territories
+    context_for_npc: |
+      李自成退出北京后屡战屡败，势力大幅缩水。大顺军余部退入湖北通山九宫山一带。
+      若再遭清军围剿，李自成可能死于非命——农民军群龙无首，或将分崩离析。
+    context_for_npc_en: |
+      Li Zicheng has suffered defeat after defeat since fleeing Beijing. His remaining
+      forces retreat to the Jiugong Mountains in Hubei. If Qing forces corner him here,
+      Li Zicheng may die — leaving the peasant army leaderless and vulnerable to collapse.
+
+  # ─── Q4: 1645 冬 ──────────────────────────────────────────
+  - id: longwu_regime_established
+    title: "隆武政权建立 (Longwu Regime Established)"
+    quarter_range: [4, 8]
+    year_range: [1645, 1646]
+    season: winter
+    preconditions:
+      - faction_exists: nanming
+      - faction_alive: nanming
+    cancel_if:
+      - faction_dead: nanming
+    trigger_if:
+      - faction_stat_lt: [nanming, territory_count, 4]  # Lost most territories incl. Nanjing
+    context_for_npc: |
+      弘光朝廷覆灭后，唐王朱聿键在福建福州即位，改元隆武。郑芝龙以拥立之功
+      掌控朝政，然隆武皇帝锐意北伐，与郑氏海商集团矛盾渐深。南明残存势力重新整合，
+      但内部裂痕已然明显——文臣主战、武将拥兵自重、郑氏观望。
+    context_for_npc_en: |
+      After Hongguang's fall, Prince Tang (Zhu Yujian) ascends the throne in Fuzhou
+      as the Longwu Emperor. Zheng Zhilong controls the court through his role in the
+      enthronement. The Longwu Emperor advocates northern expeditions, but Zheng's
+      maritime merchant faction prefers caution. The Southern Ming remnants reorganize,
+      but cracks are already forming — scholar-officials push for war, generals hoard troops,
+      and the Zheng clan watches from the sidelines.
+
+  # ─── Q8: 1646 冬 ──────────────────────────────────────────
+  - id: zheng_chenggong_uprising
+    title: "郑成功起兵 (Zheng Chenggong Rises)"
+    quarter: 8
+    year: 1646
+    season: winter
+    preconditions:
+      - faction_exists: zheng
+      - faction_alive: zheng
+    cancel_if:
+      - faction_dead: zheng
+    auto_trigger: true            # Always fires at Q8 if zheng exists
+    context_for_npc: |
+      郑芝龙降清后，其子郑成功（国姓爷）焚儒服、誓师抗清。以金门、厦门为基地，
+      收编郑氏旧部，建立海上抗清势力。郑成功虽年轻，然意志坚定，"杀父报国"之志
+      感召东南沿海义士纷纷来投。从此东南海上出现一支不可忽视的新力量。
+    context_for_npc_en: |
+      After Zheng Zhilong surrenders to the Qing, his son Zheng Chenggong (Koxinga)
+      burns his scholar's robes and swears resistance. From bases in Jinmen and Xiamen,
+      he rallies the remnants of the Zheng fleet. Young but resolute, his cry of
+      "serve the nation over blood ties" draws volunteers from across the southeast coast.
+      A new naval power rises in the East China Sea.
+
+  # ─── Q12: 1647 冬 ──────────────────────────────────────────
+  - id: zhangxianzhong_death
+    title: "张献忠战死 (Zhang Xianzhong Dies in Battle)"
+    quarter: 12
+    year: 1647
+    season: winter
+    preconditions:
+      - faction_exists: nongminjun
+      - faction_alive: nongminjun
+    cancel_if:
+      - faction_dead: nongminjun
+    trigger_if:
+      - territory_not_owned: [nongminjun, sichuan]  # Sichuan lost
+    context_for_npc: |
+      张献忠在四川西充凤凰山遭遇清军伏击，中箭身亡。大西军余部由孙可望、
+      李定国、刘文秀、艾能奇四将军统领，退入云贵。农民军虽失其主，然四将
+      皆是能征善战之才——尤其李定国，日后将成为南明最耀眼的名将。
+    context_for_npc_en: |
+      Zhang Xianzhong is ambushed and killed by Qing forces at Phoenix Mountain in Sichuan.
+      The remnants of his army, now led by generals Sun Kewang, Li Dingguo, Liu Wenxiu,
+      and Ai Nengqi, retreat into Yunnan-Guizhou. Though the peasant army has lost its
+      founder, these four generals are formidable — especially Li Dingguo, who will become
+      the Southern Ming's greatest commander.
+
+  # ─── Q20: 1649 冬 ──────────────────────────────────────────
+  - id: yongli_enthronement
+    title: "永历帝即位 (Yongli Emperor Ascends)"
+    quarter: 20
+    year: 1649
+    season: winter
+    preconditions:
+      - faction_exists: nanming
+      - faction_alive: nanming
+    cancel_if:
+      - faction_dead: nanming
+    trigger_if:
+      - territory_owned_region: [nanming, southwest]  # Nanming holds southwest territories
+    context_for_npc: |
+      桂王朱由榔在广东肇庆即位，年号永历。南明正统得以延续，然此时明朝实际控制
+      区域已退缩至西南一隅——云贵、广西、广东部分地区。永历朝廷寄望于农民军残部
+      （大西军余部）与郑成功水师，形成"三方呼应"之势，但彼此猜忌甚深。
+    context_for_npc_en: |
+      Prince Gui (Zhu Youlang) is enthroned in Zhaoqing, Guangdong as the Yongli Emperor.
+      Ming legitimacy continues, but effective control has shrunk to the southwest —
+      parts of Yunnan, Guizhou, Guangxi, and Guangdong. The Yongli court pins its hopes
+      on the peasant army remnants and Zheng Chenggong's fleet for a "three-pronged"
+      resistance — but mutual suspicion runs deep between these factions.
+
+  # ─── Q32: 1652 冬 ──────────────────────────────────────────
+  - id: li_dingguo_two_kings
+    title: "李定国两蹶名王 (Li Dingguo Slays Two Qing Princes)"
+    quarter: 32
+    year: 1652
+    season: winter
+    preconditions:
+      - faction_exists: nanming
+      - faction_alive: nanming
+      - faction_exists: qing
+      - faction_alive: qing
+    cancel_if:
+      - faction_dead: nanming
+      - faction_dead: qing
+    trigger_if:
+      - factions_adjacent: [nanming, qing]    # Nanming borders Qing
+    context_for_npc: |
+      李定国率军出滇，连克桂林、衡州，阵斩清定南王孔有德、敬谨亲王尼堪，
+      "两蹶名王，天下震动"。此役是南明抗清以来最辉煌的胜利，证明农民军残部
+      若善加利用，足以与八旗劲旅一较高下。然孙可望嫉妒李定国之功，内部裂痕
+      加深，大好局面恐难持久。
+    context_for_npc_en: |
+      Li Dingguo leads his army out of Yunnan, capturing Guilin and Hengzhou in quick
+      succession. He kills Qing Prince Kong Youde (Dingnan Prince) and Prince Nikan
+      (Jingjin Prince) — "two princes slain, the realm trembles." This is the Southern
+      Ming's greatest victory against the Qing, proving the peasant army remnants can
+      match the Eight Banners. But Sun Kewang's jealousy of Li Dingguo's success deepens
+      internal rifts — this golden moment may not last.
+
+  # ─── Q52: 1657 冬 ──────────────────────────────────────────
+  - id: sun_kewang_defects
+    title: "孙可望降清 (Sun Kewang Defects to Qing)"
+    quarter: 52
+    year: 1657
+    season: winter
+    preconditions:
+      - faction_exists: nongminjun
+      - faction_alive: nongminjun
+      - faction_exists: qing
+      - faction_alive: qing
+    cancel_if:
+      - faction_dead: nongminjun
+    trigger_if:
+      - faction_stat_gte: [nongminjun, internal_conflict, 70]  # High internal strife
+    context_for_npc: |
+      孙可望与李定国内讧激化，在交水之战中被李定国击败。走投无路之下，
+      孙可望率部降清，献上云贵地形图和南明军力部署。清廷得此情报，随即发动
+      大规模西南攻势——永历朝廷的末日即将来临。
+    context_for_npc_en: |
+      Sun Kewang's feud with Li Dingguo erupts into open battle at Jiaoshui, where Sun
+      is decisively defeated. Cornered and desperate, Sun defects to the Qing with his
+      remaining forces, handing over detailed maps of Yunnan-Guizhou terrain and Ming
+      troop deployments. Armed with this intelligence, the Qing launch a massive
+      southwestern offensive — the Yongli court's final days are approaching.
+
+  # ─── Q68: 1661 冬 ──────────────────────────────────────────
+  - id: zheng_takes_taiwan
+    title: "郑成功收复台湾 (Zheng Chenggong Takes Taiwan)"
+    quarter: 68
+    year: 1661
+    season: winter
+    preconditions:
+      - faction_exists: zheng
+      - faction_alive: zheng
+    cancel_if:
+      - faction_dead: zheng
+    trigger_if:
+      - faction_stat_lt: [zheng, mainland_territories, 2]  # Lost most mainland bases
+    context_for_npc: |
+      郑成功在大陆节节败退，决定东征收复台湾以为长久之计。率战舰数百艘、
+      将士两万五千横渡台湾海峡，围攻荷兰热兰遮城。此战若成，郑氏将拥有
+      稳固的海上基地；若败，则抗清势力再无立足之地。
+    context_for_npc_en: |
+      Zheng Chenggong, losing ground on the mainland, resolves to take Taiwan as a
+      permanent base. He leads hundreds of warships and 25,000 troops across the
+      Taiwan Strait, laying siege to the Dutch Fort Zeelandia. Victory means a secure
+      maritime stronghold; defeat means the last anti-Qing force loses its foothold.

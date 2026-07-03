@@ -1,0 +1,122 @@
+# ============================================================
+# Military Rules — Nanming (Southern Ming) v2 Deterministic Engine
+#
+# 1645-1662: 八旗、农民军、郑氏水师、南明官军
+# Asymmetric warfare: banners vs guerrillas vs naval power
+# ============================================================
+
+recruitment:
+  max_rate: 0.05
+  labor_floor: 0.30
+  morale_penalty_per_draft: 2
+  consecutive_decay: 0.02
+
+  cost:
+    infantry: 3
+    cavalry: 10
+    archer: 6
+    navy: 8
+    # ─── Nanming-specific unit types ───
+    banner_cavalry: 15           # Eight Banners elite cavalry (Qing only)
+    guerrilla: 2                 # Peasant guerrilla fighters (nongminjun only)
+    war_junk: 12                 # Zheng war junks (Zheng only)
+
+supply:
+  base_per_1000: 100
+  terrain_modifier:
+    plains: 1.0
+    hills: 1.3
+    mountain: 1.8
+    wetland: 1.5
+    forest: 1.2
+    river: 1.1
+    coast: 1.0
+  distance_decay_pct: 5
+  siege_defender_bonus: 0.5
+  winter_multiplier: 1.5
+
+  # ─── Nanming-specific: River crossing logistics ───
+  river_crossing_penalty: 1.5    # +50% supply cost when crossing rivers (non-Zheng)
+
+combat:
+  # Lanchester square law: power = Σ(unit_power × count)²
+  unit_power:
+    infantry: 1.0
+    cavalry: 1.8
+    archer: 1.3
+    navy: 0.6
+    # ─── Nanming-specific ───
+    banner_cavalry: 2.2          # Eight Banners: elite heavy cavalry
+    guerrilla: 0.8               # Peasant army: weak individually but high morale
+    war_junk: 1.5                # Zheng naval power
+
+  # ─── Nanming-specific faction combat modifiers ───
+  faction_modifiers:
+    qing:
+      attack_bonus: 1.20         # +20% attack (Eight Banners discipline)
+      southern_terrain_penalty: 0.90  # -10% defense in southern terrain (hills/forest/wetland/river)
+      description: "八旗精锐，冲锋凌厉，然不谙南方水网"
+    nongminjun:
+      guerrilla_bonus: 1.30      # +30% guerrilla tactics
+      siege_penalty: 0.80        # -20% siege warfare
+      low_equipment: 0.70        # -30% base equipment quality
+      description: "流寇战术，长于奔袭游击，短于攻坚守城"
+    zheng:
+      naval_bonus: 1.40          # +40% naval combat
+      land_penalty: 0.80         # -20% land combat
+      description: "海上霸主，陆战稍逊"
+    nanming:
+      description: "标准官军，兵种均衡"
+
+  # Rock-paper-scissors multipliers
+  counter:
+    cavalry_vs_infantry: 1.5
+    archer_vs_cavalry: 1.4
+    infantry_vs_archer: 1.3
+    # ─── Nanming-specific counters ───
+    banner_vs_guerrilla: 0.7     # Banners struggle against guerrilla hit-and-run
+    guerrilla_vs_banner: 1.4     # Guerrillas excel at harassing heavy cavalry
+    war_junk_vs_navy: 1.6        # Zheng war junks dominate standard naval units
+    war_junk_vs_infantry: 0.5    # Ships can't fight on land
+
+  terrain_defense:
+    mountain: 2.0
+    hills: 1.5
+    forest: 1.3
+    wetland: 1.2
+    river: 1.4
+    coast: 1.1
+    plains: 1.0
+
+  morale_power_mult: 0.01
+  collapse_threshold: 20
+  rout_casualty_mult: 1.8
+  leader_bonus_max: 1.25
+
+  decisive_victory_ratio: 2.0
+  victory_ratio: 1.3
+  draw_range: [0.77, 1.3]
+  defeat_ratio: 0.5
+
+  # ─── Nanming-specific: River crossing combat penalty ───
+  river_crossing_combat_penalty: 0.65  # Attacker power × 0.65 when crossing river (non-Zheng)
+
+mobilization:
+  garrison_min_pct: 0.15
+  campaign_max_pct: 0.70
+
+  # ─── Nanming-specific: Zheng fleet mobilization ───
+  zheng_naval_reserve: 0.30      # Zheng keeps 30% of naval power in reserve for trade protection
+
+march:
+  speed_plains: 3
+  speed_hills: 2
+  speed_mountain: 1
+  speed_forest: 2
+  speed_wetland: 1
+  speed_river: 1
+
+  # ─── Nanming-specific: Naval speed ───
+  naval_speed_coast: 4           # Zheng coastal movement speed
+  naval_speed_river: 2           # River movement speed for naval units
+  river_crossing_delay: 1        # Extra quarter for river crossing without naval support

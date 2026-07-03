@@ -1,0 +1,182 @@
+[
+  {
+    "id": "beijing",
+    "name": "北直隶",
+    "capital": "北京",
+    "description": "京师重地，满洲入关后为清廷新都，控扼燕山与运河之咽喉。",
+    "owner_1645": "qing",
+    "strategic_value": 95,
+    "resources": ["粮食", "人口", "铁"],
+    "neighbors": ["shengjing", "shandong", "shanxi", "henan"]
+  },
+  {
+    "id": "shengjing",
+    "name": "盛京（辽东）",
+    "capital": "盛京",
+    "description": "满洲龙兴之地，八旗根基所在，白山黑水间兵马充盈。",
+    "owner_1645": "qing",
+    "strategic_value": 75,
+    "resources": ["马", "铁", "人参"],
+    "neighbors": ["beijing"]
+  },
+  {
+    "id": "shandong",
+    "name": "山东",
+    "capital": "济南",
+    "description": "齐鲁故地，黄河入海之处，衔接南北之要冲，孔孟之乡民风淳厚。",
+    "owner_1645": "qing",
+    "strategic_value": 70,
+    "resources": ["粮食", "盐", "人口"],
+    "neighbors": ["beijing", "henan", "nanjing"]
+  },
+  {
+    "id": "shanxi",
+    "name": "山西",
+    "capital": "太原",
+    "description": "表里山河，晋商票号之源，煤铁丰饶，据太行而俯视中原。",
+    "owner_1645": "qing",
+    "strategic_value": 70,
+    "resources": ["铁", "煤", "马"],
+    "neighbors": ["beijing", "henan", "shaanxi", "gansu"]
+  },
+  {
+    "id": "henan",
+    "name": "河南",
+    "capital": "开封",
+    "description": "中原腹地，黄河横贯，自古兵家必争。明末屡遭兵祸，十室九空。",
+    "owner_1645": "qing",
+    "strategic_value": 80,
+    "resources": ["粮食", "人口"],
+    "neighbors": ["beijing", "shandong", "nanjing", "huguang", "shanxi", "shaanxi"]
+  },
+  {
+    "id": "shaanxi",
+    "name": "陕西",
+    "capital": "西安",
+    "description": "秦川沃野，关中平原。明末农民军发祥之地，饱经战乱疮痍满目。",
+    "owner_1645": "qing",
+    "strategic_value": 75,
+    "resources": ["粮食", "马", "铁"],
+    "neighbors": ["shanxi", "henan", "huguang", "sichuan", "gansu"]
+  },
+  {
+    "id": "gansu",
+    "name": "甘肃",
+    "capital": "兰州",
+    "description": "河西走廊，丝绸之路要道。地广人稀，产良马劲卒，西域商贾往来不断。",
+    "owner_1645": "qing",
+    "strategic_value": 50,
+    "resources": ["马", "羊", "盐"],
+    "neighbors": ["shanxi", "shaanxi", "sichuan"]
+  },
+  {
+    "id": "nanjing",
+    "name": "南直隶",
+    "capital": "南京",
+    "description": "大明留都，长江天险护卫。江南财赋之枢，商贾云集，文风鼎盛。弘光朝廷所在。",
+    "owner_1645": "nanming",
+    "strategic_value": 90,
+    "resources": ["粮食", "丝绸", "人口", "盐"],
+    "neighbors": ["shandong", "henan", "zhejiang", "jiangxi", "huguang"]
+  },
+  {
+    "id": "zhejiang",
+    "name": "浙江",
+    "capital": "杭州",
+    "description": "东南财赋重地，丝绸之府，鱼米之乡。钱塘江蜿蜒其间，舟山群岛拱卫海疆。",
+    "owner_1645": "nanming",
+    "strategic_value": 80,
+    "resources": ["丝绸", "茶", "鱼盐", "粮食"],
+    "neighbors": ["nanjing", "jiangxi", "fujian"]
+  },
+  {
+    "id": "jiangxi",
+    "name": "江西",
+    "capital": "南昌",
+    "description": "襟三江而带五湖，控蛮荆而引瓯越。瓷器之都景德镇所在，赣江通南北。",
+    "owner_1645": "nanming",
+    "strategic_value": 65,
+    "resources": ["瓷器", "茶", "粮食", "木材"],
+    "neighbors": ["nanjing", "zhejiang", "fujian", "guangdong", "huguang"]
+  },
+  {
+    "id": "huguang",
+    "name": "湖广",
+    "capital": "武昌",
+    "description": "湖广熟天下足，江汉平原粮仓。左良玉大军驻扎，九省通衢战略枢纽。",
+    "owner_1645": "nanming",
+    "strategic_value": 85,
+    "resources": ["粮食", "木材", "铁"],
+    "neighbors": ["henan", "shaanxi", "sichuan", "guangxi", "jiangxi", "nanjing", "xiangyang"]
+  },
+  {
+    "id": "xiangyang",
+    "name": "襄阳",
+    "capital": "襄阳",
+    "description": "荆襄锁钥，天下腰膂。汉水中游重镇，李自成大顺军残部退守之地。",
+    "owner_1645": "nongminjun",
+    "strategic_value": 80,
+    "resources": ["粮食", "铁"],
+    "neighbors": ["henan", "shaanxi", "huguang", "sichuan"]
+  },
+  {
+    "id": "sichuan",
+    "name": "四川",
+    "capital": "成都",
+    "description": "天府之国，蜀道天险。张献忠大西政权建都于此，然杀戮过重民生凋敝。",
+    "owner_1645": "nongminjun",
+    "strategic_value": 85,
+    "resources": ["粮食", "盐", "铁", "丝绸"],
+    "neighbors": ["shaanxi", "gansu", "huguang", "xiangyang", "yunnan"]
+  },
+  {
+    "id": "fujian",
+    "name": "福建",
+    "capital": "福州",
+    "description": "八闽之地，山海形胜。郑氏海商根基所在，闽江出海，通洋贸易纽带。",
+    "owner_1645": "zheng",
+    "strategic_value": 70,
+    "resources": ["茶", "木材", "鱼盐", "银"],
+    "neighbors": ["zhejiang", "jiangxi", "guangdong"]
+  },
+  {
+    "id": "guangdong",
+    "name": "广东",
+    "capital": "广州",
+    "description": "岭南门户，广州为对外通商大港。市舶之利甲于天下，郑氏势力范围之南翼。",
+    "owner_1645": "zheng",
+    "strategic_value": 75,
+    "resources": ["银", "香料", "珍珠", "粮食"],
+    "neighbors": ["jiangxi", "fujian", "guangxi"]
+  },
+  {
+    "id": "guangxi",
+    "name": "广西",
+    "capital": "桂林",
+    "description": "八桂大地，土司杂处。桂林山水甲天下，然山多地少兵备薄弱，各方势力皆可染指。",
+    "owner_1645": "neutral",
+    "strategic_value": 45,
+    "resources": ["木材", "银", "药材"],
+    "neighbors": ["huguang", "guangdong", "yunnan"]
+  },
+  {
+    "id": "yunnan",
+    "name": "云南",
+    "capital": "昆明",
+    "description": "彩云之南，沐氏世守。地接缅甸交趾，物产丰富，然路途遥远中央掌控薄弱。",
+    "owner_1645": "neutral",
+    "strategic_value": 50,
+    "resources": ["银", "铜", "马", "药材"],
+    "neighbors": ["sichuan", "guangxi"]
+  },
+  {
+    "id": "taiwan",
+    "name": "台湾",
+    "capital": "热兰遮城",
+    "description": "海中孤岛，荷兰人盘踞热兰遮城。土地肥沃，鹿皮蔗糖丰饶，为海上贸易中转站。",
+    "owner_1645": "neutral",
+    "strategic_value": 55,
+    "resources": ["鹿皮", "蔗糖", "硫磺"],
+    "neighbors": ["fujian", "guangdong"]
+  }
+]

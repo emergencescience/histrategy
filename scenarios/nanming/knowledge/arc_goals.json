@@ -1,0 +1,86 @@
+[
+  {
+    "goal_id": "nanming_defend_jiangnan",
+    "faction_id": "nanming",
+    "title_zh": "保卫江南",
+    "description_zh": "整饬江北四镇，巩固长江防线，防止清军突破扬州—镇江一线。若扬州失守则南京门户洞开，弘光朝廷危在旦夕。",
+    "reward": "守住扬州及南京六个月以上，获得『固若金汤』荣誉，士气+15，朝内党争暂时平息"
+  },
+  {
+    "goal_id": "nanming_reform_court",
+    "faction_id": "nanming",
+    "title_zh": "整饬朝纲",
+    "description_zh": "调停东林党与阉党余孽之争，整顿江北四镇骄兵悍将，建立统一指挥体系。南明之弱不在兵寡而在内斗。",
+    "reward": "消除党争负面效果，四镇忠诚度+20，税收效率+10%"
+  },
+  {
+    "goal_id": "nanming_restore_zhongyuan",
+    "faction_id": "nanming",
+    "title_zh": "恢复中原",
+    "description_zh": "联合各路抗清势力北伐，收复河南、山东，进而攻克北京，恢复大明江山。此为终极目标，需天时地利人和。",
+    "reward": "收复北京后国号重光，解锁『中兴之主』结局"
+  },
+  {
+    "goal_id": "qing_conquer_jiangnan",
+    "faction_id": "qing",
+    "title_zh": "平定江南",
+    "description_zh": "攻克扬州、南京，扫灭弘光朝廷。江南富庶之地一旦纳入版图，大清即可完成统一大业。",
+    "reward": "占领南京后获得『天下归一』成就，八旗士气+10，可征调汉军绿营"
+  },
+  {
+    "goal_id": "qing_pacify_han_resistance",
+    "faction_id": "qing",
+    "title_zh": "绥靖汉地",
+    "description_zh": "镇压各地抗清起义，推行剃发易服，以满洲制度重塑中原。不仅要用刀剑征服土地，更要征服人心。",
+    "reward": "各领地叛乱风险-30%，税收效率+15%，人口流失减缓"
+  },
+  {
+    "goal_id": "qing_exterminate_peasant_armies",
+    "faction_id": "qing",
+    "title_zh": "剿灭流寇",
+    "description_zh": "追剿李自成大顺军及张献忠大西军残部，彻底消灭农民军势力。此辈为覆灭明朝元凶，亦为大清心腹之患。",
+    "reward": "消灭农民军势力后，获得『廓清宇内』称号，声望+20"
+  },
+  {
+    "goal_id": "nongminjun_survive_1645",
+    "faction_id": "nongminjun",
+    "title_zh": "夹缝求生",
+    "description_zh": "在清军与南明的夹击下延续大顺政权。李自成已失北京，退守襄阳，当务之急是避免被清军彻底歼灭。",
+    "reward": "存活至1646年，解锁『劫后余生』成就，获得与南明谈判联合的选项"
+  },
+  {
+    "goal_id": "nongminjun_ally_with_nanming",
+    "faction_id": "nongminjun",
+    "title_zh": "联明抗清",
+    "description_zh": "放下与明朝的旧怨，与南明朝廷结盟共同对抗满清。农民军实力尚存，若能与南明合流，则可扭转颓势。",
+    "reward": "与南明结盟后军队士气+15，解锁忠贞营编制，获得南明财政援助"
+  },
+  {
+    "goal_id": "nongminjun_reconquer_beijing",
+    "faction_id": "nongminjun",
+    "title_zh": "再克北京",
+    "description_zh": "重整旗鼓，联合各方势力再次攻克北京，驱逐满洲人。李自成曾短暂拥有过这座帝都，如今要把它夺回来。",
+    "reward": "攻克北京后声望+30，解锁『再入京师』结局"
+  },
+  {
+    "goal_id": "zheng_dominate_seas",
+    "faction_id": "zheng",
+    "title_zh": "制海权霸",
+    "description_zh": "巩固东南沿海贸易垄断地位，发展水师力量。郑氏之强在于海洋，控制了海路便控制了财富与战略主动权。",
+    "reward": "水师规模达五万以上且贸易路线≥5条，解锁『海上霸主』称号，商业收入+25%"
+  },
+  {
+    "goal_id": "zheng_loyalist_crusade",
+    "faction_id": "zheng",
+    "title_zh": "北伐中原",
+    "description_zh": "待时机成熟率水师北伐，溯长江而上，收复南京以号召天下。郑成功以恢复大明为己任，北伐是最重要的军事目标。",
+    "reward": "成功攻入南京后士气+20，解锁『国姓北伐』成就，获得各方抗清义士响应"
+  },
+  {
+    "goal_id": "zheng_retake_taiwan",
+    "faction_id": "zheng",
+    "title_zh": "收复台湾",
+    "description_zh": "驱逐占据台湾的荷兰殖民者，将台湾建设为抗清后方基地。台湾土地肥沃，可为长久之计。",
+    "reward": "占领台湾后解锁『东宁王』称号，获得稳定后方，移民人口持续增长"
+  }
+]
