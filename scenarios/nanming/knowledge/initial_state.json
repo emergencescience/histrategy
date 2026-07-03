@@ -4,23 +4,23 @@
   "year": 1645,
   "season": "spring",
   "player_faction": "nanming",
-  "description": "弘光元年（1645年）春。崇祯自缢煤山已近一载，清军入关占据中原。南京弘光朝廷偏安江南，史可法督师扬州，然朝内党争不休、四镇跋扈。李自成大顺军退守襄阳，张献忠大西军割据四川。郑氏海商雄踞闽粤，观望天下之势。清军已磨刀霍霍、准备南征——华夏存亡，系于一线。",
+  "description": "公元1645年春。崇祯帝煤山自缢已近一年，李自成被清军逐出北京，多尔衮已定鼎燕京。弘光帝朱由崧坐镇南京，史可法督师扬州誓死抗清。江北四镇各怀异心，南明朝廷内斗不休。此刻，清军铁骑正蓄势南下，华夏存亡悬于一线。",
   "factions": {
     "nanming": {
-      "name": "南明（弘光朝廷）",
-      "name_en": "Southern Ming (Hongguang Court)",
-      "ruler": "shikefa",
+      "name": "南明",
+      "name_en": "Southern Ming",
+      "ruler": "hongguang",
       "capital": "nanjing",
-      "territories": ["nanjing", "zhejiang", "jiangxi", "huguang"],
+      "territories": ["nanjing", "zhejiang", "jiangxi", "huguang", "shandong", "henan"],
       "treasury": 50000,
       "food": 45000,
       "strength": 80000,
-      "prestige": 55,
+      "prestige": 70,
       "tax_rate": 0.3,
       "morale_actual": 55,
       "tech_levels": {
         "agriculture": 3,
-        "commerce": 3,
+        "commerce": 4,
         "military": 2
       },
       "relations": {
@@ -29,56 +29,56 @@
         "zheng": 30
       },
       "personality": {
-        "aggression": 0.2,
-        "cunning": 0.4,
-        "caution": 0.7,
-        "diplomacy": 0.6,
-        "development": 0.6,
+        "aggression": 0.3,
+        "cunning": 0.5,
+        "caution": 0.6,
+        "diplomacy": 0.7,
+        "development": 0.5,
         "mercy": 0.6
       },
-      "advisor": null
+      "advisor": "shikefa"
     },
     "qing": {
       "name": "大清",
-      "name_en": "Great Qing",
+      "name_en": "Qing Dynasty",
       "ruler": "duoduo",
       "capital": "beijing",
-      "territories": ["beijing", "shengjing", "shandong", "shanxi", "henan", "shaanxi", "gansu"],
+      "territories": ["beijing", "shengjing", "shanxi", "shaanxi", "gansu"],
       "treasury": 40000,
       "food": 35000,
       "strength": 120000,
-      "prestige": 80,
+      "prestige": 85,
       "tax_rate": 0.3,
       "morale_actual": 85,
       "tech_levels": {
         "agriculture": 2,
         "commerce": 2,
-        "military": 4
+        "military": 5
       },
       "relations": {
         "nanming": -90,
-        "nongminjun": -80,
-        "zheng": -30
+        "nongminjun": -85,
+        "zheng": -20
       },
       "personality": {
-        "aggression": 0.9,
+        "aggression": 0.85,
         "cunning": 0.8,
-        "caution": 0.3,
+        "caution": 0.2,
         "diplomacy": 0.4,
         "development": 0.4,
-        "mercy": 0.1
+        "mercy": 0.15
       }
     },
     "nongminjun": {
       "name": "农民军",
-      "name_en": "Peasant Armies",
+      "name_en": "Peasant Army",
       "ruler": "lizicheng",
       "capital": "xiangyang",
       "territories": ["xiangyang", "sichuan"],
       "treasury": 8000,
       "food": 10000,
       "strength": 90000,
-      "prestige": 30,
+      "prestige": 25,
       "tax_rate": 0.1,
       "morale_actual": 70,
       "tech_levels": {
@@ -88,220 +88,146 @@
       },
       "relations": {
         "nanming": -70,
-        "qing": -80,
+        "qing": -85,
         "zheng": -10
       },
       "personality": {
-        "aggression": 0.7,
-        "cunning": 0.5,
-        "caution": 0.3,
-        "diplomacy": 0.3,
+        "aggression": 0.6,
+        "cunning": 0.4,
+        "caution": 0.5,
+        "diplomacy": 0.2,
         "development": 0.2,
-        "mercy": 0.3
+        "mercy": 0.5
       }
     },
     "zheng": {
-      "name": "郑氏海商",
-      "name_en": "Zheng Maritime",
+      "name": "郑氏",
+      "name_en": "Zheng Clan",
       "ruler": "zhengchenggong",
       "capital": "fuzhou",
       "territories": ["fujian", "guangdong"],
       "treasury": 35000,
       "food": 12000,
       "strength": 35000,
-      "prestige": 40,
+      "prestige": 45,
       "tax_rate": 0.2,
       "morale_actual": 60,
       "tech_levels": {
         "agriculture": 2,
-        "commerce": 4,
+        "commerce": 5,
         "military": 3
       },
       "relations": {
         "nanming": 30,
-        "qing": -30,
+        "qing": -20,
         "nongminjun": -10
       },
       "personality": {
         "aggression": 0.3,
-        "cunning": 0.6,
-        "caution": 0.6,
-        "diplomacy": 0.7,
-        "development": 0.8,
+        "cunning": 0.7,
+        "caution": 0.7,
+        "diplomacy": 0.6,
+        "development": 0.7,
         "mercy": 0.5
       }
+    },
+    "other": {
+      "name": "其他势力",
+      "name_en": "Minor Powers",
+      "ruler": null,
+      "capital": "",
+      "territories": ["guangxi", "yunnan", "taiwan"],
+      "treasury": 5000,
+      "food": 5000,
+      "strength": 10000,
+      "prestige": 15,
+      "tax_rate": 0.2,
+      "morale_actual": 40,
+      "tech_levels": {
+        "agriculture": 1,
+        "commerce": 1,
+        "military": 1
+      },
+      "is_active_manually": true
     }
   },
   "territories": {
     "nanjing": {
       "name": "南京",
       "owner": "nanming",
-      "population": 150000,
+      "population": 300000,
       "development": 75,
       "terrain": "plains",
       "climate_zone": "central",
-      "fertility": 8,
-      "has_river": true
-    },
-    "zhejiang": {
-      "name": "杭州",
-      "owner": "nanming",
-      "population": 90000,
-      "development": 65,
-      "terrain": "plains",
-      "climate_zone": "south",
-      "fertility": 7,
-      "has_coast": true
-    },
-    "jiangxi": {
-      "name": "南昌",
-      "owner": "nanming",
-      "population": 70000,
-      "development": 55,
-      "terrain": "hills",
-      "climate_zone": "south",
-      "fertility": 7,
-      "has_river": true
-    },
-    "huguang": {
-      "name": "武昌",
-      "owner": "nanming",
-      "population": 85000,
-      "development": 55,
-      "terrain": "plains",
-      "climate_zone": "central",
-      "fertility": 7,
-      "has_river": true
+      "has_river": true,
+      "fertility": 9
     },
     "beijing": {
       "name": "北京",
       "owner": "qing",
-      "population": 120000,
-      "development": 65,
-      "terrain": "plains",
-      "climate_zone": "north",
-      "fertility": 5
-    },
-    "shengjing": {
-      "name": "盛京",
-      "owner": "qing",
-      "population": 40000,
-      "development": 40,
-      "terrain": "plains",
-      "climate_zone": "north",
-      "fertility": 4
-    },
-    "shandong": {
-      "name": "济南",
-      "owner": "qing",
-      "population": 80000,
-      "development": 55,
+      "population": 200000,
+      "development": 60,
       "terrain": "plains",
       "climate_zone": "north",
       "fertility": 6
-    },
-    "shanxi": {
-      "name": "太原",
-      "owner": "qing",
-      "population": 60000,
-      "development": 50,
-      "terrain": "hills",
-      "climate_zone": "north",
-      "fertility": 5
-    },
-    "henan": {
-      "name": "开封",
-      "owner": "qing",
-      "population": 50000,
-      "development": 40,
-      "terrain": "plains",
-      "climate_zone": "central",
-      "fertility": 6
-    },
-    "shaanxi": {
-      "name": "西安",
-      "owner": "qing",
-      "population": 45000,
-      "development": 40,
-      "terrain": "plains",
-      "climate_zone": "central",
-      "fertility": 5
-    },
-    "gansu": {
-      "name": "兰州",
-      "owner": "qing",
-      "population": 20000,
-      "development": 25,
-      "terrain": "plains",
-      "climate_zone": "north",
-      "fertility": 3
     },
     "xiangyang": {
       "name": "襄阳",
       "owner": "nongminjun",
-      "population": 50000,
+      "population": 100000,
       "development": 40,
       "terrain": "plains",
       "climate_zone": "central",
-      "fertility": 6,
-      "has_river": true
+      "has_river": true,
+      "fertility": 7
     },
-    "sichuan": {
-      "name": "成都",
-      "owner": "nongminjun",
-      "population": 45000,
-      "development": 35,
-      "terrain": "mountain",
-      "climate_zone": "central",
-      "fertility": 8,
-      "has_river": true
-    },
-    "fujian": {
+    "fuzhou": {
       "name": "福州",
       "owner": "zheng",
-      "population": 65000,
+      "population": 120000,
       "development": 55,
       "terrain": "coast",
       "climate_zone": "south",
-      "fertility": 6,
-      "has_coast": true
-    },
-    "guangdong": {
-      "name": "广州",
-      "owner": "zheng",
-      "population": 75000,
-      "development": 60,
-      "terrain": "coast",
-      "climate_zone": "south",
-      "fertility": 6,
-      "has_coast": true
+      "has_coast": true,
+      "fertility": 6
     }
   },
   "initial_events": [
     {
-      "event_id": "duoduo_south_1645",
+      "event_id": "qing_southward_campaign_1645",
       "status": "pending",
-      "trigger_condition": "year >= 1645 and season == 'spring'"
+      "trigger_condition": "year >= 1645 and qing exists"
+    },
+    {
+      "event_id": "nanming_internal_strife",
+      "status": "active",
+      "trigger_condition": "nanming faction exists, morale < 70"
     }
   ],
   "objectives": [
     {
+      "id": "survive_qing_invasion",
+      "description": "在清军南下中存活",
+      "type": "main",
+      "reward": "继续游戏"
+    },
+    {
+      "id": "form_united_front",
+      "description": "团结农民军与郑氏共同抗清",
+      "type": "main",
+      "reward": "三军联手，逆转战局"
+    },
+    {
       "id": "defend_yangzhou",
-      "description": "抵挡清军南下，守住扬州",
-      "type": "main",
-      "reward": "延缓清军攻势，争取时间整合内部"
+      "description": "守住扬州，为南京争取时间",
+      "type": "secondary",
+      "reward": "延缓清军推进"
     },
     {
-      "id": "unite_han_resistance",
-      "description": "联合农民军与郑氏共同抗清",
-      "type": "main",
-      "reward": "形成抗清统一战线"
-    },
-    {
-      "id": "eliminate_qing",
-      "description": "将清军逐出山海关",
-      "type": "ultimate",
-      "reward": "复兴大明江山"
+      "id": "restore_central_authority",
+      "description": "削平江北四镇，统一指挥权",
+      "type": "secondary",
+      "reward": "士气和战力提升"
     }
   ]
 }
