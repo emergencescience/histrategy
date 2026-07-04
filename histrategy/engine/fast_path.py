@@ -9,11 +9,10 @@ from __future__ import annotations
 
 import logging
 import re
-from copy import deepcopy
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from histrategy.server.room_manager import GameRoom
+    pass
 
 logger = logging.getLogger("histrategy.fast_path")
 
@@ -116,6 +115,16 @@ def _resolve_combat(attacker_troops: int, defender_troops: int,
     }
 
 
+# ── Territory Chinese names ──────────────────────────────────
+_TERRITORY_ZH = {
+    "shandong": "山东", "henan": "河南", "nanjing": "南京",
+    "zhejiang": "浙江", "jiangxi": "江西", "huguang": "湖广",
+    "fujian": "福建", "guangdong": "广东", "guangxi": "广西",
+    "yunnan": "云南", "sichuan": "四川", "beijing": "北京",
+    "shengjing": "盛京", "shanxi": "山西", "shaanxi": "陕西",
+    "gansu": "甘肃", "yangzhou": "扬州",
+}
+
 # ── Main simulation ──────────────────────────────────────────
 
 
@@ -187,7 +196,6 @@ def simulate_fast_path(room, player_decision: str,
 
     # Parse player's package type from suggestion_id
     # e.g. "nanming_t1_defend" → is_defensive=True
-    pid_parts = player_suggestion_id.split("_")
     is_player_defensive = any(kw in player_suggestion_id
                               for kw in ["defend", "hold", "retreat",
                                          "relocate", "peace", "sail"])
@@ -218,7 +226,7 @@ def simulate_fast_path(room, player_decision: str,
             if result["city_falls"]:
                 factions["qing"]["territories"].append(target)
                 defender_territories.remove(target)
-                events.append(f"{target} | qing captures {target}")
+                events.append(f"清军攻陷{_TERRITORY_ZH.get(target, target)}")
                 state_changes[target] = "qing"
                 # Update troops
                 factions["qing"]["troops"] -= result["attacker_losses"]
@@ -230,14 +238,14 @@ def simulate_fast_path(room, player_decision: str,
                     factions["qing"]["morale"] -= 3
             elif result["siege_only"]:
                 # City under siege, not fallen
-                events.append(f"{target} | qing besieges {target}")
+                events.append(f"清军围困{_TERRITORY_ZH.get(target, target)}")
                 factions["qing"]["troops"] -= result["attacker_losses"]
                 factions["nanming"]["troops"] -= result["defender_losses"]
                 factions["nanming"]["food"] -= int(factions["nanming"]["food"] * 0.15)
                 factions["nanming"]["morale"] -= 3
             else:
                 # Attack repelled
-                events.append(f"{target} | nanming defends {target}")
+                events.append(f"南明守住{_TERRITORY_ZH.get(target, target)}")
                 factions["qing"]["troops"] -= result["attacker_losses"]
                 factions["nanming"]["troops"] -= result["defender_losses"]
                 factions["nanming"]["morale"] += 5
@@ -259,11 +267,75 @@ def simulate_fast_path(room, player_decision: str,
         factions[fid]["food"] = max(500, int(factions[fid]["food"] * 0.95))
         factions[fid]["morale"] = max(10, min(100, factions[fid]["morale"]))
 
-    # ── NPC faction actions summary ──
+    # ── NPC faction actions summary (rich narratives) ──
     for fid, idx in npc_choices.items():
         fname = {"qing": "大清", "nongminjun": "农民军", "zheng": "郑氏"}.get(fid, fid)
-        action_words = ["进攻", "外交斡旋", "防御"] 
-        npc_actions.append(f"{fname}: 选择了{action_words[idx] if idx < len(action_words) else '观望'}策略")
+        fdata = factions.get(fid, {})
+        f_troops = fdata.get("troops", 0)
+
+        # Build context-aware NPC action description
+        if fid == "qing":
+            if idx == 0:
+                tnames = [_TERRITORY_ZH.get(t, t) for t in qing_targets]
+                target_str = "、".join(tnames) if tnames else "前线"
+                if any("攻陷" in e for e in events if "清军" in e):
+                    npc_actions.append(
+                        f"{fname}：多尔衮令八旗主力南下，{target_str}已被攻破，"
+                        f"清军乘胜追击，兵锋直指长江。"
+                    )
+                elif any("围困" in e for e in events if "清军" in e):
+                    npc_actions.append(
+                        f"{fname}：清军兵临{target_str}城下，围而不攻，"
+                        f"意图断绝城中粮道。八旗铁骑在城外扎营，等待守军投降。"
+                    )
+                else:
+                    npc_actions.append(
+                        f"{fname}：多尔衮调集八旗精锐南征{target_str}，"
+                        f"铁骑所过之处烟尘蔽日。然南明据城死守，清军攻势受阻。"
+                    )
+            elif idx == 1:
+                npc_actions.append(
+                    f"{fname}：多尔衮稳健推进，一面加紧围城一面遣使招降，"
+                    f"以「留头不留发」之令威慑江南士绅。"
+                )
+            else:
+                npc_actions.append(
+                    f"{fname}：清军暂缓攻势，在已占领土推行圈地与剃发令，"
+                    f"巩固后方统治。"
+                )
+        elif fid == "nongminjun":
+            if idx == 0:
+                npc_actions.append(
+                    f"{fname}：李自成率大顺军余部东出四川，"
+                    f"趁明清交战之际攻城掠地，兵力{f_troops//1000}K，"
+                    f"然军纪涣散、粮草匮乏。"
+                )
+            elif idx == 1:
+                npc_actions.append(
+                    f"{fname}：农民军观望时局，"
+                    f"李自成遣使与各方周旋，寻求利益最大化。"
+                )
+            else:
+                npc_actions.append(
+                    f"{fname}：农民军固守川中，"
+                    f"李自成秣马厉兵，休养生息以待天时。"
+                )
+        elif fid == "zheng":
+            if idx == 0:
+                npc_actions.append(
+                    f"{fname}：郑成功率水师北上，千艘战船游弋于长江口，"
+                    f"威慑清军南下水道。然陆上兵力有限，难以深入内陆。"
+                )
+            elif idx == 1:
+                npc_actions.append(
+                    f"{fname}：郑氏利用海上贸易积累财富，"
+                    f"郑成功以商养战，同时遣使联络南明与海外势力。"
+                )
+            else:
+                npc_actions.append(
+                    f"{fname}：郑成功退守福建沿海，"
+                    f"以水师屏障确保海洋退路，积蓄力量。"
+                )
 
     # ── Advance season ──
     seasons = ["spring", "summer", "autumn", "winter"]
@@ -274,7 +346,7 @@ def simulate_fast_path(room, player_decision: str,
 
     # ── Build response ──
     season_zh = {"spring": "春", "summer": "夏", "autumn": "秋", "winter": "冬"}
-    season_str = season_zh.get(new_season, new_season)
+    # season_str defined above
 
     narrative = _build_narrative(player_suggestion_id, events, factions, season_str)
     aftermath = f"公元{new_year}年{season_str}。{'、'.join(events) if events else '各方按兵不动，局势暂时平稳。'}"
@@ -299,7 +371,7 @@ def simulate_fast_path(room, player_decision: str,
             "territories": factions["nanming"]["territories"],
             "is_active": True,
             "year": new_year,
-            "season": new_season,
+            "season": season_zh.get(new_season, new_season),
             "turn": turn,
         },
         "year": new_year,
@@ -331,7 +403,6 @@ def _build_narrative(suggestion_id: str, events: list[str],
     nanming_defends = [e for e in events if "defends" in e]
 
     nm = factions.get("nanming", {})
-    q = factions.get("qing", {})
 
     if "defend" in suggestion_id:
         parts.append(
