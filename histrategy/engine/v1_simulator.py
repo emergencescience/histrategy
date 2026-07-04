@@ -960,4 +960,92 @@ def save_v1_state_to_db(
             f"V1 DB save: {success_count} factions saved, {error_count} failed. room={room_id} q={quarter_number}"
         )
     elif success_count > 0:
-        logger.info(f"V1 DB save: {success_count} factions saved successfully. room={room_id} q={quarter_number}")
+        logger.info(
+            f"V1 DB save: {success_count} factions saved successfully. "
+            f"room={room_id} q={quarter_number}"
+        )
+
+
+# ─── Territory Change Detection ────────────────────────────────────
+
+
+def detect_territory_changes(
+    old_state: dict,
+    v1_factions: dict,
+    ws: "WorldState",
+    narrative: str,
+) -> str:
+    """Detect territory changes and append missing narrative explanations.
+
+    When the LLM changes territory ownership without mentioning it in the
+    narrative, we detect the change and append a concise annotation.
+    This fixes the \"silent territory loss\" bug where cities change hands
+    without any narrative explanation.
+
+    Args:
+        old_state: Pre-simulation faction state {fid: {territories: [...]}}
+        v1_factions: LLM output factions dict
+        ws: WorldState (post-application, for territory names)
+        narrative: The existing global narrative string
+
+    Returns:
+        Enhanced narrative with territory change annotations appended.
+    """
+    changes: list[str] = []
+
+    for fid, data in v1_factions.items():
+        faction = ws.factions.get(fid)
+        if not faction:
+            continue
+
+        old_territories = set(old_state.get(fid, {}).get("territories", []))
+        new_territories_raw = data.get("territories", [])
+        new_territories = set(
+            t["id"] if isinstance(t, dict) else t for t in new_territories_raw
+        )
+
+        gained = new_territories - old_territories
+        lost = old_territories - new_territories
+
+        faction_name = getattr(faction, "name", fid) or fid
+
+        for tid in gained:
+            tname = (
+                ws.territories[tid].name
+                if hasattr(ws, "territories") and tid in ws.territories
+                else tid
+            )
+            # Check if the gain is already mentioned in the narrative
+            if tname not in narrative and tid not in narrative:
+                # Find loser
+                loser_name = "?"
+                for other_fid, other_f in ws.factions.items():
+                    if other_fid != fid and tid in getattr(
+                        other_f, "territories", []
+                    ):
+                        loser_name = (
+                            getattr(other_f, "name", other_fid) or other_fid
+                        )
+                        break
+                changes.append(
+                    f"⚔️ {faction_name}占领了{loser_name}的{tname}。"
+                )
+
+        for tid in lost:
+            tname = (
+                ws.territories[tid].name
+                if hasattr(ws, "territories") and tid in ws.territories
+                else tid
+            )
+            if tname not in narrative and tid not in narrative:
+                changes.append(f"📉 {faction_name}失去了{tname}。")
+
+    if changes:
+        logger.info(
+            f"V1 territory change detection: {len(changes)} undocumented "
+            f"changes found, appending to narrative"
+        )
+        appendix = "\n\n---\n**城池变动**\n\n" + "\n".join(changes)
+        return narrative + appendix
+
+    return narrative

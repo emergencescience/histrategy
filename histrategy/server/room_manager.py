@@ -902,7 +902,7 @@ def _resolve_and_advance(room: GameRoom):
 def _capture_faction_state(ws) -> dict:
     """Capture pre-resolution state for turn_delta calculation.
 
-    Returns {faction_id: {population, troops, food, treasury, morale}}.
+    Returns {faction_id: {population, troops, food, treasury, morale, territories}}.
     """
     old_state = {}
     for fid in ws.factions:
@@ -913,6 +913,7 @@ def _capture_faction_state(ws) -> dict:
             "food": faction.food,
             "treasury": faction.treasury,
             "morale": getattr(faction, "morale_actual", 50),
+            "territories": list(getattr(faction, "territories", [])),
         }
     return old_state
 
@@ -921,7 +922,7 @@ def _resolve_v1(room, ws, decisions, llm):
     """V1 引擎：纯 LLM 仿真。"""
     import concurrent.futures
 
-    from histrategy.engine.v1_simulator import V1Simulator, _apply_v1_state_to_world, save_v1_state_to_db
+    from histrategy.engine.v1_simulator import V1Simulator, _apply_v1_state_to_world, detect_territory_changes, save_v1_state_to_db
 
     simulator = V1Simulator(llm)
 
@@ -1031,6 +1032,26 @@ def _resolve_v1(room, ws, decisions, llm):
 
     # 将 V1 结果应用到 WorldState
     _apply_v1_state_to_world(ws, v1_factions)
+
+    # ── Territory change narrative enhancement ──
+    # Detect undocumented territory changes and append to narrative.
+    # Fixes: cities silently changing hands without narrative explanation
+    # (e.g. Q5→Q6 Chengdu/Xi'an disappearing without mention).
+    try:
+        raw_narrative = v1_result.get('narrative', '')
+        enhanced = detect_territory_changes(
+            old_state, v1_factions, ws, raw_narrative
+        )
+        if enhanced != raw_narrative:
+            v1_result['narrative'] = enhanced
+            logger.info(
+                f'V1 territory narrative enhanced: '
+                f'room={room.id} q={room.quarter_number + 1}'
+            )
+    except Exception as e:
+        logger.warning(
+            f'V1 territory check failed (non-fatal): {e}'
+        )
 
     # 写入 DB（传入旧状态以计算 delta）
     # Note: room.quarter_number hasn't been incremented yet — save with next quarter
