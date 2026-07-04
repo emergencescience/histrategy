@@ -1017,14 +1017,19 @@ def detect_territory_changes(
             )
             # Check if the gain is already mentioned in the narrative
             if tname not in narrative and tid not in narrative:
-                # Find loser
+                # Find previous owner from OLD state (pre-application).
+                # After _apply_v1_state_to_world, ws.factions no longer has
+                # the lost territory — so we must check old_state instead.
                 loser_name = "?"
-                for other_fid, other_f in ws.factions.items():
-                    if other_fid != fid and tid in getattr(
-                        other_f, "territories", []
+                for other_fid, other_data in old_state.items():
+                    if other_fid != fid and tid in other_data.get(
+                        "territories", []
                     ):
+                        other_f = ws.factions.get(other_fid)
                         loser_name = (
-                            getattr(other_f, "name", other_fid) or other_fid
+                            getattr(other_f, "name", other_fid)
+                            if other_f
+                            else other_fid
                         )
                         break
                 changes.append(
