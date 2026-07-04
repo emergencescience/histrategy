@@ -369,7 +369,7 @@ def _build_narrative(suggestion_id: str, events: list[str],
         f"{len(nm.get('territories', []))}座城池。"
     )
 
-    return "。".join(parts) + "。"
+    return "".join(parts)
 
 
 # ── Quick path detection ─────────────────────────────────────
