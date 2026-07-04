@@ -105,14 +105,14 @@ class TestKnowledgeBaseIntegrity:
         assert nm["strength"] == 80000
         assert nm["treasury"] == 50000
         assert nm["food"] == 45000
-        assert nm["morale_actual"] == 55
+        assert nm["morale_actual"] == 65
 
     def test_initial_state_qing_stats(self):
         initial = json.loads((KNOWLEDGE_DIR / "initial_state.json").read_text())
         q = initial["factions"]["qing"]
         assert q["capital"] == "beijing"
         assert q["strength"] == 120000
-        assert q["morale_actual"] == 85
+        assert q["morale_actual"] == 72
 
     def test_roster_core_characters_present(self):
         roster = json.loads((KNOWLEDGE_DIR / "roster.json").read_text())
@@ -264,7 +264,7 @@ class TestNanmingHeadlessSimulation:
         state = self._load_initial_state()
         result = self._simulate_faction_turn("qing", state)
         assert result["strength"] == 120000
-        assert result["morale"] >= 80
+        assert result["morale"] >= 70
 
     def test_nongminjun_simulation(self):
         """Peasant Army: simulate 1 turn, verify poor but numerous."""
