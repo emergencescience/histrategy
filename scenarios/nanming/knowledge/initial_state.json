@@ -24,7 +24,7 @@
       "strength": 80000,
       "prestige": 70,
       "tax_rate": 0.3,
-      "morale_actual": 55,
+      "morale_actual": 65,
       "tech_levels": {
         "agriculture": 3,
         "commerce": 4,
@@ -62,7 +62,7 @@
       "strength": 120000,
       "prestige": 85,
       "tax_rate": 0.3,
-      "morale_actual": 85,
+      "morale_actual": 72,
       "tech_levels": {
         "agriculture": 2,
         "commerce": 2,
@@ -74,7 +74,7 @@
         "zheng": -20
       },
       "personality": {
-        "aggression": 0.85,
+        "aggression": 0.70,
         "cunning": 0.8,
         "caution": 0.2,
         "diplomacy": 0.4,
