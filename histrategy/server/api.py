@@ -474,6 +474,35 @@ def create_app(llm_provider: str | None = None) -> Any:
     # Scenario Metadata API (/api/scenarios)
     # ═══════════════════════════════════════════════════════════
 
+    @app.get("/api/scenarios/{scenario_id}/characters")
+    def api_scenario_characters(scenario_id: str):
+        """Return character knowledge data for a scenario (hover popup bios)."""
+        import json
+        import os
+
+        # Try scenario-specific characters first, fall back to default
+        scenario_path = os.path.join("scenarios", scenario_id, "knowledge", "characters.json")
+        default_path = os.path.join("histrategy", "knowledge", "data", "characters.json")
+
+        for path in [scenario_path, default_path]:
+            if os.path.exists(path):
+                with open(path) as f:
+                    data = json.load(f)
+                # Return minimal fields for hover popups
+                chars = []
+                for c in data:
+                    chars.append({
+                        "id": c.get("id", ""),
+                        "name": c.get("name", ""),
+                        "faction": c.get("faction", ""),
+                        "birth": c.get("birth"),
+                        "death": c.get("death"),
+                        "description": c.get("description", ""),
+                    })
+                return {"scenario_id": scenario_id, "characters": chars, "count": len(chars)}
+
+        return {"scenario_id": scenario_id, "characters": [], "count": 0}
+
     @app.get("/api/scenarios")
     def api_list_scenarios():
         """List all available scenarios with faction metadata."""
