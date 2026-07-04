@@ -325,6 +325,28 @@ def create_app(llm_provider: str | None = None) -> Any:
                 "turn_deltas": deltas,
                 "policies": policies,
             }
+
+            # Merge faction stats (population, troops, food, etc.) from game_state
+            try:
+                from histrategy.db.models import get_latest_game_states
+                gs_rows = get_latest_game_states(room_id, qn)
+                faction_stats = {}
+                for gs in gs_rows:
+                    fid = gs["faction_id"]
+                    faction_stats[fid] = {
+                        "population": gs.get("population", 0),
+                        "troops": gs.get("troops", 0),
+                        "food": gs.get("food", 0),
+                        "treasury": gs.get("treasury", 0),
+                        "morale": gs.get("morale", 0),
+                        "territories": len(_safe_json_loads(gs.get("territories", "[]")) or []),
+                    }
+                if faction_stats:
+                    if not turn["state_changes"]:
+                        turn["state_changes"] = {}
+                    turn["state_changes"]["faction_stats"] = faction_stats
+            except Exception:
+                pass  # Non-critical; don't break turns response if game_state query fails
             turns.append(turn)
 
         # Return in ascending quarter_number order
@@ -451,6 +473,35 @@ def create_app(llm_provider: str | None = None) -> Any:
     # ═══════════════════════════════════════════════════════════
     # Scenario Metadata API (/api/scenarios)
     # ═══════════════════════════════════════════════════════════
+
+    @app.get("/api/scenarios/{scenario_id}/characters")
+    def api_scenario_characters(scenario_id: str):
+        """Return character knowledge data for a scenario (hover popup bios)."""
+        import json
+        import os
+
+        # Try scenario-specific characters first, fall back to default
+        scenario_path = os.path.join("scenarios", scenario_id, "knowledge", "characters.json")
+        default_path = os.path.join("histrategy", "knowledge", "data", "characters.json")
+
+        for path in [scenario_path, default_path]:
+            if os.path.exists(path):
+                with open(path) as f:
+                    data = json.load(f)
+                # Return minimal fields for hover popups
+                chars = []
+                for c in data:
+                    chars.append({
+                        "id": c.get("id", ""),
+                        "name": c.get("name", ""),
+                        "faction": c.get("faction", ""),
+                        "birth": c.get("birth"),
+                        "death": c.get("death"),
+                        "description": c.get("description", ""),
+                    })
+                return {"scenario_id": scenario_id, "characters": chars, "count": len(chars)}
+
+        return {"scenario_id": scenario_id, "characters": [], "count": 0}
 
     @app.get("/api/scenarios")
     def api_list_scenarios():
