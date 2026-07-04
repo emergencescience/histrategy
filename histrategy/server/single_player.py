@@ -96,16 +96,16 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
         decision: Player's natural-language decision
         lang: Language (zh | en). Auto-detected from room metadata if not explicit.
     """
-    from histrategy.engine.fast_path import extract_suggestion_id, should_use_fast_path
+    from histrategy.engine.fast_path import extract_suggestion_id
     from histrategy.server.room_manager import (
         _get_room,
         _trigger_npc_decisions,
+        _try_save,
         build_aftermath_text,
         build_faction_status_for_api,
         build_strategic_suggestions,
         extract_turn_events,
         submit_decision,
-        _try_save,
     )
 
     room = _get_room(game_id)
@@ -152,6 +152,30 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
             room.season = fp_result.get("season", room.season)
 
             _try_save(room)
+
+            # Persist npc_actions to quarter_turn DB
+            # (same pattern as room_manager._save_quarter — embeds _npc_actions
+            #  in narratives JSON so status() can recover them after DB reload)
+            try:
+                import json as _fp_json
+
+                from histrategy.db.models import save_quarter_turn
+                narratives_for_db = {human_fid: fp_result["narrative"]}
+                narratives_for_db["_npc_actions"] = _fp_json.dumps(
+                    fp_result.get("npc_actions", []), ensure_ascii=False
+                )
+                save_quarter_turn(
+                    room.id,
+                    room.quarter_number,
+                    room.year,
+                    room.season,
+                    faction_decisions={human_fid: {"decision": decision, "commands": [], "source": "fast_path"}},
+                    narratives=narratives_for_db,
+                    state_changes=fp_result.get("state_changes", {}),
+                )
+                logger.info(f"Room {game_id}: quarter_turn saved with {len(fp_result.get('npc_actions', []))} npc_actions")
+            except Exception as e:
+                logger.warning(f"Room {game_id}: quarter_turn save failed (non-fatal): {e}")
 
             # Build API response
             fs = fp_result["faction_status"]
