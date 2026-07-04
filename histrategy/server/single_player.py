@@ -96,6 +96,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
         decision: Player's natural-language decision
         lang: Language (zh | en). Auto-detected from room metadata if not explicit.
     """
+    from histrategy.engine.fast_path import extract_suggestion_id, should_use_fast_path
     from histrategy.server.room_manager import (
         _get_room,
         _trigger_npc_decisions,
@@ -104,6 +105,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
         build_strategic_suggestions,
         extract_turn_events,
         submit_decision,
+        _try_save,
     )
 
     room = _get_room(game_id)
@@ -121,6 +123,60 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
     if not human_slots:
         return {"ok": False, "error": "No human faction found"}
     human_fid = human_slots[0].faction_id
+
+    # ── Fast Path: detect suggestion_id prefix → deterministic simulation ──
+    sid = extract_suggestion_id(decision)
+    if sid:
+        try:
+            logger.info(f"Room {game_id}: fast-path triggered (sid={sid})")
+            # Record decision on slot
+            slot = room.slots.get(human_fid)
+            if slot:
+                slot.submit_decision(decision)
+
+            # Run deterministic simulation
+            from histrategy.engine.fast_path import simulate_fast_path
+            fp_result = simulate_fast_path(room, decision, sid)
+
+            # Store results on room object (same pattern as _resolve_and_advance)
+            room._last_narratives = {human_fid: fp_result["narrative"]}
+            room._last_npc_actions = fp_result.get("npc_actions", [])
+            room._last_state_changes = fp_result.get("state_changes", {})
+
+            # Advance quarter
+            prev_quarter = room.quarter_number
+            room.advance_quarter()
+
+            # Sync year/season from fast-path result
+            room.year = fp_result.get("year", room.year)
+            room.season = fp_result.get("season", room.season)
+
+            _try_save(room)
+
+            # Build API response
+            fs = fp_result["faction_status"]
+            suggestions = fp_result.get("new_suggestions", [])
+            room._last_suggestions = suggestions
+
+            return {
+                "game_id": game_id,
+                "narrative": fp_result["narrative"],
+                "aftermath": fp_result.get("aftermath", ""),
+                "state_changes": fp_result.get("state_changes", {}),
+                "events_occurred": fp_result.get("events_occurred", []),
+                "npc_actions": fp_result.get("npc_actions", []),
+                "new_suggestions": suggestions,
+                "game_over": None,
+                "faction_status": fs,
+                "year": fs.get("year", room.year),
+                "season": fs.get("season", room.season),
+                "turn": fs.get("turn", room.quarter_number),
+            }
+        except Exception as e:
+            logger.error(f"Room {game_id}: fast-path failed ({e}), falling back to LLM")
+            # Fall through to normal LLM path
+
+    # ── Normal LLM path ──
 
     # Record quarter before submit (must happen BEFORE submit_decision!)
     prev_quarter = room.quarter_number
