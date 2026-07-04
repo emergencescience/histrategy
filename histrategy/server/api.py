@@ -325,6 +325,28 @@ def create_app(llm_provider: str | None = None) -> Any:
                 "turn_deltas": deltas,
                 "policies": policies,
             }
+
+            # Merge faction stats (population, troops, food, etc.) from game_state
+            try:
+                from histrategy.db.models import get_latest_game_states
+                gs_rows = get_latest_game_states(room_id, qn)
+                faction_stats = {}
+                for gs in gs_rows:
+                    fid = gs["faction_id"]
+                    faction_stats[fid] = {
+                        "population": gs.get("population", 0),
+                        "troops": gs.get("troops", 0),
+                        "food": gs.get("food", 0),
+                        "treasury": gs.get("treasury", 0),
+                        "morale": gs.get("morale", 0),
+                        "territories": len(_safe_json_loads(gs.get("territories", "[]")) or []),
+                    }
+                if faction_stats:
+                    if not turn["state_changes"]:
+                        turn["state_changes"] = {}
+                    turn["state_changes"]["faction_stats"] = faction_stats
+            except Exception:
+                pass  # Non-critical; don't break turns response if game_state query fails
             turns.append(turn)
 
         # Return in ascending quarter_number order
