@@ -108,9 +108,13 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
         submit_decision,
     )
 
+    # ── Timing: _get_room
+    import time as _dbgt
+    _dbgt0 = _dbgt.time()
     room = _get_room(game_id)
+    _dbgt_load = _dbgt.time()
     if not room:
-        return {"ok": False, "error": "Game not found"}
+        return {"ok": False, "error": "Game not found", "_debug": {"load_s": round(_dbgt_load-_dbgt0, 4)}}
 
     # Auto-detect lang from room metadata if not explicitly passed
     if lang == "zh":
@@ -121,12 +125,10 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
     # Find the human faction
     human_slots = list(room.human_slots())
     if not human_slots:
-        return {"ok": False, "error": "No human faction found"}
+        return {"ok": False, "error": "No human faction found", "_debug": {"load_s": round(_dbgt_load-_dbgt0, 4)}}
     human_fid = human_slots[0].faction_id
 
     # ── Fast Path: detect suggestion_id prefix → deterministic simulation ──
-    import time as _dbgt
-    _dbgt0 = _dbgt.time()
     sid = extract_suggestion_id(decision)
     if sid:
         try:
@@ -207,6 +209,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
                 "season": fs.get("season", room.season),
                 "turn": fs.get("turn", room.quarter_number),
                 "_debug": {"fast_path": True, "sid": sid,
+                           "load_s": round(_dbgt_load - _dbgt0, 4),
                            "t_entry": round(_dbgt1 - _dbgt0, 4),
                            "t_total": round(_dbgt.time() - _dbgt0, 4)},
             }
