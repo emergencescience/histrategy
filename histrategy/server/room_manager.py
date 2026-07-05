@@ -44,6 +44,8 @@ class RateLimitError(Exception):
 
 def _try_save(room: GameRoom, ws_dict: dict | None = None):
     """Persist room to DB. Auto-extracts world_state dict if not provided."""
+    import time as _t
+    _t0 = _t.time()
     if ws_dict is None and room.world_state is not None and hasattr(room.world_state, "to_dict"):
         ws_dict = room.world_state.to_dict()
     try:
@@ -52,6 +54,9 @@ def _try_save(room: GameRoom, ws_dict: dict | None = None):
         save_room(room, ws_dict)
     except Exception as e:
         logger.warning("[room=%s] Room save failed (non-fatal): %s", room.id, e)
+    _elapsed = _t.time() - _t0
+    if _elapsed > 0.5:
+        print(f"DEBUG _try_save room={room.id} elapsed={_elapsed:.2f}s", flush=True)
 
 
 # ── Room CRUD ────────────────────────────────────────

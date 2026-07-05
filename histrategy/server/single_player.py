@@ -136,7 +136,11 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
 
             # Run deterministic simulation
             from histrategy.engine.fast_path import simulate_fast_path
+            import time as _fpt
+            _fpt0 = _fpt.time()
             fp_result = simulate_fast_path(room, decision, sid)
+            _fpt1 = _fpt.time()
+            print(f"DEBUG fpsim elapsed={_fpt1-_fpt0:.3f}s", flush=True)
 
             # Store results on room object (same pattern as _resolve_and_advance)
             room._last_narratives = {human_fid: fp_result["narrative"]}
@@ -152,6 +156,8 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
             room.season = fp_result.get("season", room.season)
 
             _try_save(room)
+            _fpt2 = _fpt.time()
+            print(f"DEBUG _try_save elapsed={_fpt2-_fpt1:.3f}s", flush=True)
 
             # Persist npc_actions to quarter_turn DB
             # (same pattern as room_manager._save_quarter — embeds _npc_actions
