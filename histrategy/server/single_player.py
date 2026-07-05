@@ -126,19 +126,16 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
 
     # ── Fast Path: detect suggestion_id prefix → deterministic simulation ──
     sid = extract_suggestion_id(decision)
-    print(f"DEBUG Room {game_id}: decision={repr(decision[:80])} sid={sid}", flush=True)
     if sid:
         try:
+            _debug_entered = True
             # Record decision on slot
             slot = room.slots.get(human_fid)
-            print(f"DEBUG fast_path: slot={slot is not None} human_fid={human_fid}", flush=True)
             if slot:
                 slot.submit_decision(decision)
-                print(f"DEBUG fast_path: decision submitted", flush=True)
 
             # Run deterministic simulation
             from histrategy.engine.fast_path import simulate_fast_path
-            print(f"DEBUG fast_path: calling simulate_fast_path", flush=True)
             fp_result = simulate_fast_path(room, decision, sid)
 
             # Store results on room object (same pattern as _resolve_and_advance)
@@ -198,13 +195,14 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
                 "year": fs.get("year", room.year),
                 "season": fs.get("season", room.season),
                 "turn": fs.get("turn", room.quarter_number),
+                "_debug": {"fast_path": True, "sid": sid},
             }
         except Exception as e:
-            print(f"DEBUG fast_path: EXCEPTION {type(e).__name__}: {e}", flush=True)
-            import traceback
-            traceback.print_exc()
-            logger.error(f"Room {game_id}: fast-path failed ({e}), falling back to LLM")
-            # Fall through to normal LLM path
+            return {
+                "ok": False,
+                "error": f"fast-path exception: {e}",
+                "_debug": {"fast_path": False, "sid": sid, "error": str(e)},
+            }
 
     # ── Normal LLM path ──
 
@@ -314,6 +312,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
         "year": faction_status.get("year", 207),
         "season": faction_status.get("season", "春"),
         "turn": faction_status.get("turn", 0),
+        "_debug": {"fast_path": False, "sid": None},
     }
 
 
