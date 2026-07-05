@@ -126,7 +126,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
 
     # ── Fast Path: detect suggestion_id prefix → deterministic simulation ──
     sid = extract_suggestion_id(decision)
-    logger.info(f"Room {game_id}: decision={repr(decision[:60])} sid={sid}")
+    print(f"DEBUG Room {game_id}: decision={repr(decision[:80])} sid={sid}", flush=True)
     if sid:
         try:
             logger.info(f"Room {game_id}: fast-path triggered (sid={sid})")
