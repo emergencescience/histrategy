@@ -245,19 +245,35 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
         except Exception:
             pass
 
+    # ⛔ Idempotency: if quarter already advanced, the turn was resolved.
+    #    This prevents duplicate resolves when the frontend retries commands.
     if room.quarter_number <= prev_quarter:
-        # NPC decisions may not have been generated yet (async thread delay).
-        # Attempt synchronous NPC trigger and re-resolve.
-        logger.info(f"Room {game_id}: quarter unchanged ({prev_quarter}) — triggering NPC decisions sync")
+        # Check if a quarter_turn already exists for the upcoming quarter
+        # (race condition: another request may have resolved while we waited)
         try:
-            _trigger_npc_decisions(room)
-            submit_decision(game_id, human_fid, decision)
-        except Exception as e:
-            logger.warning(f"Room {game_id}: sync NPC trigger failed: {e}")
+            from histrategy.db.models import get_quarter_turns
+            existing = get_quarter_turns(game_id, limit=1)
+            if existing and existing[-1].get("quarter_number", 0) > prev_quarter:
+                logger.info(
+                    f"Room {game_id}: quarter_turn for Q{existing[-1]['quarter_number']} already exists — skipping re-resolve"
+                )
+                # Reload room to get latest narratives
+                room = _get_room(game_id)
+            else:
+                raise RuntimeError("turn not resolved yet")
+        except Exception:
+            logger.info(
+                f"Room {game_id}: quarter unchanged ({prev_quarter}) — triggering NPC decisions sync"
+            )
+            try:
+                _trigger_npc_decisions(room)
+                submit_decision(game_id, human_fid, decision)
+            except Exception as e:
+                logger.warning(f"Room {game_id}: sync NPC trigger failed: {e}")
 
-        room = _get_room(game_id)
-        if not room or room.quarter_number <= prev_quarter:
-            return {"ok": False, "error": "Resolution failed, please retry"}
+            room = _get_room(game_id)
+            if not room or room.quarter_number <= prev_quarter:
+                return {"ok": False, "error": "Resolution failed, please retry"}
 
     # 3. Read resolution results
     narratives = getattr(room, "_last_narratives", {})
