@@ -138,6 +138,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
 
             # Run deterministic simulation
             from histrategy.engine.fast_path import simulate_fast_path
+            print(f"DEBUG fast_path: calling simulate_fast_path", flush=True)
             fp_result = simulate_fast_path(room, decision, sid)
 
             # Store results on room object (same pattern as _resolve_and_advance)
@@ -199,6 +200,9 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
                 "turn": fs.get("turn", room.quarter_number),
             }
         except Exception as e:
+            print(f"DEBUG fast_path: EXCEPTION {type(e).__name__}: {e}", flush=True)
+            import traceback
+            traceback.print_exc()
             logger.error(f"Room {game_id}: fast-path failed ({e}), falling back to LLM")
             # Fall through to normal LLM path
 
