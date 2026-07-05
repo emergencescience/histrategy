@@ -140,7 +140,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
             _fpt0 = _fpt.time()
             fp_result = simulate_fast_path(room, decision, sid)
             _fpt1 = _fpt.time()
-            print(f"DEBUG fpsim elapsed={_fpt1-_fpt0:.3f}s", flush=True)
+            print(f"DEBUG {game_id} fpsim elapsed={_fpt1-_fpt0:.3f}s", flush=True)
 
             # Store results on room object (same pattern as _resolve_and_advance)
             room._last_narratives = {human_fid: fp_result["narrative"]}
@@ -181,7 +181,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
                     state_changes=fp_result.get("state_changes", {}),
                 )
                 _fpt4 = _fpt.time()
-                print(f"DEBUG save_quarter_turn elapsed={_fpt4-_fpt3:.3f}s", flush=True)
+                print(f"DEBUG {game_id} save_quarter_turn elapsed={_fpt4-_fpt3:.3f}s", flush=True)
                 logger.info(f"Room {game_id}: quarter_turn saved with {len(fp_result.get('npc_actions', []))} npc_actions")
             except Exception as e:
                 logger.warning(f"Room {game_id}: quarter_turn save failed (non-fatal): {e}")
