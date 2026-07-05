@@ -125,10 +125,12 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
     human_fid = human_slots[0].faction_id
 
     # ── Fast Path: detect suggestion_id prefix → deterministic simulation ──
+    import time as _dbgt
+    _dbgt0 = _dbgt.time()
     sid = extract_suggestion_id(decision)
     if sid:
         try:
-            _debug_entered = True
+            _dbgt1 = _dbgt.time()
             # Record decision on slot
             slot = room.slots.get(human_fid)
             if slot:
@@ -204,7 +206,9 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
                 "year": fs.get("year", room.year),
                 "season": fs.get("season", room.season),
                 "turn": fs.get("turn", room.quarter_number),
-                "_debug": {"fast_path": True, "sid": sid},
+                "_debug": {"fast_path": True, "sid": sid,
+                           "t_entry": round(_dbgt1 - _dbgt0, 4),
+                           "t_total": round(_dbgt.time() - _dbgt0, 4)},
             }
         except Exception as e:
             return {
