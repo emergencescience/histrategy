@@ -569,8 +569,10 @@ def _get_next_suggestions(scenario: str, faction_id: str, turn: int,
     try:
         from histrategy.engine.helpers import EARLY_TURNS_SUGGESTIONS
         data = EARLY_TURNS_SUGGESTIONS.get(scenario, {}).get(faction_id, {})
-        # turn is already (quarter_number + 1), which is the NEXT turn
-        turn_data = data.get(min(turn, 4), {})
+        # turn = current turn being resolved (quarter_number + 1).
+        # We need suggestions for the NEXT turn.
+        next_turn = min(turn + 1, 4)
+        turn_data = data.get(next_turn, {})
         return turn_data.get(lang, [])
     except Exception:
         return []
