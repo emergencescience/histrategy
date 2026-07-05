@@ -455,6 +455,14 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         return command(game_id, body.get("decision") or body.get("command", ""), lang=body.get("lang", "zh"))
 
+    @app.get("/api/debug/cmd-hash")
+    def api_debug_cmd_hash():
+        """Return a hash of the command() source to verify deployed version."""
+        import hashlib, inspect
+        from histrategy.server.single_player import command
+        src = inspect.getsource(command)
+        return {"sha256": hashlib.sha256(src.encode()).hexdigest()[:12], "lines": len(src.splitlines())}
+
     @app.post("/api/single-player/start")
     def api_sp_start(
         body: dict = Body(...),  # noqa: B008
