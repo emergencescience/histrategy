@@ -325,6 +325,7 @@ def submit_decision(room_id: str, faction_id: str, decision: str) -> dict:
         "status": status,
         "submitted": submitted,
         "pending": pending,
+        "is_public": getattr(room, "is_public", False),
     }
 
 
@@ -368,6 +369,7 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
         },
         "submitted": submitted,
         "pending": pending,
+        "is_public": getattr(room, "is_public", False),
     }
 
     if faction_id:
