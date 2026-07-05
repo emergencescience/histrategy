@@ -346,7 +346,7 @@ def simulate_fast_path(room, player_decision: str,
 
     # ── Build response ──
     season_zh = {"spring": "春", "summer": "夏", "autumn": "秋", "winter": "冬"}
-    # season_str defined above
+    season_str = season_zh.get(new_season, new_season)
 
     narrative = _build_narrative(player_suggestion_id, events, factions, season_str)
     aftermath = f"公元{new_year}年{season_str}。{'、'.join(events) if events else '各方按兵不动，局势暂时平稳。'}"
