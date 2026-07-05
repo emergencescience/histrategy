@@ -991,7 +991,9 @@ def detect_territory_changes(
     Returns:
         Enhanced narrative with territory change annotations appended.
     """
-    changes: list[str] = []
+    # Gather gains and losses grouped by faction
+    gains_by_faction: dict[str, list[str]] = {}
+    losses_by_faction: dict[str, list[str]] = {}
 
     for fid, data in v1_factions.items():
         faction = ws.factions.get(fid)
@@ -1015,26 +1017,8 @@ def detect_territory_changes(
                 if hasattr(ws, "territories") and tid in ws.territories
                 else tid
             )
-            # Check if the gain is already mentioned in the narrative
             if tname not in narrative and tid not in narrative:
-                # Find previous owner from OLD state (pre-application).
-                # After _apply_v1_state_to_world, ws.factions no longer has
-                # the lost territory — so we must check old_state instead.
-                loser_name = "?"
-                for other_fid, other_data in old_state.items():
-                    if other_fid != fid and tid in other_data.get(
-                        "territories", []
-                    ):
-                        other_f = ws.factions.get(other_fid)
-                        loser_name = (
-                            getattr(other_f, "name", other_fid)
-                            if other_f
-                            else other_fid
-                        )
-                        break
-                changes.append(
-                    f"⚔️ {faction_name}占领了{loser_name}的{tname}。"
-                )
+                gains_by_faction.setdefault(faction_name, []).append(tname)
 
         for tid in lost:
             tname = (
@@ -1043,14 +1027,25 @@ def detect_territory_changes(
                 else tid
             )
             if tname not in narrative and tid not in narrative:
-                changes.append(f"📉 {faction_name}失去了{tname}。")
+                losses_by_faction.setdefault(faction_name, []).append(tname)
 
-    if changes:
+    if gains_by_faction or losses_by_faction:
+        total = sum(len(v) for v in gains_by_faction.values()) + sum(len(v) for v in losses_by_faction.values())
         logger.info(
-            f"V1 territory change detection: {len(changes)} undocumented "
+            f"V1 territory change detection: {total} undocumented "
             f"changes found, appending to narrative"
         )
-        appendix = "\n\n---\n**城池变动**\n\n" + "\n".join(changes)
+
+        lines: list[str] = []
+        # Gains first (⚔️), then losses (📉)
+        for name, cities in gains_by_faction.items():
+            city_list = "\u3001".join(cities)  # 、
+            lines.append(f"> **{name}** ⚔️ 夺取 → {city_list}")
+        for name, cities in losses_by_faction.items():
+            city_list = "\u3001".join(cities)
+            lines.append(f"> **{name}** 📉 失去 → {city_list}")
+
+        appendix = "\n\n---\n**🏰 本回合城池易手**\n\n" + "\n".join(lines)
         return narrative + appendix
 
     return narrative
