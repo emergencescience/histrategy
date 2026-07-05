@@ -129,11 +129,12 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
     print(f"DEBUG Room {game_id}: decision={repr(decision[:80])} sid={sid}", flush=True)
     if sid:
         try:
-            logger.info(f"Room {game_id}: fast-path triggered (sid={sid})")
             # Record decision on slot
             slot = room.slots.get(human_fid)
+            print(f"DEBUG fast_path: slot={slot is not None} human_fid={human_fid}", flush=True)
             if slot:
                 slot.submit_decision(decision)
+                print(f"DEBUG fast_path: decision submitted", flush=True)
 
             # Run deterministic simulation
             from histrategy.engine.fast_path import simulate_fast_path
