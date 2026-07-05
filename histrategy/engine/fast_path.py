@@ -190,6 +190,7 @@ def simulate_fast_path(room, player_decision: str,
         dict matching the CommandResponse format.
     """
     player_fid = _parse_player_faction(player_suggestion_id)
+    print(f"DEBUG fast_path: player_fid={player_fid} sid={player_suggestion_id}", flush=True)
 
     ws = getattr(room, 'world_state', None)
     if ws is None:
