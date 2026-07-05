@@ -170,6 +170,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
                 narratives_for_db["_npc_actions"] = _fp_json.dumps(
                     fp_result.get("npc_actions", []), ensure_ascii=False
                 )
+                _fpt3 = _fpt.time()
                 save_quarter_turn(
                     room.id,
                     room.quarter_number,
@@ -179,6 +180,8 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
                     narratives=narratives_for_db,
                     state_changes=fp_result.get("state_changes", {}),
                 )
+                _fpt4 = _fpt.time()
+                print(f"DEBUG save_quarter_turn elapsed={_fpt4-_fpt3:.3f}s", flush=True)
                 logger.info(f"Room {game_id}: quarter_turn saved with {len(fp_result.get('npc_actions', []))} npc_actions")
             except Exception as e:
                 logger.warning(f"Room {game_id}: quarter_turn save failed (non-fatal): {e}")
