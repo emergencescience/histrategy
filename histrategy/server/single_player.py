@@ -96,6 +96,9 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
         decision: Player's natural-language decision
         lang: Language (zh | en). Auto-detected from room metadata if not explicit.
     """
+    # ── Timing: _get_room
+    import time as _dbgt
+
     from histrategy.engine.fast_path import extract_suggestion_id
     from histrategy.server.room_manager import (
         _get_room,
@@ -107,9 +110,6 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
         extract_turn_events,
         submit_decision,
     )
-
-    # ── Timing: _get_room
-    import time as _dbgt
     _dbgt0 = _dbgt.time()
     room = _get_room(game_id)
     _dbgt_load = _dbgt.time()
@@ -139,8 +139,9 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
                 slot.submit_decision(decision)
 
             # Run deterministic simulation
-            from histrategy.engine.fast_path import simulate_fast_path
             import time as _fpt
+
+            from histrategy.engine.fast_path import simulate_fast_path
             _fpt0 = _fpt.time()
             fp_result = simulate_fast_path(room, decision, sid)
             _fpt1 = _fpt.time()
@@ -151,9 +152,35 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
             room._last_npc_actions = fp_result.get("npc_actions", [])
             room._last_state_changes = fp_result.get("state_changes", {})
 
+            # ── Sync faction changes back to room.world_state ──
+            # simulate_fast_path modified an in-memory factions dict;
+            # write those changes to room.world_state so subsequent
+            # _get_room/reloads see the correct state.
+            _sync_result = fp_result.get("all_factions", {})
+            if _sync_result and room.world_state:
+                _ws_factions = getattr(room.world_state, "factions", {})
+                for _fid, _fd in _sync_result.items():
+                    _wsf = _ws_factions.get(_fid)
+                    if _wsf is not None:
+                        _wsf.strength_actual = _fd.get("troops", getattr(_wsf, "strength_actual", 5000))
+                        _wsf.morale_actual = _fd.get("morale", getattr(_wsf, "morale_actual", 50))
+                        _wsf.food = _fd.get("food", getattr(_wsf, "food", 3000))
+                        _wsf.treasury = _fd.get("treasury", getattr(_wsf, "treasury", 5000))
+                        _wsf.territories = list(_fd.get("territories", getattr(_wsf, "territories", [])))
+                        _wsf.is_active = _fd.get("is_active", True)
+
             # Advance quarter
             prev_quarter = room.quarter_number
             room.advance_quarter()
+
+            # ── Pre-submit AI NPC decisions for next turn ──
+            # advance_quarter() clears all slot decisions. Without this,
+            # the next _get_room() call sees AI slots as unsubmitted
+            # and triggers _trigger_npc_decisions() → LLM call → hang.
+            _next_turn = room.quarter_number
+            for _fid, _slot in room.slots.items():
+                if _slot.is_ai() and _slot.is_active:
+                    _slot.submit_decision(f"[{_fid}_t{_next_turn}_fp] fast-path deterministic")
 
             # Sync year/season from fast-path result
             room.year = fp_result.get("year", room.year)

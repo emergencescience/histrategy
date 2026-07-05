@@ -358,6 +358,7 @@ def simulate_fast_path(room, player_decision: str,
         "year": new_year,
         "season": new_season,
         "turn": turn,
+        "all_factions": factions,  # For world_state sync by caller
     }
 
 
@@ -441,15 +442,15 @@ def _build_npc_action(fid: str, package_idx: int, factions: dict,
 def _npc_qing(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
     if idx == 0:
         if conquest:
-            return f"大清：多尔衮令八旗主力南下，已破数城，清军乘胜追击，兵锋直指江南。"
+            return "大清：多尔衮令八旗主力南下，已破数城，清军乘胜追击，兵锋直指江南。"
         elif siege:
-            return f"大清：清军兵临城下，围而不攻，意图断绝城中粮道。八旗铁骑在城外扎营。"
+            return "大清：清军兵临城下，围而不攻，意图断绝城中粮道。八旗铁骑在城外扎营。"
         else:
-            return f"大清：多尔衮调集八旗精锐南征，铁骑所过之处烟尘蔽日。然守军据城死守，攻势受阻。"
+            return "大清：多尔衮调集八旗精锐南征，铁骑所过之处烟尘蔽日。然守军据城死守，攻势受阻。"
     elif idx == 1:
-        return f"大清：多尔衮稳健推进，一面加紧围城一面遣使招降，以威慑江南士绅。"
+        return "大清：多尔衮稳健推进，一面加紧围城一面遣使招降，以威慑江南士绅。"
     else:
-        return f"大清：清军暂缓攻势，在已占领土推行圈地与剃发令，巩固后方统治。"
+        return "大清：清军暂缓攻势，在已占领土推行圈地与剃发令，巩固后方统治。"
 
 
 def _npc_nongmin(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
@@ -459,35 +460,35 @@ def _npc_nongmin(idx: int, troops: int, events: list, conquest: bool, siege: boo
         else:
             return f"农民军：李自成率大顺军余部东出，趁乱攻城掠地，兵力{troops//1000}K，然军纪涣散。"
     elif idx == 1:
-        return f"农民军：观望时局，李自成遣使与各方周旋，寻求利益最大化。"
+        return "农民军：观望时局，李自成遣使与各方周旋，寻求利益最大化。"
     else:
-        return f"农民军：固守川中，李自成秣马厉兵，休养生息以待天时。"
+        return "农民军：固守川中，李自成秣马厉兵，休养生息以待天时。"
 
 
 def _npc_zheng(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
     if idx == 0:
         if conquest:
-            return f"郑氏：郑成功率水师突袭沿海，千艘战船攻占城池，福建水师声威大震。"
+            return "郑氏：郑成功率水师突袭沿海，千艘战船攻占城池，福建水师声威大震。"
         else:
-            return f"郑氏：郑成功率水师北上，千艘战船游弋于沿海，然陆上兵力有限。"
+            return "郑氏：郑成功率水师北上，千艘战船游弋于沿海，然陆上兵力有限。"
     elif idx == 1:
-        return f"郑氏：郑氏利用海上贸易积累财富，郑成功以商养战，同时遣使联络各方势力。"
+        return "郑氏：郑氏利用海上贸易积累财富，郑成功以商养战，同时遣使联络各方势力。"
     else:
-        return f"郑氏：郑成功退守福建沿海，以水师屏障确保海洋退路，积蓄力量。"
+        return "郑氏：郑成功退守福建沿海，以水师屏障确保海洋退路，积蓄力量。"
 
 
 def _npc_nanming(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
     if idx == 0:
         if conquest:
-            return f"南明：史可法督师北伐，收复失地，朝廷上下士气大振。"
+            return "南明：史可法督师北伐，收复失地，朝廷上下士气大振。"
         elif siege:
-            return f"南明：四镇出兵北伐，围困清军城池，欲收复中原。"
+            return "南明：四镇出兵北伐，围困清军城池，欲收复中原。"
         else:
-            return f"南明：史可法督师扬州，四镇兵马严阵以待，然军中派系林立军令难一。"
+            return "南明：史可法督师扬州，四镇兵马严阵以待，然军中派系林立军令难一。"
     elif idx == 1:
-        return f"南明：弘光朝廷遣使四方，一面备战一面寻求外交途径。"
+        return "南明：弘光朝廷遣使四方，一面备战一面寻求外交途径。"
     else:
-        return f"南明：朝廷内部党争不休，四镇各怀异心，史可法独木难支。"
+        return "南明：朝廷内部党争不休，四镇各怀异心，史可法独木难支。"
 
 
 # ── Narrative builder ────────────────────────────────────────
