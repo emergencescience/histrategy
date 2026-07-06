@@ -104,10 +104,12 @@ _AGGRESSIVE_KW = ["ally", "counter", "totalwar", "laststand", "fight",
 
 def _pick_npc_package(faction_id: str, aggression: float, caution: float,
                        diplomacy: float, development: float, is_winning: bool,
-                       is_losing: bool) -> int:
+                       is_losing: bool, turn: int = 0) -> int:
     """Deterministically pick which of the 3 packages an NPC faction chooses.
 
     Returns 0, 1, or 2 (index into the turn's 3 packages).
+    Uses turn number to vary NPC behavior — prevents identical NPC
+    action text across all 4 turns.
     """
     scores = [0.0, 0.0, 0.0]
     scores[0] += aggression * 2.0
@@ -116,11 +118,16 @@ def _pick_npc_package(faction_id: str, aggression: float, caution: float,
     scores[1] += development * 1.5
 
     if is_winning:
-        scores[0] += 1.5
-        scores[2] -= 1.0
+        scores[0] += 2.0
+        scores[2] -= 1.5
     if is_losing:
-        scores[2] += 1.5
-        scores[0] -= 1.0
+        scores[2] += 2.0
+        scores[0] -= 1.5
+
+    # Inject turn-based variance so NPCs don't pick same package every turn.
+    # Multi-turn games were showing identical NPC action text for all 4 turns.
+    if turn > 0:
+        scores[(turn + hash(faction_id)) % 3] += 0.8
 
     return max(range(3), key=lambda i: scores[i])
 
@@ -236,12 +243,16 @@ def simulate_fast_path(room, player_decision: str,
         if not f["is_active"]:
             continue
         avg_terr = sum(len(f2["territories"]) for f2 in factions.values()) / max(len(factions), 1)
-        is_winning = len(f["territories"]) > avg_terr * 1.3
-        is_losing = len(f["territories"]) < avg_terr * 0.7
+        avg_troops = sum(f2["troops"] for f2 in factions.values()) / max(len(factions), 1)
+        # Consider both territory control and military strength
+        territory_strong = len(f["territories"]) > avg_terr * 1.2
+        military_strong = f["troops"] > avg_troops * 1.2
+        is_winning = territory_strong and military_strong
+        is_losing = len(f["territories"]) <= 1 or f["troops"] < avg_troops * 0.6
         idx = _pick_npc_package(
             fid, f["aggression"], f["caution"],
             f["diplomacy"], f["development"],
-            is_winning, is_losing,
+            is_winning, is_losing, turn,
         )
         npc_choices[fid] = idx
 
@@ -348,7 +359,7 @@ def simulate_fast_path(room, player_decision: str,
     # Determine lang from room metadata
     _lang = getattr(room, "metadata", {}).get("lang", "zh") if hasattr(room, "metadata") else "zh"
 
-    narrative = _build_narrative(player_fid, player_suggestion_id, events, factions, season_str)
+    narrative = _build_narrative(player_fid, player_suggestion_id, events, factions, season_str, new_year)
     aftermath = f"公元{new_year}年{season_str}。{'、'.join(events) if events else '各方按兵不动，局势暂时平稳。'}"
 
     pf = factions[player_fid]
@@ -521,7 +532,7 @@ def _npc_nanming(idx: int, troops: int, events: list, conquest: bool, siege: boo
 
 
 def _build_narrative(player_fid: str, suggestion_id: str, events: list,
-                     factions: dict, season: str) -> str:
+                     factions: dict, season: str, year: int = 0) -> str:
     """Build faction-specific narrative from simulation results."""
     pf = factions.get(player_fid, {})
     faction_zh = _FACTION_ZH.get(player_fid, player_fid)
@@ -535,14 +546,19 @@ def _build_narrative(player_fid: str, suggestion_id: str, events: list,
 
     parts = []
 
-    # Faction-specific intro
-    intros = {
-        "nanming": f"弘光元年{season}，",
-        "qing": f"顺治二年{season}，",
-        "nongminjun": f"永昌二年{season}，",
-        "zheng": f"隆武元年{season}，",
+    # Compute reign year dynamically from actual year
+    _REIGN_BASE = {
+        "nanming": ("弘光", 1645),
+        "qing": ("顺治", 1644),
+        "nongminjun": ("永昌", 1644),
+        "zheng": ("隆武", 1645),
     }
-    parts.append(intros.get(player_fid, f"{faction_zh}{season}，"))
+    _reign_name, _reign_start = _REIGN_BASE.get(player_fid, ("", year))
+    if year > 0 and _reign_name:
+        _reign_year = max(1, year - _reign_start + 1)
+        parts.append(f"{_reign_name}{_reign_year}年{season}，")
+    else:
+        parts.append(f"{faction_zh}{season}，")
 
     # Action description based on package type
     if "defend" in suggestion_id or "hold" in suggestion_id:
