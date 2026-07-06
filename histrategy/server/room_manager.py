@@ -1762,8 +1762,8 @@ def build_strategic_suggestions(room, faction_id: str, lang: str = "zh") -> list
     Turn 5+: heuristic based on faction resources.
     """
     i18n = _GENERIC_SUGGESTIONS.get(lang, _GENERIC_SUGGESTIONS["zh"])
-    # Treat intro phase (turn 0) as turn 1 for early suggestions
-    turn = room.quarter_number or 1
+    # Use NEXT turn number (quarter_number is the last COMPLETED turn)
+    turn = (room.quarter_number or 0) + 1
     scenario = getattr(room, "scenario", "three-kingdoms")
 
     if 1 <= turn <= 4:
