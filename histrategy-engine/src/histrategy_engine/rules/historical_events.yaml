@@ -1,27 +1,115 @@
 # 三國志略 — Historical events rule configuration
 # All formulas are expressed as Python-evaluable expressions.
 # Variables are injected at runtime by RuleInterpreter.
+#
+# Scenarios: "three-kingdoms" (default), "nanming" (山河鼎革), "rome-triumvirate"
+
+# ═══════════════════════════════════════════════════════════════
+# Three Kingdoms events
+# ═══════════════════════════════════════════════════════════════
 
 caocao_captures_xinye:
+  scenario: "three-kingdoms"
   preconditions: "cao_strength > 2.0 * liubei_strength and xinye_owner == 'shu' and xinye_garrison < 5000"
   probability_formula: "0.85 * (1.0 - player_deviation * 0.5)"
   base_gravity: 0.8
   desc: "曹军大军压境新野，刘备守军不支，城池陷落"
 
 sunliu_alliance_formed:
+  scenario: "three-kingdoms"
   preconditions: "wu_relations_shu >= 10 and not sunliu_alliance"
   probability_formula: "0.75 * (1.0 - player_deviation * 0.5) * (wu_relations_shu / 50.0)"
   base_gravity: 0.7
   desc: "诸葛亮舌战群儒，说服孙权与刘备结成孙刘同盟共同抗曹"
 
 red_cliffs_battle:
+  scenario: "three-kingdoms"
   preconditions: "sunliu_alliance and caocao_south"
   probability_formula: "0.90 * (1.0 - player_deviation * 0.5)"
   base_gravity: 0.9
   desc: "孙刘联军火烧赤壁，曹操大败，狼狈北撤"
 
 liubei_takes_jingzhou:
+  scenario: "three-kingdoms"
   preconditions: "red_cliffs_won and not liubei_has_jingzhou"
   probability_formula: "0.80 * (1.0 - player_deviation * 0.5)"
   base_gravity: 0.8
   desc: "趁曹操北归、东吴不备，刘备迅速席卷荆州南部四郡"
+
+# ═══════════════════════════════════════════════════════════════
+# Nanming (山河鼎革) events — 17th century Ming-Qing transition
+# ═══════════════════════════════════════════════════════════════
+
+yangzhou_siege:
+  scenario: "nanming"
+  preconditions: "qing_controls_beijing and nanming_controls_yangzhou and nanming_morale < 60"
+  probability_formula: "0.40 * (1.0 - nanming_strength / qing_strength)"
+  base_gravity: 0.7
+  desc: "多铎率清军主力围攻扬州，史可法率军民死守。扬州十日，江南震怖。"
+
+dorgon_queue_edict:
+  scenario: "nanming"
+  preconditions: "qing_controls_beijing and qing_morale > 50"
+  probability_formula: "0.30"
+  base_gravity: 0.6
+  desc: "多尔衮颁布剃发令：留头不留发，留发不留头。激起江南强烈反抗。"
+
+zheng_maritime_expedition:
+  scenario: "nanming"
+  preconditions: "zheng_controls_fujian and zheng_treasury > 30000"
+  probability_formula: "0.50 * (zheng_treasury / 50000)"
+  base_gravity: 0.5
+  desc: "郑芝龙派遣商船队前往日本和东南亚，海上贸易收入大增。"
+
+nongmin_defection_wave:
+  scenario: "nanming"
+  preconditions: "nongmin_morale < 40 and nanming_legitimacy > 50"
+  probability_formula: "0.35 * (1.0 - nongmin_morale / 100)"
+  base_gravity: 0.4
+  desc: "李自成部将大量叛逃至南明，农民军势力大减。"
+
+jiangnan_resistance:
+  scenario: "nanming"
+  preconditions: "qing_controls_jiangnan and nanming_is_active"
+  probability_formula: "0.25 * (nanming_morale / 100)"
+  base_gravity: 0.4
+  desc: "江南士绅暗中资助南明，抗清义军此起彼伏。"
+
+wu_sangui_rebellion_trigger:
+  scenario: "nanming"
+  preconditions: "qing_controls_all_south and nanming_not_active and qing_legitimacy < 40"
+  probability_formula: "0.20"
+  base_gravity: 0.3
+  desc: "吴三桂不满清朝削藩，在云南起兵反清，打出'反清复明'旗号。"
+
+little_ice_age:
+  scenario: "nanming"
+  preconditions: "year >= 1645 and season in ['autumn', 'winter']"
+  probability_formula: "0.15"
+  base_gravity: 0.3
+  desc: "小冰河期寒潮来袭，北方粮食大幅减产，饥荒蔓延。"
+
+# ═══════════════════════════════════════════════════════════════
+# Rome-Triumvirate events
+# ═══════════════════════════════════════════════════════════════
+
+battle_of_philippi:
+  scenario: "rome-triumvirate"
+  preconditions: "octavian_active and antony_active and senate_active"
+  probability_formula: "0.70 * (1.0 - player_deviation * 0.3)"
+  base_gravity: 0.8
+  desc: "屋大维与安东尼联军在腓立比击败共和派军队，布鲁图斯和卡西乌斯自杀。"
+
+cleopatra_alliance:
+  scenario: "rome-triumvirate"
+  preconditions: "cleopatra_active and (antony_egypt_alliance or octavian_egypt_alliance)"
+  probability_formula: "0.50 * (cleopatra_treasury / 40000)"
+  base_gravity: 0.6
+  desc: "克利奥帕特拉以埃及的粮食和黄金换取罗马将军的军事保护。"
+
+sextus_pompey_blockade:
+  scenario: "rome-triumvirate"
+  preconditions: "sextus_pompey_active and octavian_controls_rome"
+  probability_formula: "0.40"
+  base_gravity: 0.5
+  desc: "塞克斯图斯·庞培封锁意大利港口，罗马粮食供应紧张。"
