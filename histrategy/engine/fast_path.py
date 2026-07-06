@@ -307,12 +307,14 @@ def simulate_fast_path(room, player_decision: str,
                     factions[enemy_fid]["morale"] -= 3
             elif result["siege_only"]:
                 events.append(f"{enemy_zh}围困{target_zh}")
+                state_changes[target] = f"sieged_by_{enemy_fid}"
                 factions[enemy_fid]["troops"] -= result["attacker_losses"]
                 factions[player_fid]["troops"] -= result["defender_losses"]
                 factions[player_fid]["food"] -= int(factions[player_fid]["food"] * 0.15)
                 factions[player_fid]["morale"] -= 3
             else:
                 events.append(f"{_FACTION_ZH.get(player_fid, player_fid)}守住{target_zh}")
+                state_changes[target] = "defended"
                 factions[enemy_fid]["troops"] -= result["attacker_losses"]
                 factions[player_fid]["troops"] -= result["defender_losses"]
                 factions[player_fid]["morale"] += 5
