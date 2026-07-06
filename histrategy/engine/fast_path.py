@@ -678,8 +678,9 @@ def _get_next_suggestions(scenario: str, faction_id: str, turn: int,
     and the player should use free-text input (LLM path) for
     richer, context-aware narratives.
 
-    Suggestion IDs (e.g. [nanming_t2_counter]) are stripped from
-    the displayed text — they are internal routing keys only.
+    IMPORTANT: The [suggestion_id] prefix (e.g. [nanming_t2_counter])
+    MUST be preserved — it is the routing key for fast-path detection.
+    The frontend strips it for display via suggestionTitle/suggestionBody.
     """
     # Beyond turn 4: let LLM path take over
     if turn >= 4:
@@ -692,21 +693,9 @@ def _get_next_suggestions(scenario: str, faction_id: str, turn: int,
         # We need suggestions for the NEXT turn.
         next_turn = turn + 1
         turn_data = data.get(next_turn, {})
-        raw = turn_data.get(lang, [])
-        # Strip [xxx] prefix from display text — it's an internal routing key,
-        # not something the player should see
-        return [_strip_suggestion_id(s) for s in raw]
+        return turn_data.get(lang, [])
     except Exception:
         return []
-
-
-def _strip_suggestion_id(text: str) -> str:
-    """Remove leading [suggestion_id] prefix from display text.
-
-    e.g. "[nanming_t2_counter]【⚔️ Counterattack Shandong】..." →
-         "【⚔️ Counterattack Shandong】..."
-    """
-    return re.sub(r'^\[[a-z_]+_t\d+_\w+\]', '', text)
 
 
 # ── Quick path detection ─────────────────────────────────────
