@@ -10,10 +10,15 @@ Thin wrapper over the multiplayer room system:
 from __future__ import annotations
 
 import logging
+import re as _re_strip
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     pass
+
+def _strip_suggestion_tag(text: str) -> str:
+    """Strip [suggestion_id] prefix from decision text for display/storage."""
+    return _re_strip.sub(r'^\[[a-zA-Z0-9_]+\]\s*', '', text.strip())
 
 # Legacy faction key → internal ID mapping (unified to short codes; kept for compatibility)
 from histrategy.engine.faction_slot import FACTION_ID_TO_DISPLAY
@@ -209,7 +214,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
                     room.quarter_number,
                     room.year,
                     room.season,
-                    faction_decisions={human_fid: {"decision": decision, "commands": [], "source": "fast_path"}},
+                    faction_decisions={human_fid: {"decision": _strip_suggestion_tag(decision), "commands": [], "source": "fast_path"}},
                     narratives=narratives_for_db,
                     state_changes=fp_result.get("state_changes", {}),
                 )
