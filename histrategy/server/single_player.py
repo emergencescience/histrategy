@@ -224,6 +224,11 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
             suggestions = fp_result.get("new_suggestions", [])
             room._last_suggestions = suggestions
 
+            # Historical footnote for education
+            from histrategy.engine.helpers import get_historical_footnote
+            hist_footnote = get_historical_footnote(
+                room.scenario or "nanming", fs.get("turn", 1), lang)
+
             return {
                 "game_id": game_id,
                 "narrative": fp_result["narrative"],
@@ -232,6 +237,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
                 "events_occurred": fp_result.get("events_occurred", []),
                 "npc_actions": fp_result.get("npc_actions", []),
                 "new_suggestions": suggestions,
+                "historical_footnote": hist_footnote,
                 "game_over": None,
                 "faction_status": fs,
                 "year": fs.get("year", room.year),

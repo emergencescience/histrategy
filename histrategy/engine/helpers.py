@@ -914,3 +914,78 @@ def apply_event_effects(world_state: V2WorldState, effects: dict) -> None:
                 faction.strength_actual = max(1000, int(faction.strength_actual * 0.4))
                 faction.treasury = max(500, int(faction.treasury * 0.5))
                 faction.food = max(500, int(faction.food * 0.5))
+
+
+# ═══════════════════════════════════════════════════════════════
+# Historical footnotes — static lookup table for per-turn education
+# ═══════════════════════════════════════════════════════════════
+
+HISTORICAL_FOOTNOTES: dict[str, dict[int, dict[str, str]]] = {
+    "nanming": {
+        1: {
+            "zh": "📜 史实：1645年夏，清军攻陷扬州，史可法殉国。多铎下令屠城十日，"
+                 "江南震怖。弘光朝廷内斗不休，四镇各怀异心，无人救援扬州。",
+            "en": "📜 History: Summer 1645, Qing forces sacked Yangzhou. Shi Kefa died a "
+                 "martyr. Dodo ordered ten days of slaughter. The Hongguang court, "
+                 "paralyzed by infighting, sent no reinforcements.",
+        },
+        2: {
+            "zh": "📜 史实：1645年秋，清廷颁布剃发令——'留头不留发，留发不留头'。"
+                 "江南士绅震怒，各地爆发抗清起义。李自成在湖北九宫山被地主武装杀死。",
+            "en": "📜 History: Autumn 1645, the Qing issued the queue edict. Jiangnan gentry "
+                 "rose in revolt. Li Zicheng was killed by local militia at Jiugong Mountain.",
+        },
+        3: {
+            "zh": "📜 史实：1645年冬，清军主力南下，弘光帝出逃被俘。南京不战而降，"
+                 "弘光朝廷覆灭。郑芝龙在福州拥立隆武帝，南明退守福建沿海。",
+            "en": "📜 History: Winter 1645, Qing forces marched south. The Hongguang Emperor "
+                 "fled and was captured. Nanjing surrendered without a fight. Zheng Zhilong "
+                 "enthroned the Longwu Emperor in Fuzhou.",
+        },
+        4: {
+            "zh": "📜 史实：1646年春，清军追击隆武朝廷至福建。郑芝龙暗中降清，"
+                 "隆武帝被俘殉国。南明残余退往广东，绍武帝即位仅40天即覆灭。",
+            "en": "📜 History: Spring 1646, Qing forces pursued the Longwu court into Fujian. "
+                 "Zheng Zhilong secretly surrendered. The Longwu Emperor was captured. "
+                 "Ming remnants fled to Guangdong — the Shaowu Emperor lasted only 40 days.",
+        },
+        5: {
+            "zh": "📜 史实：1646年夏，张献忠在四川凤凰山战死。大西军余部由孙可望、"
+                 "李定国率领南下云南。南明永历帝在广东肇庆即位，开始长达16年的西南抗清。",
+            "en": "📜 History: Summer 1646, Zhang Xianzhong died in battle in Sichuan. His "
+                 "remnant army marched south to Yunnan under Sun Kewang and Li Dingguo. "
+                 "The Yongli Emperor was enthroned in Zhaoqing — 16 years of resistance began.",
+        },
+        6: {
+            "zh": "📜 史实：1646年秋，清军攻入广东，绍武朝廷覆灭。永历帝逃往广西。"
+                 "郑成功在金门起兵抗清，拒绝随父降清，成为南明最后的海上力量。",
+            "en": "📜 History: Autumn 1646, Qing forces entered Guangdong. The Shaowu court "
+                 "collapsed. Yongli fled to Guangxi. Zheng Chenggong (Koxinga) raised troops "
+                 "at Jinmen, refusing to surrender with his father.",
+        },
+        7: {
+            "zh": "📜 史实：1647年春，清军主力北撤休整。永历朝廷在广西、湖南一带"
+                 "重整旗鼓，大西军余部与南明联手，一度收复湖南大片失地。",
+            "en": "📜 History: Spring 1647, Qing main forces withdrew north to regroup. "
+                 "The Yongli court reorganized in Guangxi and Hunan, joining forces with "
+                 "Zhang Xianzhong's remnant army to retake much of Hunan.",
+        },
+        8: {
+            "zh": "📜 史实：1647年夏，广东义军陈邦彦、张家玉、陈子壮起兵抗清"
+                 "(广东三忠)。虽最终失败，但牵制了清军主力，为永历朝廷争取了时间。",
+            "en": "📜 History: Summer 1647, the Three Loyalists of Guangdong rose against "
+                 "the Qing. Though ultimately defeated, they tied down Qing forces, giving "
+                 "the Yongli court precious time.",
+        },
+    },
+}
+
+
+def get_historical_footnote(scenario: str, turn: int, lang: str = "zh") -> str | None:
+    """Get the historical footnote for a given scenario and turn.
+
+    Returns None if no footnote exists for this scenario/turn combination.
+    """
+    scenario_data = HISTORICAL_FOOTNOTES.get(scenario, {})
+    turn_data = scenario_data.get(turn, {})
+    return turn_data.get(lang)
