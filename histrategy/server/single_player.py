@@ -129,8 +129,10 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
     human_fid = human_slots[0].faction_id
 
     # ── Fast Path: detect suggestion_id prefix → deterministic simulation ──
+    # Only active for turns 1-4 (quarter_number 0-3). Beyond turn 4,
+    # let LLM handle free-text input for richer, context-aware narratives.
     sid = extract_suggestion_id(decision)
-    if sid:
+    if sid and room.quarter_number < 4:
         try:
             _dbgt1 = _dbgt.time()
             # Record decision on slot
