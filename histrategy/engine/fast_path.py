@@ -523,9 +523,16 @@ def _npc_nanming(idx: int, troops: int, events: list, conquest: bool, siege: boo
         else:
             return "南明：史可法督师扬州，四镇兵马严阵以待，然军中派系林立军令难一。"
     elif idx == 1:
-        return "南明：弘光朝廷遣使四方，一面备战一面寻求外交途径。"
+        return [
+            "南明：弘光朝廷遣使四方，一面备战一面寻求外交途径。",
+            "南明：朝中主和派力主与清廷划江而治，遣密使北上议和。",
+            "南明：史可法力主联寇抗清，遣使联络农民军共商大计。",
+        ][hash(f"nanming_d_{troops}") % 3]
     else:
-        return "南明：朝廷内部党争不休，四镇各怀异心，史可法独木难支。"
+        return [
+            "南明：朝廷内部党争不休，四镇各怀异心，史可法独木难支。",
+            "南明：江北四镇拥兵自重，左良玉以清君侧为名挥师东下。",
+        ][hash(f"nanming_c_{troops}") % 2]
 
 
 # ── Narrative builder ────────────────────────────────────────
@@ -556,7 +563,10 @@ def _build_narrative(player_fid: str, suggestion_id: str, events: list,
     _reign_name, _reign_start = _REIGN_BASE.get(player_fid, ("", year))
     if year > 0 and _reign_name:
         _reign_year = max(1, year - _reign_start + 1)
-        parts.append(f"{_reign_name}{_reign_year}年{season}，")
+        # Chinese numerals for reign years (元, 二, 三, ...)
+        _CN_NUM = {1: "元", 2: "二", 3: "三", 4: "四", 5: "五", 6: "六", 7: "七", 8: "八"}
+        _reign_label = _CN_NUM.get(_reign_year, str(_reign_year))
+        parts.append(f"{_reign_name}{_reign_label}年{season}，")
     else:
         parts.append(f"{faction_zh}{season}，")
 
