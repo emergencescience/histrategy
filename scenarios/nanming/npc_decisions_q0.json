@@ -1,0 +1,36 @@
+{
+  "scenario": "nanming",
+  "version": 1,
+  "decisions": {
+    "qing": {
+      "zh": {
+        "decision_text": "【准备南征】清军刚入关，大部分兵力仍用于平定北方。摄政王多尔衮命豪格镇守北京，阿济格和多铎分别率军平定山陕和河南。待北方稳固后，再调主力南下。暂时不可轻动。",
+        "commands": []
+      },
+      "en": {
+        "decision_text": "【Prepare Southern Campaign】The Qing have just entered the pass. Most forces are still pacifying the north. Regent Dorgon orders Haoge to hold Beijing while Ajige and Dodo subdue Shanxi-Shaanxi and Henan respectively. Conserve strength until the north is secure.",
+        "commands": []
+      }
+    },
+    "nongminjun": {
+      "zh": {
+        "decision_text": "【休整部队】大顺军自北京败退后损失惨重。李自成命各部在四川盆地休整，补充粮草兵员。同时派出细作打探清军和南明动向，待机而动。不可轻易出击。",
+        "commands": []
+      },
+      "en": {
+        "decision_text": "【Regroup Forces】The Shun Army is battered after their retreat from Beijing. Li Zicheng orders all units to regroup in the Sichuan basin — replenish food and recruits. Dispatch scouts to observe Qing and Ming movements. Do not engage recklessly.",
+        "commands": []
+      }
+    },
+    "zheng": {
+      "zh": {
+        "decision_text": "【观望时局】郑芝龙坐镇福建，拥有东亚最强大的水师。北方战火未波及闽粤，正是发展贸易、积累财富的时机。同时向南明派遣使节试探合作条件，不宜过早选边。",
+        "commands": []
+      },
+      "en": {
+        "decision_text": "【Watch the Situation】Zheng Zhilong commands East Asia's strongest fleet from Fujian. The northern war has not reached Fujian or Guangdong — a perfect time to expand trade and accumulate wealth. Meanwhile, send envoys to probe Southern Ming's cooperation terms. No need to pick sides yet.",
+        "commands": []
+      }
+    }
+  }
+}
