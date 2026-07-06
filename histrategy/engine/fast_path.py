@@ -197,13 +197,26 @@ def simulate_fast_path(room, player_decision: str,
 
     # ── Load faction data from world state ──
     factions = {}
+    # Pre-compute territory populations from world_state
+    _ws_territories = getattr(ws, 'territories', {}) if ws else {}
+    _territory_population = {}
+    for _tid, _tobj in (_ws_territories.items() if isinstance(_ws_territories, dict) else []):
+        _tp = getattr(_tobj, 'population', 0) or 0
+        if _tp:
+            _territory_population[_tid] = _tp
+
     for fid, f in ws.factions.items():
+        _terrs = list(getattr(f, 'territories', []))
+        _pop = sum(_territory_population.get(
+            getattr(t, 'id', str(t)) if hasattr(t, 'id') else str(t), 0
+        ) for t in _terrs)
         factions[fid] = {
             "troops": getattr(f, 'strength_actual', getattr(f, 'strength', 10000)),
             "morale": getattr(f, 'morale_actual', getattr(f, 'morale', 50)),
             "food": getattr(f, 'food', 10000),
             "treasury": getattr(f, 'treasury', 10000),
-            "territories": list(getattr(f, 'territories', [])),
+            "territories": _terrs,
+            "population": _pop,
             "aggression": getattr(f, 'aggression', 0.5),
             "caution": getattr(f, 'caution', 0.5),
             "diplomacy": getattr(f, 'diplomacy', 0.5),
@@ -269,6 +282,10 @@ def simulate_fast_path(room, player_decision: str,
             if result["city_falls"]:
                 factions[enemy_fid]["territories"].append(target)
                 player_territories.remove(target)
+                # Transfer territory population
+                _tp = _territory_population.get(target, 0)
+                factions[enemy_fid]["population"] = factions[enemy_fid].get("population", 0) + _tp
+                factions[player_fid]["population"] = max(0, factions[player_fid].get("population", 0) - _tp)
                 events.append(f"{enemy_zh}攻陷{target_zh}")
                 state_changes[target] = enemy_fid
                 factions[enemy_fid]["troops"] -= result["attacker_losses"]
@@ -293,7 +310,7 @@ def simulate_fast_path(room, player_decision: str,
 
     # Also: if player is aggressive, they may attack an enemy's border territory
     if is_player_aggressive:
-        _try_player_counterattack(player_fid, factions, npc_choices, events, state_changes)
+        _try_player_counterattack(player_fid, factions, npc_choices, events, state_changes, _territory_population)
 
     # ── Apply player domestic/economic effects (faction-agnostic) ──
     pf = factions[player_fid]
@@ -328,6 +345,9 @@ def simulate_fast_path(room, player_decision: str,
     season_zh = {"spring": "春", "summer": "夏", "autumn": "秋", "winter": "冬"}
     season_str = season_zh.get(new_season, new_season)
 
+    # Determine lang from room metadata
+    _lang = getattr(room, "metadata", {}).get("lang", "zh") if hasattr(room, "metadata") else "zh"
+
     narrative = _build_narrative(player_fid, player_suggestion_id, events, factions, season_str)
     aftermath = f"公元{new_year}年{season_str}。{'、'.join(events) if events else '各方按兵不动，局势暂时平稳。'}"
 
@@ -340,12 +360,13 @@ def simulate_fast_path(room, player_decision: str,
         "events_occurred": events,
         "npc_actions": npc_actions,
         "new_suggestions": _get_next_suggestions(
-            room.scenario or "nanming", player_fid, turn, "zh"),
+            room.scenario or "nanming", player_fid, turn, _lang),
         "game_over": None,
         "faction_status": {
             "name": _FACTION_ZH.get(player_fid, player_fid),
             "faction_id": player_fid,
             "strength": pf["troops"],
+            "population": pf.get("population", 0),
             "food": pf["food"],
             "treasury": pf["treasury"],
             "morale": pf["morale"],
@@ -364,7 +385,8 @@ def simulate_fast_path(room, player_decision: str,
 
 def _try_player_counterattack(player_fid: str, factions: dict,
                                npc_choices: dict, events: list,
-                               state_changes: dict):
+                               state_changes: dict,
+                               territory_population: dict | None = None):
     """If player is aggressive, they attempt to capture an enemy border territory."""
     player_territories = set(factions[player_fid]["territories"])
 
@@ -399,6 +421,10 @@ def _try_player_counterattack(player_fid: str, factions: dict,
     if result["city_falls"]:
         factions[player_fid]["territories"].append(best_target)
         factions[best_enemy]["territories"].remove(best_target)
+        # Transfer territory population
+        _tp = (territory_population or {}).get(best_target, 0)
+        factions[player_fid]["population"] = factions[player_fid].get("population", 0) + _tp
+        factions[best_enemy]["population"] = max(0, factions[best_enemy].get("population", 0) - _tp)
         events.append(f"{player_zh}攻陷{target_zh}")
         state_changes[best_target] = player_fid
         factions[player_fid]["troops"] -= result["attacker_losses"]
@@ -566,13 +592,22 @@ def _build_narrative(player_fid: str, suggestion_id: str, events: list,
 
 def _get_next_suggestions(scenario: str, faction_id: str, turn: int,
                            lang: str) -> list[str]:
-    """Get suggestions for next turn from EARLY_TURNS_SUGGESTIONS."""
+    """Get suggestions for next turn from EARLY_TURNS_SUGGESTIONS.
+
+    After turn 4, returns empty — the guided tutorial phase ends
+    and the player should use free-text input (LLM path) for
+    richer, context-aware narratives.
+    """
+    # Beyond turn 4: let LLM path take over
+    if turn >= 4:
+        return []
+
     try:
         from histrategy.engine.helpers import EARLY_TURNS_SUGGESTIONS
         data = EARLY_TURNS_SUGGESTIONS.get(scenario, {}).get(faction_id, {})
         # turn = current turn being resolved (quarter_number + 1).
         # We need suggestions for the NEXT turn.
-        next_turn = min(turn + 1, 4)
+        next_turn = turn + 1
         turn_data = data.get(next_turn, {})
         return turn_data.get(lang, [])
     except Exception:
