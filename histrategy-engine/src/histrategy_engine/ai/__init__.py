@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 # ─── Personality profiles ────────────────────────────────────────
 
 DEFAULT_PROFILES: dict[str, dict[str, float]] = {
+    # ── Three Kingdoms ──
     "caocao": {
         "aggression": 0.8,
         "cunning": 0.9,
@@ -56,6 +57,39 @@ DEFAULT_PROFILES: dict[str, dict[str, float]] = {
         "diplomacy": 0.1,
         "development": 0.2,
         "mercy": 0.05,
+    },
+    # ── Nanming (山河鼎革) ──
+    "qing": {
+        "aggression": 0.9,    # 多尔衮: aggressively expansionist
+        "cunning": 0.8,       # political maneuvering
+        "caution": 0.3,       # confident in military superiority
+        "diplomacy": 0.6,     # willing to accept surrenders
+        "development": 0.4,   # conquest-focused, not development
+        "mercy": 0.2,         # siege atrocities (Yangzhou)
+    },
+    "nanming": {
+        "aggression": 0.4,    # defensive posture
+        "cunning": 0.4,       # factional infighting reduces cunning
+        "caution": 0.7,       # survival mode
+        "diplomacy": 0.5,     # tries to ally but ineffective
+        "development": 0.5,   # half-hearted reforms
+        "mercy": 0.7,         # relatively merciful
+    },
+    "nongminjun": {
+        "aggression": 0.6,    # desperate, willing to fight
+        "cunning": 0.3,       # not strategic thinkers
+        "caution": 0.3,       # recklessness
+        "diplomacy": 0.3,     # bad at diplomacy
+        "development": 0.4,   # poor economic management
+        "mercy": 0.4,         # rougher treatment
+    },
+    "zheng": {
+        "aggression": 0.3,    # prefers trade over war
+        "cunning": 0.8,       # master negotiator
+        "caution": 0.8,       # preserves fleet at all costs
+        "diplomacy": 0.9,     # plays all sides
+        "development": 0.8,   # invests in trade infrastructure
+        "mercy": 0.6,         # pragmatic but not cruel
     },
 }
 
@@ -195,8 +229,17 @@ class DecisionEngine:
                 enemy_strength = enemy_faction.strength_actual
                 strength_ratio = enemy_strength / my_strength if my_strength > 0 else float("inf")
 
-                if strength_ratio < 0.6:
-                    opportunities.append(
+                # Attack if we have superiority or at least parity
+                # (enemy/my_strength < 1.0 means we are stronger)
+                if strength_ratio < 1.0:
+                    score = 0.7 * (1.0 - strength_ratio)
+                elif strength_ratio < 1.3:
+                    # Rough parity — worth considering
+                    score = 0.3 * (1.3 - strength_ratio)
+                else:
+                    continue
+
+                opportunities.append(
                         {
                             "type": "attack",
                             "territory_id": neighbor_id,
@@ -259,17 +302,22 @@ class DecisionEngine:
             == HistoricalMode.HISTORICAL
         )
 
+        # Historical mode dampens aggression (stick closer to historical path)
+        # but does NOT completely disable attacks — that was a bug that made
+        # all NPCs passive in the default mode.
+        # Aggressive NPCs (>0.7) are barely affected — they're warlike by nature.
         if is_historical:
-            commands: list[Command] = []
-            if treasury_ok and troops_low and faction.territories:
-                commands.append(self._make_recruit_command(faction))
-            elif faction.territories:
-                commands.append(self._make_develop_command(faction))
-            return commands
+            if aggression > 0.7:
+                effective_aggression = aggression * 0.85  # minimal dampening for aggressive NPCs
+            else:
+                effective_aggression = aggression * 0.7
+        else:
+            effective_aggression = aggression
 
-        # Decision weights
-        attack_score = aggression * opp_score
-        develop_score = development * (1.0 - opp_score)
+        # Decision weights — attack gets bonus for aggressive NPCs with opportunities
+        # and penalty for cautious NPCs
+        attack_score = effective_aggression * opp_score * 2.0  # boost attack attractiveness
+        develop_score = development * (1.0 - opp_score * 0.5)   # reduce develop when opportunities exist
 
         # If under high threat, prioritize defense/recruitment
         if high_threats and caution > 0.3:
@@ -286,7 +334,7 @@ class DecisionEngine:
             attack_opps = [o for o in opportunities if o["type"] == "attack"]
             occupy_opps = [o for o in opportunities if o["type"] == "occupy"]
 
-            if attack_opps and aggression > 0.4:
+            if attack_opps and effective_aggression > 0.4:
                 opp = attack_opps[0]
                 commands.append(
                     Command(
@@ -295,7 +343,7 @@ class DecisionEngine:
                         faction_id=faction_id,
                     )
                 )
-            elif occupy_opps and aggression > 0.2:
+            elif occupy_opps and effective_aggression > 0.2:
                 opp = occupy_opps[0]
                 commands.append(
                     Command(
