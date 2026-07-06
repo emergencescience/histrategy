@@ -145,7 +145,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
 
             from histrategy.engine.fast_path import simulate_fast_path
             _fpt0 = _fpt.time()
-            fp_result = simulate_fast_path(room, decision, sid)
+            fp_result = simulate_fast_path(room, decision, sid, lang)
             _fpt1 = _fpt.time()
             print(f"DEBUG {game_id} fpsim elapsed={_fpt1-_fpt0:.3f}s", flush=True)
 

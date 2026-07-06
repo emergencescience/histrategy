@@ -185,13 +185,14 @@ _YANGTZE_SOUTH = {"nanjing", "zhejiang", "jiangxi", "huguang",
 
 
 def simulate_fast_path(room, player_decision: str,
-                       player_suggestion_id: str) -> dict:
+                       player_suggestion_id: str, lang: str = "zh") -> dict:
     """Run deterministic fast-path simulation for any faction.
 
     Args:
         room: GameRoom object with current world state
         player_decision: Full decision text (for narrative extraction)
         player_suggestion_id: e.g. "nanming_t1_defend", "qing_t2_storm"
+        lang: UI language (zh | en) — drives narrative and suggestion language.
 
     Returns:
         dict matching the CommandResponse format.
@@ -358,10 +359,7 @@ def simulate_fast_path(room, player_decision: str,
     season_zh = {"spring": "春", "summer": "夏", "autumn": "秋", "winter": "冬"}
     season_str = season_zh.get(new_season, new_season)
 
-    # Determine lang from room metadata
-    _lang = getattr(room, "metadata", {}).get("lang", "zh") if hasattr(room, "metadata") else "zh"
-
-    narrative = _build_narrative(player_fid, player_suggestion_id, events, factions, season_str, new_year)
+    narrative = _build_narrative(player_fid, player_suggestion_id, events, factions, season_str, new_year, lang)
     aftermath = f"公元{new_year}年{season_str}。{'、'.join(events) if events else '各方按兵不动，局势暂时平稳。'}"
 
     pf = factions[player_fid]
@@ -373,7 +371,7 @@ def simulate_fast_path(room, player_decision: str,
         "events_occurred": events,
         "npc_actions": npc_actions,
         "new_suggestions": _get_next_suggestions(
-            room.scenario or "nanming", player_fid, turn, _lang),
+            room.scenario or "nanming", player_fid, turn, lang),
         "game_over": None,
         "faction_status": {
             "name": _FACTION_ZH.get(player_fid, player_fid),
@@ -541,19 +539,24 @@ def _npc_nanming(idx: int, troops: int, events: list, conquest: bool, siege: boo
 
 
 def _build_narrative(player_fid: str, suggestion_id: str, events: list,
-                     factions: dict, season: str, year: int = 0) -> str:
-    """Build faction-specific narrative from simulation results."""
+                     factions: dict, season: str, year: int = 0,
+                     lang: str = "zh") -> str:
+    """Build faction-specific narrative from simulation results.
+
+    Args:
+        lang: "zh" or "en" — generates narrative in the corresponding language.
+    """
     pf = factions.get(player_fid, {})
-    faction_zh = _FACTION_ZH.get(player_fid, player_fid)
+    faction_name = _FACTION_ZH.get(player_fid, player_fid) if lang == "zh" else _FACTION_EN.get(player_fid, player_fid)
     territories_count = len(pf.get("territories", []))
+    morale = pf.get('morale', 50)
+    troops = pf.get('troops', 0)
 
     # Check what happened
-    player_lost = [e for e in events if "攻陷" in e and faction_zh not in e.split("攻陷")[0]]
-    player_gained = [e for e in events if "攻陷" in e and faction_zh in e.split("攻陷")[0]]
-    player_sieged = [e for e in events if "围困" in e and faction_zh not in e.split("围困")[0]]
-    player_held = [e for e in events if "守住" in e and faction_zh in e]
-
-    parts = []
+    player_lost = [e for e in events if "攻陷" in e and faction_name not in e.split("攻陷")[0]]
+    player_gained = [e for e in events if "攻陷" in e and faction_name in e.split("攻陷")[0]]
+    player_sieged = [e for e in events if "围困" in e and faction_name not in e.split("围困")[0]]
+    player_held = [e for e in events if "守住" in e and faction_name in e]
 
     # Compute reign year dynamically from actual year
     _REIGN_BASE = {
@@ -562,55 +565,104 @@ def _build_narrative(player_fid: str, suggestion_id: str, events: list,
         "nongminjun": ("永昌", 1644),
         "zheng": ("隆武", 1645),
     }
-    _reign_name, _reign_start = _REIGN_BASE.get(player_fid, ("", year))
-    if year > 0 and _reign_name:
-        _reign_year = max(1, year - _reign_start + 1)
-        # Chinese numerals for reign years (元, 二, 三, ...)
-        _CN_NUM = {1: "元", 2: "二", 3: "三", 4: "四", 5: "五", 6: "六", 7: "七", 8: "八"}
-        _reign_label = _CN_NUM.get(_reign_year, str(_reign_year))
-        parts.append(f"{_reign_name}{_reign_label}年{season}，")
+    _REIGN_EN = {
+        "nanming": ("Hongguang", 1645),
+        "qing": ("Shunzhi", 1644),
+        "nongminjun": ("Yongchang", 1644),
+        "zheng": ("Longwu", 1645),
+    }
+    _CN_NUM = {1: "元", 2: "二", 3: "三", 4: "四", 5: "五", 6: "六", 7: "七", 8: "八"}
+
+    if lang == "zh":
+        _reign_name, _reign_start = _REIGN_BASE.get(player_fid, ("", year))
+        if year > 0 and _reign_name:
+            _reign_year = max(1, year - _reign_start + 1)
+            _reign_label = _CN_NUM.get(_reign_year, str(_reign_year))
+            season_zh = {"spring": "春", "summer": "夏", "autumn": "秋", "winter": "冬"}
+            parts = [f"{_reign_name}{_reign_label}年{season_zh.get(season, season)}，"]
+        else:
+            parts = [f"{faction_name}{season}，"]
     else:
-        parts.append(f"{faction_zh}{season}，")
+        _reign_name, _reign_start = _REIGN_EN.get(player_fid, ("", year))
+        if year > 0 and _reign_name:
+            _reign_year = max(1, year - _reign_start + 1)
+            season_en = season.capitalize()
+            parts = [f"{_reign_name} {_reign_year}, {season_en}. {faction_name} "]
+        else:
+            parts = [f"{faction_name} in {season}. "]
 
     # Action description based on package type
-    if "defend" in suggestion_id or "hold" in suggestion_id:
-        parts.append(f"{faction_zh}加固防线，坚守阵地。")
-    elif "retreat" in suggestion_id or "relocate" in suggestion_id or "sail" in suggestion_id:
-        parts.append(f"{faction_zh}保存实力，战略转移。")
-    elif any(kw in suggestion_id for kw in ["ally", "counter", "invade", "storm", "march",
-                                              "commit", "offensive", "retake"]):
-        parts.append(f"{faction_zh}主动出击，先发制人。")
-    elif any(kw in suggestion_id for kw in ["recover", "trade", "buildup", "consolidate"]):
-        parts.append(f"{faction_zh}休养生息，积蓄力量。")
+    if lang == "zh":
+        if "defend" in suggestion_id or "hold" in suggestion_id:
+            parts.append(f"{faction_name}加固防线，坚守阵地。")
+        elif "retreat" in suggestion_id or "relocate" in suggestion_id or "sail" in suggestion_id:
+            parts.append(f"{faction_name}保存实力，战略转移。")
+        elif any(kw in suggestion_id for kw in ["ally", "counter", "invade", "storm", "march",
+                                                  "commit", "offensive", "retake"]):
+            parts.append(f"{faction_name}主动出击，先发制人。")
+        elif any(kw in suggestion_id for kw in ["recover", "trade", "buildup", "consolidate"]):
+            parts.append(f"{faction_name}休养生息，积蓄力量。")
+        else:
+            parts.append(f"{faction_name}审时度势，发布诏令。")
+
+        if player_lost:
+            lost_cities = [e.split("攻陷")[1] for e in player_lost if "攻陷" in e and len(e.split("攻陷")) > 1]
+            if lost_cities:
+                parts.append(f"{'、'.join(lost_cities)}失陷，前线告急。")
+        if player_gained:
+            gained_cities = [e.split("攻陷")[1] for e in player_gained if "攻陷" in e and len(e.split("攻陷")) > 1]
+            if gained_cities:
+                parts.append(f"攻克{'、'.join(gained_cities)}，军威大振。")
+        if player_sieged:
+            sieged = [e.split("围困")[1] for e in player_sieged if "围困" in e and len(e.split("围困")) > 1]
+            if sieged:
+                parts.append(f"{'、'.join(sieged)}被围，粮道断绝。")
+        if player_held:
+            held = [e.split("守住")[1] for e in player_held if "守住" in e and len(e.split("守住")) > 1]
+            if held:
+                parts.append(f"{'、'.join(held)}防线稳固，士气大振。")
+
+        parts.append(
+            f"{faction_name}尚有{morale}点民心、"
+            f"{troops}兵马、"
+            f"{territories_count}座城池。"
+        )
     else:
-        parts.append(f"{faction_zh}审时度势，发布诏令。")
+        # English
+        if "defend" in suggestion_id or "hold" in suggestion_id:
+            parts.append(f"fortified their defenses and held their ground. ")
+        elif "retreat" in suggestion_id or "relocate" in suggestion_id or "sail" in suggestion_id:
+            parts.append(f"executed a strategic withdrawal to preserve strength. ")
+        elif any(kw in suggestion_id for kw in ["ally", "counter", "invade", "storm", "march",
+                                                  "commit", "offensive", "retake"]):
+            parts.append(f"launched a preemptive strike, seizing the initiative. ")
+        elif any(kw in suggestion_id for kw in ["recover", "trade", "buildup", "consolidate"]):
+            parts.append(f"focused on recovery and building reserves. ")
+        else:
+            parts.append(f"assessed the situation and issued decrees. ")
 
-    if player_lost:
-        lost_cities = [e.split("攻陷")[1] for e in player_lost if "攻陷" in e and len(e.split("攻陷")) > 1]
-        if lost_cities:
-            parts.append(f"{'、'.join(lost_cities)}失陷，前线告急。")
+        if player_lost:
+            lost_cities = [e.split("攻陷")[1] for e in player_lost if "攻陷" in e and len(e.split("攻陷")) > 1]
+            if lost_cities:
+                parts.append(f"{', '.join(lost_cities)} fell to the enemy. ")
+        if player_gained:
+            gained_cities = [e.split("攻陷")[1] for e in player_gained if "攻陷" in e and len(e.split("攻陷")) > 1]
+            if gained_cities:
+                parts.append(f"Captured {', '.join(gained_cities)}! ")
+        if player_sieged:
+            sieged = [e.split("围困")[1] for e in player_sieged if "围困" in e and len(e.split("围困")) > 1]
+            if sieged:
+                parts.append(f"{', '.join(sieged)} under siege. ")
+        if player_held:
+            held = [e.split("守住")[1] for e in player_held if "守住" in e and len(e.split("守住")) > 1]
+            if held:
+                parts.append(f"{', '.join(held)} held firm. ")
 
-    if player_gained:
-        gained_cities = [e.split("攻陷")[1] for e in player_gained if "攻陷" in e and len(e.split("攻陷")) > 1]
-        if gained_cities:
-            parts.append(f"攻克{'、'.join(gained_cities)}，军威大振。")
-
-    if player_sieged:
-        sieged = [e.split("围困")[1] for e in player_sieged if "围困" in e and len(e.split("围困")) > 1]
-        if sieged:
-            parts.append(f"{'、'.join(sieged)}被围，粮道断绝。")
-
-    if player_held:
-        held = [e.split("守住")[1] for e in player_held if "守住" in e and len(e.split("守住")) > 1]
-        if held:
-            parts.append(f"{'、'.join(held)}防线稳固，士气大振。")
-
-    # State summary
-    parts.append(
-        f"{faction_zh}尚有{pf.get('morale', 50)}点民心、"
-        f"{pf.get('troops', 0)}兵马、"
-        f"{territories_count}座城池。"
-    )
+        parts.append(
+            f"{faction_name} has {morale} morale, "
+            f"{troops} troops, "
+            f"{territories_count} cities."
+        )
 
     return "".join(parts)
 
@@ -625,6 +677,9 @@ def _get_next_suggestions(scenario: str, faction_id: str, turn: int,
     After turn 4, returns empty — the guided tutorial phase ends
     and the player should use free-text input (LLM path) for
     richer, context-aware narratives.
+
+    Suggestion IDs (e.g. [nanming_t2_counter]) are stripped from
+    the displayed text — they are internal routing keys only.
     """
     # Beyond turn 4: let LLM path take over
     if turn >= 4:
@@ -637,9 +692,21 @@ def _get_next_suggestions(scenario: str, faction_id: str, turn: int,
         # We need suggestions for the NEXT turn.
         next_turn = turn + 1
         turn_data = data.get(next_turn, {})
-        return turn_data.get(lang, [])
+        raw = turn_data.get(lang, [])
+        # Strip [xxx] prefix from display text — it's an internal routing key,
+        # not something the player should see
+        return [_strip_suggestion_id(s) for s in raw]
     except Exception:
         return []
+
+
+def _strip_suggestion_id(text: str) -> str:
+    """Remove leading [suggestion_id] prefix from display text.
+
+    e.g. "[nanming_t2_counter]【⚔️ Counterattack Shandong】..." →
+         "【⚔️ Counterattack Shandong】..."
+    """
+    return re.sub(r'^\[[a-z_]+_t\d+_\w+\]', '', text)
 
 
 # ── Quick path detection ─────────────────────────────────────
