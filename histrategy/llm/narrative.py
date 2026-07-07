@@ -462,15 +462,17 @@ class NarrativeEngine:
             else:
                 fname = fid
             troops = getattr(faction, "strength_actual", 0) if faction else 0
+            treasury = f"{faction.treasury:,.0f}" if faction else "?"
+            food = f"{faction.food:,.0f}" if faction else "?"
             if is_en:
                 lines.append(
                     f"{fname}: {decision[:120]}. Troops: {troops:,}, "
-                    f"Treasury: {faction.treasury:,.0f if faction else '?'}, Food: {faction.food:,.0f if faction else '?'}."
+                    f"Treasury: {treasury}, Food: {food}."
                 )
             else:
                 lines.append(
                     f"{fname}：{decision[:120]}。兵力{troops:,}，"
-                    f"府库{faction.treasury:,.0f if faction else '?'}，存粮{faction.food:,.0f if faction else '?'}。"
+                    f"府库{treasury}，存粮{food}。"
                 )
 
         return "\n".join(lines)
