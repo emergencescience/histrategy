@@ -344,7 +344,7 @@ class NarrativeEngine:
             result = self.llm.chat(
                 [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
                 temperature=0.7,
-                max_tokens=8192,
+                max_tokens=3072,
                 metadata={"category": "global_narrative", "room_id": room_id, "scenario": scenario},
             )
             return result.strip()

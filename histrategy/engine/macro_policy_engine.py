@@ -56,76 +56,44 @@ def _load_macro_prompt(scenario: str | None, lang: str = "zh") -> str:
 
 
 OUTPUT_SCHEMA_HINT = """
+仅输出以下四个字段，其余字段（knowledge_cards / black_swan_events / butterfly_effects /
+narrative_seeds / diplomatic_reactions / npc_actions）一律不要生成——它们不被引擎消费，
+只会拖慢推演。黑天鹅事件由确定性历史引擎单独处理。
+
 ## battle_results
 [{
-  "location": "xiangyang",
-  "attacker": "cao", "defender": "liubiao",
+  "location": "yangzhou",
+  "attacker": "qing", "defender": "nanming",
   "result": "attack_win|defend_win|stalemate|rout",
   "casualties": {"attacker": {"infantry": 3000}, "defender": {"infantry": 8000}},
   "territory_captured": true,
-  "commander_performance": {"xiahouyuan": "英勇冲锋，率先登城"},
-  "narrative": "刘表病亡消息传到襄阳，刘琮畏战..."
+  "narrative": "多铎率八旗主力围扬州，史可法血书求援，城中粮尽..."
 }]
 
-## diplomatic_reactions
+## npc_faction_actions
 [{
-  "faction": "wu",
-  "reaction": "alarmed|pleased|neutral|hostile",
-  "action": "孙权紧急召见周瑜鲁肃...",
-  "relation_delta": {"cao": -10, "shu": +15}
-}]
-
-## black_swan_events
-[{
-  "event_id": "liubiao_death_208",
-  "triggered": true,
-  "outcome": "刘表病亡，次子刘琮继位...",
-  "effects": {"liubiao_dead": true, "jingzhou_owner": "cao"}
-}]
-
-## political_events
-[{
-  "faction": "cao",
-  "type": "court_intrigue|reform_feedback|succession|factionalism",
-  "description": "荀彧对曹操称公之议表示反对...",
-  "effects": {"character_loyalty": {"xunyu": -20}}
+  "faction": "qing",
+  "action_type": "declare_war|conscript|develop|diplomacy|tax|naval_blockade|none",
+  "target": "nanming",
+  "reason": "多尔衮见南明内讧，决意趁势南下",
+  "params": {"amount": 50000},
+  "narrative": "多尔衮命多铎为定国大将军，率八旗精锐南下，直指扬州"
 }]
 
 ## morale_events
 [{
-  "faction": "cao",
-  "change": 5,
-  "reason": "减税政策深得民心",
-  "territories_affected": ["xuchang", "ye"]
+  "faction": "nanming",
+  "change": -8,
+  "reason": "扬州失守，江南震动",
+  "territories_affected": ["nanjing"]
 }]
 
-## npc_actions
+## political_events
 [{
-  "faction": "shu",
-  "action": "刘备派遣诸葛亮出使东吴，游说孙权联合抗曹",
-  "effects": {"wu_shu_relation": +10}
-}]
-
-## butterfly_effects
-[{
-  "cause": "玩家提前实行屯田制",
-  "effect": "北方粮食产量提前5年达到历史水平，加快了曹操统一北方的经济基础",
-  "magnitude": "medium"
-}]
-
-## narrative_seeds
-["曹操不战而得荆州，天下震动", "刘备仓皇南逃，百姓十余万跟随"]
-
-## knowledge_cards
-[{
-  "topic": "屯田制",
-  "historical_source": "《三国志·魏书·武帝纪》",
-  "source_quote": "是岁，乃兴屯田...",
-  "modern_scholarship": "田余庆认为屯田制的核心是人口控制...",
-  "scholar": "田余庆",
-  "scholar_work": "《秦汉魏晋史探微》",
-  "engine_logic": "屯田制: 粮食产出+30%, 民心+5",
-  "related_topics": ["均田制", "府兵制", "曹操经济政策"]
+  "faction": "nanming",
+  "type": "court_intrigue|reform_feedback|succession|factionalism",
+  "description": "马士英构陷史可法，弘光帝下旨掣肘江北四镇粮饷...",
+  "effects": {"character_loyalty": {"shikefa": -10}}
 }]
 """
 
@@ -179,7 +147,7 @@ class MacroPolicyEngine:
                 messages,
                 response_format={"type": "json_object"},
                 temperature=0.3,
-                max_tokens=8192,
+                max_tokens=4096,
                 metadata={
                     "category": "macro_sim",
                     "reason": "quarterly_simulation",
@@ -293,14 +261,8 @@ class MacroPolicyEngine:
         validated = {
             "battle_results": result.get("battle_results", []),
             "npc_faction_actions": result.get("npc_faction_actions", []),
-            "diplomatic_reactions": result.get("diplomatic_reactions", []),
-            "black_swan_events": result.get("black_swan_events", []),
-            "political_events": result.get("political_events", []),
             "morale_events": result.get("morale_events", []),
-            "npc_actions": result.get("npc_actions", []),
-            "butterfly_effects": result.get("butterfly_effects", []),
-            "narrative_seeds": result.get("narrative_seeds", []),
-            "knowledge_cards": result.get("knowledge_cards", []),
+            "political_events": result.get("political_events", []),
         }
         for key in validated:
             if not isinstance(validated[key], list):
