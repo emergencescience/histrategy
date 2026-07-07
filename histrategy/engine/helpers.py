@@ -416,25 +416,25 @@ EARLY_TURNS_SUGGESTIONS = {
         "nanming": {
             1: {
                 "zh": [
-                    "[nanming_t1_defend]【🛡️ 固守江淮】\n军事：集中四镇兵马于扬州，史可法督师加固城防\n外交：遣使求和于清，以纳贡换取喘息之机\n内政：减江南赋税三成，开恩科收拢士心\n生产：疏浚运河确保粮饷北运，南京设军器局",
-                    "[nanming_t1_ally]【⚔️ 联闯抗清】\n军事：黄得功率部出河南牵制清军侧翼\n外交：密使联络李自成，许陕甘之地共抗清军\n内政：南京设军器局量产火器武装江北各镇\n生产：征发民兵三万补充前线，江南各府加紧屯田",
+                    "[nanming_t1_defend]【🛡️ 整合四镇·守江先守淮】\n军事：收江北四镇兵权归史可法统一节制，重兵扼守淮河一线（守江必守淮）\n外交：遣使稳住郑氏与大顺，避免两线受敌\n内政：弭马士英史可法党争，一切以御清为先；减江南赋税三成收士心\n生产：疏浚运河确保粮饷北运，南京设军器局量产火器",
+                    "[nanming_t1_ally]【⚔️ 联寇联郑·共御强清】（翻盘首选）\n军事：四镇归史可法统一号令，主力北进死守淮河，黄得功出河南牵制\n外交：放下弑君之仇，急册封李自成为秦王联闯；许郑芝龙海防重任换水师入江\n内政：弭朝中党争，量产火器武装各镇\n生产：征民兵三万充淮防，江南加紧屯田",
                     "[nanming_t1_retreat]【🏃 南迁避战】\n军事：四镇断后掩护朝廷南撤至浙江\n外交：与郑芝龙密约，郑氏水师接应南迁\n内政：转移国库金银至福州，焚毁机密文书\n生产：烧毁江北粮仓，坚壁清野不给清军补给",
                 ],
                 "en": [
-                    "[nanming_t1_defend]【🛡️ Defend the Yangtze】\nMilitary: Concentrate the Four Garrisons at Yangzhou under Shi Kefa\nDiplomacy: Send envoys to sue for peace\nDomestic: Cut Jiangnan taxes by 30%, open civil exams\nProduction: Clear the Grand Canal, establish an armory in Nanjing",
-                    "[nanming_t1_ally]【⚔️ Ally Against Qing】\nMilitary: Huang Degong's forces harass Qing flanks from Henan\nDiplomacy: Secret envoy to Li Zicheng — offer Shaanxi-Gansu\nDomestic: Mass-produce firearms at Nanjing armory\nProduction: Conscript 30,000 militia, expand military farms",
+                    "[nanming_t1_defend]【🛡️ Unify the Garrisons · Hold the Huai】\nMilitary: Strip the Four Garrisons' autonomy under Shi Kefa's unified command; hold the Huai River line first\nDiplomacy: Stabilize Zheng and the Shun remnants to avoid a two-front war\nDomestic: End Ma-Shi factionalism; cut Jiangnan taxes 30% to win hearts\nProduction: Clear the Grand Canal, Nanjing armory mass-produces firearms",
+                    "[nanming_t1_ally]【⚔️ Ally Shun & Zheng · Hold the Huai】(Best turnaround)\nMilitary: Unify the Four Garrisons under Shi Kefa; hold the Huai River line (to hold the Yangtze, hold the Huai)\nDiplomacy: Set aside the regicide grudge — invest Li Zicheng as Prince of Qin; grant Zheng Zhilong naval command for a fleet on the Yangtze\nDomestic: End court factionalism, mass-produce firearms\nProduction: 30,000 militia for the Huai defense, expand farms",
                     "[nanming_t1_retreat]【🏃 Evacuate South】\nMilitary: Four Garrisons cover the court's retreat to Zhejiang\nDiplomacy: Secret pact with Zheng Zhilong for evacuation\nDomestic: Transfer imperial treasury to Fuzhou\nProduction: Scorch northern granaries — leave nothing for Qing",
                 ],
             },
             2: {
                 "zh": [
-                    "[nanming_t2_counter]【⚔️ 反攻山东】\n军事：趁清军南下立足未稳，黄得功刘良佐反攻济南\n外交：遣使至郑芝龙，以海防总兵官衔换水师策应\n内政：在江西湖广推行屯田制保障军粮\n生产：南京军器局加班赶造火炮鸟铳",
-                    "[nanming_t2_hold]【🤝 坚守待援】\n军事：史可法督师加固扬州至南京沿线防线\n外交：正式册封李自成为秦王，联闯抗清同盟成立\n内政：派马士英赴武昌安抚左良玉，确保上江不叛\n生产：征用江南商船组建长江水师，封锁渡口",
+                    "[nanming_t2_counter]【⚔️ 联军反攻山东】\n军事：趁清军立足未稳，四镇联军配合大顺东出，黄得功刘良佐反攻济南\n外交：以海防总兵衔换郑氏水师沿海策应，约大顺牵制清军后路\n内政：江西湖广推行屯田制保障军粮\n生产：南京军器局加班赶造火炮鸟铳",
+                    "[nanming_t2_hold]【🤝 联盟成型·坚守淮扬】（翻盘首选）\n军事：史可法督师，四镇归一指挥，加固淮河-扬州-南京纵深防线\n外交：正式册封李自成为秦王，联闯抗清同盟成立；郑氏水师入长江策应\n内政：遣重臣赴武昌安抚左良玉，严防其借'清君侧'东下作乱\n生产：征江南商船组建长江水师，封锁渡口",
                     "[nanming_t2_relocate]【🏰 迁都备战】\n军事：四镇精锐护送弘光帝迁都福州\n外交：请郑芝龙水师封锁长江口阻止清军水师南下\n内政：在福州建立战时内阁，重组六部\n生产：转移江南军器局设备至福建，建立南方军工基地",
                 ],
                 "en": [
                     "[nanming_t2_counter]【⚔️ Counterattack Shandong】\nMilitary: Huang Degong and Liu Liangzuo strike north\nDiplomacy: Offer Zheng Zhilong the admiralty for coordination\nDomestic: Military farms in Jiangxi and Huguang for food\nProduction: Nanjing armory works double shifts on cannons",
-                    "[nanming_t2_hold]【🤝 Hold and Wait】\nMilitary: Shi Kefa fortifies the Yangzhou-Nanjing line\nDiplomacy: Invest Li Zicheng as Prince of Qin — alliance born\nDomestic: Ma Shiying to Wuchang — keep Zuo Liangyu loyal\nProduction: Commandeer merchant ships for a Yangtze fleet",
+                    "[nanming_t2_hold]【🤝 Alliance Forged · Hold Huai-Yang】(Best turnaround)\nMilitary: Shi Kefa unifies the Garrisons; deep Huai-Yangzhou-Nanjing defense\nDiplomacy: Formally invest Li Zicheng as Prince of Qin; Zheng fleet enters the Yangtze\nDomestic: Send a heavyweight to Wuchang to keep Zuo Liangyu from rebelling ('clearing the ruler's side')\nProduction: Merchant ships into a Yangtze fleet, blockade the fords",
                     "[nanming_t2_relocate]【🏰 Relocate and Prepare】\nMilitary: Elite troops escort the Emperor to Fuzhou\nDiplomacy: Zheng Zhilong blockades the Yangtze mouth\nDomestic: Establish wartime cabinet in Fuzhou\nProduction: Move Nanjing armory to Fujian — southern industry",
                 ],
             },
@@ -453,12 +453,12 @@ EARLY_TURNS_SUGGESTIONS = {
             4: {
                 "zh": [
                     "[nanming_t4_sail]【⛵ 渡海投郑】\n军事：残部由浙江出海投奔郑芝龙，保存抗清火种\n外交：尊郑芝龙为太师，换取郑氏全力支持复国\n内政：在厦门设流亡朝廷，号召海外华人捐助抗清\n生产：利用郑氏贸易网络采购日本倭刀和荷兰火炮",
-                    "[nanming_t4_unite]【🤝 联合闯部】\n军事：与李自成残部在湖南会师，组建联军\n外交：册封李自成部将为侯爵，共尊永历帝为天下之主\n内政：在湖南推行均田免赋政策收拢流民\n生产：在湘西山区建立秘密军工基地，游击抗清",
+                    "[nanming_t4_unite]【🤝 联合大顺·据江图存】（南北朝格局）\n军事：与大顺残部会师，据长江-湖广防线持久抗清，仿东晋南宋划江而治\n外交：册封闯部将领为侯爵，联郑氏水师控扼长江，共尊正统\n内政：湖广推行均田免赋收拢流民，重建战时中枢\n生产：依托江南财赋与郑氏海贸重整军工",
                     "[nanming_t4_fight]【💀 决一死战】\n军事：集结所有兵力于南京城下，与清军主力决战\n外交：向天下发布衣冠存亡檄，号召所有汉人起兵\n内政：弘光帝御驾亲征，不成功便成仁\n生产：城中所有工匠日夜赶制守城器械和火药",
                 ],
                 "en": [
                     "[nanming_t4_sail]【⛵ Sail to the Zhengs】\nMilitary: Remnant forces escape by sea to join Zheng Zhilong\nDiplomacy: Honor Zheng Zhilong as Grand Tutor for full support\nDomestic: Government-in-exile in Xiamen, appeal to overseas Chinese\nProduction: Use Zheng's trade network for Japanese swords and Dutch cannons",
-                    "[nanming_t4_unite]【🤝 Unite the Rebels】\nMilitary: Link up with Li Zicheng's remnants in Hunan\nDiplomacy: Ennoble Li's generals as marquises\nDomestic: Land reform and tax exemption to attract refugees\nProduction: Secret arms factories in western Hunan mountains",
+                    "[nanming_t4_unite]【🤝 Unite the Shun · Hold the River】(A Southern Dynasties survival)\nMilitary: Link with Shun remnants; hold the Yangtze-Huguang line for protracted war, as the Eastern Jin and Southern Song divided the realm at the river\nDiplomacy: Ennoble Shun generals; Zheng fleet controls the Yangtze under the legitimate throne\nDomestic: Land reform in Huguang; rebuild a wartime court\nProduction: Rebuild arms on Jiangnan taxes and Zheng maritime trade",
                     "[nanming_t4_fight]【💀 Fight to the Death】\nMilitary: Gather every soldier at Nanjing for a decisive battle\nDiplomacy: Proclaim manifesto — call all Han Chinese to arms\nDomestic: The Emperor leads the army in person — victory or death\nProduction: All craftsmen work day and night on siege engines",
                 ],
             },

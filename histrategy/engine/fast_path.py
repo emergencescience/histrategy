@@ -346,8 +346,11 @@ def simulate_fast_path(room, player_decision: str,
         factions[fid]["morale"] = max(10, min(100, factions[fid]["morale"]))
 
     # ── NPC faction actions summary ──
+    npc_decisions: dict[str, str] = {}
     for fid, idx in npc_choices.items():
-        npc_actions.append(_build_npc_action(fid, idx, factions, player_fid, events))
+        action = _build_npc_action(fid, idx, factions, player_fid, events)
+        npc_actions.append(action)
+        npc_decisions[fid] = action
 
     # ── Advance season ──
     seasons = ["spring", "summer", "autumn", "winter"]
@@ -359,7 +362,9 @@ def simulate_fast_path(room, player_decision: str,
     season_zh = {"spring": "春", "summer": "夏", "autumn": "秋", "winter": "冬"}
     season_str = season_zh.get(new_season, new_season)
 
-    narrative = _build_narrative(player_fid, player_suggestion_id, events, factions, season_str, new_year, lang)
+    narrative = _build_rich_narrative(
+        player_fid, player_suggestion_id, events, factions, npc_actions, season_str, new_year, lang
+    )
     aftermath = f"公元{new_year}年{season_str}。{'、'.join(events) if events else '各方按兵不动，局势暂时平稳。'}"
 
     pf = factions[player_fid]
@@ -370,6 +375,7 @@ def simulate_fast_path(room, player_decision: str,
         "state_changes": state_changes,
         "events_occurred": events,
         "npc_actions": npc_actions,
+        "npc_decisions": npc_decisions,
         "new_suggestions": _get_next_suggestions(
             room.scenario or "nanming", player_fid, turn, lang),
         "game_over": None,
@@ -665,6 +671,33 @@ def _build_narrative(player_fid: str, suggestion_id: str, events: list,
         )
 
     return "".join(parts)
+
+
+def _build_rich_narrative(player_fid: str, suggestion_id: str, events: list,
+                          factions: dict, npc_actions: list, season: str,
+                          year: int = 0, lang: str = "zh") -> str:
+    """Compose a multi-section markdown narrative for a hard-coded (fast-path) turn.
+
+    Even without an LLM call, a fast-path turn should read like a proper chronicle
+    (大事纪 / 兵争武事 / 各方动向), so the shared page and game UI look identical to
+    LLM turns. Reuses _build_narrative for the opening summary, then appends the
+    deterministic events and the hard-coded NPC actions as their own sections.
+    """
+    base = _build_narrative(player_fid, suggestion_id, events, factions, season, year, lang)
+    sections: list[str] = []
+    if lang == "zh":
+        sections.append("### 大事纪\n" + base)
+        if events:
+            sections.append("### 兵争武事\n" + "；".join(events) + "。")
+        if npc_actions:
+            sections.append("### 各方动向\n" + "\n".join(f"- {a}" for a in npc_actions))
+    else:
+        sections.append("### Chronicle\n" + base)
+        if events:
+            sections.append("### Military Affairs\n" + "; ".join(events) + ".")
+        if npc_actions:
+            sections.append("### Factions' Movements\n" + "\n".join(f"- {a}" for a in npc_actions))
+    return "\n\n".join(sections)
 
 
 # ── Next-turn suggestions ────────────────────────────────────

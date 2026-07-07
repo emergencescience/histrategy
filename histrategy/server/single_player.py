@@ -155,7 +155,9 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
             print(f"DEBUG {game_id} fpsim elapsed={_fpt1-_fpt0:.3f}s", flush=True)
 
             # Store results on room object (same pattern as _resolve_and_advance)
-            room._last_narratives = {human_fid: fp_result["narrative"]}
+            # Save narrative under BOTH the human faction key AND "global" so the
+            # shared page (which reads narratives["global"]) renders it.
+            room._last_narratives = {human_fid: fp_result["narrative"], "global": fp_result["narrative"]}
             room._last_npc_actions = fp_result.get("npc_actions", [])
             room._last_state_changes = fp_result.get("state_changes", {})
 
@@ -204,17 +206,23 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
                 import json as _fp_json
 
                 from histrategy.db.models import save_quarter_turn
-                narratives_for_db = {human_fid: fp_result["narrative"]}
+                # Narrative under BOTH human faction key and "global" (shared page reads global)
+                narratives_for_db = {human_fid: fp_result["narrative"], "global": fp_result["narrative"]}
                 narratives_for_db["_npc_actions"] = _fp_json.dumps(
                     fp_result.get("npc_actions", []), ensure_ascii=False
                 )
+                # Build per-faction decisions: human + hard-coded NPC decisions, so the
+                # shared page shows each faction's move (not just the human's).
+                _fd = {human_fid: {"decision": _strip_suggestion_tag(decision), "commands": [], "source": "fast_path"}}
+                for _npc_fid, _npc_text in (fp_result.get("npc_decisions") or {}).items():
+                    _fd[_npc_fid] = {"decision": _npc_text, "commands": [], "source": "fast_path"}
                 _fpt3 = _fpt.time()
                 save_quarter_turn(
                     room.id,
                     room.quarter_number,
                     room.year,
                     room.season,
-                    faction_decisions={human_fid: {"decision": _strip_suggestion_tag(decision), "commands": [], "source": "fast_path"}},
+                    faction_decisions=_fd,
                     narratives=narratives_for_db,
                     state_changes=fp_result.get("state_changes", {}),
                 )
