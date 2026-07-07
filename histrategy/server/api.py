@@ -278,19 +278,11 @@ def create_app(llm_provider: str | None = None) -> Any:
         the global_narrative as Server-Sent Events for typewriter rendering.
         If quarter=0, the latest quarter's narrative is streamed.
         """
-        from histrategy.db.models import get_quarter_turns
-        from histrategy.server.room_manager import _get_room
         from fastapi.responses import StreamingResponse
 
-        # Look up the room and its latest turn
-        try:
-            room = _get_room(room_id)
-        except Exception:
-            return StreamingResponse(
-                _sse_error("Room not found"),
-                media_type="text/event-stream",
-            )
+        from histrategy.db.models import get_quarter_turns
 
+        # Fetch the latest turn's narrative (room existence is implied by turns)
         turns = get_quarter_turns(room_id, limit=1)
         if not turns:
             return StreamingResponse(
@@ -328,7 +320,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         # No narrative yet — stream a fallback message
         async def _serve_fallback():
-            yield f"data: 叙事生成中，请稍候...\n\n"
+            yield "data: 叙事生成中，请稍候...\n\n"
             yield "data: [DONE]\n\n"
 
         return StreamingResponse(
@@ -349,9 +341,10 @@ def create_app(llm_provider: str | None = None) -> Any:
         strategic advice. Streams via SSE for typewriter rendering.
         Rate-limited: client should throttle (once per turn recommended).
         """
+        from fastapi.responses import StreamingResponse
+
         from histrategy.llm.adapter import LLMAdapter
         from histrategy.server.room_manager import _get_room
-        from fastapi.responses import StreamingResponse
 
         try:
             room = _get_room(room_id)
@@ -394,41 +387,55 @@ def create_app(llm_provider: str | None = None) -> Any:
                 media_type="text/event-stream",
             )
 
-        # Build context from recent turn summaries
+        # Build context from recent turn summaries → chronicle (what _build_context reads)
         turn_summaries = getattr(room, "turn_summaries", [])[-4:]
-        summary_text = ""
+        chronicle = []
         for ts in turn_summaries:
             year = ts.get("year", "?")
             season = ts.get("season", "?")
             outcome = ts.get("outcome_summary", "")
             decision = ts.get("decision", "")
-            summary_text += f"{year}年{season}: {decision[:80]} → {outcome}\n"
+            chronicle.append(f"{year}年{season}: {decision[:60]} → {outcome}"[:180])
 
-        # Determine other faction states
-        other_factions = []
+        # Perceived rival factions (schema consumed by StrategicAdvisor._build_context)
+        perceived = {}
         for ofid, of in ws.factions.items():
             if ofid == fid or not getattr(of, "is_active", True):
                 continue
-            territories = list(getattr(of, "territories", []))
-            other_factions.append(
-                f"{of.name}({ofid}): 兵力{getattr(of, 'strength_actual', 0):,} "
-                f"领地{len(territories)} 关系{getattr(of, 'relations', {}).get(fid, 0):+d}"
-            )
+            perceived[ofid] = {
+                "name": of.name,
+                "strength": getattr(of, "strength_actual", 0),
+                "territories": len(list(getattr(of, "territories", []))),
+                "is_border": False,
+                "is_allied": getattr(of, "relations", {}).get(fid, 0) >= 50,
+            }
+
+        # Map territory ids → names
+        terr_names = []
+        for tid in list(getattr(faction, "territories", [])):
+            t = ws.territories.get(tid) if hasattr(ws, "territories") else None
+            terr_names.append(getattr(t, "name", tid) if t else tid)
 
         local_state = {
             "turn": ws.turn_number,
             "year": ws.year,
             "season": getattr(ws.season, "cn", str(ws.season)),
             "faction_id": fid,
-            "faction_name": faction.name,
-            "strength": getattr(faction, "strength_actual", 0),
-            "food": faction.food,
-            "treasury": faction.treasury,
-            "morale": getattr(faction, "morale_actual", 50),
-            "territories": list(getattr(faction, "territories", [])),
-            "capital": getattr(faction, "capital", ""),
-            "other_factions": other_factions,
-            "recent_history": summary_text,
+            "scenario": getattr(room, "scenario", ""),
+            "my": {
+                "strength": getattr(faction, "strength_actual", 0),
+                "treasury": faction.treasury,
+                "food": faction.food,
+                "morale": getattr(faction, "morale_actual", 50),
+                "territories": terr_names,
+            },
+            "perceived": perceived,
+            "chronicle": chronicle,
+        }
+        personality = {
+            "name": faction.name,
+            "aggression": getattr(faction, "aggression", 0.5),
+            "caution": getattr(faction, "caution", 0.5),
         }
 
         # Get LLM adapter
@@ -453,7 +460,7 @@ def create_app(llm_provider: str | None = None) -> Any:
                 f"给出3条最重要的战略建议。每条建议需具体可行，考虑敌我实力对比。"
             )
             try:
-                for chunk in advisor.advise_player_stream(local_state, query=query):
+                for chunk in advisor.advise_player_stream(local_state, personality=personality, query=query):
                     yield f"data: {chunk}\n\n"
                 yield "data: [DONE]\n\n"
             except Exception:
@@ -667,7 +674,9 @@ def create_app(llm_provider: str | None = None) -> Any:
     @app.get("/api/debug/cmd-hash")
     def api_debug_cmd_hash():
         """Return a hash of the command() source to verify deployed version."""
-        import hashlib, inspect
+        import hashlib
+        import inspect
+
         from histrategy.server.single_player import command
         src = inspect.getsource(command)
         return {"sha256": hashlib.sha256(src.encode()).hexdigest()[:12], "lines": len(src.splitlines())}
