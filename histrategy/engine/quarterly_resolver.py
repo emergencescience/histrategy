@@ -15,7 +15,6 @@ QuarterlyResolver — 对称多 faction 季度引擎。
 from __future__ import annotations
 
 import logging
-import os
 import time
 from typing import TYPE_CHECKING
 
@@ -158,16 +157,27 @@ class QuarterlyResolver:
         # ── Step 5: Guardrail 验证 + 状态应用 ──
         if macro_delta and self.guardrail_validator:
             try:
-                macro_delta = self.guardrail_validator.validate(
+                validation = self.guardrail_validator.validate(
                     macro_delta,
                     world_state,
+                    baseline,
                 )
+                # validate() returns {"accepted", "violations", "warnings", "sanitized_delta"}
+                if isinstance(validation, dict) and "sanitized_delta" in validation:
+                    macro_delta = validation["sanitized_delta"]
+                    for w in validation.get("warnings", []):
+                        logger.info("[room=%s] Guardrail warning: %s", room.id, getattr(w, "message", w))
             except Exception as e:
                 logger.warning("[room=%s] GuardrailValidator failed: %s", room.id, e)
 
         if macro_delta and self.state_applier:
             try:
-                self.state_applier.apply(macro_delta, world_state)
+                # apply_macro_delta reads the MacroPolicyEngine schema
+                # (battle_results / morale_events / npc_faction_actions) and
+                # mutates scalar strength_actual + faction.territories with
+                # deterministic force-ratio grounding (P1/P2/P3/P4).
+                applied = self.state_applier.apply_macro_delta(macro_delta, world_state, baseline)
+                logger.info("[room=%s] StateApplier settled: %s", room.id, applied)
             except Exception as e:
                 logger.error("[room=%s] StateApplier failed: %s", room.id, e)
 

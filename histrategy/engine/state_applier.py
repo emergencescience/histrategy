@@ -20,8 +20,118 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+# ═══════════════════════════════════════════════════════════════
+# Deterministic combat grounding constants (P4 — fairness).
+# The physics engine does not know who is human: territory and troop
+# outcomes flow from FORCE RATIOS + morale, not from LLM narrative alone.
+# ═══════════════════════════════════════════════════════════════
+_DEFENDER_TERRAIN_BONUS = 1.15  # defending your own city is easier
+_MIN_ACTIVE_TROOPS = 500  # an active faction never drops below this from one battle
+_MAX_BATTLE_LOSS_FRAC = 0.40  # a single battle can cost at most 40% of an army
+_MIN_BATTLE_LOSS_FRAC = 0.02  # even a rout costs the winner something
+_BASE_ATTRITION = 0.10  # baseline per-battle attrition scalar
+_TERRITORY_CAPTURE_POWER_RATIO = 1.10  # attacker effective power must exceed this × defender's
+_MORALE_COLLAPSE_THRESHOLD = 20  # defender morale below this → city may fall regardless of force
+_MORALE_EVENT_CAP = 15  # single-turn morale change hard cap
+_TROOP_ABSORB_FRAC = 0.15  # captured city → victor absorbs this fraction of loser's troops
+_MORALE_EQUILIBRIUM = 55  # wartime morale mean-reversion target
+_MORALE_REVERT_MAX = 3  # max mean-reversion step per quarter
+
+
+def _local_faction_id_map(ws) -> dict:
+    """name/id → faction pinyin id (inlined to avoid circular import)."""
+    m: dict = {}
+    for fid, f in ws.factions.items():
+        m[fid] = fid
+        name = getattr(f, "name", "")
+        if name:
+            m[name] = fid
+    return m
+
+
+def _local_territory_id_map(ws) -> dict:
+    m: dict = {}
+    for tid, t in ws.territories.items():
+        m[tid] = tid
+        name = getattr(t, "name", "")
+        if name:
+            m[name] = tid
+    return m
+
+
+def _clamp(v, lo, hi):
+    return max(lo, min(hi, v))
+
+
 class StateApplier:
     """Safely applies validated LLM delta to WorldState."""
+
+    # ── Symmetric multi-faction settlement (QuarterlyResolver path) ──
+    @staticmethod
+    def apply_macro_delta(
+        delta: dict,
+        world_state: WorldState,
+        baseline: object = None,
+    ) -> dict:
+        """Apply a MacroPolicyEngine delta to a symmetric-mode WorldState.
+
+        Unlike ``apply()`` (which reads ``battle_overrides`` and mutates
+        ``ws.armies``), this reads the ACTUAL MacroPolicyEngine schema
+        (``battle_results``, ``morale_events``, ``npc_faction_actions``) and
+        mutates scalar ``strength_actual`` / ``faction.territories`` — the
+        representation the symmetric engine actually uses.
+
+        Combat is GROUNDED deterministically: casualties and territory
+        capture are decided by force-ratio + morale, with the LLM's numbers
+        only used as a clamped hint. This prevents "conquest by prose" (P4)
+        and guarantees troops/territory change incrementally (P1/P2).
+        """
+        summary = {
+            "battles_settled": 0,
+            "territories_captured": 0,
+            "troops_lost": 0,
+            "morale_changes": 0,
+            "npc_actions": 0,
+            "factions_defeated": 0,
+        }
+        ws = world_state
+        fmap = _local_faction_id_map(ws)
+        tmap = _local_territory_id_map(ws)
+
+        # 1) Morale events (LLM) — hard-capped to ±15 per quarter.
+        for me in delta.get("morale_events", []):
+            fid = fmap.get(me.get("faction", ""), me.get("faction", ""))
+            f = ws.factions.get(fid)
+            if not f:
+                continue
+            ch = _clamp(int(me.get("change", 0) or 0), -_MORALE_EVENT_CAP, _MORALE_EVENT_CAP)
+            if ch:
+                f.morale_actual = _clamp(getattr(f, "morale_actual", 50) + ch, 0, 100)
+                summary["morale_changes"] += 1
+
+        # 2) Battle results → deterministic casualty + territory settlement.
+        for br in delta.get("battle_results", []):
+            _settle_battle(br, ws, fmap, tmap, summary)
+
+        # 3) NPC autonomous economic/military actions.
+        for nfa in delta.get("npc_faction_actions", []):
+            _apply_npc_faction_action(nfa, ws, fmap, summary)
+
+        # 4) Morale mean-reversion — de-pin extremes from 0/100 (P3).
+        for f in ws.factions.values():
+            m = getattr(f, "morale_actual", 50)
+            if abs(m - _MORALE_EQUILIBRIUM) > 25:
+                step = _clamp(round((_MORALE_EQUILIBRIUM - m) * 0.12), -_MORALE_REVERT_MAX, _MORALE_REVERT_MAX)
+                f.morale_actual = _clamp(m + step, 0, 100)
+
+        # 5) Auto-surrender: broken NPCs (morale < 15, ≤ 1 territory) fold.
+        for fid, f in list(ws.factions.items()):
+            if fid == getattr(ws, "player_faction_id", None):
+                continue
+            if getattr(f, "is_active", True) and getattr(f, "morale_actual", 50) < 15 and len(f.territories) <= 1:
+                _absorb_defeated_faction(fid, ws, summary)
+
+        return summary
 
     @staticmethod
     def apply(
@@ -131,6 +241,179 @@ def _apply_morale_event(me: dict, ws) -> None:
     change = me.get("change", 0)
     current = getattr(faction, "morale_actual", 50)
     faction.morale_actual = max(0, min(100, current + change))
+
+
+# ═══════════════════════════════════════════════════════════════
+# Deterministic combat settlement (symmetric multi-faction engine)
+# ═══════════════════════════════════════════════════════════════
+
+
+def _settle_battle(br: dict, ws, fmap: dict, tmap: dict, summary: dict) -> None:
+    """Settle one battle_results entry against scalar faction strength.
+
+    Force-ratio grounded: the LLM narrates, but Python decides how many
+    troops die and whether a city actually changes hands.
+    """
+    loc = tmap.get(br.get("location", ""), br.get("location", ""))
+    territory = ws.territories.get(loc)
+
+    atk = fmap.get(br.get("attacker", ""), br.get("attacker", ""))
+    dfd_raw = br.get("defender", "") or br.get("defender_faction", "")
+    dfd = fmap.get(dfd_raw, dfd_raw)
+    if not dfd and territory:
+        dfd = territory.owner_id
+
+    af = ws.factions.get(atk)
+    df = ws.factions.get(dfd)
+    if not af or not df or atk == dfd:
+        return
+    if not getattr(af, "is_active", True) or not getattr(df, "is_active", True):
+        return
+
+    a_tr = max(0, int(getattr(af, "strength_actual", 0)))
+    d_tr = max(0, int(getattr(df, "strength_actual", 0)))
+    if a_tr <= 0 or d_tr <= 0:
+        return
+
+    a_mor = getattr(af, "morale_actual", 50)
+    d_mor = getattr(df, "morale_actual", 50)
+
+    # ── Effective combat power (troops weighted by morale + terrain) ──
+    a_pow = a_tr * (0.6 + a_mor / 250.0)
+    terrain = _DEFENDER_TERRAIN_BONUS if (territory and territory.owner_id == dfd) else 1.0
+    d_pow = d_tr * (0.6 + d_mor / 250.0) * terrain
+    ratio = a_pow / max(d_pow, 1.0)
+
+    # ── Deterministic casualties: the weaker side bleeds more ──
+    # Attacker loss fraction shrinks as its ratio grows; defender's grows.
+    atk_loss_frac = _clamp(_BASE_ATTRITION / max(ratio, 0.25), _MIN_BATTLE_LOSS_FRAC, _MAX_BATTLE_LOSS_FRAC)
+    def_loss_frac = _clamp(_BASE_ATTRITION * max(ratio, 0.25), _MIN_BATTLE_LOSS_FRAC, _MAX_BATTLE_LOSS_FRAC)
+    det_atk_loss = int(a_tr * atk_loss_frac)
+    det_def_loss = int(d_tr * def_loss_frac)
+
+    # ── Blend with LLM hint, clamped to [0.5×, 1.5×] of deterministic ──
+    cas = br.get("casualties", {}) or {}
+    llm_atk = _sum_casualties(cas.get("attacker"))
+    llm_def = _sum_casualties(cas.get("defender"))
+    atk_loss = _blend_casualty(det_atk_loss, llm_atk)
+    def_loss = _blend_casualty(det_def_loss, llm_def)
+
+    # ── Apply casualties (floor active factions at _MIN_ACTIVE_TROOPS) ──
+    af.strength_actual = max(_MIN_ACTIVE_TROOPS, a_tr - atk_loss)
+    df.strength_actual = max(_MIN_ACTIVE_TROOPS, d_tr - def_loss)
+    summary["troops_lost"] += (a_tr - af.strength_actual) + (d_tr - df.strength_actual)
+    summary["battles_settled"] += 1
+
+    # ── Territory capture: gated by force ratio OR defender morale collapse ──
+    llm_wants_capture = bool(br.get("territory_captured")) or br.get("result") in ("attack_win", "rout")
+    force_permits = a_pow > d_pow * _TERRITORY_CAPTURE_POWER_RATIO
+    morale_collapse = d_mor < _MORALE_COLLAPSE_THRESHOLD
+    if territory and llm_wants_capture and (force_permits or morale_collapse):
+        _transfer_territory(loc, atk, dfd, ws, summary)
+        # capture morale swing
+        af.morale_actual = _clamp(getattr(af, "morale_actual", 50) + 5, 0, 100)
+        df.morale_actual = _clamp(getattr(df, "morale_actual", 50) - 8, 0, 100)
+        # If the defender lost its last city, it is finished.
+        if not df.territories:
+            df.is_active = False
+            summary["factions_defeated"] += 1
+
+
+def _sum_casualties(v) -> int:
+    """battle_results casualties may be a scalar or {unit_type: n} dict."""
+    if isinstance(v, dict):
+        return int(sum(x for x in v.values() if isinstance(x, (int, float))))
+    if isinstance(v, (int, float)):
+        return int(v)
+    return 0
+
+
+def _blend_casualty(deterministic: int, llm_hint: int) -> int:
+    """Average deterministic + LLM hint, clamped to [0.5×, 1.5×] deterministic."""
+    if llm_hint <= 0:
+        return deterministic
+    lo = int(deterministic * 0.5)
+    hi = int(deterministic * 1.5)
+    blended = (deterministic + _clamp(llm_hint, lo, hi)) // 2
+    return max(0, blended)
+
+
+def _transfer_territory(loc: str, new_owner: str, old_owner: str, ws, summary: dict) -> None:
+    """Move a territory + absorb a slice of the loser's troops."""
+    territory = ws.territories.get(loc)
+    if not territory or new_owner not in ws.factions:
+        return
+    old = old_owner if old_owner in ws.factions else territory.owner_id
+    territory.owner_id = new_owner
+    if old in ws.factions and loc in ws.factions[old].territories:
+        ws.factions[old].territories.remove(loc)
+    if loc not in ws.factions[new_owner].territories:
+        ws.factions[new_owner].territories.append(loc)
+    summary["territories_captured"] += 1
+
+    # Absorb a fraction of the loser's per-city troops into the victor.
+    if old and old in ws.factions:
+        old_faction = ws.factions[old]
+        per_city = old_faction.strength_actual / max(len(old_faction.territories) + 1, 1)
+        absorbed = int(per_city * _TROOP_ABSORB_FRAC)
+        if absorbed > 0:
+            old_faction.strength_actual = max(_MIN_ACTIVE_TROOPS, old_faction.strength_actual - absorbed)
+            ws.factions[new_owner].strength_actual = getattr(ws.factions[new_owner], "strength_actual", 0) + absorbed
+
+
+def _absorb_defeated_faction(fid: str, ws, summary: dict) -> None:
+    """Mark a broken faction inactive and hand its last land to a neighbor."""
+    f = ws.factions.get(fid)
+    if not f:
+        return
+    f.is_active = False
+    summary["factions_defeated"] += 1
+    for last_t in list(f.territories):
+        territory = ws.territories.get(last_t)
+        neighbors = getattr(territory, "neighbors", []) if territory else []
+        heir = None
+        for nid in neighbors:
+            nt = ws.territories.get(nid)
+            if nt and nt.owner_id in ws.factions and getattr(ws.factions[nt.owner_id], "is_active", True):
+                heir = nt.owner_id
+                break
+        if heir:
+            _transfer_territory(last_t, heir, fid, ws, summary)
+
+
+def _apply_npc_faction_action(nfa: dict, ws, fmap: dict, summary: dict) -> None:
+    """Apply an NPC faction's autonomous economic/military action."""
+    fid = fmap.get(nfa.get("faction", ""), nfa.get("faction", ""))
+    faction = ws.factions.get(fid)
+    if not faction or fid == getattr(ws, "player_faction_id", None):
+        return
+    if not getattr(faction, "is_active", True):
+        return
+    action_type = nfa.get("action_type", "none")
+    params = nfa.get("params", {}) or {}
+    summary["npc_actions"] += 1
+
+    if action_type == "conscript":
+        amount = int(params.get("amount", 5000) or 5000)
+        cost = int(amount * 0.5)
+        if faction.treasury >= cost and faction.food >= amount * 0.1:
+            faction.strength_actual = getattr(faction, "strength_actual", 0) + amount
+            faction.treasury -= cost
+    elif action_type == "develop":
+        cost = int(params.get("cost", 300) or 300)
+        if faction.treasury >= cost:
+            faction.treasury -= cost
+            faction.economy_actual = min(100, getattr(faction, "economy_actual", 50) + 5)
+    elif action_type == "diplomacy":
+        target = fmap.get(nfa.get("target", ""), nfa.get("target", ""))
+        if target in ws.factions and hasattr(faction, "relations"):
+            rel_delta = int(params.get("relation_delta", 10) or 10)
+            cur = faction.relations.get(target, 0)
+            faction.relations[target] = _clamp(cur + rel_delta, -100, 100)
+    elif action_type == "tax":
+        if hasattr(faction, "tax_rate"):
+            faction.tax_rate = _clamp(float(params.get("rate", 0.3) or 0.3), 0.05, 0.6)
+    # declare_war / naval_blockade resolve via battle_results next quarter.
 
 
 def _reduce_army(army, loss: int) -> None:

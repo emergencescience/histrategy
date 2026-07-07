@@ -55,14 +55,19 @@ class GuardrailValidator:
         warnings: list[GuardrailWarning] = []
         sanitized = {
             "battle_overrides": [],
+            "battle_results": [],
+            "npc_faction_actions": [],
             "morale_events": [],
             "political_events": [],
             "npc_actions": [],
             "butterfly_effects": delta.get("butterfly_effects", []),
             "narrative_seeds": delta.get("narrative_seeds", []),
+            "diplomatic_reactions": delta.get("diplomatic_reactions", []),
+            "black_swan_events": delta.get("black_swan_events", []),
+            "knowledge_cards": delta.get("knowledge_cards", []),
         }
 
-        # ── Validate battle overrides ──
+        # ── Validate battle overrides (legacy army-based schema) ──
         if "battle_overrides" in delta:
             for bo in delta["battle_overrides"]:
                 try:
@@ -71,6 +76,31 @@ class GuardrailValidator:
                 except GuardrailViolation as e:
                     violations.append(e)
                     logger.warning("Battle override rejected: %s", e)
+
+        # ── Validate battle results (MacroPolicyEngine schema) ──
+        # Pass through entries referencing a known territory. The deterministic
+        # grounding in StateApplier.apply_macro_delta is the real guardrail for
+        # casualties / territory capture, so here we only drop malformed rows.
+        for br in delta.get("battle_results", []):
+            if not isinstance(br, dict):
+                continue
+            loc = br.get("location", "")
+            if loc and loc in world_state.territories or loc and any(getattr(t, "name", "") == loc for t in world_state.territories.values()):
+                sanitized["battle_results"].append(br)
+            else:
+                warnings.append(GuardrailWarning("battle_results.location", f"Unknown territory: {loc}"))
+
+        # ── Pass through NPC faction actions referencing a known faction ──
+        for nfa in delta.get("npc_faction_actions", []):
+            if not isinstance(nfa, dict):
+                continue
+            fac = nfa.get("faction", "")
+            if fac in world_state.factions or any(
+                getattr(f, "name", "") == fac for f in world_state.factions.values()
+            ):
+                sanitized["npc_faction_actions"].append(nfa)
+            else:
+                warnings.append(GuardrailWarning("npc_faction_action.faction", f"Unknown faction: {fac}"))
 
         # ── Validate morale events ──
         if "morale_events" in delta:
