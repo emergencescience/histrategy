@@ -152,7 +152,7 @@ class QuarterlyResolver:
                     bs_proposals,
                     room,
                 )
-                logger.info("[room=%s] ⏱ macro_sim %.1fs", room.id, time.time() - _t_macro)
+                print(f"⏱ [room={room.id}] macro_sim {time.time() - _t_macro:.1f}s", flush=True)
             except Exception as e:
                 logger.error("[room=%s] MacroPolicyEngine failed: %s", room.id, e)
 
@@ -195,7 +195,7 @@ class QuarterlyResolver:
                     macro_delta,
                     room,
                 )
-                logger.info("[room=%s] ⏱ narrative %.1fs", room.id, time.time() - _t_narr)
+                print(f"⏱ [room={room.id}] narrative {time.time() - _t_narr:.1f}s", flush=True)
             except Exception as e:
                 logger.error("[room=%s] Narrative generation failed: %s", room.id, e)
 
