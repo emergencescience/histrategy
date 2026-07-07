@@ -79,7 +79,7 @@ class WorldSimulator:
                 messages,
                 response_format={"type": "json_object"},
                 temperature=0.3,
-                max_tokens=8192,
+                max_tokens=4096,
             )
             return self._validate_output(result)
         except Exception:
@@ -88,7 +88,7 @@ class WorldSimulator:
                 result = self.llm.chat(
                     messages,
                     temperature=0.3,
-                    max_tokens=8192,
+                    max_tokens=4096,
                 )
                 return self._validate_output(self._extract_json(result))
             except Exception:
@@ -259,8 +259,7 @@ class WorldSimulator:
             "battle_overrides": result.get("battle_overrides", []),
             "morale_events": result.get("morale_events", []),
             "political_events": result.get("political_events", []),
-            "npc_actions": result.get("npc_actions", []),
-            "butterfly_effects": result.get("butterfly_effects", []),
+            "npc_faction_actions": result.get("npc_faction_actions", result.get("npc_actions", [])),
             "narrative_seeds": result.get("narrative_seeds", []),
         }
 

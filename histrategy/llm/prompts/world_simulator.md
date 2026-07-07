@@ -13,7 +13,6 @@
    - 民心/士气的涌现效应（哗变、投敌、自发献粮）
    - 宫廷政治（派系斗争、谏言、政变）
    - NPC 的战略判断（刘备会守新野还是南撤？孙权会北伐还是坐观？）
-   - 蝴蝶效应的可见化（"因为三季仁政，百姓自发献粮劳军"）
 
 5. **记住历史。** 你会在 context 中看到最近几个回合的历史叙事。你的推演应该与历史保持连续性——如果上一回合说"曹操大怒，发誓复仇"，这一回合不应该"曹操淡定地喝茶"。
 
@@ -52,21 +51,13 @@
       "effect": {"字段": 值}
     }
   ],
-  "npc_actions": [
+  "npc_faction_actions": [
     {
       "faction": "势力ID",
       "action": "attack/defend/recruit/develop/ally/strategic_retreat/wait",
       "target": "目标领土或势力ID",
       "reasoning": "该NPC为什么做这个决策？（基于其个性、当前局势）",
       "expected_outcome": "NPC 期望的结果"
-    }
-  ],
-  "butterfly_effects": [
-    {
-      "cause_turn": 数字,
-      "cause_description": "之前发生的某个事件",
-      "effect_description": "现在产生的蝴蝶效应",
-      "significance": "low/medium/high"
     }
   ],
   "narrative_seeds": [
@@ -105,12 +96,6 @@
 - NPC 之间也可以互相攻击、结盟、背叛
 - 不要为了让玩家"有趣"而让 NPC 做出不合理行动
 - 示例：刘备 mercy=0.95，面对大军压境，更可能选择保护百姓撤退，而不是死战
-
-## 蝴蝶效应规则
-
-- 只在确实存在跨回合因果链时才写 butterfly_effects
-- 因果关系必须具体、可追溯："因为第3回合曹操赈济了邺城（cause_turn=3），所以本回合邺城出现了自发献粮"
-- 不要为了"好看"而编造不存在的因果链
 
 ## narrative_seeds 规则
 

@@ -59,12 +59,7 @@ class GuardrailValidator:
             "npc_faction_actions": [],
             "morale_events": [],
             "political_events": [],
-            "npc_actions": [],
-            "butterfly_effects": delta.get("butterfly_effects", []),
             "narrative_seeds": delta.get("narrative_seeds", []),
-            "diplomatic_reactions": delta.get("diplomatic_reactions", []),
-            "black_swan_events": delta.get("black_swan_events", []),
-            "knowledge_cards": delta.get("knowledge_cards", []),
         }
 
         # ── Validate battle overrides (legacy army-based schema) ──
@@ -129,15 +124,6 @@ class GuardrailValidator:
                     sanitized["political_events"].append(pe)
                 else:
                     warnings.append(GuardrailWarning("political_event", f"Unknown faction: {faction}"))
-
-        # ── Validate NPC actions ──
-        if "npc_actions" in delta:
-            for na in delta["npc_actions"]:
-                faction = na.get("faction", "")
-                if faction and faction in world_state.factions:
-                    sanitized["npc_actions"].append(na)
-                else:
-                    warnings.append(GuardrailWarning("npc_action", f"Unknown faction: {faction}"))
 
         accepted = len(violations) == 0
 

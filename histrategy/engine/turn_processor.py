@@ -492,7 +492,7 @@ class TurnProcessorMixin:
 
         # Build v3-aware narrative
         narrative_seeds = sanitized.get("narrative_seeds", []) if sanitized else []
-        npc_actions_list = sanitized.get("npc_actions", []) if sanitized else []
+        npc_actions_list = sanitized.get("npc_faction_actions", []) if sanitized else []
 
         if self.narrative_engine and self.narrative_engine.is_available:
             # Inject v3 delta into baseline_result so narrative engine includes it

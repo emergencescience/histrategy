@@ -200,7 +200,7 @@ class NarrativeEngine:
             result = self.llm.chat(
                 messages,
                 temperature=0.75,
-                max_tokens=8192,
+                max_tokens=3072,
                 metadata=metadata,
             )
             return result.strip()
@@ -755,7 +755,7 @@ class NarrativeEngine:
             result = self.llm.chat(
                 messages,
                 temperature=0.7,
-                max_tokens=8192,
+                max_tokens=3072,
                 metadata=metadata,
             )
             return self._parse_suggestions(result.strip())

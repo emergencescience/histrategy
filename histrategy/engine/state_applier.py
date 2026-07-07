@@ -175,8 +175,8 @@ class StateApplier:
             summary["political_events"] += 1
 
         # ── NPC actions (delegated to TurnController, not applied here) ──
-        summary["npc_actions"] = len(delta.get("npc_actions", []))
-        summary["butterfly_effects"] = len(delta.get("butterfly_effects", []))
+        summary["npc_actions"] = len(delta.get("npc_faction_actions", []))
+        summary["butterfly_effects"] = 0  # butterfly_effects removed from schema
 
         return summary
 
