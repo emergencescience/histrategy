@@ -991,11 +991,23 @@ def _resolve_and_advance(room: GameRoom):
             logger.warning("[room=%s] bg NPC pre-gen failed: %s", r.id, e)
 
     try:
+        import os
         import threading
 
-        threading.Thread(
-            target=_bg_pregen_next_npc, args=(room, ws_dict), daemon=True
-        ).start()
+        # Run synchronously under pytest (daemon-thread DB writes race with the
+        # shared test SQLite DB and cause flaky "database is locked" errors) or
+        # when explicitly disabled. Async is the production default.
+        _async_pregen = (
+            os.environ.get("HISTRATEGY_NPC_PREGEN_ASYNC", "1") == "1"
+            and not os.environ.get("PYTEST_CURRENT_TEST")
+        )
+        if _async_pregen:
+            threading.Thread(
+                target=_bg_pregen_next_npc, args=(room, ws_dict), daemon=True
+            ).start()
+        else:
+            _trigger_npc_decisions(room)
+            _try_save(room, ws_dict)
     except Exception as e:
         # If we can't spawn the thread, fall back to synchronous generation
         logger.warning("[room=%s] bg thread spawn failed, running sync: %s", room.id, e)
