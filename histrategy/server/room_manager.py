@@ -487,6 +487,51 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
     except Exception:
         status["power_ranking"] = []
 
+    # ── Territory ownership + population for sandbox map (real-time) ──
+    # territory_owners: {city_id: faction_id} — live ownership, survives restart
+    # territory_populations: {city_id: population} — per-city size for map labels
+    try:
+        from histrategy.db.models import get_latest_game_states
+        from histrategy.engine.scenario_loader import ScenarioLoader
+
+        territory_owners: dict[str, str] = {}
+        territory_populations: dict[str, int] = {}
+
+        # 1. Live ownership from game_state rows (each faction's territory list).
+        try:
+            terr_states = get_latest_game_states(room_id, room.quarter_number)
+        except Exception:
+            terr_states = []
+        for row in terr_states:
+            fid = row["faction_id"]
+            terrs = row.get("territories", "[]")
+            terrs = _json.loads(terrs) if isinstance(terrs, str) else (terrs or [])
+            for tid in terrs:
+                territory_owners[tid] = fid
+
+        # 2. Baseline per-city population + fallback owner from scenario data.
+        #    (game_state tracks per-faction totals, not per-city, so the static
+        #    baseline gives accurate relative city sizes for map labels.)
+        try:
+            loader = ScenarioLoader(status["scenario"])
+            for tid, t in loader.load_territories().items():
+                pop = getattr(t, "population", 0) or 0
+                if pop:
+                    territory_populations[tid] = pop
+                # Fill owner for cities not yet in any faction's live list.
+                if tid not in territory_owners:
+                    base_owner = getattr(t, "owner_id", "") or ""
+                    if base_owner:
+                        territory_owners[tid] = base_owner
+        except Exception:
+            pass
+
+        status["territory_owners"] = territory_owners
+        status["territory_populations"] = territory_populations
+    except Exception:
+        status["territory_owners"] = {}
+        status["territory_populations"] = {}
+
     return status
 
 
