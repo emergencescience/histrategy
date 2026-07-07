@@ -961,15 +961,46 @@ def _resolve_and_advance(room: GameRoom):
 
     room.world_state = ws
 
-    # 下个季度 NPC 决策同步生成后保存到 DB，防止 DB 中 phase=WAITING 但 NPC 决策为空
-    # 之前用异步线程导致 race condition：_try_save 在线程提交决策前先执行，DB 为空。
-    # 后续 _get_room 加载时触发 _trigger_npc_decisions 重生成，可能因 LLM 失败导致 NPC 卡在 pending。
-    _trigger_npc_decisions(room)
-
+    # ── Persist the CURRENT turn's results synchronously (no LLM here) ──
     ws_dict = ws.to_dict() if hasattr(ws, "to_dict") else None
     _try_save(room, ws_dict)
     _save_quarter(room, decisions, result)
     _write_backup(room, ws_dict)
+
+    # ── H31a-B2: pre-generate NEXT quarter's NPC decisions in the BACKGROUND ──
+    # This is ~30-40s of LLM latency that used to block the /command response.
+    # Moving it off the critical path lets it overlap with the human's
+    # think-time (reading the narrative + typing the next decision).
+    #
+    # Race-safety (the reason a prior async attempt was reverted): the previous
+    # version let the main thread's _try_save run BEFORE the worker submitted
+    # decisions, persisting an empty NPC slot. Here the worker owns its OWN
+    # _try_save AFTER submitting, so the DB always ends up with the decisions.
+    # If a reload/command arrives before the worker finishes (or the pod
+    # restarts), the _get_room safety net re-triggers synchronously — correct,
+    # just without the speedup. Worst case == old behavior; best case saves ~30s.
+    def _bg_pregen_next_npc(r, wsd):
+        import time as _t
+
+        _t0 = _t.time()
+        try:
+            _trigger_npc_decisions(r)
+            _try_save(r, wsd)
+            print(f"⏱ [room={r.id}] bg npc pre-gen {_t.time() - _t0:.1f}s", flush=True)
+        except Exception as e:
+            logger.warning("[room=%s] bg NPC pre-gen failed: %s", r.id, e)
+
+    try:
+        import threading
+
+        threading.Thread(
+            target=_bg_pregen_next_npc, args=(room, ws_dict), daemon=True
+        ).start()
+    except Exception as e:
+        # If we can't spawn the thread, fall back to synchronous generation
+        logger.warning("[room=%s] bg thread spawn failed, running sync: %s", room.id, e)
+        _trigger_npc_decisions(room)
+        _try_save(room, ws_dict)
 
 
 def _capture_faction_state(ws) -> dict:
