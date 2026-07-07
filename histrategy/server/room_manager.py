@@ -510,8 +510,12 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
             fid = row["faction_id"]
             terrs = row.get("territories", "[]")
             terrs = _json.loads(terrs) if isinstance(terrs, str) else (terrs or [])
-            for tid in terrs:
-                territory_owners[tid] = fid
+            for item in terrs:
+                # territories are serialized as [{"id","name"}, ...] but may be
+                # plain id strings in older rows — handle both.
+                tid = item.get("id") if isinstance(item, dict) else item
+                if tid:
+                    territory_owners[tid] = fid
 
         # 2. Baseline per-city population + fallback owner from scenario data.
         #    Read territories.json via a CWD-relative path (like the characters
@@ -545,20 +549,9 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
 
         status["territory_owners"] = territory_owners
         status["territory_populations"] = territory_populations
-        # TEMP DEBUG — surface diagnostics to trace prod-empty issue
-        status["_territory_debug"] = {
-            "quarter_no": quarter_no,
-            "scenario_id": scenario_id,
-            "terr_states_count": len(terr_states),
-            "cwd": __import__("os").getcwd(),
-            "terr_path": terr_path if "terr_path" in dir() else "unset",
-            "terr_path_exists": __import__("os").path.exists(terr_path) if "terr_path" in dir() else False,
-        }
-    except Exception as _e:
-        import traceback as _tb
+    except Exception:
         status["territory_owners"] = {}
         status["territory_populations"] = {}
-        status["_territory_debug"] = {"error": repr(_e), "tb": _tb.format_exc()[-800:]}
 
     return status
 
