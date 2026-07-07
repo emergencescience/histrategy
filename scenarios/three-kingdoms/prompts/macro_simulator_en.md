@@ -32,14 +32,8 @@ Output a JSON object containing the following fields. Every field must be an arr
 {
   "battle_results": [...],
   "npc_faction_actions": [...],
-  "diplomatic_reactions": [...],
-  "black_swan_events": [...],
-  "political_events": [...],
   "morale_events": [...],
-  "npc_actions": [...],
-  "butterfly_effects": [...],
-  "narrative_seeds": [...],
-  "knowledge_cards": [...]
+  "political_events": [...]
 }
 
 Schema for the new field `npc_faction_actions`:

@@ -32,14 +32,8 @@
 {
   "battle_results": [...],
   "npc_faction_actions": [...],
-  "diplomatic_reactions": [...],
-  "black_swan_events": [...],
-  "political_events": [...],
   "morale_events": [...],
-  "npc_actions": [...],
-  "butterfly_effects": [...],
-  "narrative_seeds": [...],
-  "knowledge_cards": [...]
+  "political_events": [...]
 }
 
 新增字段 npc_faction_actions 的 schema:

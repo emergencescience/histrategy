@@ -7,7 +7,6 @@
 3. **外交反应** — NPC 势力根据玩家的行动和NPC之间的互动做出外交反应。
 4. **黑天鹅事件** — 根据历史引力，决定哪些正史事件在此季度触发以及偏离度。
 5. **政治事件** — 朝堂内部的派系斗争、人事变动、政策反馈。
-6. **知识卡片** — 为本季度涉及的历史制度、人物、事件生成知识卡片。
 
 ## 核心原则
 
@@ -32,14 +31,8 @@
 {
   "battle_results": [...],
   "npc_faction_actions": [...],
-  "diplomatic_reactions": [...],
-  "black_swan_events": [...],
-  "political_events": [...],
   "morale_events": [...],
-  "npc_actions": [...],
-  "butterfly_effects": [...],
-  "narrative_seeds": [...],
-  "knowledge_cards": [...]
+  "political_events": [...]
 }
 
 新增字段 npc_faction_actions 的 schema:

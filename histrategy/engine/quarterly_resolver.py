@@ -143,6 +143,7 @@ class QuarterlyResolver:
         macro_delta = {}
         if self.macro_policy_engine and llm:
             try:
+                _t_macro = time.time()
                 macro_delta = self._run_macro_simulation(
                     world_state,
                     all_commands,
@@ -151,6 +152,7 @@ class QuarterlyResolver:
                     bs_proposals,
                     room,
                 )
+                logger.info("[room=%s] ⏱ macro_sim %.1fs", room.id, time.time() - _t_macro)
             except Exception as e:
                 logger.error("[room=%s] MacroPolicyEngine failed: %s", room.id, e)
 
@@ -184,6 +186,7 @@ class QuarterlyResolver:
         # ── Step 6: Per-faction 叙事生成 ──
         if self.narrative_engine:
             try:
+                _t_narr = time.time()
                 results.narratives = self._generate_narratives(
                     world_state,
                     all_commands,
@@ -192,6 +195,7 @@ class QuarterlyResolver:
                     macro_delta,
                     room,
                 )
+                logger.info("[room=%s] ⏱ narrative %.1fs", room.id, time.time() - _t_narr)
             except Exception as e:
                 logger.error("[room=%s] Narrative generation failed: %s", room.id, e)
 
