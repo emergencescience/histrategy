@@ -277,6 +277,102 @@ class LLMAdapter:
             self._record_error_and_log(messages, e, latency, response, metadata=metadata)
             raise
 
+    def chat_stream(
+        self,
+        messages: list[dict],
+        temperature: float = 0.7,
+        max_tokens: int = 16384,
+        metadata: dict | None = None,
+    ):
+        """Stream a chat completion, yielding text chunks as they arrive.
+
+        Uses Server-Sent Events (SSE) via the OpenAI-compatible streaming API.
+        Yields each content delta chunk as a string.
+        """
+        if not self.is_available:
+            raise RuntimeError(
+                "No API key configured. Set DEEPSEEK_API_KEY, OPENAI_API_KEY, "
+                "or TONGYI_API_KEY environment variable."
+            )
+
+        # ── Language enforcement ──
+        messages = list(messages)
+        if self.current_lang == "en":
+            _LANG_INSTRUCTION = (
+                "\n\nCRITICAL LANGUAGE RULE: You MUST respond entirely in English. "
+                "All narrative text, NPC decisions, event descriptions, "
+                "faction names, territory names, and any other output "
+                "MUST be in English. Chinese characters are FORBIDDEN."
+            )
+            for i, msg in enumerate(messages):
+                if msg.get("role") == "system":
+                    messages[i] = {**msg, "content": msg["content"] + _LANG_INSTRUCTION}
+                    break
+            else:
+                messages.insert(0, {"role": "system", "content": _LANG_INSTRUCTION.strip()})
+
+        import time
+
+        start_time = time.perf_counter()
+        self._logger.info(
+            "LLM chat_stream: provider=%s model=%s prompt_chars=%d max_tokens=%d",
+            self.provider_name,
+            self.model,
+            len(str(messages)),
+            max_tokens,
+        )
+
+        try:
+            with self.client.stream(
+                "POST",
+                "/chat/completions",
+                json={
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                    "stream": True,
+                },
+                timeout=120.0,
+            ) as response:
+                response.raise_for_status()
+                full_content = []
+                for line in response.iter_lines():
+                    line = line.strip()
+                    if not line or not line.startswith("data: "):
+                        continue
+                    data_str = line[6:]  # strip "data: "
+                    if data_str == "[DONE]":
+                        break
+                    try:
+                        data = json.loads(data_str)
+                        delta = data["choices"][0].get("delta", {})
+                        content = delta.get("content", "")
+                        if content:
+                            full_content.append(content)
+                            yield content
+                    except (json.JSONDecodeError, KeyError, IndexError):
+                        continue
+
+                latency = time.perf_counter() - start_time
+                self._logger.info(
+                    "LLM chat_stream done: provider=%s model=%s latency=%.1fs output_chars=%d",
+                    self.provider_name,
+                    self.model,
+                    latency,
+                    len("".join(full_content)),
+                )
+        except Exception as e:
+            latency = time.perf_counter() - start_time
+            self._logger.error(
+                "LLM chat_stream FAILED: provider=%s model=%s latency=%.1fs error=%s",
+                self.provider_name,
+                self.model,
+                latency,
+                str(e)[:200],
+            )
+            raise
+
     def chat_structured(
         self,
         messages: list[dict],

@@ -351,6 +351,98 @@ class NarrativeEngine:
         except Exception:
             return self._offline_global_narrative(ws, faction_decisions)
 
+    def generate_global_narrative_stream(
+        self,
+        ws,
+        faction_decisions: dict[str, str],
+        baseline,
+        macro_delta: dict | None = None,
+        history_events: list | None = None,
+        room_id: str = "",
+        scenario: str = "",
+    ):
+        """Stream global narrative via SSE, yielding chunks as they arrive.
+
+        Yields each text chunk. On LLM failure, yields the offline fallback
+        as a single chunk.
+        """
+        if not self.llm_available or not self.llm:
+            yield self._offline_global_narrative(ws, faction_decisions)
+            return
+
+        is_en = self._language == "en"
+        system_prompt = self._get_global_narrative_system_prompt(is_en)
+
+        # Build context (same as generate_global_narrative)
+        lines: list[str] = []
+        year = ws.year
+        season = getattr(ws.season, "cn", str(ws.season)) if hasattr(ws, "season") else "?"
+        scenario_label = f"Scenario: {scenario}" if scenario else ""
+
+        lines.append(f"Year: {year} | Season: {season}")
+        if scenario_label:
+            lines.append(scenario_label)
+        lines.append("")
+
+        lines.append("## Faction Decisions This Quarter")
+        for fid, decision in faction_decisions.items():
+            faction = ws.factions.get(fid)
+            if faction:
+                fname = getattr(faction, "name_en", "") if (is_en and getattr(faction, "name_en", "")) else faction.name
+            else:
+                fname = fid
+            lines.append(f"- {fname} ({fid}): {decision[:200]}")
+        lines.append("")
+
+        lines.append("## Baseline Results")
+        lines.append(str(baseline))
+        lines.append("")
+
+        if macro_delta:
+            lines.append("## Macro Adjustments")
+            lines.append(str(macro_delta))
+            lines.append("")
+
+        lines.append("## Faction Snapshots")
+        for fid in faction_decisions:
+            faction = ws.factions.get(fid)
+            if not faction:
+                continue
+            fname = getattr(faction, "name_en", "") if (is_en and getattr(faction, "name_en", "")) else faction.name
+            troops = getattr(faction, "strength_actual", 0)
+            territories = list(getattr(faction, "territories", []))
+            territory_names = []
+            for tid in territories:
+                t = ws.territories.get(tid) if hasattr(ws, "territories") else None
+                territory_names.append(t.name if t and hasattr(t, "name") else str(tid))
+            lines.append(
+                f"- {fname}: troops={troops:,} food={faction.food:,.0f} "
+                f"treasury={faction.treasury:,.0f} morale={getattr(faction, 'morale_actual', 50)} "
+                f"territories={territory_names}"
+            )
+        lines.append("")
+
+        if history_events:
+            lines.append("## Historical Events Triggered")
+            for evt in history_events:
+                title = evt.get("title", str(evt))
+                desc = evt.get("description", "")
+                lines.append(f"- {title}: {desc}"[:200])
+            lines.append("")
+
+        user_prompt = "\n".join(lines)
+
+        try:
+            for chunk in self.llm.chat_stream(
+                [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
+                temperature=0.7,
+                max_tokens=3072,
+                metadata={"category": "global_narrative", "room_id": room_id, "scenario": scenario},
+            ):
+                yield chunk
+        except Exception:
+            yield self._offline_global_narrative(ws, faction_decisions)
+
     def _offline_global_narrative(self, ws, faction_decisions: dict[str, str]) -> str:
         """Deterministic fallback when LLM is unavailable."""
         is_en = self._language == "en"

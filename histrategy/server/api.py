@@ -23,6 +23,14 @@ from typing import Any
 # ─── Shared Helpers ──────────────────────────────────────────────
 
 
+async def _sse_error(message: str):
+    """Yield an SSE error event."""
+    import json
+
+    yield f"data: {json.dumps({'error': message})}\n\n"
+    yield "data: [DONE]\n\n"
+
+
 def _safe_json_loads(value: str | None, default: Any = None) -> Any:
     """Safely deserialize a JSON string, returning default on failure."""
     if not value:
@@ -260,6 +268,77 @@ def create_app(llm_provider: str | None = None) -> Any:
             room_id,
             body.get("faction_id", ""),
             body.get("decision", ""),
+        )
+
+    @app.get("/api/rooms/{room_id}/narrative-stream")
+    def api_narrative_stream(room_id: str, quarter: int = 0):
+        """Stream global narrative for a room's latest quarter via SSE.
+
+        After /decide returns, the frontend connects here to receive
+        the global_narrative as Server-Sent Events for typewriter rendering.
+        If quarter=0, the latest quarter's narrative is streamed.
+        """
+        from histrategy.db.models import get_quarter_turns
+        from histrategy.server.room_manager import _get_room
+        from fastapi.responses import StreamingResponse
+
+        # Look up the room and its latest turn
+        try:
+            room = _get_room(room_id)
+        except Exception:
+            return StreamingResponse(
+                _sse_error("Room not found"),
+                media_type="text/event-stream",
+            )
+
+        turns = get_quarter_turns(room_id, limit=1)
+        if not turns:
+            return StreamingResponse(
+                _sse_error("No turns found"),
+                media_type="text/event-stream",
+            )
+
+        latest = turns[0]
+        narratives_raw = _safe_json_loads(latest.get("narratives"), {})
+        global_narrative = (
+            narratives_raw.get("global", "")
+            if isinstance(narratives_raw, dict)
+            else ""
+        )
+
+        # If narrative already exists in DB, stream it as a single chunk
+        # (this covers the case where LLM already generated it)
+        if global_narrative and global_narrative.strip():
+            async def _serve_cached():
+                # Split into paragraphs for visual pacing
+                for paragraph in global_narrative.split("\n"):
+                    if paragraph.strip():
+                        yield f"data: {paragraph}\n\n"
+                yield "data: [DONE]\n\n"
+
+            return StreamingResponse(
+                _serve_cached(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no",
+                },
+            )
+
+        # No narrative yet — stream a fallback message
+        async def _serve_fallback():
+            yield f"data: 叙事生成中，请稍候...\n\n"
+            yield "data: [DONE]\n\n"
+
+        return StreamingResponse(
+            _serve_fallback(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
         )
 
     @app.get("/api/rooms/{room_id}/status")
