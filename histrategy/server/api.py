@@ -341,6 +341,136 @@ def create_app(llm_provider: str | None = None) -> Any:
             },
         )
 
+    @app.get("/api/rooms/{room_id}/advisor-stream")
+    def api_advisor_stream(room_id: str, faction_id: str = ""):
+        """Stream AI advisor advice (军师进言) via SSE.
+
+        Uses recent 3-4 turn_summaries + current faction state to generate
+        strategic advice. Streams via SSE for typewriter rendering.
+        Rate-limited: client should throttle (once per turn recommended).
+        """
+        from histrategy.llm.adapter import LLMAdapter
+        from histrategy.server.room_manager import _get_room
+        from fastapi.responses import StreamingResponse
+
+        try:
+            room = _get_room(room_id)
+        except Exception:
+            return StreamingResponse(
+                _sse_error("Room not found"),
+                media_type="text/event-stream",
+            )
+
+        if not room:
+            return StreamingResponse(
+                _sse_error("Room not found"),
+                media_type="text/event-stream",
+            )
+
+        # Determine faction — default to first human slot
+        fid = faction_id
+        if not fid:
+            human_slots = list(room.human_slots())
+            fid = human_slots[0].faction_id if human_slots else ""
+
+        if not fid:
+            return StreamingResponse(
+                _sse_error("No faction found"),
+                media_type="text/event-stream",
+            )
+
+        # Get world state and faction info
+        ws = room.world_state
+        if not ws:
+            return StreamingResponse(
+                _sse_error("Failed to load game state"),
+                media_type="text/event-stream",
+            )
+
+        faction = ws.factions.get(fid)
+        if not faction:
+            return StreamingResponse(
+                _sse_error(f"Faction {fid} not found"),
+                media_type="text/event-stream",
+            )
+
+        # Build context from recent turn summaries
+        turn_summaries = getattr(room, "turn_summaries", [])[-4:]
+        summary_text = ""
+        for ts in turn_summaries:
+            year = ts.get("year", "?")
+            season = ts.get("season", "?")
+            outcome = ts.get("outcome_summary", "")
+            decision = ts.get("decision", "")
+            summary_text += f"{year}年{season}: {decision[:80]} → {outcome}\n"
+
+        # Determine other faction states
+        other_factions = []
+        for ofid, of in ws.factions.items():
+            if ofid == fid or not getattr(of, "is_active", True):
+                continue
+            territories = list(getattr(of, "territories", []))
+            other_factions.append(
+                f"{of.name}({ofid}): 兵力{getattr(of, 'strength_actual', 0):,} "
+                f"领地{len(territories)} 关系{getattr(of, 'relations', {}).get(fid, 0):+d}"
+            )
+
+        local_state = {
+            "turn": ws.turn_number,
+            "year": ws.year,
+            "season": getattr(ws.season, "cn", str(ws.season)),
+            "faction_id": fid,
+            "faction_name": faction.name,
+            "strength": getattr(faction, "strength_actual", 0),
+            "food": faction.food,
+            "treasury": faction.treasury,
+            "morale": getattr(faction, "morale_actual", 50),
+            "territories": list(getattr(faction, "territories", [])),
+            "capital": getattr(faction, "capital", ""),
+            "other_factions": other_factions,
+            "recent_history": summary_text,
+        }
+
+        # Get LLM adapter
+        try:
+            llm = LLMAdapter()
+        except Exception:
+            llm = None
+
+        if not llm or not llm.is_available:
+            return StreamingResponse(
+                _sse_error("LLM not available"),
+                media_type="text/event-stream",
+            )
+
+        from histrategy.llm.advisor import StrategicAdvisor
+
+        advisor = StrategicAdvisor(llm)
+
+        async def _stream_advice():
+            query = (
+                f"请基于以上局势和历史，为我（{faction.name}）分析当前形势，"
+                f"给出3条最重要的战略建议。每条建议需具体可行，考虑敌我实力对比。"
+            )
+            try:
+                for chunk in advisor.advise_player_stream(local_state, query=query):
+                    yield f"data: {chunk}\n\n"
+                yield "data: [DONE]\n\n"
+            except Exception:
+                fallback = advisor._offline_advice(local_state, query)
+                yield f"data: {fallback}\n\n"
+                yield "data: [DONE]\n\n"
+
+        return StreamingResponse(
+            _stream_advice(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
     @app.get("/api/rooms/{room_id}/status")
     def api_room_status(room_id: str, faction_id: str = ""):
         """Get room status."""

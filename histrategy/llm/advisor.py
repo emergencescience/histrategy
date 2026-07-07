@@ -88,6 +88,46 @@ class StrategicAdvisor:
         except Exception:
             return self._offline_advice(local_state, query)
 
+    def advise_player_stream(
+        self,
+        local_state: dict,
+        personality: dict | None = None,
+        query: str = "",
+    ):
+        """Stream strategic advice to a human player via SSE.
+
+        Yields text chunks as they arrive from the LLM. Falls back to
+        offline advice as a single chunk on failure.
+        """
+        if not self.is_available:
+            yield self._offline_advice(local_state, query)
+            return
+
+        context = self._build_context(local_state, personality, query)
+        messages = [
+            {"role": "system", "content": ADVISOR_SYSTEM},
+            {"role": "user", "content": context},
+        ]
+        metadata = {
+            "turn": local_state.get("turn", 0),
+            "year": local_state.get("year", 207),
+            "season": (
+                local_state.get("season").value
+                if hasattr(local_state.get("season"), "value")
+                else str(local_state.get("season", "spring"))
+            ),
+            "category": "advisor",
+            "reason": "advise_player_stream",
+            "faction_id": local_state.get("faction_id", ""),
+        }
+        try:
+            for chunk in self._llm.chat_stream(
+                messages, temperature=0.7, max_tokens=512, metadata=metadata
+            ):
+                yield chunk
+        except Exception:
+            yield self._offline_advice(local_state, query)
+
     def evaluate_strategy(
         self,
         local_state: dict,
