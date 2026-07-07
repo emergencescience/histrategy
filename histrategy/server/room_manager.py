@@ -492,14 +492,18 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
     # territory_populations: {city_id: population} — per-city size for map labels
     try:
         from histrategy.db.models import get_latest_game_states
-        from histrategy.engine.scenario_loader import ScenarioLoader
 
         territory_owners: dict[str, str] = {}
         territory_populations: dict[str, int] = {}
 
+        # Use locally-captured quarter/scenario — `room` may have been
+        # reassigned to None by the power-ranking block above.
+        quarter_no = status.get("quarter", 0)
+        scenario_id = status.get("scenario", "three-kingdoms")
+
         # 1. Live ownership from game_state rows (each faction's territory list).
         try:
-            terr_states = get_latest_game_states(room_id, room.quarter_number)
+            terr_states = get_latest_game_states(room_id, quarter_no)
         except Exception:
             terr_states = []
         for row in terr_states:
@@ -510,19 +514,32 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
                 territory_owners[tid] = fid
 
         # 2. Baseline per-city population + fallback owner from scenario data.
-        #    (game_state tracks per-faction totals, not per-city, so the static
-        #    baseline gives accurate relative city sizes for map labels.)
+        #    Read territories.json via a CWD-relative path (like the characters
+        #    endpoint). ScenarioLoader resolves relative to __file__, which
+        #    breaks when the package is installed outside the CWD on prod.
         try:
-            loader = ScenarioLoader(status["scenario"])
-            for tid, t in loader.load_territories().items():
-                pop = getattr(t, "population", 0) or 0
-                if pop:
-                    territory_populations[tid] = pop
-                # Fill owner for cities not yet in any faction's live list.
-                if tid not in territory_owners:
-                    base_owner = getattr(t, "owner_id", "") or ""
-                    if base_owner:
-                        territory_owners[tid] = base_owner
+            import os as _os
+
+            terr_path = _os.path.join("scenarios", scenario_id, "knowledge", "territories.json")
+            if not _os.path.exists(terr_path):
+                terr_path = _os.path.join(
+                    "scenarios", "three-kingdoms", "knowledge", "territories.json"
+                )
+            if _os.path.exists(terr_path):
+                with open(terr_path, encoding="utf-8") as f:
+                    terr_data = _json.load(f)
+                for t in terr_data:
+                    tid = t.get("id", "")
+                    if not tid:
+                        continue
+                    pop = t.get("population", 0) or 0
+                    if pop:
+                        territory_populations[tid] = pop
+                    # Fill owner for cities not yet in any faction's live list.
+                    if tid not in territory_owners:
+                        base_owner = t.get("owner_id", "") or ""
+                        if base_owner:
+                            territory_owners[tid] = base_owner
         except Exception:
             pass
 
