@@ -121,10 +121,9 @@ class StrategicAdvisor:
             "faction_id": local_state.get("faction_id", ""),
         }
         try:
-            for chunk in self._llm.chat_stream(
+            yield from self._llm.chat_stream(
                 messages, temperature=0.7, max_tokens=512, metadata=metadata
-            ):
-                yield chunk
+            )
         except Exception:
             yield self._offline_advice(local_state, query)
 
@@ -192,6 +191,21 @@ class StrategicAdvisor:
     ) -> str:
         """Build LLM context from LocalWorldState."""
         parts = []
+
+        # Scenario grounding: prevent cross-era hallucination (e.g. quoting
+        # 三国 factions in a 南明 game). Only the factions in the intel below exist.
+        _SCEN_LABELS = {
+            "nanming": "山河鼎革（南明弘光，公元1645年）",
+            "three-kingdoms": "三國志略（东汉末年，公元207年）",
+            "rome-triumvirate": "罗马三头同盟",
+        }
+        scenario = local_state.get("scenario", "")
+        if scenario:
+            label = _SCEN_LABELS.get(scenario, scenario)
+            parts.append(
+                f"## 当前剧本\n{label}。你只能提及下方情报中列出的势力与人物，"
+                f"切勿套用其他时代（如三国）的势力或人物名号。\n"
+            )
 
         my = local_state.get("my", {})
         faction_id = local_state.get("faction_id", "?")
