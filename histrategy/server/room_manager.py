@@ -545,9 +545,20 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
 
         status["territory_owners"] = territory_owners
         status["territory_populations"] = territory_populations
-    except Exception:
+        # TEMP DEBUG — surface diagnostics to trace prod-empty issue
+        status["_territory_debug"] = {
+            "quarter_no": quarter_no,
+            "scenario_id": scenario_id,
+            "terr_states_count": len(terr_states),
+            "cwd": __import__("os").getcwd(),
+            "terr_path": terr_path if "terr_path" in dir() else "unset",
+            "terr_path_exists": __import__("os").path.exists(terr_path) if "terr_path" in dir() else False,
+        }
+    except Exception as _e:
+        import traceback as _tb
         status["territory_owners"] = {}
         status["territory_populations"] = {}
+        status["_territory_debug"] = {"error": repr(_e), "tb": _tb.format_exc()[-800:]}
 
     return status
 
