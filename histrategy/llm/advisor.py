@@ -84,7 +84,7 @@ class StrategicAdvisor:
             "faction_id": local_state.get("faction_id", ""),
         }
         try:
-            return self._llm.chat(messages, temperature=0.7, max_tokens=512, metadata=metadata)
+            return self._llm.chat(messages, temperature=0.7, max_tokens=1024, metadata=metadata)
         except Exception:
             return self._offline_advice(local_state, query)
 
@@ -122,7 +122,7 @@ class StrategicAdvisor:
         }
         try:
             yield from self._llm.chat_stream(
-                messages, temperature=0.7, max_tokens=512, metadata=metadata
+                messages, temperature=0.7, max_tokens=1024, metadata=metadata
             )
         except Exception:
             yield self._offline_advice(local_state, query)

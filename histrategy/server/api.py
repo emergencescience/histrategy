@@ -497,18 +497,35 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         advisor = StrategicAdvisor(llm)
 
-        async def _stream_advice():
+        # Sync generator (runs in FastAPI's threadpool — does NOT block the event
+        # loop like an async def wrapping a blocking LLM stream would). This mirrors
+        # the narrative-live-stream endpoint and prevents bursty/truncated flushing
+        # through the orchestrator SSE proxy.
+        def _stream_advice():
+            import json as _json_adv
+
+            # Structured 三策 format so the frontend can parse the stream into
+            # clickable option cards (click → paste the 策令 into the input box).
             query = (
-                f"请基于以上局势和历史，为我（{faction.name}）分析当前形势，"
-                f"给出3条最重要的战略建议。每条建议需具体可行，考虑敌我实力对比。"
+                f"请以我（{faction.name}）的军师身份进言：先用2-3句文言简析当前形势，"
+                f"再给出三条可执行的策略，务必兼顾敌我实力对比与近期战况。\n"
+                f"严格按以下格式输出（每条策略之间空一行），"
+                f"其中「策令：」后必须是一句玩家可直接照抄发送的具体政令：\n\n"
+                f"【上策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉\n\n"
+                f"【中策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉\n\n"
+                f"【下策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉"
             )
+            # JSON-encode each chunk so newlines in the structured format survive
+            # SSE framing (the frontend does JSON.parse then concatenates). Same
+            # robust framing as narrative-live-stream.
             try:
                 for chunk in advisor.advise_player_stream(local_state, personality=personality, query=query):
-                    yield f"data: {chunk}\n\n"
+                    if chunk:
+                        yield f"data: {_json_adv.dumps(chunk, ensure_ascii=False)}\n\n"
                 yield "data: [DONE]\n\n"
             except Exception:
                 fallback = advisor._offline_advice(local_state, query)
-                yield f"data: {fallback}\n\n"
+                yield f"data: {_json_adv.dumps(fallback, ensure_ascii=False)}\n\n"
                 yield "data: [DONE]\n\n"
 
         return StreamingResponse(

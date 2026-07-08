@@ -97,13 +97,16 @@ class QuarterlyResolver:
                 # AI 已预解析
                 all_commands[faction_id] = dr.commands
             elif self.intent_parser:
-                # 人类决策 → IntentParser
+                # 人类决策 → IntentParser (LLM call — this is the hidden
+                # critical-path cost for free-text turns; fast-path presets skip it)
+                _t_parse = time.time()
                 try:
                     parsed = self.intent_parser.parse(dr.decision_text, faction_id)
                     all_commands[faction_id] = parsed
                 except Exception as e:
                     logger.warning("[room=%s] Intent parse failed for %s: %s", room.id, faction_id, e)
                     all_commands[faction_id] = []
+                print(f"⏱ [room={room.id}] intent_parse({faction_id}) {time.time() - _t_parse:.1f}s", flush=True)
 
         # ── Step 2: 确定性基线 ──
         baseline = None
