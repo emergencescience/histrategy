@@ -20,6 +20,62 @@ def _strip_suggestion_tag(text: str) -> str:
     """Strip [suggestion_id] prefix from decision text for display/storage."""
     return _re_strip.sub(r'^\[[a-zA-Z0-9_]+\]\s*', '', text.strip())
 
+
+def _persist_fast_path_game_state(room, all_factions: dict) -> None:
+    """Write per-faction game_state rows after a fast-path turn.
+
+    The sandbox map (territory_owners) and power ranking read from the
+    game_state table via get_latest_game_states(). The LLM/V3 paths write
+    this table every turn, but the fast-path previously only updated the
+    in-memory world_state and the quarter_turn narrative — leaving the map
+    frozen at the scenario baseline. This replicates the V3 persistence so
+    fast-path conquests show up on the map immediately.
+
+    Args:
+        room: GameRoom (already advanced to the new quarter).
+        all_factions: the simulate_fast_path `all_factions` dict, keyed by
+            faction_id, each with troops/morale/food/treasury/territories/
+            population/is_active.
+    """
+    if not all_factions:
+        return
+    from histrategy.db.models import save_game_state
+
+    ws = getattr(room, "world_state", None)
+    ws_territories = getattr(ws, "territories", {}) if ws else {}
+
+    quarter = room.quarter_number  # already advanced to the new quarter
+    for fid, fd in all_factions.items():
+        try:
+            # Build territory list as [{id, name, population}] — the format
+            # the status endpoint parses for territory_owners + populations.
+            territories = []
+            for t in fd.get("territories", []) or []:
+                tid = getattr(t, "id", None) or (t if isinstance(t, str) else str(t))
+                t_obj = ws_territories.get(tid) if isinstance(ws_territories, dict) else None
+                territories.append({
+                    "id": tid,
+                    "name": getattr(t_obj, "name", tid) if t_obj else tid,
+                    "population": getattr(t_obj, "population", 0) if t_obj else 0,
+                })
+            # Prefer summed territory population; fall back to faction pop.
+            pop = sum(t["population"] for t in territories) or int(fd.get("population", 0) or 0)
+            save_game_state(
+                room_id=room.id,
+                quarter_number=quarter,
+                faction_id=fid,
+                population=pop,
+                troops=int(fd.get("troops", 0) or 0),
+                food=float(fd.get("food", 0) or 0),
+                treasury=float(fd.get("treasury", 0) or 0),
+                morale=int(fd.get("morale", 50) or 50),
+                territories=territories,
+                policies={},
+                is_active=bool(fd.get("is_active", True)),
+            )
+        except Exception as e:
+            logger.warning(f"Room {room.id}: game_state save failed for {fid} (non-fatal): {e}")
+
 # Legacy faction key → internal ID mapping (unified to short codes; kept for compatibility)
 from histrategy.engine.faction_slot import FACTION_ID_TO_DISPLAY
 
@@ -198,6 +254,15 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
             _try_save(room)
             _fpt2 = _fpt.time()
             print(f"DEBUG _try_save elapsed={_fpt2-_fpt1:.3f}s", flush=True)
+
+            # ── Persist per-faction game_state so the sandbox map + power
+            #    ranking reflect fast-path combat results. Without this, the
+            #    map falls back to the scenario baseline (initial ownership)
+            #    and shows stale territory ownership after conquests. ──
+            try:
+                _persist_fast_path_game_state(room, _sync_result)
+            except Exception as e:
+                logger.warning(f"Room {game_id}: fast-path game_state persist failed (non-fatal): {e}")
 
             # Persist npc_actions to quarter_turn DB
             # (same pattern as room_manager._save_quarter — embeds _npc_actions
