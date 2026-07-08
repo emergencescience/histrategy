@@ -88,6 +88,12 @@ class QuarterlyResolver:
         t_start = time.time()
         results = QuarterlyResult()
 
+        # Snapshot the start-of-turn season so Step 7.5 can advance EXACTLY once.
+        # Both the deterministic baseline (TurnController) AND the safety net used
+        # to advance the season → +2/turn (seasons 春→秋→春 skipped 夏/冬). Now the
+        # safety net only fires if the baseline did NOT already advance.
+        _season_idx_at_start = _season_to_idx(getattr(world_state, "season", "spring"))
+
         # ── Step 1: 解析所有势力决策 ──
         all_commands: dict[str, list] = {}
         all_decisions: dict[str, str] = {}
@@ -221,10 +227,12 @@ class QuarterlyResolver:
         results.state_changes = _extract_state_changes(world_state, decisions)
         results.total_latency_ms = (time.time() - t_start) * 1000
 
-        # ── Step 7.5: 季节推进安全网 ──
-        # TurnController.execute_turn() 可能静默失败回退到 _empty_baseline()，
-        # 导致季节永不推进。此安全网保证至少推进一季。
-        _ensure_season_advance(world_state, room.id)
+        # ── Step 7.5: 季节推进安全网（条件触发，防双重推进）──
+        # TurnController.execute_turn() 正常时已推进一季；若它静默失败回退到
+        # _empty_baseline()，季节不变。仅当季节仍等于回合开始时的值（说明 baseline
+        # 没推进）才由安全网推进，保证净推进恰好一季。
+        if _season_to_idx(getattr(world_state, "season", "spring")) == _season_idx_at_start:
+            _ensure_season_advance(world_state, room.id)
 
         # ── Step 8: 回合摘要 ──
         results.turn_summary = _build_turn_summary(
@@ -409,6 +417,27 @@ def _empty_baseline(ws: WorldState):
         population_delta={},
         morale_delta={},
     )
+
+
+_SEASON_ORDER = ["spring", "summer", "autumn", "winter"]
+_CN_SEASON_TO_EN = {"春": "spring", "夏": "summer", "秋": "autumn", "冬": "winter"}
+
+
+def _season_to_idx(season) -> int:
+    """Normalize a season (Season enum / '春' / 'spring') to index 0-3.
+
+    Mirrors the normalization in _ensure_season_advance so callers can compare
+    the season before/after resolution without duplicating enum handling.
+    """
+    if hasattr(season, "value") and isinstance(season.value, str):
+        s = season.value
+    elif hasattr(season, "cn") and isinstance(season.cn, str):
+        s = season.cn
+    else:
+        s = str(season)
+    s = str(s).lower()
+    s = _CN_SEASON_TO_EN.get(s, s)
+    return _SEASON_ORDER.index(s) if s in _SEASON_ORDER else 0
 
 
 def _ensure_season_advance(ws: WorldState, room_id: str = "?") -> None:
