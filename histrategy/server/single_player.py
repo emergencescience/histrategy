@@ -163,6 +163,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
     from histrategy.engine.fast_path import extract_suggestion_id
     from histrategy.server.room_manager import (
         _get_room,
+        _streaming_enabled,
         _trigger_npc_decisions,
         _try_save,
         build_aftermath_text,
@@ -338,8 +339,11 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
     # Record quarter before submit (must happen BEFORE submit_decision!)
     prev_quarter = room.quarter_number
 
+    # Streaming mode: settle state now, defer narrative to narrative-live-stream.
+    streaming = _streaming_enabled()
+
     # 1. Submit decision → synchronous resolve (submit_decision calls _resolve_and_advance internally)
-    submit_result = submit_decision(game_id, human_fid, decision)
+    submit_result = submit_decision(game_id, human_fid, decision, skip_narrative=streaming)
     if not submit_result.get("ok"):
         return {"ok": False, "error": submit_result.get("error", "Decision submission failed")}
 
@@ -414,8 +418,11 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
 
     narrative = narratives.get(human_fid, "")
     if not narrative:
-        # Fallback: use the first non-empty narrative
-        for n in narratives.values():
+        # Fallback: use the first non-empty narrative. Skip internal keys
+        # (e.g. "_npc_actions", which stores a JSON blob, not prose).
+        for key, n in narratives.items():
+            if key.startswith("_"):
+                continue
             if n:
                 narrative = n
                 break
@@ -428,9 +435,16 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
     # Retrieve state_changes from resolution result (stored on room by _resolve_and_advance)
     state_changes = getattr(room, "_last_state_changes", {}) or {}
 
+    # Streaming mode: narrative was deferred. Signal the client to open the
+    # narrative-live-stream SSE endpoint. State/map/ranking are already final.
+    from histrategy.server.room_manager import _peek_narrative_context
+
+    narrative_pending = bool(streaming and _peek_narrative_context(game_id))
+
     return {
         "game_id": game_id,
-        "narrative": narrative or "The realm is at peace.",
+        "narrative": narrative or ("" if narrative_pending else "The realm is at peace."),
+        "narrative_pending": narrative_pending,
         "aftermath": build_aftermath_text(faction_status, lang),
         "state_changes": state_changes,
         "events_occurred": extract_turn_events(room),
@@ -441,7 +455,7 @@ def command(game_id: str, decision: str, lang: str = "zh") -> dict:
         "year": faction_status.get("year", 207),
         "season": faction_status.get("season", "春"),
         "turn": faction_status.get("turn", 0),
-        "_debug": {"fast_path": False, "sid": None},
+        "_debug": {"fast_path": False, "sid": None, "streaming": streaming},
     }
 
 

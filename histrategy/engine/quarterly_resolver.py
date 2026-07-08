@@ -67,6 +67,7 @@ class QuarterlyResolver:
         world_state: WorldState,
         decisions: dict[str, DecisionResult],
         llm: LLMAdapter | None = None,
+        skip_narrative: bool = False,
     ) -> QuarterlyResult:
         """执行一个季度的完整模拟。
 
@@ -75,6 +76,11 @@ class QuarterlyResolver:
             world_state: 当前世界状态（会被原地修改）
             decisions: 所有 faction 的决策 {faction_id: DecisionResult}
             llm: LLM 适配器
+            skip_narrative: 流式模式下跳过第⑥步叙事生成（~22s）。状态在第⑤步
+                已完全定型，叙事纯文案。跳过后把生成叙事所需的上下文（baseline /
+                macro_delta / history_events / all_decisions）存入
+                results.narrative_context，供 narrative-live-stream 端点稍后
+                边生成边流式输出。
 
         Returns:
             QuarterlyResult: 包含叙事、状态变更、事件等
@@ -184,7 +190,16 @@ class QuarterlyResolver:
                 logger.error("[room=%s] StateApplier failed: %s", room.id, e)
 
         # ── Step 6: Per-faction 叙事生成 ──
-        if self.narrative_engine:
+        # Streaming mode: skip the ~22s narrative LLM call here and stash the
+        # context so narrative-live-stream can generate + stream it afterward.
+        if skip_narrative:
+            results.narrative_context = {
+                "all_decisions": all_decisions,
+                "baseline": baseline,
+                "macro_delta": macro_delta,
+                "history_events": getattr(self, "_last_history_events", None),
+            }
+        elif self.narrative_engine:
             try:
                 _t_narr = time.time()
                 results.narratives = self._generate_narratives(
@@ -357,6 +372,7 @@ class QuarterlyResult:
         "total_latency_ms",
         "turn_summary",
         "game_over",
+        "narrative_context",
     )
 
     def __init__(self):
@@ -366,6 +382,9 @@ class QuarterlyResult:
         self.total_latency_ms: float = 0
         self.turn_summary: dict = {}
         self.game_over: dict | None = None
+        # Set only in streaming mode (skip_narrative=True): stashed inputs for
+        # deferred narrative generation by narrative-live-stream.
+        self.narrative_context: dict | None = None
 
 
 # ── Helpers ────────────────────────────────────────

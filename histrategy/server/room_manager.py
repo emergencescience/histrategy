@@ -266,11 +266,27 @@ def start_game(room_id: str) -> dict:
 # ── Decision & Status ───────────────────────────────
 
 
-def submit_decision(room_id: str, faction_id: str, decision: str) -> dict:
+def _streaming_enabled() -> bool:
+    """Whether the server runs in streaming mode (HISTRATEGY_STREAMING=1).
+
+    Streaming mode: command() returns after state settles (skip narrative),
+    and narrative-live-stream generates + streams the chronicle afterward.
+    Completion mode (default): command() runs the full resolve incl. narrative
+    and returns everything at once — backward-compatible for library/CLI use.
+    """
+    import os as _os
+
+    return _os.environ.get("HISTRATEGY_STREAMING", "").strip() in ("1", "true", "True", "yes")
+
+
+def submit_decision(room_id: str, faction_id: str, decision: str, skip_narrative: bool = False) -> dict:
     """提交本季度决策。全员提交后自动 resolve。
 
     histrategy 是内部服务，auth 由 orchestrator 代理层处理。
     身份由 faction_id 识别（不再需要 user_id）。
+
+    Args:
+        skip_narrative: 流式模式下跳过叙事生成（见 _streaming_enabled）。
     """
     room = _get_room(room_id)
     if not room:
@@ -313,7 +329,7 @@ def submit_decision(room_id: str, faction_id: str, decision: str) -> dict:
     if not pending:
         # 同步执行（调试用 — 若卡住请检查服务器日志）
         try:
-            _resolve_and_advance(room)
+            _resolve_and_advance(room, skip_narrative=skip_narrative)
         except CreditInsufficientError as exc:
             logger.warning("Room %s blocked: insufficient credits", room.id)
             return {"ok": False, "error": str(exc), "code": "insufficient_credits"}
@@ -332,6 +348,126 @@ def submit_decision(room_id: str, faction_id: str, decision: str) -> dict:
         "pending": pending,
         "is_public": getattr(room, "is_public", False),
     }
+
+
+def stream_and_persist_narrative(room):
+    """Generator: stream the deferred narrative for a room's latest quarter,
+    then persist it to the quarter_turn row. Used by narrative-live-stream (SSE).
+
+    Streaming mode flow: command() settled state + stashed narrative context on
+    the room (_pending_narrative_ctx). This generator regenerates the chronicle
+    via the narrative engine's streaming API, yields chunks as they arrive, and
+    on completion writes the full text back to the DB (+ in-memory caches) so
+    page reloads and the shared page can replay it.
+
+    Fallbacks:
+      - No stash (pod restart / already generated): if the DB already has a
+        global narrative, replay it in one chunk; else yield an offline chronicle.
+      - LLM failure mid-stream: yield the offline chronicle.
+    """
+    import json as _json
+
+    stashed = _pop_narrative_context(room.id)
+    ctx = stashed.get("ctx") if stashed else None
+    quarter = stashed.get("quarter") if stashed else room.quarter_number
+    ws = room.world_state
+    lang = getattr(room, "metadata", {}).get("lang", "zh") if getattr(room, "metadata", None) else "zh"
+
+    # ── No stashed context: replay cached DB narrative or offline fallback ──
+    if not ctx or not ws:
+        cached = ""
+        try:
+            from histrategy.db.models import get_quarter_turns as _gqt
+
+            db_turns = _gqt(room.id, limit=1)
+            if db_turns:
+                nr = db_turns[-1].get("narratives")
+                loaded = _json.loads(nr) if isinstance(nr, str) else (nr or {})
+                cached = loaded.get("global", "") if isinstance(loaded, dict) else ""
+        except Exception:
+            cached = ""
+        if cached and cached.strip():
+            for para in cached.split("\n"):
+                if para.strip():
+                    yield para
+            return
+        yield "叙事生成中，请稍候…" if lang == "zh" else "Generating chronicle..."
+        return
+
+    # ── Build a narrative engine (transient — not stored on room) ──
+    llm = _get_llm()
+    narrative_engine = None
+    try:
+        from histrategy.engine.game import GameEngine
+
+        engine = GameEngine(scenario=room.scenario, new_game=True, llm=llm)
+        narrative_engine = getattr(engine, "narrative_engine", None)
+        if narrative_engine:
+            narrative_engine.lang = lang
+    except Exception as e:
+        logger.warning(f"[room={room.id}] narrative engine init failed: {e}")
+        narrative_engine = None
+
+    # Fallback: construct a standalone NarrativeEngine (works offline too — its
+    # _offline_global_narrative needs no LLM). Ensures the stream always yields.
+    if narrative_engine is None:
+        try:
+            from histrategy.llm.narrative import NarrativeEngine
+
+            narrative_engine = NarrativeEngine(
+                llm_adapter=llm, language=lang, scenario=getattr(room, "scenario", "")
+            )
+        except Exception as e:
+            logger.warning(f"[room={room.id}] standalone NarrativeEngine failed: {e}")
+            narrative_engine = None
+
+    chunks: list[str] = []
+    if narrative_engine:
+        try:
+            for chunk in narrative_engine.generate_global_narrative_stream(
+                ws=ws,
+                faction_decisions=ctx.get("all_decisions", {}) or {},
+                baseline=ctx.get("baseline"),
+                macro_delta=ctx.get("macro_delta"),
+                history_events=ctx.get("history_events"),
+                room_id=room.id,
+                scenario=getattr(room, "scenario", ""),
+            ):
+                if chunk:
+                    chunks.append(chunk)
+                    yield chunk
+        except Exception as e:
+            logger.warning(f"[room={room.id}] narrative stream failed: {e}")
+
+    full = "".join(chunks).strip()
+    if not full and narrative_engine:
+        try:
+            full = narrative_engine._offline_global_narrative(ws, ctx.get("all_decisions", {}) or {})
+        except Exception:
+            full = ""
+        if full:
+            yield full
+
+    # ── Persist the full narrative back to the quarter_turn row + caches ──
+    if full:
+        try:
+            from histrategy.db.models import update_quarter_turn_narratives
+
+            narratives = dict(getattr(room, "_last_narratives", {}) or {})
+            narratives["global"] = full
+            for fid in room.slots:
+                narratives[fid] = full
+            room._last_narratives = narratives
+            update_quarter_turn_narratives(room.id, quarter, narratives)
+            # Update in-memory replay history for the matching quarter
+            for h in getattr(room, "_narrative_history", []) or []:
+                if h.get("quarter") == quarter:
+                    h["narrative"] = full
+                    break
+        except Exception as e:
+            logger.warning(f"[room={room.id}] narrative persist failed: {e}")
+
+    # Stash already popped at the top (_pop_narrative_context) — nothing to clear.
 
 
 def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
@@ -680,6 +816,31 @@ def _get_room(room_id: str) -> GameRoom | None:
     return None
 
 
+# ── Streaming mode: transient narrative context stash ──
+# _get_room() creates a NEW object from DB each call (no in-memory cache, so it
+# survives pod restarts), which means in-memory attributes set on the room
+# during _resolve_and_advance are lost once command() reloads the room to build
+# its response. This module-level dict bridges that gap: keyed by room_id, it
+# only needs to survive the submit → reload → response → stream window (~1s).
+# stream_and_persist_narrative pops it after generating + persisting the text.
+_NARRATIVE_CONTEXT_STASH: dict[str, dict] = {}
+
+
+def _stash_narrative_context(room_id: str, ctx: dict, quarter: int) -> None:
+    """Stash deferred narrative context for pickup across _get_room reloads."""
+    _NARRATIVE_CONTEXT_STASH[room_id] = {"ctx": ctx, "quarter": quarter}
+
+
+def _peek_narrative_context(room_id: str) -> dict | None:
+    """Return the stashed narrative context without removing it."""
+    return _NARRATIVE_CONTEXT_STASH.get(room_id)
+
+
+def _pop_narrative_context(room_id: str) -> dict | None:
+    """Pop (retrieve + remove) the stashed narrative context."""
+    return _NARRATIVE_CONTEXT_STASH.pop(room_id, None)
+
+
 def _init_world_state(room: GameRoom):
     from histrategy.engine.game import create_initial_world
 
@@ -857,7 +1018,7 @@ def _check_credit_before_turn(room) -> bool:
     return True
 
 
-def _resolve_and_advance(room: GameRoom):
+def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
     from histrategy.engine.decision_bus import collect_all_decisions
     from histrategy.engine.engine_switch import EngineMode, detect_engine_mode
     from histrategy.engine.game_room import RoomPhase
@@ -893,13 +1054,14 @@ def _resolve_and_advance(room: GameRoom):
     decisions = collect_all_decisions(room, ws, llm=llm, turn_memory=room.turn_summaries, lang=lang)
 
     # 根据引擎模式选择仿真器
+    # skip_narrative 仅对 V3 有意义（V1/V2 无 LLM 叙事引擎）。
     if engine_mode == EngineMode.V1:
         result = _resolve_v1(room, ws, decisions, llm)
     elif engine_mode == EngineMode.V2:
         result = _resolve_v2_or_v3(room, ws, decisions, llm, mode="v2")
     else:
         # V3 (merged V3+Macro)
-        result = _resolve_v2_or_v3(room, ws, decisions, llm, mode="v3")
+        result = _resolve_v2_or_v3(room, ws, decisions, llm, mode="v3", skip_narrative=skip_narrative)
 
     room._last_narratives = result.narratives
     room._last_state_changes = getattr(result, "state_changes", {}) or {}
@@ -966,6 +1128,12 @@ def _resolve_and_advance(room: GameRoom):
     _try_save(room, ws_dict)
     _save_quarter(room, decisions, result)
     _write_backup(room, ws_dict)
+
+    # ── Streaming mode: stash the deferred narrative context (module-level, so
+    #    it survives the _get_room reload in command()). Keyed by room_id +
+    #    just-produced quarter so narrative-live-stream updates the right row. ──
+    if skip_narrative and getattr(result, "narrative_context", None):
+        _stash_narrative_context(room.id, result.narrative_context, room.quarter_number)
 
     # ── H31a-B2: pre-generate NEXT quarter's NPC decisions in the BACKGROUND ──
     # This is ~30-40s of LLM latency that used to block the /command response.
@@ -1182,11 +1350,14 @@ def _resolve_v1(room, ws, decisions, llm):
     return _build_v1_result(room, ws, decisions, v1_result, fd, lang)
 
 
-def _resolve_v2_or_v3(room, ws, decisions, llm, mode):
+def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = False):
     """Resolve using QuarterlyResolver — V2 (deterministic) or V3 (LLM-augmented).
 
     V2: TurnController + IntentParser only (zero LLM).
     V3: Full engine stack (MacroPolicy, Narrative, BlackSwan, Guardrail, StateApplier).
+
+    skip_narrative: V3 streaming mode — settle state but defer narrative (see
+    QuarterlyResolver.resolve). Ignored for V2 (no narrative engine).
     """
     from histrategy.engine.quarterly_resolver import QuarterlyResolver
 
@@ -1211,7 +1382,7 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode):
     except Exception as e:
         logger.warning(f"GameEngine init for {mode.upper()} failed: {e}, using bare resolver")
         resolver = QuarterlyResolver()
-        result = resolver.resolve(room, ws, decisions, llm=llm)
+        result = resolver.resolve(room, ws, decisions, llm=llm, skip_narrative=skip_narrative)
         _save_v3_state_to_db(room, ws, decisions, result, old_state)
         return result
 
@@ -1239,7 +1410,7 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode):
         if resolver.narrative_engine:
             resolver.narrative_engine.lang = lang
 
-    result = resolver.resolve(room, ws, decisions, llm=llm)
+    result = resolver.resolve(room, ws, decisions, llm=llm, skip_narrative=skip_narrative)
     _save_v3_state_to_db(room, ws, decisions, result, old_state)
     return result
 

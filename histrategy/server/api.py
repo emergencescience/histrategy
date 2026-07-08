@@ -333,6 +333,49 @@ def create_app(llm_provider: str | None = None) -> Any:
             },
         )
 
+    @app.get("/api/rooms/{room_id}/narrative-live-stream")
+    def api_narrative_live_stream(room_id: str):
+        """Stream the deferred narrative for a room's latest quarter (streaming mode).
+
+        After /command settles state (skip_narrative), the client opens this to
+        receive the chronicle as it's generated (true token streaming). The full
+        text is persisted to the quarter_turn row on completion (see
+        room_manager.stream_and_persist_narrative).
+
+        SSE framing: each data frame is a JSON-encoded string chunk
+        (data: "…\\n\\n…") so newlines within the narrative survive framing.
+        The client does JSON.parse(payload) and concatenates.
+        """
+        import json as _json
+
+        from fastapi.responses import StreamingResponse
+
+        from histrategy.server.room_manager import _get_room, stream_and_persist_narrative
+
+        room = _get_room(room_id)
+        if not room:
+            return StreamingResponse(_sse_error("Room not found"), media_type="text/event-stream")
+
+        def _sse():
+            try:
+                for chunk in stream_and_persist_narrative(room):
+                    if chunk:
+                        yield f"data: {_json.dumps(chunk, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
+            except Exception as e:
+                yield f"data: {_json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
+
+        return StreamingResponse(
+            _sse(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
     @app.get("/api/rooms/{room_id}/advisor-stream")
     def api_advisor_stream(room_id: str, faction_id: str = ""):
         """Stream AI advisor advice (军师进言) via SSE.

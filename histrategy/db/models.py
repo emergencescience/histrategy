@@ -211,6 +211,19 @@ def save_quarter_turn(
     return turn_id
 
 
+def update_quarter_turn_narratives(room_id: str, quarter_number: int, narratives: dict) -> None:
+    """Update the narratives JSON on the existing quarter_turn row(s).
+
+    Used by streaming mode: the row is first written (during settle) with only
+    _npc_actions, then the deferred narrative is generated + streamed and
+    written back here — avoiding a duplicate INSERT for the same quarter.
+    """
+    execute_write(
+        "UPDATE quarter_turn SET narratives = ? WHERE room_id = ? AND quarter_number = ?",
+        (json_dumps(narratives) if narratives else None, room_id, quarter_number),
+    )
+
+
 def get_quarter_turns(room_id: str, limit: int = 10) -> list[dict]:
     """Get recent quarter turns for a room."""
     return execute(
