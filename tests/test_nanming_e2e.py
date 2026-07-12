@@ -255,7 +255,7 @@ class TestNanmingHeadlessSimulation:
         """Nanming: simulate 1 turn, verify valid state."""
         state = self._load_initial_state()
         result = self._simulate_faction_turn("nanming", state)
-        assert result["territories"] == 6
+        assert result["territories"] == 11  # 6 → 11 after nanming region split (H22a)
         assert result["strength"] == 80000
         assert result["treasury"] == 50000
 
