@@ -1103,6 +1103,12 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
     if len(room._narrative_history) > 20:
         room._narrative_history = room._narrative_history[-20:]
 
+    # ── NPC territory combat resolution ──
+    # After LLM generates NPC decisions, run deterministic combat for any
+    # military actions. Without this, NPC battles are pure narrative fiction
+    # that never changes territory ownership.
+    _resolve_npc_territory_combat(room, ws, decisions)
+
     if result.turn_summary:
         room.turn_summaries.append(result.turn_summary)
         if len(room.turn_summaries) > 8:
@@ -1800,6 +1806,123 @@ def _save_quarter(room, decisions, result):
         )
     except Exception as e:
         logger.warning(f"Quarter save failed: {e}")
+
+
+def _resolve_npc_territory_combat(room, ws, decisions):
+    """After LLM generates NPC decisions, run deterministic combat for any
+    military actions that should result in territory transfers.
+
+    The LLM writes dramatic battle narratives but the engine never changes
+    territory ownership. This function bridges that gap: it scans NPC decision
+    text for keywords, finds valid targets from _FACTION_ATTACK_TARGETS,
+    runs _resolve_combat deterministically, and applies territory transfers
+    when city_falls.
+    """
+    try:
+        from histrategy.engine.fast_path import (
+            _FACTION_ATTACK_TARGETS, _resolve_combat, _YANGTZE_SOUTH,
+            _TERRITORY_ZH as _TERR_ZH,
+        )
+    except ImportError:
+        return
+
+    factions = getattr(ws, "factions", {})
+    if not factions:
+        return
+
+    # Build a mutable snapshot of factions for combat resolution
+    fstate = {}
+    for fid, f in factions.items():
+        fstate[fid] = {
+            "troops": getattr(f, "strength", 0) or getattr(f, "strength_actual", 0),
+            "territories": list(getattr(f, "territories", [])),
+            "morale": getattr(f, "morale_actual", 0) or getattr(f, "morale", 0),
+            "population": getattr(f, "population", 0),
+            "food": getattr(f, "food", 0),
+        }
+
+    military_kw = ["攻", "伐", "征", "战", "取", "夺", "击", "袭", "破",
+                   "attack", "invade", "strike", "march", "assault",
+                   "siege", "raid", "capture", "conquer"]
+
+    for fid, dr in decisions.items():
+        if not (room.slots.get(fid) and room.slots[fid].is_ai()):
+            continue
+        decision_text = dr.decision_text.lower()
+        if not any(kw in decision_text for kw in military_kw):
+            continue
+
+        fs = fstate.get(fid)
+        if not fs or fs["troops"] <= 0:
+            continue
+
+        # Find an enemy target from the attack table
+        targets_map = _FACTION_ATTACK_TARGETS.get(fid, {})
+        best_target = None
+        best_enemy = None
+        for enemy_fid, targets in targets_map.items():
+            for t in targets:
+                enemy_fs = fstate.get(enemy_fid)
+                if not enemy_fs:
+                    continue
+                if t not in enemy_fs["territories"]:
+                    continue  # Already controlled by someone else
+                best_target = t
+                best_enemy = enemy_fid
+                break
+            if best_target:
+                break
+
+        if not best_target:
+            continue
+
+        enemy_fs = fstate[best_enemy]
+        atk_ratio = 0.35
+        atk = int(fs["troops"] * atk_ratio)
+        def_troops = int(enemy_fs["troops"] / max(len(enemy_fs["territories"]), 1))
+        is_south = best_target in _YANGTZE_SOUTH
+
+        result = _resolve_combat(atk, def_troops, is_south, defender_dug_in=False)
+
+        if result["city_falls"]:
+            fs["territories"].append(best_target)
+            enemy_fs["territories"].remove(best_target)
+            fs["troops"] = max(0, fs["troops"] - result["attacker_losses"])
+            enemy_fs["troops"] = max(0, enemy_fs["troops"] - result["defender_losses"])
+            fs["morale"] = min(100, fs["morale"] + 5)
+            enemy_fs["morale"] = max(0, enemy_fs["morale"] - 8)
+            # Transfer population
+            pop_transfer = min(enemy_fs["population"] // max(len(enemy_fs["territories"]) + 1, 1), 50000)
+            fs["population"] += pop_transfer
+            enemy_fs["population"] = max(1, enemy_fs["population"] - pop_transfer)
+            tname = _TERR_ZH.get(best_target, best_target)
+            logger.info(
+                f"Room {room.id}: NPC {fid} captured {best_target}({tname}) from {best_enemy}"
+            )
+        elif result["siege_only"]:
+            fs["troops"] = max(0, fs["troops"] - result["attacker_losses"])
+            enemy_fs["troops"] = max(0, enemy_fs["troops"] - result["defender_losses"])
+            enemy_fs["food"] = max(0, enemy_fs["food"] - int(enemy_fs["food"] * 0.1))
+            enemy_fs["morale"] = max(0, enemy_fs["morale"] - 2)
+        else:
+            fs["troops"] = max(0, fs["troops"] - result["attacker_losses"])
+            enemy_fs["troops"] = max(0, enemy_fs["troops"] - result["defender_losses"])
+
+    # Write back to world_state
+    for fid, fs in fstate.items():
+        f = factions.get(fid)
+        if f is None:
+            continue
+        if hasattr(f, "strength"):
+            f.strength = fs["troops"]
+        if hasattr(f, "territories"):
+            f.territories = list(fs["territories"])
+        if hasattr(f, "morale_actual"):
+            f.morale_actual = fs["morale"]
+        if hasattr(f, "population"):
+            f.population = fs["population"]
+        if hasattr(f, "food"):
+            f.food = fs["food"]
 
 
 def _collect_quarter_tokens(room_id: str, quarter_number: int) -> dict | None:

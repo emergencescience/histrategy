@@ -598,6 +598,29 @@ class NPCDecisionEngine:
             lines.append(f"🏰 **{L['territories']}**: {no_territory_text}")
         lines.append("")
 
+        # ── FULL TERRITORY MAP: show which faction controls which territories ──
+        # Without this, NPCs hallucinate enemy presence in wrong regions
+        # (e.g. Zheng attacking "Qing in Xiamen" when Qing has zero coastal territory).
+        lines.append("## 🌍 天下版图 (Territory Map — ALL factions)")
+        lines.append("⚠️ 以下为当前回合的实际版图。请根据此版图规划行动，勿用历史知识覆盖。")
+        for ofid, ofaction in ws.factions.items():
+            if not getattr(ofaction, "is_active", True):
+                continue
+            oterrs = list(getattr(ofaction, "territories", []))
+            oname = getattr(ofaction, "name", ofid)
+            if oterrs:
+                lines.append(f"- **{oname}** ({ofid}): {', '.join(oterrs)}")
+            else:
+                lines.append(f"- **{oname}** ({ofid}): 无固定领地 ≈ 流亡/附庸状态")
+        lines.append("")
+        lines.append("### 🚫 地理约束 (Geography Constraints)")
+        lines.append("- 清(qing)仅在北方五省(北京/盛京/山西/陕西/甘肃)。1645年尚未控制福建、广东、浙江等南方地区")
+        lines.append("- 郑(zheng)仅据福建、广东沿海，不应在北方内陆与清军陆战")
+        lines.append("- 农民军(nongminjun)据襄阳、四川(成都+汉中)，不与郑氏或清军内陆直接接壤")
+        lines.append("- 南明(nanming)控制长江以南至河南、山东，是四股势力中领土最广的")
+        lines.append("- **仅当两势力领土相邻时，才能发生直接军事冲突。** 不相邻的势力不可远征攻伐。")
+        lines.append("")
+
         # Terrain / strategic geography
         lines.append("## 战略地理 (Strategic Geography)")
         if "jiangling" in territories or "baiti" in territories or "cd" in territories:
