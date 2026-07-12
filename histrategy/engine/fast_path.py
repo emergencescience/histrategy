@@ -68,22 +68,22 @@ _FACTION_DEFAULT_TERRITORIES = {
 # Which territories an aggressive faction targets when attacking each player
 _FACTION_ATTACK_TARGETS = {
     "qing": {
-        "nanming": ["shandong", "henan"],
-        "nongminjun": ["xiangyang", "sichuan"],
+        "nanming": ["kaifeng", "luoyang", "henan_east", "jinan", "dengzhou"],
+        "nongminjun": ["xiangyang", "hanzhong", "chengdu"],
         "zheng": ["fujian"],
     },
     "nanming": {
-        "qing": ["shandong", "henan"],
+        "qing": ["shanxi", "shaanxi"],
         "nongminjun": ["xiangyang"],
         "zheng": ["fujian"],
     },
     "nongminjun": {
         "qing": ["shaanxi", "gansu"],
-        "nanming": ["huguang", "henan"],
+        "nanming": ["wuchang", "huguang_west", "kaifeng", "luoyang"],
         "zheng": ["guangdong"],
     },
     "zheng": {
-        "qing": ["shandong"],
+        "qing": ["dengzhou", "jinan"],
         "nanming": ["zhejiang", "fujian"],
         "nongminjun": ["guangdong"],
     },
@@ -147,13 +147,13 @@ def _resolve_combat(attacker_troops: int, defender_troops: int,
 
     ratio = attacker_troops / max(effective_defender, 1)
 
-    if ratio >= 3.0:
+    if ratio >= 2.5:
         return {
             "won": True, "city_falls": True, "siege_only": False,
             "attacker_losses": int(attacker_troops * 0.05),
             "defender_losses": int(defender_troops * 0.30),
         }
-    if ratio >= 1.5:
+    if ratio >= 1.3:
         return {
             "won": True, "city_falls": False, "siege_only": True,
             "attacker_losses": int(attacker_troops * 0.03),
@@ -175,9 +175,15 @@ _TERRITORY_ZH = {
     "shengjing": "盛京", "shanxi": "山西", "shaanxi": "陕西",
     "gansu": "甘肃", "yangzhou": "扬州", "xiangyang": "襄阳",
     "taiwan": "台湾",
+    # nanming region split (H22a)
+    "wuchang": "武昌", "huguang_west": "湖广西部", "huguang_south": "湖广南部",
+    "jinan": "济南", "dengzhou": "登州",
+    "kaifeng": "开封", "luoyang": "洛阳", "henan_east": "河南东部",
+    "chengdu": "成都", "hanzhong": "汉中",
 }
 
-_YANGTZE_SOUTH = {"nanjing", "zhejiang", "jiangxi", "huguang",
+_YANGTZE_SOUTH = {"nanjing", "zhejiang", "jiangxi",
+                  "wuchang", "huguang_west", "huguang_south",
                   "yangzhou", "fujian", "guangdong", "taiwan"}
 
 
