@@ -1539,7 +1539,7 @@ def _build_v1_result(room, ws, decisions, v1_result, fd, lang):
             for tid in getattr(faction, "territories", []) or []:
                 territory_owners[tid] = fid
 
-    # Extract per-faction stats (population, troops, food, treasury, morale, navy)
+    # Extract per-faction stats (population, troops, food, treasury, morale, loyalty)
     # Include ALL active factions (major from decisions + minor NPC factions)
     faction_stats = {}
     for fid in ws.factions:
@@ -1553,8 +1553,8 @@ def _build_v1_result(room, ws, decisions, v1_result, fd, lang):
             "treasury": getattr(faction, "treasury", 0),
             "morale": getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50) or 50,
         }
-        navy = getattr(faction, "navy", 0) or getattr(faction, "naval_strength", 0) or 0
-        stats["navy"] = navy
+        loyalty = getattr(faction, "loyalty", 50) or 50
+        stats["loyalty"] = loyalty
         territories_list = getattr(faction, "territories", []) or []
         stats["territories"] = territories_list
         faction_stats[fid] = stats
@@ -2077,7 +2077,7 @@ def build_faction_status_for_api(room, faction_id: str) -> dict:
         "morale": getattr(faction, "morale", 50) or getattr(faction, "morale_actual", 50) or 50,
         "is_active": getattr(faction, "is_active", True),
         "population": pop_sum,
-        "navy": _compute_navy(ws, faction_id),
+        "loyalty": getattr(faction, "loyalty", 50) or 50,
         "year": room.year,
         "season": room.season,
         "turn": room.quarter_number,

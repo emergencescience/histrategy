@@ -95,6 +95,7 @@ class FactionState:  # noqa: F811 — shadowed by re-export at L28
     strength: int = 5000  # troops
     economy: int = 50  # 0-100
     morale: int = 50  # 0-100
+    loyalty: int = 50  # 0-100 — willingness to obey ruler (vs defection/disobedience)
     treasury: int = 5000  # gold
     food: int = 3000  # grain
     territories: list[str] = field(default_factory=list)
