@@ -232,6 +232,7 @@ class FactionState:
     strength_actual: int = 5000
     economy_actual: int = 50
     morale_actual: int = 50
+    loyalty: int = 50  # faction-wide obedience to ruler (0-100)
     treasury: int = 5000
     food: int = 3000
     tax_rate: float = 0.3  # 0.1 - 0.5

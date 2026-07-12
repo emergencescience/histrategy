@@ -441,6 +441,7 @@ class ScenarioLoader:
                 strength_actual=fd.get("strength_actual", fd.get("strength", 5000)),
                 economy_actual=fd.get("economy_actual", fd.get("economy", 50)),
                 morale_actual=fd.get("morale_actual", fd.get("morale", 50)),
+                loyalty=fd.get("loyalty", 50),
                 treasury=fd.get("treasury", 5000),
                 food=fd.get("food", 3000),
                 tax_rate=fd.get("tax_rate", 0.3),

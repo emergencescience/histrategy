@@ -653,6 +653,7 @@ def create_initial_world(player_faction_id: str, scenario: str = "three-kingdoms
             strength=fd.get("strength", 5000),
             economy=fd.get("economy", 50),
             morale=fd.get("morale_actual", 50),
+            loyalty=fd.get("loyalty", 50),
             treasury=fd.get("treasury", 5000),
             food=fd.get("food", 3000),
             territories=list(fd.get("territories", [])),
