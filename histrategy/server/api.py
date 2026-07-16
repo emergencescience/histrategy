@@ -504,17 +504,33 @@ def create_app(llm_provider: str | None = None) -> Any:
         def _stream_advice():
             import json as _json_adv
 
-            # Structured 三策 format so the frontend can parse the stream into
-            # clickable option cards (click → paste the 策令 into the input box).
-            query = (
-                f"请以我（{faction.name}）的军师身份进言：先用2-3句文言简析当前形势，"
-                f"再给出三条可执行的策略，务必兼顾敌我实力对比与近期战况。\n"
-                f"严格按以下格式输出（每条策略之间空一行），"
-                f"其中「策令：」后必须是一句玩家可直接照抄发送的具体政令：\n\n"
-                f"【上策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉\n\n"
-                f"【中策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉\n\n"
-                f"【下策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉"
-            )
+            # Structured 三策/Three Strategies format so the frontend can parse
+            # the stream into clickable option cards (click → fill the input box).
+            lang_meta = getattr(room, "metadata", {}).get("lang", "zh")
+            is_en = lang_meta.startswith("en")
+            if is_en:
+                query = (
+                    f"Advise me as the war councilor of {faction.name}: first, analyze "
+                    f"the current strategic situation in 2-3 sentences of vivid prose, "
+                    f"then provide three actionable strategies considering relative "
+                    f"strength and recent developments.\n"
+                    f"Output STRICTLY in this format (one blank line between strategies), "
+                    f"where 'Decree:' is a single executable command the player can "
+                    f"copy-paste and send directly:\n\n"
+                    f"【Upper Strategy】〈title ≤8 words〉\nDecree: 〈one executable command〉\n\n"
+                    f"【Middle Strategy】〈title ≤8 words〉\nDecree: 〈one executable command〉\n\n"
+                    f"【Lower Strategy】〈title ≤8 words〉\nDecree: 〈one executable command〉"
+                )
+            else:
+                query = (
+                    f"请以我（{faction.name}）的军师身份进言：先用2-3句文言简析当前形势，"
+                    f"再给出三条可执行的策略，务必兼顾敌我实力对比与近期战况。\n"
+                    f"严格按以下格式输出（每条策略之间空一行），"
+                    f"其中「策令：」后必须是一句玩家可直接照抄发送的具体政令：\n\n"
+                    f"【上策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉\n\n"
+                    f"【中策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉\n\n"
+                    f"【下策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉"
+                )
             # JSON-encode each chunk so newlines in the structured format survive
             # SSE framing (the frontend does JSON.parse then concatenates). Same
             # robust framing as narrative-live-stream.
@@ -859,6 +875,7 @@ def create_app(llm_provider: str | None = None) -> Any:
                     chars.append({
                         "id": c.get("id", ""),
                         "name": c.get("name", ""),
+                        "name_en": c.get("name_en", c.get("name", "")),
                         "faction": c.get("faction", ""),
                         "birth": c.get("birth"),
                         "death": c.get("death"),
