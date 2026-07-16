@@ -1154,7 +1154,7 @@ class TurnProcessorMixin:
             ws,
             llm=llm,
             turn_memory=room.turn_summaries,
-            lang=getattr(room, "metadata", {}).get("lang", "zh"),
+            lang=getattr(self, "_scenario_language", "zh"),
         )
 
         # ── Resolve quarter ──
