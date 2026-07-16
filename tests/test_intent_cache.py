@@ -203,24 +203,29 @@ class TestSerialization:
         assert result[0]["params"]["target_territory"] == "xinye"
         assert result[0]["notes"] == "进攻新野"
 
-    def test_deserialize_to_commands(self):
-        """Deserialize dicts back to Command objects."""
-        from histrategy.server.intent_cache import _deserialize_commands
+    def test_get_returns_raw_dicts(self):
+        """get() returns raw dicts (no Command deserialization)."""
+        from histrategy.server.intent_cache import get, store, clear
 
-        data = [
-            {"type": "defend", "params": {"territory": "xiapi"}, "faction_id": "cao", "notes": "防守"},
-        ]
-        commands = _deserialize_commands(data)
-        assert len(commands) == 1
-        assert commands[0].type == "defend"
-        assert commands[0].params["territory"] == "xiapi"
-        assert commands[0].notes == "防守"
+        try:
+            data = [
+                {"type": "defend", "params": {"territory": "xiapi"}, "faction_id": "cao", "notes": "防守"},
+            ]
+            store("sid-dict-test", data, "room-1", 1, "cao")
+            cached = get("sid-dict-test", "room-1", 1, "cao")
+            assert cached is not None
+            assert isinstance(cached, list)
+            assert cached[0]["type"] == "defend"
+            assert cached[0]["params"]["territory"] == "xiapi"
+            assert cached[0]["notes"] == "防守"
+        finally:
+            clear("sid-dict-test")
 
-    def test_roundtrip(self):
-        """Serialize then deserialize should preserve data."""
+    def test_roundtrip_serialize_only(self):
+        """Serialize preserves data — get() returns raw dicts."""
         from histrategy_engine.world import Command
 
-        from histrategy.server.intent_cache import _deserialize_commands, _serialize_commands
+        from histrategy.server.intent_cache import _serialize_commands
 
         original = [
             Command(
@@ -231,10 +236,9 @@ class TestSerialization:
             ),
         ]
         serialized = _serialize_commands(original)
-        deserialized = _deserialize_commands(serialized)
-        assert len(deserialized) == 1
-        assert deserialized[0].type == original[0].type
-        assert deserialized[0].params == original[0].params
+        assert len(serialized) == 1
+        assert serialized[0]["type"] == original[0].type
+        assert serialized[0]["params"] == original[0].params
 
 
 # ═══════════════════════════════════════════════════════════════
