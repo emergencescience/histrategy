@@ -101,6 +101,7 @@ class FactionState:  # noqa: F811 — shadowed by re-export at L28
     territories: list[str] = field(default_factory=list)
     is_active: bool = True
     personality_applied: str = ""  # last personality-driven narrative tag
+    name_en: str = ""  # English display name (for i18n NPC actions etc.)
 
     # ── V2/V3 compatibility ─────────────────────────────────────────
     # V2/V3 engine accesses faction.strength_actual / morale_actual.
