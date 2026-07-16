@@ -498,7 +498,8 @@ def status(game_id: str) -> dict:
                     room._last_npc_actions = npc_actions  # cache
         except Exception:
             pass
-    suggestions = getattr(room, "_last_suggestions", []) or (build_strategic_suggestions(room, human_fid, "zh") if human_fid else [])
+    lang = (room.metadata or {}).get("lang", "zh") if getattr(room, "metadata", None) else "zh"
+    suggestions = getattr(room, "_last_suggestions", []) or (build_strategic_suggestions(room, human_fid, lang) if human_fid else [])
 
     return {
         "game_id": game_id,
