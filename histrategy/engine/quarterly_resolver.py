@@ -107,7 +107,7 @@ class QuarterlyResolver:
                 parsed = None
                 try:
                     from histrategy.engine.fast_path import extract_suggestion_id
-                    from histrategy.server.intent_cache import _deserialize_commands, _feature_enabled
+                    from histrategy.server.intent_cache import _feature_enabled
                     from histrategy.server.intent_cache import get as cache_get
 
                     sid = extract_suggestion_id(dr.decision_text)
@@ -119,7 +119,7 @@ class QuarterlyResolver:
                             faction_id,
                         )
                         if cached:
-                            parsed = _deserialize_commands(cached)
+                            parsed = cached
                             logger.info(
                                 "[room=%s] Intent cache HIT: sid=%s cmds=%d",
                                 room.id, sid, len(parsed),

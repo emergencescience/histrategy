@@ -134,21 +134,6 @@ def _serialize_commands(commands: list) -> list[dict]:
     return result
 
 
-def _deserialize_commands(data: list[dict]) -> list:
-    """Convert dicts back to Command objects."""
-    from histrategy_engine.world import Command
-
-    result = []
-    for item in data:
-        result.append(Command(
-            type=item.get("type", ""),
-            params=item.get("params", {}),
-            faction_id=item.get("faction_id", ""),
-            notes=item.get("notes", ""),
-        ))
-    return result
-
-
 def precompute_and_cache(
     suggestion_id: str,
     command_text: str,

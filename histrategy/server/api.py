@@ -863,6 +863,7 @@ def create_app(llm_provider: str | None = None) -> Any:
                         "birth": c.get("birth"),
                         "death": c.get("death"),
                         "description": c.get("description", ""),
+                        "description_en": c.get("description_en", ""),
                     })
                 return {"scenario_id": scenario_id, "characters": chars, "count": len(chars)}
 
