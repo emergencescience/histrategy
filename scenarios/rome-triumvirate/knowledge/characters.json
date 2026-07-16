@@ -17,7 +17,8 @@
     "intellect": 90,
     "politics": 95,
     "charisma": 70,
-    "description": "恺撒的甥孙和养子。18岁，体弱多病但意志如钢。最致命的武器不是剑，而是耐心和政治天才。"
+    "description": "恺撒的甥孙和养子。18岁，体弱多病但意志如钢。最致命的武器不是剑，而是耐心和政治天才。",
+    "description_en": "Caesar's adopted son and heir. 18 years old, sickly but iron-willed. His deadliest weapon is not the sword, but patience and political genius."
   },
   {
     "id": "antony",
@@ -37,7 +38,8 @@
     "intellect": 55,
     "politics": 50,
     "charisma": 90,
-    "description": "恺撒的副将和多年战友。战场上无可匹敌的勇士，政治上却总是输给耐心。"
+    "description": "恺撒的副将和多年战友。战场上无可匹敌的勇士，政治上却总是输给耐心。",
+    "description_en": "Caesar's lieutenant and long-time comrade. Unmatched warrior on the battlefield, but always loses to patience in politics."
   },
   {
     "id": "brutus",
@@ -57,7 +59,8 @@
     "intellect": 80,
     "politics": 45,
     "charisma": 65,
-    "description": "共和国自由的最后守护者。刺杀恺撒是为了理想而非权力，但理想无法阻挡军团。"
+    "description": "共和国自由的最后守护者。刺杀恺撒是为了理想而非权力，但理想无法阻挡军团。",
+    "description_en": "The last defender of republican liberty. He killed Caesar for ideals, not power — but ideals cannot stop legions."
   },
   {
     "id": "cassius",
@@ -77,7 +80,8 @@
     "intellect": 75,
     "politics": 60,
     "charisma": 50,
-    "description": "刺杀阴谋的真正策划者。比布鲁图斯更现实，更危险，但无法摆脱命运。"
+    "description": "刺杀阴谋的真正策划者。比布鲁图斯更现实，更危险，但无法摆脱命运。",
+    "description_en": "The calculating mind behind Caesar's assassination alongside Brutus. A capable general who underestimated the tide of change Caesar had set in motion."
   },
   {
     "id": "cleopatra",
@@ -97,7 +101,8 @@
     "intellect": 92,
     "politics": 88,
     "charisma": 98,
-    "description": "埃及最后一位伟大的法老。会说九种语言，比她的罗马对手们更聪明——但这还不够。"
+    "description": "埃及最后一位伟大的法老。会说九种语言，比她的罗马对手们更聪明——但这还不够。",
+    "description_en": "The last Pharaoh of Egypt, cunning as the Nile. Her greatest weapon is neither gold nor armies, but a charm that makes Roman generals forget their duty."
   },
   {
     "id": "sextus_pompeius",
@@ -117,7 +122,8 @@
     "intellect": 60,
     "politics": 40,
     "charisma": 55,
-    "description": "庞培大帝仅存的儿子。从西班牙残部到海上霸主，复仇是他唯一的燃料。"
+    "description": "庞培大帝仅存的儿子。从西班牙残部到海上霸主，复仇是他唯一的燃料。",
+    "description_en": "Son of Pompey the Great, he wages a naval guerrilla war from Sicily, harassing the Triumvirs' supply lines. A pirate king with a legitimate claim."
   },
   {
     "id": "lepidus",
@@ -137,7 +143,8 @@
     "intellect": 45,
     "politics": 55,
     "charisma": 35,
-    "description": "三巨头中的老三。军事能力平平，政治野心有限——因此活得比另两人都久。"
+    "description": "三巨头中的老三。军事能力平平，政治野心有限——因此活得比另两人都久。",
+    "description_en": "The forgotten third of the Triumvirate. Competent but uninspiring, he holds the balance only until the two titans no longer need him. He controls Hispania, Africa, and Narbonensis."
   },
   {
     "id": "cicero",
@@ -157,7 +164,8 @@
     "intellect": 95,
     "politics": 85,
     "charisma": 80,
-    "description": "共和国最伟大的演说家。能说服任何人却无法拯救共和国。言辞不能阻挡刀剑。"
+    "description": "共和国最伟大的演说家。能说服任何人却无法拯救共和国。言辞不能阻挡刀剑。",
+    "description_en": "The Republic's greatest orator. He could persuade anyone yet could not save the Republic. Words cannot stop swords."
   },
   {
     "id": "agrippa",
@@ -177,7 +185,8 @@
     "intellect": 85,
     "politics": 60,
     "charisma": 65,
-    "description": "屋大维的童年好友和最杰出的将军。从未输过一场战役，却始终甘居幕后。亚克兴海战的总设计师。"
+    "description": "屋大维的童年好友和最杰出的将军。从未输过一场战役，却始终甘居幕后。亚克兴海战的总设计师。",
+    "description_en": "Octavian's childhood friend and foremost general. Never lost a battle, yet always remained in the shadows. The mastermind behind the Battle of Actium."
   },
   {
     "id": "maecenas",
@@ -197,7 +206,8 @@
     "intellect": 80,
     "politics": 90,
     "charisma": 75,
-    "description": "屋大维的外交家和宣传大师。在屋大维打仗时，他负责让罗马城保持忠诚。"
+    "description": "屋大维的外交家和宣传大师。在屋大维打仗时，他负责让罗马城保持忠诚。",
+    "description_en": "Octavian's diplomat and propaganda master. While Octavian fought wars, he kept Rome loyal."
   },
   {
     "id": "octavia",
@@ -217,7 +227,8 @@
     "intellect": 65,
     "politics": 70,
     "charisma": 80,
-    "description": "屋大维的姐姐。嫁给安东尼以维系同盟，成为罗马最著名的悲情妻子。"
+    "description": "屋大维的姐姐。嫁给安东尼以维系同盟，成为罗马最著名的悲情妻子。",
+    "description_en": "Octavian's sister. Married to Antony to hold the alliance together, becoming Rome's most famous tragic wife."
   },
   {
     "id": "fulvia",
@@ -237,7 +248,8 @@
     "intellect": 70,
     "politics": 80,
     "charisma": 55,
-    "description": "安东尼的悍妻。在丈夫缺席时以铁腕统治意大利，发动佩鲁西亚战争对抗屋大维。"
+    "description": "安东尼的悍妻。在丈夫缺席时以铁腕统治意大利，发动佩鲁西亚战争对抗屋大维。",
+    "description_en": "Antony's fierce wife. Ruled Italy with an iron fist in her husband's absence, waging the Perusine War against Octavian."
   },
   {
     "id": "caesarion",
@@ -256,7 +268,8 @@
     "intellect": 40,
     "politics": 20,
     "charisma": 40,
-    "description": "恺撒与克利奥帕特拉之子。他的存在本身就是对屋大维继承权的挑战——这注定了他的命运。"
+    "description": "恺撒与克利奥帕特拉之子。他的存在本身就是对屋大维继承权的挑战——这注定了他的命运。",
+    "description_en": "Son of Caesar and Cleopatra. His very existence challenged Octavian's claim to inheritance — and sealed his fate."
   },
   {
     "id": "orodes_iv",
@@ -275,7 +288,8 @@
     "intellect": 70,
     "politics": 75,
     "charisma": 55,
-    "description": "帕提亚万王之王。曾在卡莱消灭克拉苏的七个军团，等待罗马人再次犯错。"
+    "description": "帕提亚万王之王。曾在卡莱消灭克拉苏的七个军团，等待罗马人再次犯错。",
+    "description_en": "King of Kings of Parthia. Destroyed Crassus's seven legions at Carrhae, waiting for the Romans to make another mistake."
   },
   {
     "id": "herod",
@@ -295,6 +309,7 @@
     "intellect": 70,
     "politics": 85,
     "charisma": 60,
-    "description": "犹太的王。在罗马内战中反复转换阵营，永远站在胜利者一边。"
+    "description": "犹太的王。在罗马内战中反复转换阵营，永远站在胜利者一边。",
+    "description_en": "King of Judea. Switched sides repeatedly during Rome's civil wars, always ending up on the winning side."
   }
 ]
