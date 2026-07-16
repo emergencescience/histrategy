@@ -103,16 +103,41 @@ class QuarterlyResolver:
                 # AI 已预解析
                 all_commands[faction_id] = dr.commands
             elif self.intent_parser:
-                # 人类决策 → IntentParser (LLM call — this is the hidden
-                # critical-path cost for free-text turns; fast-path presets skip it)
-                _t_parse = time.time()
+                # 人类决策 → 优先检查预计算缓存
+                parsed = None
                 try:
-                    parsed = self.intent_parser.parse(dr.decision_text, faction_id)
-                    all_commands[faction_id] = parsed
-                except Exception as e:
-                    logger.warning("[room=%s] Intent parse failed for %s: %s", room.id, faction_id, e)
-                    all_commands[faction_id] = []
-                print(f"⏱ [room={room.id}] intent_parse({faction_id}) {time.time() - _t_parse:.1f}s", flush=True)
+                    from histrategy.engine.fast_path import extract_suggestion_id
+                    from histrategy.server.intent_cache import _deserialize_commands, _feature_enabled
+                    from histrategy.server.intent_cache import get as cache_get
+
+                    sid = extract_suggestion_id(dr.decision_text)
+                    if sid and _feature_enabled():
+                        cached = cache_get(
+                            sid,
+                            room.id,
+                            room.quarter_number,
+                            faction_id,
+                        )
+                        if cached:
+                            parsed = _deserialize_commands(cached)
+                            logger.info(
+                                "[room=%s] Intent cache HIT: sid=%s cmds=%d",
+                                room.id, sid, len(parsed),
+                            )
+                except Exception:
+                    pass
+
+                # Cache miss or feature disabled → synchronous intent_parse
+                if parsed is None:
+                    _t_parse = time.time()
+                    try:
+                        parsed = self.intent_parser.parse(dr.decision_text, faction_id)
+                    except Exception as e:
+                        logger.warning("[room=%s] Intent parse failed for %s: %s", room.id, faction_id, e)
+                        parsed = []
+                    print(f"⏱ [room={room.id}] intent_parse({faction_id}) {time.time() - _t_parse:.1f}s", flush=True)
+
+                all_commands[faction_id] = parsed
 
         # ── Step 2: 确定性基线 ──
         baseline = None

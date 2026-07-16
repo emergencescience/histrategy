@@ -149,13 +149,15 @@ def start(
     }
 
 
-def command(game_id: str, decision: str, lang: str = "zh") -> dict:
+def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | None = None) -> dict:
     """Execute a player command (blocks until LLM resolution completes).
 
     Args:
         game_id: Room ID
         decision: Player's natural-language decision
         lang: Language (zh | en). Auto-detected from room metadata if not explicit.
+        suggestion_id: Optional precompute cache key. When present and cache hit,
+            skips intent_parse for instant execution.
     """
     # ── Timing: _get_room
     import time as _dbgt

@@ -726,10 +726,89 @@ def create_app(llm_provider: str | None = None) -> Any:
 
     @app.post("/api/single-player/{game_id}/command")
     def api_sp_command(game_id: str, body: dict = Body(...)):  # noqa: B008
-        """Single-player — submit command (blocks until LLM resolution completes)."""
+        """Single-player — submit command (blocks until LLM resolution completes).
+
+        Accepts optional suggestion_id for precompute intent cache lookup.
+        """
         from histrategy.server.single_player import command
 
-        return command(game_id, body.get("decision") or body.get("command", ""), lang=body.get("lang", "zh"))
+        return command(
+            game_id,
+            body.get("decision") or body.get("command", ""),
+            lang=body.get("lang", "zh"),
+            suggestion_id=body.get("suggestion_id"),
+        )
+
+    @app.post("/api/intent/precompute")
+    def api_intent_precompute(body: dict = Body(...)):  # noqa: B008
+        """Pre-compute intent_parse for a strategic suggestion.
+
+        Fire-and-forget: returns immediately, caches result in background.
+        When the user later clicks the suggestion and includes suggestion_id
+        in the /command request, the cached parse is used for instant execution.
+
+        Feature flag: HISTRATEGY_PRECOMPUTE_INTENT=true (disabled by default).
+        When disabled, returns 200 but does nothing.
+        """
+        from histrategy.server.intent_cache import (
+            _feature_enabled,
+            precompute_and_cache,
+        )
+        from histrategy.server.room_manager import _get_room
+
+        suggestion_id = body.get("suggestion_id", "").strip()
+        command_text = body.get("command_text", "").strip()
+        game_id = body.get("game_id", "").strip()
+        faction_id = body.get("faction_id", "").strip()
+
+        if not suggestion_id or not command_text:
+            return {"ok": False, "error": "suggestion_id and command_text are required"}
+
+        # Resolve faction_id and quarter_number from room
+        room = _get_room(game_id) if game_id else None
+        if room:
+            if not faction_id:
+                human_slots = list(room.human_slots())
+                faction_id = human_slots[0].faction_id if human_slots else ""
+            quarter = room.quarter_number
+            room_id = room.id
+        else:
+            quarter = 0
+            room_id = game_id or "unknown"
+
+        if not _feature_enabled():
+            return {
+                "ok": True,
+                "cached": False,
+                "reason": "feature_disabled",
+                "suggestion_id": suggestion_id,
+            }
+
+        # Spawn background precompute
+        llm = None
+        try:
+            from histrategy.llm.adapter import LLMAdapter
+            llm = LLMAdapter()
+            if not llm.is_available:
+                llm = None
+        except Exception:
+            llm = None
+
+        precompute_and_cache(
+            suggestion_id=suggestion_id,
+            command_text=command_text,
+            faction_id=faction_id,
+            room_id=room_id,
+            quarter_number=quarter,
+            llm_adapter=llm,
+        )
+
+        return {
+            "ok": True,
+            "cached": False,
+            "reason": "precomputing",
+            "suggestion_id": suggestion_id,
+        }
 
     @app.get("/api/debug/cmd-hash")
     def api_debug_cmd_hash():
