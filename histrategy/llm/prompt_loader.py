@@ -15,6 +15,7 @@ def load_prompt(filename: str, default: str | None = None) -> str | None:
 
 
 ADVISOR_SYSTEM = load_prompt("advisor.md")
+ADVISOR_SYSTEM_EN = load_prompt("advisor_en.md")
 ALIGNMENT_SYSTEM = load_prompt("alignment.md")
 GAMEMASTER_INTRO_SYSTEM = load_prompt("gamemaster_intro.md")
 GAMEMASTER_INTRO_SYSTEM_EN = load_prompt(
@@ -50,6 +51,7 @@ except FileNotFoundError:
 # Dictionary of system prompt contents mapping to prompt names to detect in LLMAdapter and suppress verbose logs.
 KNOWN_PROMPTS = {
     "ADVISOR_SYSTEM": ADVISOR_SYSTEM,
+    "ADVISOR_SYSTEM_EN": ADVISOR_SYSTEM_EN,
     "ALIGNMENT_SYSTEM": ALIGNMENT_SYSTEM,
     "GAMEMASTER_INTRO_SYSTEM": GAMEMASTER_INTRO_SYSTEM,
     "GAMEMASTER_PLAN_SYSTEM": GAMEMASTER_PLAN_SYSTEM,

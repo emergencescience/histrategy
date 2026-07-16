@@ -495,7 +495,10 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         from histrategy.llm.advisor import StrategicAdvisor
 
-        advisor = StrategicAdvisor(llm)
+        # Read language from room metadata for bilingual advisor support
+        lang_meta = getattr(room, "metadata", {}).get("lang", "zh")
+
+        advisor = StrategicAdvisor(llm, language=lang_meta)
 
         # Sync generator (runs in FastAPI's threadpool — does NOT block the event
         # loop like an async def wrapping a blocking LLM stream would). This mirrors
@@ -506,7 +509,6 @@ def create_app(llm_provider: str | None = None) -> Any:
 
             # Structured 三策/Three Strategies format so the frontend can parse
             # the stream into clickable option cards (click → fill the input box).
-            lang_meta = getattr(room, "metadata", {}).get("lang", "zh")
             is_en = lang_meta.startswith("en")
             if is_en:
                 query = (
@@ -974,17 +976,27 @@ def create_app(llm_provider: str | None = None) -> Any:
         return {"ok": True, "scenarios": scenarios}
 
     @app.get("/api/scenarios/{scenario_id}/timeline")
-    def api_scenario_timeline(scenario_id: str, year: int = 0, season: str = ""):
+    def api_scenario_timeline(scenario_id: str, year: int = 0, season: str = "", lang: str = "zh"):
         """Return historical events matching the given year+season.
 
         Used by the frontend to display "📜 历史对照" annotations
         after each turn — showing what actually happened in history
-        at this point in time.
+        at this point in time. Supports lang param for i18n.
         """
         from histrategy.engine.scenario_loader import ScenarioLoader
 
         loader = ScenarioLoader(scenario_id)
         events = loader.get_timeline_events(year, season)
+        # When lang=en, return English title/description fields
+        if lang.startswith("en"):
+            events = [
+                {
+                    **e,
+                    "title": e.get("title_en", e.get("title", "")),
+                    "description": e.get("description_en", e.get("description", "")),
+                }
+                for e in events
+            ]
         return {
             "ok": True,
             "scenario_id": loader.scenario_id,

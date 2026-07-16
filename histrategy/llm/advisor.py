@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from .adapter import LLMAdapter
 
 
-from .prompt_loader import ADVISOR_SYSTEM
+from .prompt_loader import ADVISOR_SYSTEM, ADVISOR_SYSTEM_EN
 
 
 @dataclass
@@ -40,8 +40,10 @@ class StrategicAdvisor:
     command weights. Both use the same LLM and projected LocalWorldState.
     """
 
-    def __init__(self, llm: LLMAdapter):
+    def __init__(self, llm: LLMAdapter, language: str = "zh"):
         self._llm = llm
+        self._language = language
+        self._is_en = language.startswith("en")
 
     @property
     def is_available(self) -> bool:
@@ -68,7 +70,7 @@ class StrategicAdvisor:
 
         context = self._build_context(local_state, personality, query)
         messages = [
-            {"role": "system", "content": ADVISOR_SYSTEM},
+            {"role": "system", "content": ADVISOR_SYSTEM_EN if self._is_en else ADVISOR_SYSTEM},
             {"role": "user", "content": context},
         ]
         metadata = {
@@ -105,7 +107,7 @@ class StrategicAdvisor:
 
         context = self._build_context(local_state, personality, query)
         messages = [
-            {"role": "system", "content": ADVISOR_SYSTEM},
+            {"role": "system", "content": ADVISOR_SYSTEM_EN if self._is_en else ADVISOR_SYSTEM},
             {"role": "user", "content": context},
         ]
         metadata = {
@@ -162,7 +164,7 @@ class StrategicAdvisor:
         context += "\n\n请输出JSON格式的战略分析（无query模式）。"
 
         messages = [
-            {"role": "system", "content": ADVISOR_SYSTEM},
+            {"role": "system", "content": ADVISOR_SYSTEM_EN if self._is_en else ADVISOR_SYSTEM},
             {"role": "user", "content": context},
         ]
         metadata = {
@@ -191,21 +193,32 @@ class StrategicAdvisor:
     ) -> str:
         """Build LLM context from LocalWorldState."""
         parts = []
+        en = self._is_en
 
-        # Scenario grounding: prevent cross-era hallucination (e.g. quoting
-        # 三国 factions in a 南明 game). Only the factions in the intel below exist.
+        # Scenario grounding: prevent cross-era hallucination.
         _SCEN_LABELS = {
             "nanming": "山河鼎革（南明弘光，公元1645年）",
             "three-kingdoms": "三國志略（东汉末年，公元207年）",
             "rome-triumvirate": "罗马三头同盟",
         }
+        _SCEN_LABELS_EN = {
+            "nanming": "The Ming-Qing Transition (Southern Ming, 1645 AD)",
+            "three-kingdoms": "Three Kingdoms (Late Han, 207 AD)",
+            "rome-triumvirate": "Roman Triumvirate (Late Republic, 44 BC)",
+        }
         scenario = local_state.get("scenario", "")
         if scenario:
-            label = _SCEN_LABELS.get(scenario, scenario)
-            parts.append(
-                f"## 当前剧本\n{label}。你只能提及下方情报中列出的势力与人物，"
-                f"切勿套用其他时代（如三国）的势力或人物名号。\n"
-            )
+            label = _SCEN_LABELS_EN.get(scenario, scenario) if en else _SCEN_LABELS.get(scenario, scenario)
+            if en:
+                parts.append(
+                    f"## Current Scenario\n{label}. You may ONLY mention factions and characters "
+                    f"listed in the intelligence below. Never reference factions from other eras.\n"
+                )
+            else:
+                parts.append(
+                    f"## 当前剧本\n{label}。你只能提及下方情报中列出的势力与人物，"
+                    f"切勿套用其他时代（如三国）的势力或人物名号。\n"
+                )
 
         my = local_state.get("my", {})
         faction_id = local_state.get("faction_id", "?")
@@ -213,57 +226,95 @@ class StrategicAdvisor:
         if personality and personality.get("name"):
             faction_name = f"{personality.get('name')} ({faction_id})"
 
-        parts.append(
-            f"## 我方情报\n"
-            f"- 我方势力: {faction_name}\n"
-            f"- 兵力: {my.get('strength', '?')}\n"
-            f"- 资金: {my.get('treasury', '?')}\n"
-            f"- 粮草: {my.get('food', '?')}\n"
-            f"- 经济: {my.get('economy', '?')}\n"
-            f"- 民心: {my.get('morale', '?')}\n"
-            f"- 领地: {', '.join(my.get('territories', []))}"
-        )
+        if en:
+            parts.append(
+                f"## My Intelligence\n"
+                f"- My faction: {faction_name}\n"
+                f"- Troops: {my.get('strength', '?')}\n"
+                f"- Treasury: {my.get('treasury', '?')}\n"
+                f"- Food: {my.get('food', '?')}\n"
+                f"- Economy: {my.get('economy', '?')}\n"
+                f"- Morale: {my.get('morale', '?')}\n"
+                f"- Territories: {', '.join(my.get('territories', []))}"
+            )
+        else:
+            parts.append(
+                f"## 我方情报\n"
+                f"- 我方势力: {faction_name}\n"
+                f"- 兵力: {my.get('strength', '?')}\n"
+                f"- 资金: {my.get('treasury', '?')}\n"
+                f"- 粮草: {my.get('food', '?')}\n"
+                f"- 经济: {my.get('economy', '?')}\n"
+                f"- 民心: {my.get('morale', '?')}\n"
+                f"- 领地: {', '.join(my.get('territories', []))}"
+            )
 
         perceived = local_state.get("perceived", {})
         if perceived:
-            parts.append("\n## 天下态势（局部情报）")
-            for _fid, pf in perceived.items():
-                border = "接壤" if pf.get("is_border") else "远方"
-                ally = " [盟友]" if pf.get("is_allied") else ""
-                parts.append(
-                    f"- {pf['name']}{ally}（{border}）："
-                    f"兵力约 {pf.get('strength', '?')}，"
-                    f"领地 {pf.get('territories', '?')} 处"
-                )
+            if en:
+                parts.append("\n## Strategic Landscape (Local Intelligence)")
+                for _fid, pf in perceived.items():
+                    border = "Bordering" if pf.get("is_border") else "Distant"
+                    ally = " [Ally]" if pf.get("is_allied") else ""
+                    parts.append(
+                        f"- {pf['name']}{ally} ({border}): "
+                        f"~{pf.get('strength', '?')} troops, "
+                        f"{pf.get('territories', '?')} territories"
+                    )
+            else:
+                parts.append("\n## 天下态势（局部情报）")
+                for _fid, pf in perceived.items():
+                    border = "接壤" if pf.get("is_border") else "远方"
+                    ally = " [盟友]" if pf.get("is_allied") else ""
+                    parts.append(
+                        f"- {pf['name']}{ally}（{border}）："
+                        f"兵力约 {pf.get('strength', '?')}，"
+                        f"领地 {pf.get('territories', '?')} 处"
+                    )
 
         armies = local_state.get("visible_armies", {})
         if armies:
-            parts.append("\n## 可见军队")
+            label = "## Visible Armies" if en else "## 可见军队"
+            parts.append(label)
             for _aid, a in list(armies.items())[:5]:
                 troops = a.get("troops") or a.get("estimated_troops", "?")
-                parts.append(f"- {a.get('faction_id', '?')} 在 {a.get('location', '?')}：{troops}")
+                loc = a.get("location", "?")
+                fid = a.get("faction_id", "?")
+                parts.append(f"- {fid} at {loc}: {troops}" if en else f"- {fid} 在 {loc}：{troops}")
 
         garrison = local_state.get("border_garrisons", {})
         if garrison:
-            parts.append("\n## 边境驻军估算")
+            label = "## Border Garrisons (Estimated)" if en else "## 边境驻军估算"
+            parts.append(label)
             for tid, g in garrison.items():
-                parts.append(f"- {g.get('territory_name', tid)}：{g.get('estimated_troops', '?')}")
+                name = g.get("territory_name", tid)
+                troops = g.get("estimated_troops", "?")
+                parts.append(f"- {name}: {troops}")
 
         chronicle = local_state.get("chronicle", [])
         if chronicle:
-            parts.append("\n## 天下大事纪（最近发生）")
+            label = "## Recent Chronicle" if en else "## 天下大事纪（最近发生）"
+            parts.append(label)
             for item in chronicle:
                 parts.append(f"- {item}")
 
         if personality:
-            parts.append(
-                f"\n## 君主性格\n"
-                f"- 侵略性: {personality.get('aggression', '?')}\n"
-                f"- 谨慎度: {personality.get('caution', '?')}"
-            )
+            if en:
+                parts.append(
+                    f"\n## Leader Personality\n"
+                    f"- Aggression: {personality.get('aggression', '?')}\n"
+                    f"- Caution: {personality.get('caution', '?')}"
+                )
+            else:
+                parts.append(
+                    f"\n## 君主性格\n"
+                    f"- 侵略性: {personality.get('aggression', '?')}\n"
+                    f"- 谨慎度: {personality.get('caution', '?')}"
+                )
 
         if query:
-            parts.append(f"\n## 主公问策\n{query}")
+            label = "## Commander's Question" if en else "## 主公问策"
+            parts.append(f"{label}\n{query}")
 
         return "\n".join(parts)
 
@@ -297,6 +348,19 @@ class StrategicAdvisor:
 
         perceived = local_state.get("perceived", {})
         border_enemies = [pf for pf in perceived.values() if pf.get("is_border") and not pf.get("is_allied")]
+
+        if self._is_en:
+            if not border_enemies:
+                return "No immediate border threats. Consolidate internal development and build strength."
+            names = ", ".join(p["name"] for p in border_enemies)
+            advice = f"{names} threaten our borders. "
+            if food < 2000:
+                advice += "Food reserves are low — prioritize agriculture and stockpiling."
+            elif strength < 5000:
+                advice += "Troop numbers are thin — recruit in the rear to reinforce our lines."
+            else:
+                advice += "We can fight, but must carefully assess the balance of forces."
+            return advice
 
         if not border_enemies:
             return "暂无边境威胁，可安心发展内政、积蓄实力。"
