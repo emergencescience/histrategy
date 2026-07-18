@@ -1,0 +1,485 @@
+[
+  {
+    "id": "xuchang",
+    "name": "许昌",
+    "region": "zhongyuan",
+    "population": 80000,
+    "grain": 500,
+    "wealth": 600,
+    "neighbors": [
+      "luoyang",
+      "ye",
+      "wan",
+      "xiangyang",
+      "jibei",
+      "shouchun"
+    ]
+  },
+  {
+    "id": "luoyang",
+    "name": "洛阳",
+    "region": "zhongyuan",
+    "population": 40000,
+    "grain": 200,
+    "wealth": 300,
+    "neighbors": [
+      "xuchang",
+      "ye",
+      "hongnong",
+      "hejin"
+    ]
+  },
+  {
+    "id": "ye",
+    "name": "邺城",
+    "region": "hebei",
+    "population": 60000,
+    "grain": 400,
+    "wealth": 500,
+    "neighbors": [
+      "xuchang",
+      "luoyang",
+      "hejin",
+      "beihai",
+      "jibei",
+      "liaodong"
+    ]
+  },
+  {
+    "id": "jianye",
+    "name": "建业",
+    "region": "jiangdong",
+    "population": 50000,
+    "grain": 300,
+    "wealth": 400,
+    "neighbors": [
+      "wu",
+      "shouchun",
+      "mo",
+      "jiangxia"
+    ]
+  },
+  {
+    "id": "xiangyang",
+    "name": "襄阳",
+    "region": "jingzhou",
+    "population": 70000,
+    "grain": 450,
+    "wealth": 500,
+    "neighbors": [
+      "xuchang",
+      "wan",
+      "jiangling",
+      "xinye",
+      "nanjun",
+      "jiangxia"
+    ]
+  },
+  {
+    "id": "jiangling",
+    "name": "江陵",
+    "region": "jingzhou",
+    "population": 40000,
+    "grain": 300,
+    "wealth": 350,
+    "neighbors": [
+      "xiangyang",
+      "nanjun",
+      "changsha",
+      "wuling",
+      "lingling"
+    ]
+  },
+  {
+    "id": "xinye",
+    "name": "新野",
+    "region": "jingzhou",
+    "population": 5000,
+    "grain": 30,
+    "wealth": 20,
+    "neighbors": [
+      "xiangyang",
+      "wan"
+    ]
+  },
+  {
+    "id": "chengdu",
+    "name": "成都",
+    "region": "yizhou",
+    "population": 70000,
+    "grain": 500,
+    "wealth": 600,
+    "neighbors": [
+      "jiangzhou",
+      "hanzhong",
+      "yunnan"
+    ]
+  },
+  {
+    "id": "tianshui",
+    "name": "天水",
+    "region": "xiliang",
+    "population": 30000,
+    "grain": 150,
+    "wealth": 200,
+    "neighbors": [
+      "jincheng",
+      "hanzhong",
+      "hongnong",
+      "mei"
+    ]
+  },
+  {
+    "id": "hanzhong",
+    "name": "汉中",
+    "region": "yizhou",
+    "population": 25000,
+    "grain": 200,
+    "wealth": 250,
+    "neighbors": [
+      "tianshui",
+      "jincheng",
+      "chengdu",
+      "jiangzhou"
+    ]
+  },
+  {
+    "id": "liaodong",
+    "name": "辽东",
+    "region": "dongbei",
+    "population": 20000,
+    "grain": 100,
+    "wealth": 120,
+    "neighbors": [
+      "ye",
+      "daibei",
+      "shanggu",
+      "beihai"
+    ]
+  },
+  {
+    "id": "jincheng",
+    "name": "金城",
+    "region": "xiliang",
+    "population": 15000,
+    "grain": 80,
+    "wealth": 100,
+    "neighbors": [
+      "tianshui",
+      "hanzhong",
+      "daibei"
+    ]
+  },
+  {
+    "id": "wan",
+    "name": "宛城",
+    "region": "jingzhou",
+    "population": 20000,
+    "grain": 120,
+    "wealth": 150,
+    "neighbors": [
+      "xuchang",
+      "xiangyang",
+      "xinye",
+      "hejin"
+    ]
+  },
+  {
+    "id": "lingling",
+    "name": "零陵",
+    "region": "jingzhou",
+    "population": 10000,
+    "grain": 80,
+    "wealth": 60,
+    "neighbors": [
+      "jiangling",
+      "guiyang",
+      "wuling"
+    ]
+  },
+  {
+    "id": "guiyang",
+    "name": "桂阳",
+    "region": "jingzhou",
+    "population": 8000,
+    "grain": 60,
+    "wealth": 50,
+    "neighbors": [
+      "lingling",
+      "wuling",
+      "changsha",
+      "jiaozhi"
+    ]
+  },
+  {
+    "id": "wuling",
+    "name": "武陵",
+    "region": "jingzhou",
+    "population": 9000,
+    "grain": 70,
+    "wealth": 55,
+    "neighbors": [
+      "jiangling",
+      "lingling",
+      "guiyang",
+      "changsha"
+    ]
+  },
+  {
+    "id": "changsha",
+    "name": "长沙",
+    "region": "jingzhou",
+    "population": 18000,
+    "grain": 120,
+    "wealth": 130,
+    "neighbors": [
+      "jiangling",
+      "wuling",
+      "guiyang",
+      "jiangxia"
+    ]
+  },
+  {
+    "id": "beihai",
+    "name": "北海",
+    "region": "qingzhou",
+    "population": 12000,
+    "grain": 80,
+    "wealth": 90,
+    "neighbors": [
+      "jibei",
+      "ye",
+      "xiapi",
+      "liaodong"
+    ]
+  },
+  {
+    "id": "hejin",
+    "name": "河津",
+    "region": "hedong",
+    "population": 8000,
+    "grain": 50,
+    "wealth": 45,
+    "neighbors": [
+      "luoyang",
+      "ye",
+      "wan",
+      "yan_city"
+    ]
+  },
+  {
+    "id": "jibei",
+    "name": "济北",
+    "region": "yanzhou",
+    "population": 10000,
+    "grain": 60,
+    "wealth": 55,
+    "neighbors": [
+      "xuchang",
+      "ye",
+      "beihai",
+      "xiapi",
+      "yan_city"
+    ]
+  },
+  {
+    "id": "jiangxia",
+    "name": "江夏",
+    "region": "jingzhou",
+    "population": 25000,
+    "grain": 150,
+    "wealth": 180,
+    "neighbors": [
+      "xiangyang",
+      "jianye",
+      "changsha",
+      "wu",
+      "shouchun"
+    ]
+  },
+  {
+    "id": "jiaozhi",
+    "name": "交趾",
+    "region": "jiaozhou",
+    "population": 25000,
+    "grain": 200,
+    "wealth": 200,
+    "neighbors": [
+      "guiyang",
+      "yunnan"
+    ]
+  },
+  {
+    "id": "yunnan",
+    "name": "云南",
+    "region": "nanzhong",
+    "population": 20000,
+    "grain": 100,
+    "wealth": 80,
+    "neighbors": [
+      "jiaozhi",
+      "chengdu"
+    ]
+  },
+  {
+    "id": "daibei",
+    "name": "代北",
+    "region": "saibei",
+    "population": 20000,
+    "grain": 60,
+    "wealth": 50,
+    "neighbors": [
+      "shanggu",
+      "jincheng",
+      "tianshui",
+      "liaodong"
+    ]
+  },
+  {
+    "id": "shanggu",
+    "name": "上谷",
+    "region": "saibei",
+    "population": 12000,
+    "grain": 40,
+    "wealth": 30,
+    "neighbors": [
+      "daibei",
+      "liaodong",
+      "ye"
+    ]
+  },
+  {
+    "id": "mo",
+    "name": "秣陵",
+    "region": "yangzhou",
+    "population": 8000,
+    "grain": 40,
+    "wealth": 35,
+    "neighbors": [
+      "jianye",
+      "wu"
+    ]
+  },
+  {
+    "id": "wu",
+    "name": "吴郡",
+    "region": "yangzhou",
+    "population": 15000,
+    "grain": 100,
+    "wealth": 120,
+    "neighbors": [
+      "jianye",
+      "mo",
+      "jiangxia"
+    ]
+  },
+  {
+    "id": "xiapi",
+    "name": "下邳",
+    "region": "xuzhou",
+    "population": 12000,
+    "grain": 80,
+    "wealth": 70,
+    "neighbors": [
+      "beihai",
+      "jibei",
+      "shouchun",
+      "xuzhou_city"
+    ]
+  },
+  {
+    "id": "hongnong",
+    "name": "弘农",
+    "region": "sili",
+    "population": 6000,
+    "grain": 30,
+    "wealth": 20,
+    "neighbors": [
+      "luoyang",
+      "tianshui",
+      "mei",
+      "hejin"
+    ]
+  },
+  {
+    "id": "mei",
+    "name": "郿县",
+    "region": "sili",
+    "population": 4000,
+    "grain": 20,
+    "wealth": 10,
+    "neighbors": [
+      "hongnong",
+      "tianshui",
+      "chengdu"
+    ]
+  },
+  {
+    "id": "xuzhou_city",
+    "name": "徐州",
+    "region": "xuzhou",
+    "population": 15000,
+    "grain": 100,
+    "wealth": 90,
+    "neighbors": [
+      "xiapi",
+      "shouchun",
+      "jibei"
+    ]
+  },
+  {
+    "id": "shouchun",
+    "name": "寿春",
+    "region": "huainan",
+    "population": 18000,
+    "grain": 100,
+    "wealth": 120,
+    "neighbors": [
+      "xuchang",
+      "jianye",
+      "jiangxia",
+      "xiapi",
+      "xuzhou_city"
+    ]
+  },
+  {
+    "id": "yan_city",
+    "name": "兖州城",
+    "region": "yanzhou",
+    "population": 10000,
+    "grain": 60,
+    "wealth": 50,
+    "neighbors": [
+      "hejin",
+      "jibei",
+      "xuchang"
+    ]
+  },
+  {
+    "id": "jiangzhou",
+    "name": "江州",
+    "region": "yizhou",
+    "population": 15000,
+    "grain": 100,
+    "wealth": 110,
+    "neighbors": [
+      "chengdu",
+      "hanzhong",
+      "nanjun"
+    ]
+  },
+  {
+    "id": "nanjun",
+    "name": "南郡",
+    "region": "jingzhou",
+    "population": 25000,
+    "grain": 150,
+    "wealth": 170,
+    "neighbors": [
+      "xiangyang",
+      "jiangling",
+      "jiangzhou",
+      "changsha"
+    ]
+  }
+]

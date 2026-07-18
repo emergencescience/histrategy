@@ -1,0 +1,250 @@
+{
+  "cao": {
+    "name": "曹操",
+    "strength": 10025,
+    "economy": 50,
+    "morale": 100,
+    "territories": 15,
+    "is_active": true
+  },
+  "wu": {
+    "name": "孙权",
+    "strength": 10552,
+    "economy": 50,
+    "morale": 38,
+    "territories": 3,
+    "is_active": true
+  },
+  "shu": {
+    "name": "刘备",
+    "strength": 0,
+    "economy": 50,
+    "morale": 97,
+    "territories": 0,
+    "is_active": false
+  },
+  "liubiao": {
+    "name": "刘表",
+    "strength": 11197,
+    "economy": 50,
+    "morale": 100,
+    "territories": 5,
+    "is_active": true
+  },
+  "mateng": {
+    "name": "马腾",
+    "strength": 0,
+    "economy": 50,
+    "morale": 77,
+    "territories": 0,
+    "is_active": false
+  },
+  "liuzhang": {
+    "name": "刘璋",
+    "strength": 14649,
+    "economy": 50,
+    "morale": 100,
+    "territories": 11,
+    "is_active": true
+  },
+  "zhanglu": {
+    "name": "张鲁",
+    "strength": 0,
+    "economy": 50,
+    "morale": 97,
+    "territories": 0,
+    "is_active": false
+  },
+  "gongsunkang": {
+    "name": "公孙康",
+    "strength": 0,
+    "economy": 50,
+    "morale": 73,
+    "territories": 0,
+    "is_active": false
+  },
+  "hansui": {
+    "name": "韩遂",
+    "strength": 0,
+    "economy": 50,
+    "morale": 64,
+    "territories": 0,
+    "is_active": false
+  },
+  "zhangxiu": {
+    "name": "张绣",
+    "strength": 0,
+    "economy": 50,
+    "morale": 15,
+    "territories": 0,
+    "is_active": false
+  },
+  "liudu": {
+    "name": "刘度",
+    "strength": 3000,
+    "economy": 50,
+    "morale": 100,
+    "territories": 1,
+    "is_active": true
+  },
+  "zhaofan": {
+    "name": "赵范",
+    "strength": 0,
+    "economy": 50,
+    "morale": 50,
+    "territories": 0,
+    "is_active": false
+  },
+  "jinxuan": {
+    "name": "金旋",
+    "strength": 0,
+    "economy": 50,
+    "morale": 52,
+    "territories": 0,
+    "is_active": false
+  },
+  "hanxuan": {
+    "name": "韩玄",
+    "strength": 0,
+    "economy": 50,
+    "morale": 54,
+    "territories": 0,
+    "is_active": false
+  },
+  "kongrong": {
+    "name": "孔融",
+    "strength": 0,
+    "economy": 50,
+    "morale": 73,
+    "territories": 0,
+    "is_active": false
+  },
+  "zhangyang": {
+    "name": "张扬",
+    "strength": 0,
+    "economy": 50,
+    "morale": 62,
+    "territories": 0,
+    "is_active": false
+  },
+  "wangkuang": {
+    "name": "王匡",
+    "strength": 0,
+    "economy": 50,
+    "morale": 40,
+    "territories": 0,
+    "is_active": false
+  },
+  "baoxin": {
+    "name": "鲍信",
+    "strength": 0,
+    "economy": 50,
+    "morale": 57,
+    "territories": 0,
+    "is_active": false
+  },
+  "huangzu": {
+    "name": "黄祖",
+    "strength": 0,
+    "economy": 50,
+    "morale": 61,
+    "territories": 0,
+    "is_active": false
+  },
+  "shixie": {
+    "name": "士燮",
+    "strength": 0,
+    "economy": 50,
+    "morale": 73,
+    "territories": 0,
+    "is_active": false
+  },
+  "menghuo": {
+    "name": "孟获",
+    "strength": 0,
+    "economy": 50,
+    "morale": 77,
+    "territories": 0,
+    "is_active": false
+  },
+  "kebineng": {
+    "name": "轲比能",
+    "strength": 0,
+    "economy": 50,
+    "morale": 79,
+    "territories": 0,
+    "is_active": false
+  },
+  "budugen": {
+    "name": "步度根",
+    "strength": 0,
+    "economy": 50,
+    "morale": 71,
+    "territories": 0,
+    "is_active": false
+  },
+  "liuyao": {
+    "name": "刘繇",
+    "strength": 0,
+    "economy": 50,
+    "morale": 39,
+    "territories": 0,
+    "is_active": false
+  },
+  "yanbaihu": {
+    "name": "严白虎",
+    "strength": 0,
+    "economy": 50,
+    "morale": 30,
+    "territories": 0,
+    "is_active": false
+  },
+  "chengui": {
+    "name": "陈珪",
+    "strength": 0,
+    "economy": 50,
+    "morale": 58,
+    "territories": 0,
+    "is_active": false
+  },
+  "lifu": {
+    "name": "李傕残部",
+    "strength": 0,
+    "economy": 50,
+    "morale": 22,
+    "territories": 0,
+    "is_active": false
+  },
+  "guosi": {
+    "name": "郭汜残部",
+    "strength": 0,
+    "economy": 50,
+    "morale": 16,
+    "territories": 0,
+    "is_active": false
+  },
+  "taoqian": {
+    "name": "陶谦残部",
+    "strength": 0,
+    "economy": 50,
+    "morale": 44,
+    "territories": 0,
+    "is_active": false
+  },
+  "yuanshu": {
+    "name": "袁术残部",
+    "strength": 0,
+    "economy": 50,
+    "morale": 35,
+    "territories": 0,
+    "is_active": false
+  },
+  "liubei_old": {
+    "name": "刘岱",
+    "strength": 0,
+    "economy": 50,
+    "morale": 88,
+    "territories": 0,
+    "is_active": false
+  }
+}

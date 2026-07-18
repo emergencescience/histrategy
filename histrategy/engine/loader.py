@@ -30,7 +30,7 @@ from histrategy_engine.world import (
 # Only canonical scenario IDs are accepted: "three-kingdoms" | "rome-triumvirate".
 # Legacy numeric IDs (e.g. "207" for three-kingdoms) are
 # no longer mapped — callers must use the canonical names.
-_CANONICAL_SCENARIO_IDS: frozenset[str] = frozenset({"three-kingdoms", "rome-triumvirate", "nanming"})
+_CANONICAL_SCENARIO_IDS: frozenset[str] = frozenset({"three-kingdoms", "rome-triumvirate", "nanming", "mass-warlords"})
 
 
 TERRAIN_MAP: dict[str, TerrainType] = {

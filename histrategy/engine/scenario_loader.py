@@ -63,10 +63,10 @@ def _validate_scenario_id(scenario_id: str) -> str:
 
     Raises ValueError if *scenario_id* is not a known canonical name.
     """
-    if scenario_id not in ("three-kingdoms", "rome-triumvirate", "nanming"):
+    if scenario_id not in ("three-kingdoms", "rome-triumvirate", "nanming", "mass-warlords"):
         raise ValueError(
             f"Unknown scenario {scenario_id!r}. "
-            f"Expected one of: 'three-kingdoms', 'rome-triumvirate'"
+            f"Expected one of: 'three-kingdoms', 'rome-triumvirate', 'nanming', 'mass-warlords'"
         )
     return scenario_id
 
@@ -470,7 +470,8 @@ class ScenarioLoader:
                 faction_id=fid,
                 location=capital,
                 commander_id=faction.ruler_id,
-                units={UnitType.INFANTRY: min(faction.strength_actual, 5000)},
+                # Standing army ≈ 20% of total mobilisable strength, floor 3000
+                units={UnitType.INFANTRY: max(3000, faction.strength_actual // 5)},
                 morale=80,
                 training=1.0,
                 supply=30,

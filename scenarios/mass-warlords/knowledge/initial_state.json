@@ -1,0 +1,290 @@
+{
+  "scenario_id": "mass-warlords",
+  "name": "群雄逐鹿",
+  "name_en": "Mass Warlords",
+  "year": 208,
+  "season": "autumn",
+  "description": "208年秋，曹操南下，赤壁在即。35个大小诸侯各自为政。自由市场协议能否在混沌中自发产生秩序？",
+  "description_en": "Autumn 208 AD. Cao Cao marches south. 35 warlords each decide their own fate. Can a free-market protocol spontaneously create order out of chaos?",
+  "factions": {
+    "cao": {
+      "name": "曹操", "name_en": "Cao Cao", "ruler": "caocao",
+      "capital": "xuchang", "territories": ["xuchang", "luoyang", "ye"],
+      "treasury": 50000, "food": 30000, "strength": 200000,
+      "prestige": 90, "tax_rate": 0.3, "morale_actual": 80,
+      "tech_levels": {"infantry": 4, "cavalry": 4, "siege": 3, "navy": 1, "logistics": 4},
+      "relations": {},
+      "personality": {"aggression": 0.7, "cunning": 0.95, "caution": 0.3, "diplomacy": 0.6, "development": 0.8, "mercy": 0.2}
+    },
+    "wu": {
+      "name": "孙权", "name_en": "Sun Quan", "ruler": "sunquan",
+      "capital": "jianye", "territories": ["jianye", "wu"],
+      "treasury": 25000, "food": 20000, "strength": 80000,
+      "prestige": 55, "tax_rate": 0.3, "morale_actual": 85,
+      "tech_levels": {"infantry": 3, "cavalry": 2, "siege": 2, "navy": 5, "logistics": 3},
+      "relations": {},
+      "personality": {"aggression": 0.45, "cunning": 0.8, "caution": 0.5, "diplomacy": 0.75, "development": 0.7, "mercy": 0.5}
+    },
+    "shu": {
+      "name": "刘备", "name_en": "Liu Bei", "ruler": "liubei",
+      "capital": "xinye", "territories": ["xinye"],
+      "treasury": 2000, "food": 3000, "strength": 5000,
+      "prestige": 60, "tax_rate": 0.1, "morale_actual": 95,
+      "tech_levels": {"infantry": 2, "cavalry": 2, "siege": 1, "navy": 1, "logistics": 2},
+      "relations": {},
+      "personality": {"aggression": 0.4, "cunning": 0.6, "caution": 0.6, "diplomacy": 0.9, "development": 0.5, "mercy": 0.9}
+    },
+    "liubiao": {
+      "name": "刘表", "name_en": "Liu Biao", "ruler": "liubiao",
+      "capital": "xiangyang", "territories": ["xiangyang", "jiangling", "nanjun"],
+      "treasury": 25000, "food": 18000, "strength": 100000,
+      "prestige": 55, "tax_rate": 0.2, "morale_actual": 60,
+      "tech_levels": {"infantry": 3, "cavalry": 2, "siege": 2, "navy": 3, "logistics": 3},
+      "relations": {},
+      "personality": {"aggression": 0.25, "cunning": 0.5, "caution": 0.8, "diplomacy": 0.6, "development": 0.45, "mercy": 0.6}
+    },
+    "mateng": {
+      "name": "马腾", "name_en": "Ma Teng", "ruler": "mateng",
+      "capital": "tianshui", "territories": ["tianshui"],
+      "treasury": 10000, "food": 8000, "strength": 60000,
+      "prestige": 45, "tax_rate": 0.25, "morale_actual": 70,
+      "tech_levels": {"infantry": 2, "cavalry": 5, "siege": 2, "navy": 0, "logistics": 3},
+      "relations": {},
+      "personality": {"aggression": 0.55, "cunning": 0.4, "caution": 0.35, "diplomacy": 0.35, "development": 0.3, "mercy": 0.35}
+    },
+    "liuzhang": {
+      "name": "刘璋", "name_en": "Liu Zhang", "ruler": "liuzhang",
+      "capital": "chengdu", "territories": ["chengdu", "jiangzhou"],
+      "treasury": 30000, "food": 25000, "strength": 90000,
+      "prestige": 40, "tax_rate": 0.15, "morale_actual": 50,
+      "tech_levels": {"infantry": 2, "cavalry": 1, "siege": 1, "navy": 1, "logistics": 2},
+      "relations": {},
+      "personality": {"aggression": 0.2, "cunning": 0.3, "caution": 0.85, "diplomacy": 0.45, "development": 0.4, "mercy": 0.55}
+    },
+    "zhanglu": {
+      "name": "张鲁", "name_en": "Zhang Lu", "ruler": "zhanglu",
+      "capital": "hanzhong", "territories": ["hanzhong"],
+      "treasury": 8000, "food": 10000, "strength": 30000,
+      "prestige": 30, "tax_rate": 0.1, "morale_actual": 85,
+      "tech_levels": {"infantry": 2, "cavalry": 1, "siege": 1, "navy": 0, "logistics": 2},
+      "relations": {},
+      "personality": {"aggression": 0.3, "cunning": 0.6, "caution": 0.5, "diplomacy": 0.5, "development": 0.5, "mercy": 0.7}
+    },
+    "gongsunkang": {
+      "name": "公孙康", "name_en": "Gongsun Kang", "ruler": "gongsunkang",
+      "capital": "liaodong", "territories": ["liaodong"],
+      "treasury": 5000, "food": 6000, "strength": 25000,
+      "prestige": 25, "tax_rate": 0.2, "morale_actual": 65,
+      "tech_levels": {"infantry": 2, "cavalry": 3, "siege": 1, "navy": 0, "logistics": 2},
+      "relations": {},
+      "personality": {"aggression": 0.35, "cunning": 0.4, "caution": 0.55, "diplomacy": 0.4, "development": 0.35, "mercy": 0.4}
+    },
+    "hansui": {
+      "name": "韩遂", "name_en": "Han Sui", "ruler": "hansui",
+      "capital": "jincheng", "territories": ["jincheng"],
+      "treasury": 4000, "food": 5000, "strength": 20000,
+      "prestige": 35, "tax_rate": 0.25, "morale_actual": 60,
+      "tech_levels": {"infantry": 2, "cavalry": 4, "siege": 1, "navy": 0, "logistics": 2},
+      "relations": {},
+      "personality": {"aggression": 0.5, "cunning": 0.55, "caution": 0.4, "diplomacy": 0.45, "development": 0.3, "mercy": 0.3}
+    },
+    "zhangxiu": {
+      "name": "张绣", "name_en": "Zhang Xiu", "ruler": "zhangxiu",
+      "capital": "wan", "territories": ["wan"],
+      "treasury": 3000, "food": 4000, "strength": 15000,
+      "prestige": 20, "tax_rate": 0.25, "morale_actual": 55,
+      "tech_levels": {"infantry": 2, "cavalry": 2, "siege": 1, "navy": 0, "logistics": 2},
+      "relations": {},
+      "personality": {"aggression": 0.4, "cunning": 0.45, "caution": 0.55, "diplomacy": 0.4, "development": 0.35, "mercy": 0.35}
+    },
+    "liudu": {
+      "name": "刘度", "name_en": "Liu Du", "ruler": "liudu",
+      "capital": "lingling", "territories": ["lingling"],
+      "treasury": 1000, "food": 2000, "strength": 8000,
+      "prestige": 10, "tax_rate": 0.2, "morale_actual": 50,
+      "tech_levels": {"infantry": 1, "cavalry": 1, "siege": 0, "navy": 0, "logistics": 1},
+      "relations": {},
+      "personality": {"aggression": 0.15, "cunning": 0.3, "caution": 0.75, "diplomacy": 0.35, "development": 0.3, "mercy": 0.45}
+    },
+    "zhaofan": {
+      "name": "赵范", "name_en": "Zhao Fan", "ruler": "zhaofan",
+      "capital": "guiyang", "territories": ["guiyang"],
+      "treasury": 800, "food": 1500, "strength": 6000,
+      "prestige": 10, "tax_rate": 0.2, "morale_actual": 45,
+      "tech_levels": {"infantry": 1, "cavalry": 1, "siege": 0, "navy": 0, "logistics": 1},
+      "relations": {},
+      "personality": {"aggression": 0.2, "cunning": 0.3, "caution": 0.7, "diplomacy": 0.35, "development": 0.3, "mercy": 0.4}
+    },
+    "jinxuan": {
+      "name": "金旋", "name_en": "Jin Xuan", "ruler": "jinxuan",
+      "capital": "wuling", "territories": ["wuling"],
+      "treasury": 900, "food": 1800, "strength": 7000,
+      "prestige": 10, "tax_rate": 0.2, "morale_actual": 45,
+      "tech_levels": {"infantry": 1, "cavalry": 1, "siege": 0, "navy": 0, "logistics": 1},
+      "relations": {},
+      "personality": {"aggression": 0.25, "cunning": 0.3, "caution": 0.65, "diplomacy": 0.3, "development": 0.3, "mercy": 0.4}
+    },
+    "hanxuan": {
+      "name": "韩玄", "name_en": "Han Xuan", "ruler": "hanxuan",
+      "capital": "changsha", "territories": ["changsha"],
+      "treasury": 1500, "food": 2500, "strength": 10000,
+      "prestige": 15, "tax_rate": 0.25, "morale_actual": 50,
+      "tech_levels": {"infantry": 1, "cavalry": 1, "siege": 1, "navy": 1, "logistics": 1},
+      "relations": {},
+      "personality": {"aggression": 0.3, "cunning": 0.35, "caution": 0.6, "diplomacy": 0.3, "development": 0.35, "mercy": 0.35}
+    },
+    "kongrong": {
+      "name": "孔融", "name_en": "Kong Rong", "ruler": "kongrong",
+      "capital": "beihai", "territories": ["beihai"],
+      "treasury": 2000, "food": 3000, "strength": 5000,
+      "prestige": 25, "tax_rate": 0.1, "morale_actual": 70,
+      "tech_levels": {"infantry": 1, "cavalry": 1, "siege": 0, "navy": 0, "logistics": 1},
+      "relations": {},
+      "personality": {"aggression": 0.1, "cunning": 0.4, "caution": 0.7, "diplomacy": 0.8, "development": 0.6, "mercy": 0.8}
+    },
+    "zhangyang": {
+      "name": "张扬", "name_en": "Zhang Yang", "ruler": "zhangyang",
+      "capital": "hejin", "territories": ["hejin"],
+      "treasury": 2000, "food": 3000, "strength": 12000,
+      "prestige": 15, "tax_rate": 0.25, "morale_actual": 55,
+      "tech_levels": {"infantry": 2, "cavalry": 1, "siege": 1, "navy": 0, "logistics": 1},
+      "relations": {},
+      "personality": {"aggression": 0.35, "cunning": 0.35, "caution": 0.5, "diplomacy": 0.3, "development": 0.3, "mercy": 0.3}
+    },
+    "wangkuang": {
+      "name": "王匡", "name_en": "Wang Kuang", "ruler": "wangkuang",
+      "capital": "hejin", "territories": [],
+      "treasury": 500, "food": 1000, "strength": 4000,
+      "prestige": 5, "tax_rate": 0.2, "morale_actual": 40,
+      "tech_levels": {"infantry": 1, "cavalry": 0, "siege": 0, "navy": 0, "logistics": 1},
+      "relations": {},
+      "personality": {"aggression": 0.1, "cunning": 0.2, "caution": 0.8, "diplomacy": 0.25, "development": 0.2, "mercy": 0.4}
+    },
+    "baoxin": {
+      "name": "鲍信", "name_en": "Bao Xin", "ruler": "baoxin",
+      "capital": "jibei", "territories": ["jibei"],
+      "treasury": 1000, "food": 2000, "strength": 6000,
+      "prestige": 15, "tax_rate": 0.2, "morale_actual": 55,
+      "tech_levels": {"infantry": 1, "cavalry": 1, "siege": 0, "navy": 0, "logistics": 1},
+      "relations": {},
+      "personality": {"aggression": 0.2, "cunning": 0.3, "caution": 0.6, "diplomacy": 0.4, "development": 0.3, "mercy": 0.45}
+    },
+    "huangzu": {
+      "name": "黄祖", "name_en": "Huang Zu", "ruler": "huangzu",
+      "capital": "jiangxia", "territories": ["jiangxia"],
+      "treasury": 4000, "food": 5000, "strength": 18000,
+      "prestige": 20, "tax_rate": 0.25, "morale_actual": 55,
+      "tech_levels": {"infantry": 2, "cavalry": 1, "siege": 1, "navy": 2, "logistics": 2},
+      "relations": {},
+      "personality": {"aggression": 0.45, "cunning": 0.35, "caution": 0.4, "diplomacy": 0.25, "development": 0.35, "mercy": 0.25}
+    },
+    "shixie": {
+      "name": "士燮", "name_en": "Shi Xie", "ruler": "shixie",
+      "capital": "jiaozhi", "territories": ["jiaozhi"],
+      "treasury": 5000, "food": 8000, "strength": 15000,
+      "prestige": 25, "tax_rate": 0.15, "morale_actual": 70,
+      "tech_levels": {"infantry": 1, "cavalry": 1, "siege": 0, "navy": 2, "logistics": 1},
+      "relations": {},
+      "personality": {"aggression": 0.15, "cunning": 0.5, "caution": 0.7, "diplomacy": 0.6, "development": 0.6, "mercy": 0.55}
+    },
+    "menghuo": {
+      "name": "孟获", "name_en": "Meng Huo", "ruler": "menghuo",
+      "capital": "yunnan", "territories": ["yunnan"],
+      "treasury": 3000, "food": 4000, "strength": 20000,
+      "prestige": 20, "tax_rate": 0.15, "morale_actual": 75,
+      "tech_levels": {"infantry": 2, "cavalry": 1, "siege": 0, "navy": 0, "logistics": 1},
+      "relations": {},
+      "personality": {"aggression": 0.6, "cunning": 0.3, "caution": 0.3, "diplomacy": 0.2, "development": 0.2, "mercy": 0.25}
+    },
+    "kebineng": {
+      "name": "轲比能", "name_en": "Kebineng", "ruler": "kebineng",
+      "capital": "daibei", "territories": ["daibei"],
+      "treasury": 2000, "food": 3000, "strength": 25000,
+      "prestige": 25, "tax_rate": 0.1, "morale_actual": 70,
+      "tech_levels": {"infantry": 1, "cavalry": 5, "siege": 0, "navy": 0, "logistics": 2},
+      "relations": {},
+      "personality": {"aggression": 0.65, "cunning": 0.4, "caution": 0.3, "diplomacy": 0.25, "development": 0.15, "mercy": 0.2}
+    },
+    "budugen": {
+      "name": "步度根", "name_en": "Budugen", "ruler": "budugen",
+      "capital": "shanggu", "territories": ["shanggu"],
+      "treasury": 1000, "food": 2000, "strength": 15000,
+      "prestige": 15, "tax_rate": 0.1, "morale_actual": 60,
+      "tech_levels": {"infantry": 1, "cavalry": 4, "siege": 0, "navy": 0, "logistics": 1},
+      "relations": {},
+      "personality": {"aggression": 0.55, "cunning": 0.35, "caution": 0.35, "diplomacy": 0.2, "development": 0.1, "mercy": 0.2}
+    },
+    "liuyao": {
+      "name": "刘繇", "name_en": "Liu Yao", "ruler": "liuyao",
+      "capital": "mo", "territories": ["mo"],
+      "treasury": 500, "food": 1000, "strength": 4000,
+      "prestige": 10, "tax_rate": 0.2, "morale_actual": 35,
+      "tech_levels": {"infantry": 1, "cavalry": 0, "siege": 0, "navy": 1, "logistics": 1},
+      "relations": {},
+      "personality": {"aggression": 0.1, "cunning": 0.25, "caution": 0.8, "diplomacy": 0.3, "development": 0.25, "mercy": 0.45}
+    },
+    "yanbaihu": {
+      "name": "严白虎", "name_en": "Yan Baihu", "ruler": "yanbaihu",
+      "capital": "wu", "territories": [],
+      "treasury": 300, "food": 500, "strength": 3000,
+      "prestige": 5, "tax_rate": 0.3, "morale_actual": 30,
+      "tech_levels": {"infantry": 1, "cavalry": 0, "siege": 0, "navy": 0, "logistics": 0},
+      "relations": {},
+      "personality": {"aggression": 0.4, "cunning": 0.2, "caution": 0.5, "diplomacy": 0.1, "development": 0.1, "mercy": 0.1}
+    },
+    "chengui": {
+      "name": "陈珪", "name_en": "Chen Gui", "ruler": "chengui",
+      "capital": "xiapi", "territories": ["xiapi"],
+      "treasury": 1000, "food": 2000, "strength": 5000,
+      "prestige": 15, "tax_rate": 0.2, "morale_actual": 45,
+      "tech_levels": {"infantry": 1, "cavalry": 1, "siege": 0, "navy": 0, "logistics": 1},
+      "relations": {},
+      "personality": {"aggression": 0.1, "cunning": 0.4, "caution": 0.75, "diplomacy": 0.5, "development": 0.35, "mercy": 0.5}
+    },
+    "lifu": {
+      "name": "李傕残部", "name_en": "Li Jue Remnants", "ruler": "lifu",
+      "capital": "hongnong", "territories": ["hongnong"],
+      "treasury": 300, "food": 500, "strength": 3000,
+      "prestige": 5, "tax_rate": 0.3, "morale_actual": 20,
+      "tech_levels": {"infantry": 1, "cavalry": 1, "siege": 0, "navy": 0, "logistics": 0},
+      "relations": {},
+      "personality": {"aggression": 0.5, "cunning": 0.3, "caution": 0.3, "diplomacy": 0.1, "development": 0.1, "mercy": 0.1}
+    },
+    "guosi": {
+      "name": "郭汜残部", "name_en": "Guo Si Remnants", "ruler": "guosi",
+      "capital": "mei", "territories": ["mei"],
+      "treasury": 200, "food": 300, "strength": 2000,
+      "prestige": 5, "tax_rate": 0.3, "morale_actual": 15,
+      "tech_levels": {"infantry": 1, "cavalry": 0, "siege": 0, "navy": 0, "logistics": 0},
+      "relations": {},
+      "personality": {"aggression": 0.45, "cunning": 0.25, "caution": 0.35, "diplomacy": 0.1, "development": 0.1, "mercy": 0.1}
+    },
+    "taoqian": {
+      "name": "陶谦残部", "name_en": "Tao Qian Remnants", "ruler": "taoqian",
+      "capital": "xuzhou_city", "territories": ["xuzhou_city"],
+      "treasury": 800, "food": 1500, "strength": 4000,
+      "prestige": 10, "tax_rate": 0.15, "morale_actual": 30,
+      "tech_levels": {"infantry": 1, "cavalry": 1, "siege": 0, "navy": 0, "logistics": 1},
+      "relations": {},
+      "personality": {"aggression": 0.05, "cunning": 0.2, "caution": 0.85, "diplomacy": 0.35, "development": 0.3, "mercy": 0.55}
+    },
+    "yuanshu": {
+      "name": "袁术残部", "name_en": "Yuan Shu Remnants", "ruler": "yuanshu",
+      "capital": "shouchun", "territories": ["shouchun"],
+      "treasury": 1000, "food": 1500, "strength": 6000,
+      "prestige": 10, "tax_rate": 0.3, "morale_actual": 25,
+      "tech_levels": {"infantry": 2, "cavalry": 1, "siege": 1, "navy": 1, "logistics": 1},
+      "relations": {},
+      "personality": {"aggression": 0.35, "cunning": 0.3, "caution": 0.4, "diplomacy": 0.2, "development": 0.2, "mercy": 0.15}
+    },
+    "liubei_old": {
+      "name": "刘岱", "name_en": "Liu Dai", "ruler": "liubei_old",
+      "capital": "yan_city", "territories": ["yan_city"],
+      "treasury": 500, "food": 1000, "strength": 3000,
+      "prestige": 10, "tax_rate": 0.2, "morale_actual": 35,
+      "tech_levels": {"infantry": 1, "cavalry": 1, "siege": 0, "navy": 0, "logistics": 1},
+      "relations": {},
+      "personality": {"aggression": 0.1, "cunning": 0.25, "caution": 0.7, "diplomacy": 0.3, "development": 0.25, "mercy": 0.4}
+    }
+  }
+}

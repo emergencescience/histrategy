@@ -347,13 +347,13 @@ def _generate_heuristic_decision(
     if strength < 3000 and treasury > 1000:
         amount = min(5000, treasury // 2)
         if amount >= 1000:
-            commands.append(_cmd("conscript", {"amount": amount}, "危急存亡之秋，紧急扩军备战"))
+            commands.append(_cmd("recruit", {"territory": capital or "", "amount": amount}, "危急存亡之秋，紧急扩军备战"))
             parts.append(f"紧急征兵{amount}")
 
     # ── Priority 2: Standard recruitment ──
     elif strength < 10000 and treasury > 2000:
         amount = min(5000, treasury // 2)
-        commands.append(_cmd("conscript", {"amount": amount}, "补充兵力"))
+        commands.append(_cmd("recruit", {"territory": capital or "", "amount": amount}, "补充兵力"))
         parts.append(f"征兵{amount}")
 
     # ── Priority 3: Attack weak hostile neighbor ──
@@ -362,13 +362,35 @@ def _generate_heuristic_decision(
         hostile_neighbors.sort(key=lambda x: x[2])
         for nid, nf, n_strength in hostile_neighbors:
             if strength > n_strength * 1.5 and strength > 5000:
-                n_territories = list(getattr(nf, "territories", []))
-                target = n_territories[0] if n_territories else None
-                if target:
+                target_territory = _resolve_heuristic_attack_target(ws, faction_id, nid)
+                if target_territory:
                     commands.append(
-                        _cmd("attack", {"target": target, "target_faction": nid}, f"趁敌弱，先发制人进攻{nid}")
+                        _cmd("attack", {"territory": target_territory, "target_faction": nid}, f"趁敌弱，先发制人进攻{nid}")
                     )
                     parts.append(f"出兵攻打{nid}")
+                    attack_made = True
+                    break
+
+    # ── Priority 3.5: Border opportunism (no hostility needed) ──
+    if not attack_made and neighbors:
+        # Attack the weakest neighbor if we're >2.5x stronger — pure opportunism
+        sorted_neighbors = sorted(
+            [(nid, ws.factions.get(nid)) for nid in neighbors if ws.factions.get(nid)],
+            key=lambda x: getattr(x[1], "strength_actual", 0),
+        )
+        for nid, nf in sorted_neighbors:
+            if not getattr(nf, "is_active", True):
+                continue
+            n_strength = getattr(nf, "strength_actual", 0)
+            if n_strength == 0:
+                continue
+            if strength > n_strength * 2.5 and strength > 10000:
+                target_territory = _resolve_heuristic_attack_target(ws, faction_id, nid)
+                if target_territory:
+                    commands.append(
+                        _cmd("attack", {"territory": target_territory, "target_faction": nid}, f"兵强马壮，吞并邻国{nid}")
+                    )
+                    parts.append(f"出兵吞并{nid}")
                     attack_made = True
                     break
 
@@ -381,7 +403,7 @@ def _generate_heuristic_decision(
             commands.append(
                 _cmd(
                     "defend",
-                    {"target": strongest[0], "border": border},
+                    {"territory": border or "", "target_faction": strongest[0]},
                     f"敌强我弱，固守{border or '边境'}防御{strongest[0]}",
                 )
             )
@@ -395,10 +417,10 @@ def _generate_heuristic_decision(
     # ── Priority 6: Tax adjustment ──
     if morale < 30 and getattr(faction, "tax_rate", 0.3) > 0.25:
         new_rate = max(0.15, getattr(faction, "tax_rate", 0.3) - 0.10)
-        commands.append(_cmd("tax", {"tax_rate": round(new_rate, 2)}, "减税安民"))
+        commands.append(_cmd("tax", {"rate": round(new_rate, 2)}, "减税安民"))
         parts.append(f"减税至{int(new_rate * 100)}%")
     elif getattr(faction, "tax_rate", 0.3) > 0.35:
-        commands.append(_cmd("tax", {"tax_rate": 0.3}, "减轻民负"))
+        commands.append(_cmd("tax", {"rate": 0.3}, "减轻民负"))
         parts.append("降低税率至三成")
 
     decision = "；".join(parts) + "。" if parts else "休整观望，静待时机。"
@@ -437,3 +459,30 @@ def _resolve_heuristic_border(ws: WorldState, faction_id: str, neighbor_id: str)
                 if nid in neighbor_territories:
                     return tid
     return None
+
+
+def _resolve_heuristic_attack_target(
+    ws: WorldState, attacker_id: str, target_faction_id: str
+) -> str | None:
+    """Find a neighbour territory of TARGET that is adjacent to a territory
+    where ATTACKER already has an army stationed.
+
+    Without an army at the border, the TurnController cannot execute
+    the attack in a single turn.
+    """
+    faction = ws.factions.get(attacker_id)
+    target = ws.factions.get(target_faction_id)
+    if not faction or not target:
+        return None
+    # Territories where attacker has armies
+    army_locations = {
+        a.location for a in ws.armies.values() if a.faction_id == attacker_id
+    }
+    target_territories = list(getattr(target, "territories", []))
+    for source_tid in army_locations:
+        territory = ws.territories.get(source_tid)
+        if territory and hasattr(territory, "neighbors"):
+            for nid in territory.neighbors:
+                if nid in target_territories:
+                    return nid  # target territory adjacent to army location
+    return None  # no army at border

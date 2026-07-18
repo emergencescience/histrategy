@@ -1,0 +1,29 @@
+# Mass Warlords — 35-Agent Free Market Protocol Demo
+# 208 AD: Cao Cao advances south, 30+ warlords must each decide
+
+[meta]
+id = "mass-warlords"
+name = "群雄逐鹿"
+name_en = "Mass Warlords"
+era = "东汉末年 (208 AD)"
+start_year = 208
+start_season = "秋"
+end_year = 230
+description = """
+208年秋，曹操南下，赤壁在即。35个大小诸侯各自为政。
+没有中央计划者，没有预设剧本——每个势力基于本地信息独立决策。
+自由市场协议能否在混沌中自发产生秩序？
+"""
+
+[engine]
+default_version = "v3"
+quarter_per_year = 4
+quarters = ["春", "夏", "秋", "冬"]
+turn_timeout_human = 300
+turn_timeout_ai = 120
+max_quarters = 88
+
+[factions]
+available = ["cao", "wu", "shu"]
+major_npc = ["cao", "wu", "shu", "liubiao", "mateng", "liuzhang", "zhanglu", "gongsunkang"]
+minor_npc = ["hansui", "zhangxiu", "liudu", "zhaofan", "jinxuan", "hanxuan", "kongrong", "zhangyang", "wangkuang", "baoxin", "huangzu", "shixie", "menghuo", "kebineng", "budugen", "liuyao", "yanbaihu", "chengui", "lifu", "guosi", "taoqian", "yuanshu", "liubei_old"]
