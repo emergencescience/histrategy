@@ -1185,7 +1185,11 @@ class TurnProcessorMixin:
         for fid, dr in decisions.items():
             if fid != faction_id:
                 faction = ws.factions.get(fid)
-                name = (faction.name_en if is_en and faction.name_en else faction.name) if faction else fid
+                if faction:
+                    en_name = getattr(faction, 'name_en', '') or ''
+                    name = en_name if is_en and en_name else getattr(faction, 'name', fid)
+                else:
+                    name = fid
                 npc_actions.append(f"{name}: {dr.decision_text[:80]}")
 
         # ── Advance season/year ──

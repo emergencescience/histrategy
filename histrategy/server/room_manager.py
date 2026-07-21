@@ -1104,16 +1104,11 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
     room._last_narratives = result.narratives
     room._last_state_changes = getattr(result, "state_changes", {}) or {}
     npc_actions = []
+    # Resolve faction display names with scenario-aware lang support
+    fnames = _get_faction_names(room, lang=lang or "zh")
     for fid, dr in decisions.items():
         if room.slots.get(fid) and room.slots[fid].is_ai():
-            faction = ws.factions.get(fid) if ws else None
-            if faction:
-                if lang and lang.startswith("en") and getattr(faction, "name_en", ""):
-                    name = faction.name_en
-                else:
-                    name = faction.name
-            else:
-                name = fid
+            name = fnames.get(fid, fid)
             npc_actions.append(f"{name}: {dr.decision_text[:80]}")
     room._last_npc_actions = npc_actions
     # Embed npc_actions into narratives so they survive DB reload
