@@ -233,6 +233,7 @@ def create_app(llm_provider: str | None = None) -> Any:
     def api_create_room(
         body: dict = Body(...),  # noqa: B008
         x_user_id: str = Header(default="", alias="X-User-Id"),
+        user_agent: str = Header(default="", alias="User-Agent"),
     ):
         """Create a multiplayer room.
 
@@ -242,7 +243,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         Orchestrator proxy injects X-User-Id header (real user UUID).
         """
-        from histrategy.server.room_manager import create_room
+        from histrategy.server.room_manager import create_room, detect_device_type
 
         # Prefer X-User-Id (injected by orchestrator proxy) over body user_id
         pre_assigned = body.get("pre_assigned")
@@ -252,10 +253,13 @@ def create_app(llm_provider: str | None = None) -> Any:
                 "error": 'pre_assigned is required — e.g. {"cao": "张三", "shu": "李四"}',
             }
 
+        metadata = dict(body.get("metadata") or {})
+        metadata["device_type"] = detect_device_type(user_agent)
+
         result = create_room(
             scenario=body.get("scenario_id") or body.get("scenario", "three-kingdoms"),
             pre_assigned=pre_assigned,
-            metadata=body.get("metadata"),
+            metadata=metadata,
         )
         return result
 
@@ -842,8 +846,10 @@ def create_app(llm_provider: str | None = None) -> Any:
     def api_sp_start(
         body: dict = Body(...),  # noqa: B008
         x_user_id: str = Header(default="", alias="X-User-Id"),
+        user_agent: str = Header(default="", alias="User-Agent"),
     ):
         """Single-player — start new game."""
+        from histrategy.server.room_manager import detect_device_type
         from histrategy.server.single_player import start
 
         return start(
@@ -851,6 +857,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             scenario=body.get("scenario", "three-kingdoms"),
             language_style=body.get("language_style", "vernacular"),
             lang=body.get("lang", "zh"),
+            device_type=detect_device_type(user_agent),
         )
 
     # ═══════════════════════════════════════════════════════════

@@ -149,7 +149,8 @@ RESOLVE_TIMEOUT = 180.0  # seconds (max LLM wait)
 
 
 def start(
-    faction: str, scenario: str = "three-kingdoms", language_style: str = "vernacular", lang: str = "zh"
+    faction: str, scenario: str = "three-kingdoms", language_style: str = "vernacular", lang: str = "zh",
+    device_type: str = "unknown",
 ) -> dict:
     """Create a single-player game.
 
@@ -160,6 +161,7 @@ def start(
         scenario: Scenario ID (default three-kingdoms)
         language_style: Narrative style (classical | vernacular)
         lang: UI language (zh | en)
+        device_type: Device classification (mobile | tablet | desktop | unknown)
 
     Returns:
         GameCreatedResponse format:
@@ -179,7 +181,7 @@ def start(
     result = create_room(
         scenario=scenario,
         pre_assigned={display_fid: "Player"},
-        metadata={"lang": lang},
+        metadata={"lang": lang, "device_type": device_type},
     )
 
     if not result.get("ok"):
