@@ -56,6 +56,21 @@ _FACTION_EN = {
     "qing": "Qing Empire",
     "nongminjun": "Peasant Army",
     "zheng": "Zheng Clan",
+    # Rome Triumvirate
+    "octavian": "Octavian",
+    "antony": "Mark Antony",
+    "cleopatra": "Cleopatra VII",
+    "senate": "Roman Senate",
+    "sextus_pompey": "Sextus Pompey",
+    "lepidus": "Lepidus",
+    # Three Kingdoms
+    "cao": "Cao Cao",
+    "shu": "Liu Bei",
+    "wu": "Sun Quan",
+    "liubiao": "Liu Biao",
+    "zhanglu": "Zhang Lu",
+    "liuzhang": "Liu Zhang",
+    "machao": "Ma Chao",
 }
 
 _FACTION_DEFAULT_TERRITORIES = {
