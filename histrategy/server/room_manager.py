@@ -42,6 +42,25 @@ class RateLimitError(Exception):
 
 
 
+
+def detect_device_type(user_agent: str) -> str:
+    """Parse User-Agent header to classify device type.
+
+    Returns one of: 'mobile', 'tablet', 'desktop', 'unknown'
+    """
+    ua = user_agent.lower()
+    if not ua:
+        return "unknown"
+    # Tablets
+    if any(k in ua for k in ("ipad", "tablet", "playbook", "silk")):
+        return "tablet"
+    # Mobile
+    if any(k in ua for k in ("mobi", "android", "iphone", "ipod", "blackberry", "opera mini", "iemobile")):
+        return "mobile"
+    # Desktop
+    return "desktop"
+
+
 def _try_save(room: GameRoom, ws_dict: dict | None = None):
     """Persist room to DB. Auto-extracts world_state dict if not provided."""
     import time as _t
@@ -76,6 +95,9 @@ def create_room(
     Returns:
         {"ok": True, "room_id": str, "player_links": [{faction, url}], ...}
     """
+    import time as _cr_time
+    _cr_t0 = _cr_time.time()
+    _cr_timings: dict[str, float] = {}
     from histrategy.engine.faction_slot import (
         create_ai_slot,
     )
@@ -183,12 +205,18 @@ def create_room(
     # host 进入房间
 
     # 立即初始化世界状态并开始游戏
+    _cr_t1 = _cr_time.time()
     _init_world_state(room)
+    _cr_timings["init_world"] = _cr_time.time() - _cr_t1
     room.phase = RoomPhase.WAITING
     # NPC decisions are deferred to the first turn cycle — no blocking LLM calls during room creation
     ws_dict = room.world_state.to_dict() if hasattr(room.world_state, "to_dict") else None
+    _cr_t2 = _cr_time.time()
     _try_save(room, ws_dict)  # 传入 ws_dict 防止 DB 中 world_state 被写为 NULL
+    _cr_timings["try_save"] = _cr_time.time() - _cr_t2
+    _cr_t3 = _cr_time.time()
     _save_initial_state_to_db(room)  # 写入 game_state (quarter=0) — MUST be after _try_save (FK to game_room)
+    _cr_timings["init_state"] = _cr_time.time() - _cr_t3
 
     # 返回显示名列表供前端展示（动态从场景数据获取）
     lang = getattr(room, "metadata", {}).get("lang", "zh") if getattr(room, "metadata", None) else "zh"
@@ -204,6 +232,13 @@ def create_room(
     }
     if player_links:
         result["player_links"] = player_links
+
+    # ── Profiling: log create_room timing breakdown ──
+    _cr_total = _cr_time.time() - _cr_t0
+    _cr_timings["total"] = _cr_total
+    _cr_timings["other"] = _cr_total - sum(v for k, v in _cr_timings.items() if k != "total")
+    print(f"DEBUG create_room room={room.id} scenario={scenario} "
+          f"timings={_cr_timings} total={_cr_total:.2f}s", flush=True)
     return result
 
 
@@ -510,6 +545,10 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
         "submitted": submitted,
         "pending": pending,
         "is_public": getattr(room, "is_public", False),
+        "device_type": (
+            (room.metadata or {}).get("device_type", "unknown")
+            if getattr(room, "metadata", None) else "unknown"
+        ),
     }
 
     if faction_id:
