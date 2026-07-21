@@ -1,0 +1,331 @@
+{
+  "scenario": "rome-triumvirate",
+  "version": 1,
+  "quarter": 2,
+  "player_paths": {
+    "rally_veterans_then_raise_legions": {
+      "label_zh": "R1: 集结老兵 → R2: 征召军团",
+      "label_en": "R1: Rally Veterans → R2: Raise Legions",
+      "decisions": {
+        "antony": {
+          "zh": {
+            "decision_text": "【全面动员】军报雪片般飞来：屋大维不仅在坎帕尼亚集结了恺撒的旧部，现在更在公然征募新军团——第七、第八军团的老兵带着整支百人队向他投效。安东尼一拳砸在地图桌上，震得烛台倾倒。他不再是那个拿遗嘱唬人的孩子了——他正在打造一支真正的军队。传令：所有在高卢和西班牙的驻军立刻向意大利北部集结，命雷必达从纳尔榜高卢率军南下，两路夹击，不能让这小子坐大！同时派人去元老院——告诉那些穿紫边的老狐狸，如果继续资助屋大维，我就在罗马城外举行「军团检阅」。让他们听见铁蹄的声音再做决定。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Full Mobilization】Dispatches pour in: Octavian has not only rallied Caesar's veterans in Campania — now he is openly recruiting new legions. The Seventh and Eighth's veterans are bringing entire centuries over to his banner. Antony's fist crashes onto the map table, knocking over a candelabra. He is no longer the boy bluffing with a dead man's will — he is building a real army. Orders to all garrisons in Gaul and Hispania: converge on northern Italy immediately. Have Lepidus march south from Gallia Narbonensis. A pincer — crush this whelp before he grows fangs! And send word to the Senate: tell those purple-striped foxes that if they keep funding Octavian, I will hold an 'impromptu legionary review' outside Rome's gates. Let them hear the rhythm of iron-shod boots before they cast their next vote.",
+            "commands": []
+          }
+        },
+        "cleopatra": {
+          "zh": {
+            "decision_text": "【天平倾斜】屋大维一手集结老兵，一手招募新军——克利奥帕特拉在亚历山大的大理石宫殿中踱步，手中把玩着一枚恺撒时代的金币。半年前我还觉得这孩子不过是罗马政治棋盘上的一枚小卒，如今他已成一方棋主。安东尼的优势正在流失——老兵们选择的是恺撒的名字，而不是恺撒的副将。传令：暂停对安东尼的所有物资供应，「尼罗河歉收」的借口继续用。同时向屋大维的幕僚阿格里帕送去一封密信——以私人名义祝贺他「主持征兵事务卓有成效」。只字不提联盟，只字不提条件。但一条金线已经抛出，就等他们来咬钩。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Scales Tilt】Octavian rallies veterans with one hand and recruits fresh legions with the other — Cleopatra paces her Alexandrian palace of marble, turning a Caesar-era aureus between her fingers. Half a year ago I dismissed the boy as a pawn on Rome's political board; now he has become a player in his own right. Antony's advantage erodes — the veterans are choosing Caesar's name over Caesar's lieutenant. Send word: suspend all supply deliveries to Antony, the 'Nile's poor harvest' excuse holds. Meanwhile, dispatch a private letter to Octavian's man Agrippa — a personal note, congratulating him on 'the admirably efficient recruitment drive.' No mention of alliance, no mention of terms. But a golden thread has been cast; let them come to the hook.",
+            "commands": []
+          }
+        },
+        "senate": {
+          "zh": {
+            "decision_text": "【危险的武器】西塞罗站在元老院议事厅的侧廊，看着征兵官在罗马广场上宣读屋大维的募兵告示，成群的青年排队登记。他心中欣喜与恐惧交织——欣喜的是，对抗安东尼的军队即将成型；恐惧的是，这支军队叫「恺撒军团」，不叫「共和国军团」。我亲手锻造了一柄利剑，但这利剑有它自己的意志。西塞罗连夜召集共和派核心元老：我们必须掌握这支部队的指挥权。提议元老院派遣特使加入屋大维的军事幕僚团——名义上是「协调作战」，实际上是让我们的人站在他身边，提醒他：你为共和国而战，不是为你自己。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【A Dangerous Weapon】Cicero stands in the side aisle of the Curia, watching recruitment officers read Octavian's enlistment call in the Forum — a river of young men queue to sign their names. His heart swirls with hope and dread — hope, that an army to counter Antony is finally taking shape; dread, that this army is called 'Caesar's Legions,' not 'the Republic's Legions.' I forged this blade with my own hands, but the blade has a will of its own. Cicero summons the Republican inner circle through the night: we must control this army. Propose that the Senate dispatch tribunes to join Octavian's military staff — officially, to 'coordinate operations'; in truth, to place our men at his side, whispering in his ear: you fight for the Republic, not for yourself.",
+            "commands": []
+          }
+        }
+      }
+    },
+    "rally_veterans_then_secure_grain": {
+      "label_zh": "R1: 集结老兵 → R2: 控制粮道",
+      "label_en": "R1: Rally Veterans → R2: Secure Grain",
+      "decisions": {
+        "antony": {
+          "zh": {
+            "decision_text": "【扼住喉咙】军情急报：屋大维没有直接扩军，而是派兵控制了西西里和撒丁岛的粮道——罗马城一半以上的口粮依赖这两条航线。安东尼面色铁青。这小子比我想的狡猾。他在用饥饿当武器。罗马城的平民如果领不到赈济粮，暴动就是一夜之间的事——而元老院那帮懦夫到时候会把所有责任推给我这个执政官。传令：命雷必达火速率舰队从高卢沿海南下，抢占奥斯提亚港，确保粮仓在手。同时派人去亚历山大——告诉克利奥帕特拉，我要买下她今年全部的小麦收成，什么价格都行。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Choking the Throat】Urgent intelligence: Octavian has not expanded his legions — instead, he has seized control of the grain routes from Sicily and Sardinia. Over half of Rome's daily bread depends on these sea lanes. Antony's face drains of color. The boy is cleverer than I credited. He is weaponizing hunger. If the Roman mob's grain dole is interrupted, riots will erupt overnight — and those Senate cowards will heap every ounce of blame on me, the Consul. Orders: Lepidus is to race his fleet down the Gallic coast and seize Portus Ostia immediately — whoever holds the granaries controls Rome. And send word to Alexandria: tell Cleopatra I am buying her entire wheat harvest this year. Name her price.",
+            "commands": []
+          }
+        },
+        "cleopatra": {
+          "zh": {
+            "decision_text": "【粮仓里的王座】屋大维封锁了西西里粮道——罗马的饥饿将成为他的政治筹码。克利奥帕特拉放下密报，走到窗前眺望尼罗河两岸无边无际的金色麦田。这就是埃及真正的力量——不是战象，不是黄金，而是这片被尼罗河滋养了五千年的黑土地。安东尼的求粮信已经到了，措辞几乎是在哀求。很好。传令：以「埃及与罗马的友谊」为名，向罗马平民低价出售粮食——但不经过安东尼的港口，而是通过屋大维控制的奥斯提亚粮仓。让罗马人记住：面包装在谁的船上，和平就握在谁的手里。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【A Throne in the Granary】Octavian has blockaded the Sicilian grain route — Rome's hunger will become his political currency. Cleopatra sets down the dispatch and walks to the window, gazing at the endless golden wheat fields lining both banks of the Nile. This is Egypt's true power — not war elephants, not gold, but this black earth nourished by the Nile for five thousand years. Antony's letter begging for grain has already arrived, its tone barely short of pleading. Good. Issue orders: in the name of 'friendship between Egypt and Rome,' sell grain to the Roman populace at reduced prices — but not through Antony's ports. Route it through the Ostian granaries under Octavian's control. Let the Romans remember: whoever's ships carry the bread holds the peace.",
+            "commands": []
+          }
+        },
+        "senate": {
+          "zh": {
+            "decision_text": "【面包与利剑】罗马广场上已经出现了第一支排队等待赈济粮的队伍——比往常长了一倍。西塞罗感受到了城中日渐升高的温度。屋大维控制了粮道，这是他最聪明的一步棋：他不费一兵一卒就让安东尼陷入了执政危机。但西塞罗也敏锐地察觉到了危险——一个控制了罗马肚皮的年轻人，离控制罗马的喉咙还远吗？他在元老院提出折中方案：元老院以共和国名义接管奥斯提亚粮仓，成立「粮食安全委员会」，由西塞罗本人和屋大维的代理人共同主持。表面上是一次权力的分享，实际上是把粮仓的钥匙从一个人手里分到两个人手里——然后伺机变成共和国的钥匙。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Bread and the Sword】The first queue for the grain dole has already formed in the Forum — twice as long as usual. Cicero feels the temperature rising in the city's streets. Octavian has seized the grain routes — his cleverest move yet: without spilling a drop of blood, he has plunged Antony into a consular crisis. But Cicero's instincts also detect the danger — a young man who controls Rome's belly is one step away from gripping Rome's throat. He proposes a compromise in the Senate: the Republic shall assume direct control of the Ostian granaries through a newly formed 'Commission for Grain Security,' co-chaired by Cicero himself and an Octavian representative. Publicly, a sharing of authority; in truth, splitting the key to the granary from one set of hands into two — and then, when the moment is ripe, into the Republic's hands alone.",
+            "commands": []
+          }
+        }
+      }
+    },
+    "rally_veterans_then_diplomatic_offensive": {
+      "label_zh": "R1: 集结老兵 → R2: 外交攻势",
+      "label_en": "R1: Rally Veterans → R2: Diplomatic Offensive",
+      "decisions": {
+        "antony": {
+          "zh": {
+            "decision_text": "【双线夹击】屋大维在坎帕尼亚炫耀他的老兵集会，同时派出使团遍访东方诸行省——叙利亚、亚细亚、比提尼亚的总督们都收到了他的亲笔信。安东尼翻看截获的信件副本，信中的措辞典雅而恶毒：「安东尼将罗马的东方行省视为私产，赏赐给他的埃及情妇。」这个虚伪的小人！传令：亲笔致信东方诸总督，提醒他们——是谁在恺撒遇刺后镇压了共和派的叛乱、维持了东方的秩序？是我，马克·安东尼！另外，立刻启程前往雅典，我要亲自安抚希腊各界。如果屋大维要在元老院里玩文字游戏，那我就在军团营地门前摆事实。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【A Two-Front Assault】Octavian parades his veterans in Campania while dispatching embassies to every Eastern province — the governors of Syria, Asia, and Bithynia have all received his personal letters. Antony reads intercepted copies, their language elegant and venomous: 'Antony treats Rome's Eastern provinces as his personal estate, gifting them to his Egyptian mistress.' The hypocrite! Orders: write personally to every Eastern governor. Remind them — who crushed the Republican uprising after Caesar's assassination and maintained order in the East? I did — Marcus Antonius! Furthermore, depart for Athens at once. I will soothe the Greek cities in person. If Octavian wants to play word games in the Senate, I will lay facts at the gates of legionary camps.",
+            "commands": []
+          }
+        },
+        "cleopatra": {
+          "zh": {
+            "decision_text": "【巧妙的时差】屋大维的外交使团已抵达亚历山大——他们的措辞彬彬有礼，带来了「罗马人民的问候」以及一份措辞微妙的建议：希望埃及在「罗马的内部事务」中保持中立。克利奥帕特拉在接见使团时始终保持微笑，用九种语言中的一种应答道：「埃及从来不干涉朋友的家事。」使团离开后，她的笑容立刻消失。屋大维在把我从安东尼身边剥离——用礼貌代替刀剑，用外交辞令代替军团。传令：以最快的速度通知安东尼——不是告密，而是分享。让他知道我拒绝了屋大维的「善意」。在两大巨人的较量中，我必须是安东尼不敢失去的盟友，而不是他可以舍弃的情人。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【A Calculated Time Lag】Octavian's diplomatic mission has arrived in Alexandria — their language is impeccably courteous, bearing the 'greetings of the Roman people' and a delicately worded suggestion: that Egypt maintain neutrality in 'Rome's internal affairs.' Cleopatra receives the envoys with an unwavering smile, answering in one of her nine languages: 'Egypt never meddles in the household matters of friends.' The moment the envoys depart, the smile vanishes. Octavian is peeling me away from Antony — using politeness as a blade, diplomatic phrases in place of legions. Issue orders: inform Antony at maximum speed — not as a betrayal, but as a sharing of intelligence. Let him know I refused Octavian's 'kindness.' In this contest of titans, I must be the ally Antony dare not lose, not the mistress he can set aside.",
+            "commands": []
+          }
+        },
+        "senate": {
+          "zh": {
+            "decision_text": "【棋逢对手】西塞罗审视着屋大维的外交信件副本——致叙利亚总督、致亚细亚行省、致比提尼亚国王……每一封都引用了共和国法律，每一封都以「元老院与罗马人民」的名义落款。这个年轻人甚至不需要我帮他改稿了！西塞罗的心情复杂得难以名状：骄傲——他的学生出师了；不安——他的学生正在超越老师。屋大维的外交攻势正在全球范围内孤立安东尼，这是一步好棋，但也是一步险棋——如果东方行省转而直接效忠屋大维而非元老院，那我们刚打倒一个独裁者就又养出一个。西塞罗决定：在元老院公开赞扬屋大维的外交成就，但在私下的信件中提醒布鲁图斯——注意亚细亚，那里的权力真空正在被填补，填补它的人不一定是共和国的朋友。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Meeting His Match】Cicero examines the copies of Octavian's diplomatic correspondence — to the governor of Syria, to the province of Asia, to the King of Bithynia... each one invokes Republican law, each one signs off in the name of 'the Senate and People of Rome.' The boy no longer needs me to edit his drafts! Cicero's emotions defy easy description: pride — his student has graduated; unease — his student is overtaking the master. Octavian's diplomatic offensive is isolating Antony across the known world — a masterstroke, but a dangerous one. If the Eastern provinces transfer their allegiance directly to Octavian rather than to the Senate, we have toppled one tyrant only to breed another. Cicero decides: publicly, praise Octavian's diplomatic triumphs in the Senate. Privately, send a letter to Brutus — watch Asia closely. A power vacuum is being filled, and the man filling it is not necessarily a friend of the Republic.",
+            "commands": []
+          }
+        }
+      }
+    },
+    "senate_speech_then_raise_legions": {
+      "label_zh": "R1: 元老院演说 → R2: 征召军团",
+      "label_en": "R1: Senate Speech → R2: Raise Legions",
+      "decisions": {
+        "antony": {
+          "zh": {
+            "decision_text": "【双面夹击】那个乳臭未干的小子在元老院发表了一篇感人的演说，转身就去征兵——这根本不是共和国的捍卫者，这是披着托加袍的军阀！安东尼在执政官府邸召集亲信，他意识到问题的严重性：屋大维拥有了元老院的政治背书加上自己的军事力量，这种组合比单纯的兵力威胁危险十倍。传令：发布《告罗马人民书》——在广场上公开宣读！指责屋大维以「保卫共和国」为名行「建立私军」之实。凡是加入他的军团的公民，将不得享受老兵安置法和退伍土地分配权。我要用法律条文堵住他的兵源——看看是元老院的修辞管用，还是执政官的敕令管用。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Pincer Closes】The beardless boy delivered a tear-jerking speech in the Senate, then turned around and started recruiting troops — this is no defender of the Republic, this is a warlord in a toga! Antony summons his lieutenants to the Consular residence. He grasps the gravity now: Octavian possesses the Senate's political endorsement plus his own military muscle — this combination is ten times deadlier than brute force alone. Issue a proclamation: 'An Edict to the Roman People' — read aloud in the Forum! Denounce Octavian for building a private army under the pretense of 'defending the Republic.' Any citizen who enlists in his legions shall be excluded from the veteran settlement law and land allotments alongside every honest legionary. I will choke his recruitment with legal statutes — let us see which carries more weight: senatorial rhetoric or consular decree.",
+            "commands": []
+          }
+        },
+        "cleopatra": {
+          "zh": {
+            "decision_text": "【全速转向】屋大维先是赢得了元老院，现在又在组建军队——速度之快超出了所有人的预料。克利奥帕特拉紧急召见她的罗马事务顾问。结论很明确：安东尼正在失去这场较量。一个在元老院有支持、又手握军团的年轻人，比一个只有军团但被元老院唾弃的莽夫强太多了。现在必须调整策略——不是抛弃安东尼，而是不再把所有赌注押在他一个人身上。传令：派遣使团赴罗马，正式以「恺撒里昂——恺撒与埃及女王之子」的名义向屋大维致意，并赠送尼罗河三角洲一处港口的贸易特许权。不提恺撒里昂的继承权，只提他的名字，让屋大维自己去品味这个名字的分量。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Full Pivot】Octavian has won the Senate and is now building an army — faster than anyone anticipated. Cleopatra summons her Roman-affairs advisor for an emergency consultation. The conclusion is stark: Antony is losing this contest. A young man who holds the Senate's ear and a legionary standard is far more formidable than a brute with legions but the Senate's contempt. Strategy must adjust now — not abandoning Antony, but no longer staking everything on him alone. Dispatch an embassy to Rome. Extend formal greetings to Octavian in the name of 'Caesarion — son of Caesar and the Queen of Egypt,' accompanied by a trade concession at a Delta port. No mention of Caesarion's inheritance rights — only his name. Let Octavian sit with that name and taste its weight.",
+            "commands": []
+          }
+        },
+        "senate": {
+          "zh": {
+            "decision_text": "【受控的火焰】元老院授予屋大维代行大法官的权力，他立刻用这项权力征募了三个军团——这正是西塞罗期待的效果。但速度之快、规模之大，让这位老练的政治家也感到一丝寒意。他私下对挚友阿提库斯说：我放出了一团火来烧毁安东尼的房子，但现在这团火正在建造自己的宫殿。西塞罗在元老院提出一项新动议：设立「元老院军事监察官」一职，由两位资深元老担任，负责监督所有以共和国名义招募的军团——包括屋大维的。表面上是对军队负责，实际上是要在屋大维的军事机器中植入共和国的控制阀。动议以微弱优势通过。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【A Contained Flame】The Senate granted Octavian propraetorian imperium, and he immediately used it to raise three legions — precisely the effect Cicero intended. But the speed and scale send a shiver through the seasoned politician. Privately, he tells his dear friend Atticus: I lit a fire to burn down Antony's house, but now the fire is building a palace of its own. Cicero proposes a new motion in the Senate: establish the office of 'Senatorial Military Inspector,' staffed by two senior senators, charged with overseeing all legions raised in the name of the Republic — including Octavian's. Publicly, an act of military diligence; in truth, implanting a Republican control valve into Octavian's military machine. The motion passes by a razor-thin majority.",
+            "commands": []
+          }
+        }
+      }
+    },
+    "senate_speech_then_secure_grain": {
+      "label_zh": "R1: 元老院演说 → R2: 控制粮道",
+      "label_en": "R1: Senate Speech → R2: Secure Grain",
+      "decisions": {
+        "antony": {
+          "zh": {
+            "decision_text": "【政治与面包】屋大维在元老院博取了满堂喝彩，转身就用政治资本控制了粮道——安东尼第一次感到自己被完全压制了。他在元老院赢得了辩论，在海上赢得了后勤。而我作为执政官，既失去了元老院的信任，又面临着罗马城断粮的危险。安东尼在执政官府邸来回踱步，酒杯已斟满三次。必须破局——不是用刀剑，而是用同样狡猾的手段。传令：立即以执政官特权宣布罗马进入「紧急粮食状态」，所有私人粮商必须在四十八小时内向国库申报存粮，违者没收。然后以「平抑粮价」为名开仓放粮，让罗马平民直接从我的手中领到面包——不是屋大维的，也不是元老院的，是安东尼的。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Politics and Bread】Octavian won a standing ovation in the Senate, then converted his political capital into control of the grain routes — for the first time, Antony feels genuinely outmaneuvered. He won the debate on the Senate floor and the logistics at sea. And I, the Consul, have lost the Senate's trust while Rome faces starvation. Antony paces the Consular residence, his cup refilled three times. I must break this pattern — not with the sword, but with equal cunning. Issue orders: by consular prerogative, declare a 'Grain Emergency' in Rome. All private grain merchants must declare their stocks to the treasury within forty-eight hours — confiscation for noncompliance. Then, open the state granaries in the name of 'price stabilization,' and let the Roman mob receive bread directly from MY hand — not Octavian's, not the Senate's — Antony's.",
+            "commands": []
+          }
+        },
+        "cleopatra": {
+          "zh": {
+            "decision_text": "【十字路口】克利奥帕特拉凝视着两张羊皮纸——一张是安东尼请求粮食援助的急信，措辞从命令变成了恳求；另一张是屋大维的特使刚刚送来的「友好信函」，不提索取只提合作。安东尼在沉没，屋大维在上升，而埃及的粮仓是救生艇。但她没有立刻选择。传令：派遣一艘快船携带小批量优质尼罗河小麦分别送往奥斯提亚（屋大维控制）和布伦迪西乌姆（安东尼控制），两边的卸货时间精确安排在同一天。让罗马人看到：埃及的女王可以喂饱全城——问题是她选择喂谁。这不是援助，这是展示。一场精心导演的力量宣示。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【At the Crossroads】Cleopatra stares at two pieces of parchment — one is Antony's urgent plea for grain aid, his tone degraded from command to supplication; the other is Octavian's envoy's freshly delivered 'letter of friendship,' making no demands, only offering cooperation. Antony is sinking, Octavian is rising, and Egypt's granaries are the lifeboat. But she does not choose yet. Issue orders: dispatch two fast vessels carrying small shipments of premium Nile wheat — one to Ostia (under Octavian's control), one to Brundisium (Antony's). The unloading times at both ports are to be coordinated to the same day, to the same hour. Let Rome see: the Queen of Egypt can feed the entire city — the question is whom she chooses to feed. This is not aid. This is a demonstration. A meticulously choreographed display of power.",
+            "commands": []
+          }
+        },
+        "senate": {
+          "zh": {
+            "decision_text": "【胜利的代价】西塞罗看着屋大维用元老院授予的权力成功接管了西西里粮道，罗马城的粮价应声而落，平民欢呼。这是他一手策划的胜利——但代价正在浮出水面。屋大维现在控制了罗马的肚子，而控制肚子的人不需要元老院的批准就能左右民意。西塞罗在给布鲁图斯的信中写道：「我们的盟友正在变成我们的主人——速度之快令人瞠目。」他推动元老院通过一项新法：粮食分配权由元老院和执政官共同行使——这是一道保险阀。但法案尚未送达屋大维手中，西塞罗就知道迟了。从奥斯提亚港开出的第一批运粮车上，已经被人用红色颜料涂上了「恺撒」二字。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Price of Victory】Cicero watches as Octavian, wielding the authority the Senate granted him, successfully takes control of the Sicilian grain route. Rome's bread prices plummet overnight, and the mob cheers. This is a victory of Cicero's own engineering — but the price is surfacing. Octavian now controls Rome's belly, and whoever controls the belly can sway the mob without senatorial approval. Cicero writes to Brutus: 'Our ally is becoming our master — at a pace that takes the breath away.' He pushes a new law through the Senate: grain distribution authority shall be exercised jointly by the Senate and the Consul — a safety valve. But before the legislation even reaches Octavian's hands, Cicero knows it is too late. The first grain wagons departing Ostia's harbor have already been daubed in red paint with a single word: 'CAESAR.'",
+            "commands": []
+          }
+        }
+      }
+    },
+    "senate_speech_then_diplomatic_offensive": {
+      "label_zh": "R1: 元老院演说 → R2: 外交攻势",
+      "label_en": "R1: Senate Speech → R2: Diplomatic Offensive",
+      "decisions": {
+        "antony": {
+          "zh": {
+            "decision_text": "【被狐狸包围的狮子】屋大维在元老院的演说辞藻华丽，用我教给他的修辞技巧将安东尼描绘成「东方暴君的傀儡」，现在他又派出使团将这套说辞传播到每一个行省。安东尼一拳砸在桌上：「他在用我的刀砍我！」最可恨的是——他的说辞有一部分是真的。我确实依赖与克利奥帕特拉的关系获取埃及资源，但我不是傀儡！传令：改变策略。不再否认与埃及的关系，而是公开声明——以执政官的身份前往亚历山大进行国事访问，与托勒密王国缔结「罗马与埃及的永久友谊条约」。把私下关系变成公开国策，把弱点翻成力量。另外，召见元老院的所有平民派保民官——他们不是西塞罗的贵族朋友，他们恨贵族的傲慢。给他们许诺：我的粮食分配计划将增加平民口粮份额。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【A Lion Surrounded by Foxes】Octavian's Senate speech was a rhetorical masterpiece, painting Antony as 'the puppet of an Eastern despot' using the very techniques I taught him — and now he dispatches embassies to propagate this narrative through every province. Antony's fist meets the table: 'He is slicing me with my own blade!' What galls him most — there is a grain of truth in the accusation. He does rely on Cleopatra for Egyptian resources, but he is no one's puppet! Change of strategy. Stop denying the Egyptian connection. Instead, announce publicly: the Consul shall undertake a state visit to Alexandria and conclude a 'Treaty of Perpetual Friendship between Rome and Egypt.' Transform a private relationship into public policy, a vulnerability into strength. Also — summon every plebeian tribune in the Senate. They are not Cicero's aristocratic friends; they despise patrician arrogance. Promise them: my grain distribution plan will increase the plebeian ration.",
+            "commands": []
+          }
+        },
+        "cleopatra": {
+          "zh": {
+            "decision_text": "【两个太阳】屋大维在元老院的演说文本已经传遍地中海——克利奥帕特拉反复阅读其中关于埃及的段落。他没有直接攻击我，而是将我定性为「东方女王」——不威胁、不挑衅，但也不认同。他用词精准得可怕。与此同时，他的使团正在亚细亚行省游说，宣传一个「没有东方女王影响的罗马」。克利奥帕特拉意识到：这场斗争已经从军事对决升级为叙事之战。传令：向地中海各大城邦派遣文化使团——带去埃及的数学、天文学和医学典籍，在罗得岛建立亚历山大图书馆分馆。他讲罗马故事，我讲文明故事。让希腊世界自己判断：谁代表野蛮的刀剑，谁代表智慧的灯塔。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Two Suns】The text of Octavian's Senate speech has circulated across the Mediterranean — Cleopatra reads the passages on Egypt again and again. He does not attack her directly; he frames her as 'the Eastern Queen' — not threatening, not provoking, but not accepting either. His word choices are terrifyingly precise. Meanwhile, his envoys are canvassing the province of Asia, selling a vision of 'a Rome free from Eastern queenly influence.' Cleopatra realizes: this struggle has escalated from military contest to war of narratives. Issue orders: dispatch cultural missions to every major polis of the Mediterranean — bring Egyptian texts on mathematics, astronomy, and medicine. Establish an Alexandrian Library annex on Rhodes. He tells Roman stories; I tell civilization's story. Let the Greek world judge for itself: who represents the barbarian's sword, and who the lighthouse of wisdom.",
+            "commands": []
+          }
+        },
+        "senate": {
+          "zh": {
+            "decision_text": "【天才的阴影】屋大维的外交攻势全面铺开——从西班牙到叙利亚，每个行省总督都收到了他的亲笔信，每封信都以元老院的名义起头，以恺撒的名义结尾。西塞罗的喜悦已经被忧虑取代。这个年轻人的政治天赋远超我的预期——但天赋越高的盟友，危险也越大。西塞罗在元老院发表了一篇精心修饰的演说，主题是「外交权属于元老院」。他提议：所有以共和国名义派出的外交使团必须经元老院外事委员会批准。这项提议的直接目标不是屋大维——在措辞上，它针对的是安东尼「未经授权的东方承诺」。但西塞罗知道，这面法律的盾牌，迟早要挡在屋大维面前。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Shadow of Genius】Octavian's diplomatic offensive spans the world — from Hispania to Syria, every provincial governor has received his personal letter, each one beginning in the Senate's name and concluding in Caesar's. Cicero's delight has given way to unease. This young man's political gifts far exceed my expectations — but the more gifted the ally, the greater the danger. Cicero delivers a meticulously crafted oration in the Senate on the theme: 'Diplomatic Authority Belongs to the Senate.' He proposes: all embassies dispatched in the Republic's name must be approved by the Senate Foreign Affairs Committee. The direct target is not Octavian — in its wording, it is aimed at Antony's 'unauthorized Eastern commitments.' But Cicero knows: this legal shield will, sooner or later, have to be raised against Octavian.",
+            "commands": []
+          }
+        }
+      }
+    },
+    "confront_antony_then_raise_legions": {
+      "label_zh": "R1: 正面挑战安东尼 → R2: 征召军团",
+      "label_en": "R1: Confront Antony → R2: Raise Legions",
+      "decisions": {
+        "antony": {
+          "zh": {
+            "decision_text": "【战争边缘】屋大维公开挑战我的权威，现在又大举征兵——这不是政治，这是宣战。安东尼的怒气反而沉淀为冰冷的决心。他迅速调集四个老兵军团，在阿里米努姆扎下大营，形成对罗马北部的军事压力。他向全军发表演说：「老兵们！你们随我翻越阿尔卑斯山，在法萨卢斯击败庞培，在穆提纳平定叛乱。如今一个从未上过战场的孩子要带领一群新兵来教训你们——告诉我，你们答应吗？！」军中爆发出震天的怒吼。安东尼点头：然后给元老院发去最后通牒——立即宣布屋大维为公敌并解散其私军，否则我将行使执政官军事指挥权，以「恢复秩序」之名率军进入罗马城。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Brink of War】Octavian openly challenged my authority, and now he is raising fresh legions — this is not politics, this is a declaration of war. Antony's fury settles into a cold, crystalline resolve. He swiftly mobilizes four veteran legions and establishes a forward camp at Ariminum, exerting military pressure on northern Rome. He addresses the assembled army: 'Veterans! You crossed the Alps with me. You shattered Pompey at Pharsalus. You crushed the mutiny at Mutina. Now a boy who has never seen battle leads raw recruits to teach you a lesson — tell me, do you accept this?!' The army erupts in a thunderous roar. Antony nods. Then send an ultimatum to the Senate: declare Octavian a public enemy and disband his private army immediately — or I shall exercise my consular military authority and march on Rome to 'restore order.'",
+            "commands": []
+          }
+        },
+        "cleopatra": {
+          "zh": {
+            "decision_text": "【暴风雨中的港口】罗马已经站在内战的悬崖边——安东尼和屋大维都在集结军队，穆提纳附近迟早会有一场决战。克利奥帕特拉紧急召开御前会议。结论：内战期间，意大利的港口将被双方封锁，埃及的商船可能会被任意一方征用。必须保护埃及的核心利益。传令：所有埃及商船立即从意大利水域撤回，停靠亚历山大港待命。国库中的黄金储备增倍——内战结束后，无论谁获胜，都会带着空国库来找我借钱。届时就不是他们挑我，而是我挑他们。另外，派遣间谍密切关注双方军队的部署——埃及必须比罗马的任何将军都更早知道谁将赢得这场战争。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【A Harbor in the Storm】Rome stands on the precipice of civil war — Antony and Octavian are both massing armies; a decisive clash near Mutina is now only a matter of time. Cleopatra convenes an emergency royal council. The conclusion: during civil war, Italian ports will be blockaded by both sides, and Egyptian merchantmen may be seized by either. Egypt's core interests must be shielded. Issue orders: all Egyptian commercial vessels are to withdraw from Italian waters immediately and dock at Alexandria on standby. Double the gold reserves in the royal treasury — when the civil war ends, whoever emerges victorious will come to me with empty coffers and outstretched hands. Then it will not be them choosing me, but me choosing them. Additionally, embed spies to track both armies' deployments with obsessive precision — Egypt must know who will win this war before any Roman general does.",
+            "commands": []
+          }
+        },
+        "senate": {
+          "zh": {
+            "decision_text": "【暴风雨中的舵手】西塞罗收到了安东尼的最后通牒——宣布屋大维为公敌，否则进军罗马。他的手指微微颤抖，但不是因为恐惧，而是因为亢奋。最终的时刻到了。他召集元老院紧急会议，发表了他一生中最激昂的演说——第十四篇《反腓力辞》。「元老们！安东尼的刀已经出鞘。这不是威胁，这是供认——他要用军团践踏元老院的尊严，就像恺撒当年跨过卢比孔河。唯一的区别是，今天我们有屋大维和他的军团挡在安东尼与罗马之间！」元老院在震耳欲聋的掌声中通过决议：拒绝安东尼的最后通牒，正式授权屋大维以共和国之名指挥所有在北意大利的军队。西塞罗投下赞成票的那一刻，他感到自己触摸到了历史。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Helmsman in the Tempest】Cicero receives Antony's ultimatum — declare Octavian a public enemy, or legions march on Rome. His fingers tremble slightly — not from fear but from exhilaration. The final hour has come. He convenes an emergency Senate session and delivers the most stirring oration of his life — the Fourteenth Philippic. 'Senators! Antony's blade is drawn. This is not a threat — it is a confession. He means to trample the Senate's dignity beneath legionary boots, exactly as Caesar crossed the Rubicon. The only difference: today, we have Octavian and his legions standing between Antony and Rome!' The Senate erupts in deafening applause and passes the resolution: reject Antony's ultimatum. Formally authorize Octavian to command all forces in northern Italy in the name of the Republic. As Cicero casts his vote in favor, he feels his fingertips brush the fabric of history itself.",
+            "commands": []
+          }
+        }
+      }
+    },
+    "confront_antony_then_secure_grain": {
+      "label_zh": "R1: 正面挑战安东尼 → R2: 控制粮道",
+      "label_en": "R1: Confront Antony → R2: Secure Grain",
+      "decisions": {
+        "antony": {
+          "zh": {
+            "decision_text": "【两面受敌】屋大维在战场上挑战我，在海上掐我的粮道——这是一套精心设计的组合拳。安东尼在地图前陷入沉默：他在穆提纳方向牵制我的主力，同时切断了西西里的粮食供应，这意味着我的四个军团很快就得靠搜刮乡间维生——而这会把当地居民推向屋大维的怀抱。好手段。但战争不仅仅是计算。传令：不强守穆提纳，主动南下，以战养战。沿途征收粮秣——不是抢劫，而是以执政官的名义出具债券，「共和国日后偿还」。同时给在西西里的塞克斯图斯·庞培送去密信——此人对一切恺撒党人都怀有刻骨仇恨。告诉他：你父亲是被恺撒杀的，现在恺撒的继承人在用你父亲的土地喂饱恺撒的军团。合作？",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Attacked on Two Axes】Octavian challenges me on the battlefield and throttles my grain supply at sea — a meticulously designed combination. Antony falls silent before the map: he is pinning my main force at Mutina while severing Sicily's grain supply, which means my four legions will soon have to forage the countryside to survive — and that will drive the local population straight into Octavian's arms. Elegant. But war is not arithmetic. New orders: do not entrench at Mutina. March south. Live off the land. Requisition supplies along the march — not looting, but issuing bonds in the name of the Consul, 'to be redeemed by the Republic at a future date.' And send a secret letter to Sextus Pompey in Sicily — the man nurses an undying hatred for every Caesarian alive. Tell him: your father was murdered by Caesar. Now Caesar's heir is using your father's land to feed Caesar's legions. Shall we talk?",
+            "commands": []
+          }
+        },
+        "cleopatra": {
+          "zh": {
+            "decision_text": "【饥饿的棋局】安东尼的军队被断了粮道——克利奥帕特拉收到这个情报时正在用早膳。她放下银匙，平静地抹了抹嘴角。罗马的内战进入了新阶段：不是刀剑的对决，而是肚皮的较量。安东尼的求助信一定已经在路上了。这封信将是他一生中最谦卑的文字。传令：准备一支运粮船队，满载尼罗河小麦，驶往布伦迪西乌姆——但不是免费的。安东尼必须以塞浦路斯岛的十年税收承包权作为交换。埃及的援助不是礼物，是投资。如果他赢了，塞浦路斯将成为埃及的实际领土；如果他输了——这批小麦就是我们向屋大维展示「善意可靠」的收据。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Hunger Board】Antony's army has been cut off from its grain supply — Cleopatra receives this intelligence over breakfast. She sets down her silver spoon and dabs her lips unhurriedly. Rome's civil war has entered a new phase: not a clash of blades, but a contest of bellies. Antony's plea for help is surely already on the sea. It will be the most humbling letter of his life. Issue orders: prepare a grain convoy, holds bursting with Nile wheat, bound for Brundisium — but not for free. Antony must pledge the ten-year tax farming rights of Cyprus in exchange. Egyptian aid is not a gift; it is an investment. If he wins, Cyprus becomes Egyptian territory in all but name. If he loses — this shipment of grain becomes our receipt of 'demonstrated goodwill' to show Octavian.",
+            "commands": []
+          }
+        },
+        "senate": {
+          "zh": {
+            "decision_text": "【面包优于刀剑】西塞罗在元老院紧急会议上提出了一个大胆的计划——它不涉及军团，不涉及同盟，只涉及面包。安东尼的军队正在挨饿，他的士兵的忠诚度与日俱减。西塞罗提议：「我们不能只靠屋大维的军团来打赢这场战争。让安东尼自己的士兵来决定胜负。」元老院通过决议：派遣信使潜入安东尼的军营，向普通士兵散发传单——凡投诚者不仅赦免一切罪行，还将获得共和国承诺的退伍土地和一年的粮食配给。更重要的是，信使们随身携带的不是武器，而是一袋袋真正的小麦。西塞罗微笑道：「饥饿比任何演说都更有说服力。」",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Bread Over Blades】Cicero proposes a bold plan in the emergency Senate session — no legions, no alliances, only bread. Antony's army is starving, and his soldiers' loyalty erodes by the day. Cicero argues: 'We need not rely on Octavian's legions alone to win this war. Let Antony's own soldiers decide the outcome.' The Senate passes a resolution: send couriers to infiltrate Antony's camps and distribute pamphlets to the rank and file — any deserter who comes over shall receive not only a full pardon for all crimes but also the Republic's promised settlement land and a year's grain ration. More crucially, the couriers carry not weapons but actual sacks of wheat. Cicero smiles: 'Hunger is more persuasive than any oration.'",
+            "commands": []
+          }
+        }
+      }
+    },
+    "confront_antony_then_diplomatic_offensive": {
+      "label_zh": "R1: 正面挑战安东尼 → R2: 外交攻势",
+      "label_en": "R1: Confront Antony → R2: Diplomatic Offensive",
+      "decisions": {
+        "antony": {
+          "zh": {
+            "decision_text": "【孤立无援】屋大维在战场上与我对峙，同时派出使团在外交上孤立我——这是在穆提纳之外开辟的第二条战线。西班牙总督写来了一封措辞暧昧的信，高卢行省的辅助军团拒绝北上听调，连我在东方的副将们都开始回复公文时加上「视情况而定」的字样。安东尼感到了真正的寒意——不是敌人太强，而是朋友太远。他连夜召集幕僚，制定反击方案：第一，派遣最亲信的副将普兰库斯前往希腊，确保东方行省的忠诚——用黄金，用威胁，用一切手段。第二，在罗马城内散布言论：西塞罗正在利用屋大维发动一场贵族对平民的战争——屋大维只不过是元老院的雇佣兵，打完仗就会被抛弃，就像当年庞培抛弃了为他打仗的士兵一样。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Isolated and Alone】Octavian faces me on the battlefield while his envoys isolate me diplomatically — a second front opened beyond Mutina. The governor of Hispania has sent a letter of studied ambiguity. The auxiliary cohorts in Gaul refuse orders to march south. Even my Eastern lieutenants have begun appending 'circumstances permitting' to their dispatches. Antony feels a genuine chill now — not because the enemy is too strong, but because friends are too far. He summons his council through the night to formulate a counter-strike. First, dispatch his most trusted lieutenant Plancus to Greece — secure the Eastern provinces' loyalty with gold, with threats, with anything that works. Second, plant a narrative in Rome's streets: Cicero is using Octavian to wage a patrician war against the people — Octavian is nothing but the Senate's mercenary. Once the war is over, they will discard him just as Pompey discarded the soldiers who bled for him.",
+            "commands": []
+          }
+        },
+        "cleopatra": {
+          "zh": {
+            "decision_text": "【站在未来的一边】屋大维的外交使团第三次来到亚历山大——这一次他们带来的不是模糊的友好信号，而是一份具体的提议：如果埃及在即将到来的穆提纳之战中保持中立，屋大维将承认托勒密王国对昔兰尼加和塞浦路斯的主权要求。克利奥帕特拉在接见使团时保持了一贯的优雅微笑，内心却在飞速计算。承认塞浦路斯——这是安东尼永远不会给的。安东尼把埃及当成盟友，屋大维却在谈生意。前者的关系靠情感，后者的关系靠利益——而在政治中，后者往往更可靠。传令：接受屋大维的提议，但加上一个条款——不在任何书面文书上签字。口头承诺，实际中立。万一安东尼奇迹般地赢了，我还可以说是屋大维的使团「曲解了埃及的善意」。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Standing on the Side of the Future】Octavian's diplomatic mission visits Alexandria for the third time — this time bearing not vague signals of goodwill but a concrete proposal: if Egypt remains neutral in the coming Battle of Mutina, Octavian will recognize the Ptolemaic Kingdom's sovereign claim to Cyrenaica and Cyprus. Cleopatra receives the envoys with her customary elegant smile, but her mind is racing through calculations. Recognize Cyprus — this is something Antony would never offer. Antony treats Egypt as an ally; Octavian is negotiating a transaction. The former relationship is built on sentiment, the latter on interest — and in politics, the latter is often more durable. Issue orders: accept Octavian's proposal, but add one clause — no signature on any written document. A verbal understanding, de facto neutrality. If Antony miraculously wins, I can still claim Octavian's envoys 'misinterpreted Egypt's goodwill.'",
+            "commands": []
+          }
+        },
+        "senate": {
+          "zh": {
+            "decision_text": "【最后的共和之舞】屋大维在战场上和外交场上同时压制安东尼——西塞罗看着战报和外交文书在案头堆积，感到一种近乎眩晕的满足感。他策划的一切都成功了：安东尼被孤立了，屋大维成了共和国的利剑，元老院重新掌握了决定权。但他毕竟是西塞罗——这个人的天赋之一就是在胜利中看到危机。他提笔给布鲁图斯写了一封长信：「亲爱的布鲁图斯，安东尼的失败只是第一幕。第二幕的名字叫屋大维——他持有恺撒的名字，现在又有了元老院授予的军权和外交权。他的权力来源是我们——这意味着我们必须在他发现自己可以不需要我们之前，把权力收回来。」信的最后一句是：「请尽快从希腊回师。不是为了打安东尼，而是为了站在屋大维对面，让他看见共和国不只是他一个人。」",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Last Republican Dance】Octavian is crushing Antony on both the battlefield and the diplomatic stage — Cicero gazes at the mounting piles of war dispatches and diplomatic correspondence on his desk, feeling a near-vertiginous satisfaction. Everything he engineered has succeeded: Antony is isolated, Octavian is the Republic's sword, the Senate has reclaimed the power of decision. But he is Cicero — and one of his gifts is seeing the crisis within the victory. He takes up his stylus and writes a long letter to Brutus: 'Dear Brutus, Antony's defeat is only Act One. Act Two is called Octavian — he bears Caesar's name and now holds military and diplomatic authority granted by the Senate. His power flows from us — which means we must retrieve it before he discovers he no longer needs us.' The letter's final line: 'Return from Greece with all haste. Not to fight Antony — but to stand opposite Octavian, so he sees that the Republic is more than one man.'",
+            "commands": []
+          }
+        }
+      }
+    }
+  }
+}
