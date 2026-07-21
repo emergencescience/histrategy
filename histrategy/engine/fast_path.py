@@ -243,6 +243,19 @@ def simulate_fast_path(room, player_decision: str,
 
     turn = (room.quarter_number or 0) + 1
 
+    # ── Snapshot pre-simulation state for turn_delta ──
+    import copy as _copy
+    old_factions: dict[str, dict] = {}
+    for _fid, _fd in factions.items():
+        old_factions[_fid] = {
+            "troops": _fd["troops"],
+            "morale": _fd["morale"],
+            "food": _fd["food"],
+            "treasury": _fd["treasury"],
+            "territories": list(_fd.get("territories", [])),
+            "population": _fd.get("population", 0),
+        }
+
     # ── Determine NPC package choices ──
     npc_choices = {}
     for fid in list(factions.keys()):
@@ -412,6 +425,7 @@ def simulate_fast_path(room, player_decision: str,
         "season": new_season,
         "turn": turn,
         "all_factions": factions,  # For world_state sync by caller
+        "old_factions": old_factions,  # Pre-simulation state for turn_delta
     }
 
 

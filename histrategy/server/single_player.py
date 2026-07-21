@@ -21,34 +21,48 @@ def _strip_suggestion_tag(text: str) -> str:
     return _re_strip.sub(r'^\[[a-zA-Z0-9_]+\]\s*', '', text.strip())
 
 
-def _persist_fast_path_game_state(room, all_factions: dict) -> None:
-    """Write per-faction game_state rows after a fast-path turn.
-
-    The sandbox map (territory_owners) and power ranking read from the
-    game_state table via get_latest_game_states(). The LLM/V3 paths write
-    this table every turn, but the fast-path previously only updated the
-    in-memory world_state and the quarter_turn narrative — leaving the map
-    frozen at the scenario baseline. This replicates the V3 persistence so
-    fast-path conquests show up on the map immediately.
+def _persist_fast_path_game_state(room, fp_result: dict) -> None:
+    """Write per-faction game_state + turn_delta rows after a fast-path turn.
 
     Args:
         room: GameRoom (already advanced to the new quarter).
-        all_factions: the simulate_fast_path `all_factions` dict, keyed by
-            faction_id, each with troops/morale/food/treasury/territories/
-            population/is_active.
+        fp_result: the full simulate_fast_path() return dict, containing
+            all_factions, old_factions, events_occurred, state_changes.
     """
+    all_factions = fp_result.get("all_factions", {})
     if not all_factions:
         return
-    from histrategy.db.models import save_game_state
+    from histrategy.db.models import save_game_state, save_turn_delta
 
     ws = getattr(room, "world_state", None)
     ws_territories = getattr(ws, "territories", {}) if ws else {}
+    old_factions = fp_result.get("old_factions", {})
+    events = fp_result.get("events_occurred", [])
+    state_changes = fp_result.get("state_changes", {})
 
-    quarter = room.quarter_number  # already advanced to the new quarter
+    # ── Build reason annotations from events ──
+    # Parse event strings like "大清围困福建" → type=combat, detail="qing:fujian"
+    def _event_reason(event: str) -> str:
+        for attacker_zh, attacker_id in [("大清", "qing"), ("南明", "nanming"),
+                                          ("农民军", "nongminjun"), ("郑氏", "zheng")]:
+            if event.startswith(attacker_zh):
+                rest = event[len(attacker_zh):]
+                if "攻陷" in rest:
+                    target = rest.replace("攻陷", "")
+                    return f"combat_city_fell:{attacker_id}:{target}"
+                elif "围困" in rest:
+                    target = rest.replace("围困", "")
+                    return f"combat_siege:{attacker_id}:{target}"
+                elif "守住" in rest:
+                    target = rest.replace("守住", "")
+                    return f"combat_defended:{attacker_id}:{target}"
+        return f"combat:{event}"
+
+    quarter = room.quarter_number
+
     for fid, fd in all_factions.items():
         try:
-            # Build territory list as [{id, name, population}] — the format
-            # the status endpoint parses for territory_owners + populations.
+            # ── Build territory list (same as before) ──
             territories = []
             for t in fd.get("territories", []) or []:
                 tid = getattr(t, "id", None) or (t if isinstance(t, str) else str(t))
@@ -58,8 +72,9 @@ def _persist_fast_path_game_state(room, all_factions: dict) -> None:
                     "name": getattr(t_obj, "name", tid) if t_obj else tid,
                     "population": getattr(t_obj, "population", 0) if t_obj else 0,
                 })
-            # Prefer summed territory population; fall back to faction pop.
             pop = sum(t["population"] for t in territories) or int(fd.get("population", 0) or 0)
+
+            # ── Save game_state snapshot ──
             save_game_state(
                 room_id=room.id,
                 quarter_number=quarter,
@@ -73,8 +88,49 @@ def _persist_fast_path_game_state(room, all_factions: dict) -> None:
                 policies={},
                 is_active=bool(fd.get("is_active", True)),
             )
+
+            # ── Write turn_delta entries ──
+            old = old_factions.get(fid, {})
+            if not old:
+                continue
+
+            # Determine which combat events affected this faction
+            faction_events = []
+            for evt in events:
+                # Events like "大清围困福建" affect specific factions via territory owner change
+                faction_events.append(evt)
+
+            # Build composite reason from combat events
+            combat_reasons = [_event_reason(e) for e in faction_events]
+            combat_reason = "; ".join(combat_reasons) if combat_reasons else ""
+
+            delta_items = [
+                ("troops", int(old.get("troops", 0)), int(fd.get("troops", 0)),
+                 combat_reason or "natural_attrition"),
+                ("food", float(old.get("food", 0)), float(fd.get("food", 0)),
+                 combat_reason or "natural_consumption"),
+                ("treasury", float(old.get("treasury", 0)), float(fd.get("treasury", 0)),
+                 "domestic_economy"),
+                ("morale", int(old.get("morale", 50)), int(fd.get("morale", 50)),
+                 combat_reason or "domestic_morale"),
+            ]
+
+            for delta_type, old_val, new_val, reason in delta_items:
+                if old_val == new_val:
+                    continue
+                save_turn_delta(
+                    room_id=room.id,
+                    quarter_number=quarter,
+                    faction_id=fid,
+                    delta_type=delta_type,
+                    old_value=float(old_val),
+                    new_value=float(new_val),
+                    reason=reason,
+                    source="fast_path",
+                )
+
         except Exception as e:
-            logger.warning(f"Room {room.id}: game_state save failed for {fid} (non-fatal): {e}")
+            logger.warning(f"Room {room.id}: game_state/turn_delta save failed for {fid} (non-fatal): {e}")
 
 # Legacy faction key → internal ID mapping (unified to short codes; kept for compatibility)
 from histrategy.engine.faction_slot import FACTION_ID_TO_DISPLAY
@@ -263,7 +319,7 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
             #    map falls back to the scenario baseline (initial ownership)
             #    and shows stale territory ownership after conquests. ──
             try:
-                _persist_fast_path_game_state(room, _sync_result)
+                _persist_fast_path_game_state(room, fp_result)
             except Exception as e:
                 logger.warning(f"Room {game_id}: fast-path game_state persist failed (non-fatal): {e}")
 
