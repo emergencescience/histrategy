@@ -267,6 +267,31 @@ class MilitaryEngine:
         # Apply fortification bonus to defender
         def_power *= map_engine.get_fortification_bonus(location)
 
+        # ── Cavalry charge bonus ──
+        # Factions with significant cavalry get a decisive advantage
+        # against infantry-heavy defenders (historical: Eight Banners vs Ming infantry)
+        atk_cav = attacker.units.get(UnitType.CAVALRY, 0)
+        atk_total = attacker.total_troops
+        def_cav = defender.units.get(UnitType.CAVALRY, 0)
+        def_total = defender.total_troops
+        atk_cav_ratio = atk_cav / max(atk_total, 1)
+        def_cav_ratio = def_cav / max(def_total, 1)
+
+        if atk_cav_ratio > 0.25 and def_cav_ratio < 0.15:
+            # Cavalry charge against infantry: +30% power
+            atk_power *= 1.30
+        if atk_cav_ratio > 0.35 and terrain == TerrainType.PLAINS:
+            # Heavy cavalry on open plains: devastating charge, additional +15%
+            atk_power *= 1.15
+
+        # ── Navy vs non-navy coastal advantage ──
+        atk_navy = attacker.units.get(UnitType.NAVY, 0)
+        def_navy = defender.units.get(UnitType.NAVY, 0)
+        if atk_navy > 0 and def_navy == 0:
+            t = map_engine.territories.get(location)
+            if t and (t.has_coast or t.has_river):
+                atk_power *= 1.20  # Naval superiority on coastal/river terrain
+
         # Determine result
         ratio = float("inf") if def_power == 0 else atk_power / def_power
 

@@ -10,31 +10,97 @@
         "qing": {
           "zh": {
             "decision_text": "【郑氏退潮】多尔衮翻开福建密报，嘴角浮起一丝笑意：郑芝龙嘴上喊着勤王，手上却忙着签日本的朱印状、铸自己的银元。此人终究是商贾心性，见利忘义。南明失去水师屏障，江北四镇又各怀鬼胎，孤军守淮河无异于螳臂当车。传令：暂不理会福建方向，集中兵力攻打山东。命济尔哈朗率八旗主力猛攻济南，切断南明与北方的联系。另致书郑芝龙——大清开出的价码是闽粤总督，世袭罔替。看他的银元硬还是我的敕书硬。",
-            "commands": []
+            "commands": [
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "jinan"
+                }
+              },
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "dengzhou"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【Zheng's Retreat from the Fray】Dorgon unfolds the Fujian intelligence report, a thin smile crossing his lips: Zheng Zhilong shouts loyalty to the Ming throne but spends his days signing Japanese trade treaties and minting silver coins. A merchant at heart — profit trumps principle. With the Ming stripped of their naval shield and the Four Garrisons each scheming for advantage, defending the Huai River alone is suicide. New orders: ignore Fujian entirely, concentrate all force on Shandong. Have Jirgalang's Eight Banner main force storm Jinan and sever Southern Ming's lifeline to the north. Meanwhile, dispatch a personal letter to Zheng Zhilong — the Qing offer is hereditary governor of Fujian and Guangdong. Let him weigh my imperial decree against his silver dollars.",
-            "commands": []
+            "commands": [
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "jinan"
+                }
+              },
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "dengzhou"
+                }
+              }
+            ]
           }
         },
         "nanming": {
           "zh": {
             "decision_text": "【寒心】史可法在北营接到郑芝龙转向通商的消息，久久沉默。当初郑氏五千水师北上勤王，扬州军民夹道相迎，以为中兴有望——如今不过数月，郑家船队已掉头南下，满载丝绸瓷器驶向长崎。马士英在朝中冷笑：早就说了，海盗不可靠！弘光帝则唯唯诺诺，既不敢怒斥郑芝龙背盟，又舍不得断绝福建的岁贡。史可法叹道：江南危矣。但即便如此，他仍咬牙上疏：请陛下速调江北四镇归臣统一节制，郑氏既不可恃，唯有死守淮河一途。",
-            "commands": []
+            "commands": [
+              {
+                "type": "move",
+                "params": {
+                  "destination": "jinan"
+                }
+              },
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "kaifeng"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【A Chill in the Heart】Shi Kefa receives the news at his northern command post: Zheng Zhilong has pivoted to commerce. Not months ago, five thousand Zheng marines sailed up the Yangtze to pledge allegiance, and the people of Yangzhou lined the banks cheering — the restoration seemed at hand. Now Zheng's fleet has turned south, holds laden with silk and porcelain bound for Nagasaki. Ma Shiying sneers in court: I told you — never trust a pirate! The Hongguang Emperor wavers, too timid to condemn Zheng's betrayal and too greedy to refuse Fujian's annual tribute. Shi Kefa sighs: Jiangnan is doomed. Yet he grinds his teeth and petitions once more: Your Majesty, place the Four Garrisons under my unified command. Since the Zheng clan cannot be relied upon, we have no choice but to hold the Huai River to the death.",
-            "commands": []
+            "commands": [
+              {
+                "type": "move",
+                "params": {
+                  "destination": "jinan"
+                }
+              },
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "kaifeng"
+                }
+              }
+            ]
           }
         },
         "nongminjun": {
           "zh": {
             "decision_text": "【商业本能】李自成看着牛金星呈上的福建商报——郑芝龙退出了勤王，专心做起了海外生意。李自成先是一愣，随即拍桌大笑：这姓郑的是个聪明人！打仗哪有做生意赚钱？传我号令：派出密使携四川蜀锦和井盐样品前往福州，试着跟郑家搭上一条贸易线。大顺现在缺的不是兵，是银子！另外，让李过留意——南明没了郑家水师，清军渡江就少了一道天险。若南明撑不了多久，四川就是我们最后的堡垒，加紧筑城屯粮，一刻不可懈怠。",
-            "commands": []
+            "commands": [
+              {
+                "type": "move",
+                "params": {
+                  "destination": "kaifeng"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【A Merchant's Instinct】Li Zicheng reads Niu Jinxing's Fujian trade report — Zheng Zhilong has abandoned the loyalist cause and thrown himself wholly into overseas commerce. Li stares for a moment, then slams the table laughing: This Zheng is a clever man! War bleeds gold; trade makes it. Issue orders: dispatch secret envoys to Fuzhou with samples of Sichuan brocade and well salt — let's see if we can open a trade line with the Zheng clan. What the Shun Army lacks now is not soldiers but silver! Meanwhile, have Li Guo take note: without the Zheng fleet, the Qing will face one less barrier at the Yangtze crossing. If the Southern Ming cannot hold, Sichuan becomes our last bastion — fortify the walls and stockpile grain, not a moment wasted.",
-            "commands": []
+            "commands": [
+              {
+                "type": "move",
+                "params": {
+                  "destination": "kaifeng"
+                }
+              }
+            ]
           }
         }
       }
@@ -46,31 +112,101 @@
         "qing": {
           "zh": {
             "decision_text": "【海上的刺】军报：郑芝龙不仅向弘光称臣，更在泉州开设水师学堂、仿制红夷大炮，水师陆战队已扩至三万人。多尔衮放下茶盏，脸色铁青。此人不是说说而已——他是真的在备战。一支训练有素的郑家水师若北上封锁长江口，再加上南明江北陆军，清军渡江将付出惨痛代价。传令：暂停山东攻势，命阿济格回师北京坐镇，以防郑芝龙从海路偷袭天津！另遣密使赴荷兰东印度公司——告诉他们，只要不卖火炮给郑家，大清愿开放广州口岸。用夷制夷，自古皆然。",
-            "commands": []
+            "commands": [
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "kaifeng"
+                }
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "beijing",
+                  "amount": 3000
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【A Thorn from the Sea】Military dispatch: Zheng Zhilong has not only pledged loyalty to the Hongguang court — he has opened a naval academy in Quanzhou, is replicating Dutch cannons, and has expanded his marine corps to thirty thousand. Dorgon sets down his tea, face darkening. This man is not posturing — he is genuinely preparing for war. If a well-trained Zheng fleet sails north to blockade the Yangtze mouth while Ming land forces hold the riverbank, the Qing crossing will cost rivers of blood. New directive: suspend the Shandong offensive. Recall Ajige to Beijing immediately — we may need him if Zheng raids Tianjin by sea! Also, dispatch a secret envoy to the Dutch East India Company: stop selling cannons to the Zheng clan, and the Great Qing will open the Canton port. Use barbarians against barbarians — as the ancients taught.",
-            "commands": []
+            "commands": [
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "kaifeng"
+                }
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "beijing",
+                  "amount": 3000
+                }
+              }
+            ]
           }
         },
         "nanming": {
           "zh": {
             "decision_text": "【振奋】史可法展读郑芝龙的亲笔信：水师正加紧训练，新铸红夷炮三十门，三月后可挥师北上。他热泪盈眶——终于有一个说话算话的盟友了！当即修书回复：请郑兄务必在淮河防线最吃紧之时以水师封锁瓜洲渡口，切断清军退路。同时，史可法在扬州大营召开军事会议，重新部署四镇兵力——既然水师有了着落，陆上就不必死守每一寸土地，可以诱敌深入，待郑家水师到位后再合围聚歼。马士英却阴阳怪气：郑芝龙扩军，是他抗清还是扩他自己？史可法怒道：而今国难当头，还计较这些！",
-            "commands": []
+            "commands": [
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "nanjing",
+                  "amount": 4000
+                }
+              },
+              {
+                "type": "move",
+                "params": {
+                  "destination": "kaifeng"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【Inspired】Shi Kefa unfolds Zheng Zhilong's personal letter: the fleet is drilling day and night; thirty new Dutch-pattern cannons have been cast; in three months, we sail north. Tears well in his eyes — finally, an ally who keeps his word! He dashes off a reply: Brother Zheng, when the Huai River line is hardest pressed, seal the Guazhou crossing with your fleet and cut off the Qing's retreat. Then, at his Yangzhou command tent, Shi Kefa redraws the Four Garrisons' deployment: with naval support secured, we need not hold every inch of ground — we can lure the Qing in deep, then spring the trap when Zheng's fleet arrives. Ma Shiying mutters acidly: Is Zheng building his army to fight the Qing — or to build his own empire? Shi Kefa thunders back: The realm hangs by a thread, and you quibble over motives!",
-            "commands": []
+            "commands": [
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "nanjing",
+                  "amount": 4000
+                }
+              },
+              {
+                "type": "move",
+                "params": {
+                  "destination": "kaifeng"
+                }
+              }
+            ]
           }
         },
         "nongminjun": {
           "zh": {
             "decision_text": "【警惕】李自成得到探报：郑芝龙正在泉州大规模扩建水师，荷兰火炮、日本倭刀成船购入。他的笑容收了起来。一个勤王的郑芝龙不可怕，但一个勤王又扩军的郑芝龙就可怕了——这意味着南明可能真的稳住阵脚。南明一旦稳住，转头就会来收拾大顺这个「弑君之贼」。传令刘宗敏：加强夷陵一线防守，多设拒马和火器阵地，严防郑家水师沿江西进。同时命牛金星起草一封密信给多尔衮——不是称臣，只是提醒大清：福建的炮口不止对着北方，也对着我们所有人。",
-            "commands": []
+            "commands": [
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "henan_east"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【On Guard】Li Zicheng reads the scout's dispatch: Zheng Zhilong is massively expanding his fleet at Quanzhou — entire ship-cargoes of Dutch cannons and Japanese swords are pouring in. His grin vanishes. A loyalist Zheng is not dangerous. A loyalist Zheng who is arming to the teeth — that is dangerous. It means the Southern Ming may actually stabilize. And once stabilized, they will turn on the Shun Army, the 'regicides' who drove Chongzhen to hang himself. Order Liu Zongmin: reinforce the Yiling defensive line — more abatis, more gunpowder positions — in case Zheng's fleet attempts a westward thrust up the Yangtze. Also, have Niu Jinxing draft a secret letter to Dorgon — not a submission, merely a reminder: the cannons in Fujian are aimed at more than just the northern border; they threaten us all.",
-            "commands": []
+            "commands": [
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "henan_east"
+                }
+              }
+            ]
           }
         }
       }
@@ -82,31 +218,97 @@
         "qing": {
           "zh": {
             "decision_text": "【猜疑与机会】范文程呈上密报：郑芝龙一面在南京高喊勤王，一面遣使来北京试探归顺条件。多尔衮将密报翻来覆去看了三遍，冷笑：这个海盗头子比我想的还要滑头。但他不敢公开接受我大清的册封，又舍不得南明给的官爵——两面下注，等胜负分晓再站队。这倒给了我们可乘之机。传令：暂且不逼迫郑氏表态，给他足够的暧昧空间。但同时——命多铎加速平定河南，只要我们在陆上打得够快够狠，郑芝龙的船还没来得及选边，天下就已经姓清了。",
-            "commands": []
+            "commands": [
+              {
+                "type": "move",
+                "params": {
+                  "destination": "kaifeng"
+                }
+              },
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "shanxi"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【Suspicion and Opportunity】Fan Wencheng presents the secret report: Zheng Zhilong shouts loyalty in Nanjing while sending envoys to Beijing to probe the terms of surrender. Dorgon reads it three times, then sneers: This pirate chief is even slipperier than I credited. He dare not openly accept Qing investiture, yet he can't bear to give up his Southern Ming titles — hedging his bets, waiting for the winner to emerge before committing. This gives us a window. New orders: do not pressure Zheng to declare — give him just enough ambiguity to keep him frozen. Meanwhile, order Dodo to accelerate the pacification of Henan. If we move fast and hard enough on land, by the time Zheng's ships figure out which way to sail, the realm will already wear the Qing colors.",
-            "commands": []
+            "commands": [
+              {
+                "type": "move",
+                "params": {
+                  "destination": "kaifeng"
+                }
+              },
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "shanxi"
+                }
+              }
+            ]
           }
         },
         "nanming": {
           "zh": {
             "decision_text": "【疑虑重重】南京朝堂上传言四起——有人说郑芝龙的亲信在福州接待了北京来的密使，用的是八旗的通关文书。马士英趁机发难：陛下！郑芝龙首鼠两端，若不加以约束，必成后患！弘光帝左右为难，最终只批了一句「郑卿忠心可嘉，勿信谣言」。史可法在扬州闻讯，长叹一声：最怕的就是这种——他不是敌人，但也未必是朋友。当下之计，只能尽可能多地让郑家船队参与实战，用共同流血的经历把他绑在南明的战车上。史可法致信郑芝龙：请派一支分舰队常驻镇江，与江北陆军协同操练。名为「联训」，实为「质押」。",
-            "commands": []
+            "commands": [
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "nanjing"
+                }
+              },
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "kaifeng"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【Growing Suspicion】Rumors sweep the Nanjing court — some claim Zheng Zhilong's confidants received secret envoys from Beijing in Fuzhou, bearing Eight Banner travel permits. Ma Shiying seizes the moment: Your Majesty! Zheng Zhilong hedges like a weathervane! Restrain him now or regret it later! The Hongguang Emperor, paralyzed, scribbles only: 'Minister Zheng's loyalty is commendable — disregard rumors.' In Yangzhou, Shi Kefa reads the imperial reply and sighs deeply: This is the worst situation — he is not an enemy, but not necessarily a friend either. The only recourse is to draw Zheng's fleet into real combat as quickly as possible — bind him to the Ming cause with shared blood. Shi Kefa writes to Zheng: Please station a detachment permanently at Zhenjiang for joint exercises with the northern army. A 'training partnership' — in truth, a guarantee.",
-            "commands": []
+            "commands": [
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "nanjing"
+                }
+              },
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "kaifeng"
+                }
+              }
+            ]
           }
         },
         "nongminjun": {
           "zh": {
             "decision_text": "【投机者的直觉】牛金星从福州回来，带回一个消息：郑芝龙同时在跟北京和南京做交易。李自成若有所思：这让我想起我自己——当年在商洛山中，不也是对官军说降又不降、对张献忠说合又不合？两面下注是弱者求存的本能。郑芝龙强大，但他的处境与我们相似——都是不被正统接纳的外人。传令：派最精干的使者再去福州一次，这次不谈贸易，只问一句话——「若天下三分，郑公欲居何处？」看他怎么回答。他若含糊，则此人不可深交；他若愿谈，则大顺多了一个海上盟友。",
-            "commands": []
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "xiangyang"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【A Speculator's Instinct】Niu Jinxing returns from Fuzhou with news: Zheng Zhilong is negotiating simultaneously with Beijing and Nanjing. Li Zicheng falls into deep thought: This reminds me of myself — in the Shangluo Mountains, didn't I also offer surrender to the officials while refusing to disarm, pledge peace to Zhang Xianzhong while keeping my distance? Hedging is the survivor's instinct. Zheng Zhilong is powerful, but his predicament mirrors ours — we are both outsiders whom the orthodox court will never truly embrace. Orders: send our most capable envoy to Fuzhou once more. This time, no talk of trade — ask only one question: 'If the realm divides three ways, where does Lord Zheng see himself?' Watch his answer. If he evades, he cannot be trusted. If he engages, the Shun Army has gained an ally on the seas.",
-            "commands": []
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "xiangyang"
+                }
+              }
+            ]
           }
         }
       }
@@ -118,31 +320,97 @@
         "qing": {
           "zh": {
             "decision_text": "【虚惊一场】半年前郑芝龙大举扩军的消息曾让多尔衮夜不能寐，如今细作回报：此人扩军后就转而去跟日本人做生意了，新募的水兵大半被调去护航商船，泉州军械所已改产民用铁器。多尔衮哑然失笑：虎头蛇尾，到底是海商而非将军。不过此人囤积的火炮仍在，不可不防——命沿海各州府加修炮台，以防郑氏哪一日心血来潮又想起自己是「明朝忠臣」。主力仍按原计划南下，不必为福建分兵。",
-            "commands": []
+            "commands": [
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "jinan"
+                }
+              },
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "dengzhou"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【A False Alarm】Half a year ago, reports of Zheng Zhilong's massive military buildup kept Dorgon awake at night. Now the spies report: after building his army, Zheng turned around and went into business with the Japanese — most of his new marines have been reassigned to escort merchantmen, and the Quanzhou arsenal has switched to civilian ironwork. Dorgon chuckles: A tiger's head, a snake's tail — a merchant after all, not a general. Still, the cannons he stockpiled remain a concern — order every coastal prefecture to reinforce its shore batteries, just in case Zheng wakes up one morning and remembers he is a 'Ming loyalist.' The main army proceeds south as planned; no need to divert forces for Fujian.",
-            "commands": []
+            "commands": [
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "jinan"
+                }
+              },
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "dengzhou"
+                }
+              }
+            ]
           }
         },
         "nanming": {
           "zh": {
             "decision_text": "【被戏弄的朝廷】南京朝堂炸了锅——郑芝龙花了大半年时间招募了三万水兵，造了一百多门红夷炮，朝廷为此给他拨了三十万两饷银、册封了三个侯爵。结果呢？他把兵调去护航商船，炮装在了远洋帆船上，侯爵的朝服一次都没穿过。马士英拍案而起：这就是赤裸裸的诈骗！朝廷的银子变成了他郑家的商船！弘光帝面色苍白，却说不出半句重话——因为福建的岁贡还在按时送来，比扩军之前反而多了一成。史可法在扬州独自喝着冷酒：明室养士三百年，养出的不如一个商人明白。",
-            "commands": []
+            "commands": [
+              {
+                "type": "move",
+                "params": {
+                  "destination": "jinan"
+                }
+              },
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "kaifeng"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【A Court Made a Fool】The Nanjing court erupts — Zheng Zhilong spent the better part of a year recruiting thirty thousand marines and casting over a hundred Dutch-pattern cannons, for which the court awarded him three hundred thousand taels in silver subsidies and three marquisates. And what has he done? Reassigned the troops to convoy duty, mounted the cannons on ocean-going merchantmen, and never once wore the robes of the titles he was granted. Ma Shiying pounds the table: This is outright fraud! The court's silver turned into the Zheng clan's merchant fleet! The Hongguang Emperor turns pale but utters no rebuke — because Fujian's annual tribute is still arriving on schedule, in fact, ten percent more than before the buildup. In Yangzhou, Shi Kefa drinks cold wine alone: Three hundred years the Ming nurtured scholar-officials, and not one of them understands the world as clearly as this merchant.",
-            "commands": []
+            "commands": [
+              {
+                "type": "move",
+                "params": {
+                  "destination": "jinan"
+                }
+              },
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "kaifeng"
+                }
+              }
+            ]
           }
         },
         "nongminjun": {
           "zh": {
             "decision_text": "【松一口气】郑芝龙扩军时刘宗敏紧张得天天派人盯着夷陵江面，现在听说他改行做生意了，大顺上下都松了口气。李自成笑道：此人练兵怕是跟朝廷要银子的由头，银子到手，兵就成了摆设。不过这样也好——郑家不做南明的刀，清军就少一个陆上牵制，南明亡得快，战火烧到四川也就更快。命牛金星加紧屯田——我们需要在南明崩溃之前做好独自抗清的准备。另外，既然郑芝龙现在做生意了，让商队带上最好的蜀锦去福州，换些火药和铁料回来。",
-            "commands": []
+            "commands": [
+              {
+                "type": "move",
+                "params": {
+                  "destination": "kaifeng"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【A Sigh of Relief】When Zheng Zhilong was expanding his army, Liu Zongmin stationed scouts along the Yiling riverbank day and night. Now word comes that Zheng has switched to commerce, and the entire Shun command breathes easier. Li Zicheng laughs: Raising troops was probably just his excuse to squeeze silver from the Ming court — once the money landed, the soldiers became ornaments. But this suits us well: if the Zheng clan won't be the Ming's sword, the Qing face one less diversion on land; the Ming will fall faster, and the war will reach Sichuan sooner. Order Niu Jinxing to redouble the farming colonies — we must be ready to resist the Qing alone before the Ming collapse. And since Zheng is now open for business, send a trade caravan with our finest Sichuan brocade to Fuzhou — trade for gunpowder and iron.",
-            "commands": []
+            "commands": [
+              {
+                "type": "move",
+                "params": {
+                  "destination": "kaifeng"
+                }
+              }
+            ]
           }
         }
       }
@@ -154,31 +422,101 @@
         "qing": {
           "zh": {
             "decision_text": "【真正的威胁】多尔衮召集议政王大臣会议，将郑芝龙两轮扩军的军报摆在案上——三万水兵、四百门新铸火炮、漳州水师学堂已培养出第一批毕业生，泉州军械所月产火铳五百杆。豪格第一个开口：此人不除，我大清永无安枕之日！多尔衮抬手制止：急什么？郑芝龙强在海上，弱在陆上。他再扩军十年，也练不出能与我八旗铁骑野战的兵力。眼下之计——加快陆上攻势，在郑家水师成气候之前拿下南京。同时命朝鲜赶造战船二百艘，在渤海湾编练水师——他郑芝龙有太平洋，我大清也要有黄海。",
-            "commands": []
+            "commands": [
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "kaifeng"
+                }
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "beijing",
+                  "amount": 3000
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【A Genuine Threat】Dorgon convenes the Deliberative Council of Princes and Ministers, laying Zheng Zhilong's double-round military expansion reports on the table: thirty thousand marines, four hundred newly cast cannons, the first graduating class of the Zhangzhou Naval Academy, and the Quanzhou arsenal producing five hundred firearms per month. Haoge speaks first: Eliminate this man, or the Great Qing shall never sleep soundly! Dorgon raises a hand: Patience. Zheng Zhilong's strength is on the sea, his weakness on land. He can expand for another decade and still not produce troops capable of field battle against the Eight Banner cavalry. For now — accelerate the land offensive. Take Nanjing before Zheng's fleet reaches critical mass. Also, order Korea to build two hundred warships and train a fleet in the Bohai Sea — Zheng Zhilong has the Pacific; the Great Qing shall have the Yellow Sea.",
-            "commands": []
+            "commands": [
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "kaifeng"
+                }
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "beijing",
+                  "amount": 3000
+                }
+              }
+            ]
           }
         },
         "nanming": {
           "zh": {
             "decision_text": "【最大的希望，最深的恐惧】史可法站在扬州城头，眺望江面——远处郑家的训练船队正在演习，炮声隆隆，军容壮盛。他心中百感交集：这大概是南明最后的救命稻草，可这根稻草也会把他自己压垮。朝中已经有人密奏「郑芝龙拥兵自重，恐为海上曹操」，马士英更是三天一奏要求削减福建军饷。史可法上书力保：没有郑家水师，长江就是一条任清军来去的大路。弘光帝犹豫再三，最终批了四个字——「暂仍其旧」。史可法苦笑：「暂」到何时？等清军的刀架在脖子上，这个「暂」字就是墓志铭。",
-            "commands": []
+            "commands": [
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "nanjing",
+                  "amount": 4000
+                }
+              },
+              {
+                "type": "move",
+                "params": {
+                  "destination": "kaifeng"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【Greatest Hope, Deepest Fear】Shi Kefa stands atop the Yangzhou walls, gazing across the river — Zheng's training fleet maneuvers in the distance, cannons booming, formations sharp. His heart churns: This is probably the Southern Ming's last lifeline, yet it may also be the weight that sinks him. Courtiers have already filed secret memorials warning that 'Zheng Zhilong amasses forces for his own ends — he is a maritime Cao Cao.' Ma Shiying petitions every three days to cut Fujian's military subsidies. Shi Kefa sends a memorial defending Zheng: Without the Zheng fleet, the Yangtze is an open highway for the Qing army. The Hongguang Emperor dithers, finally writing four characters: 'Maintain the status quo for now.' Shi Kefa gives a bitter laugh: 'For now' — until when? When the Qing blade is at our throats, those two words will be our epitaph.",
-            "commands": []
+            "commands": [
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "nanjing",
+                  "amount": 4000
+                }
+              },
+              {
+                "type": "move",
+                "params": {
+                  "destination": "kaifeng"
+                }
+              }
+            ]
           }
         },
         "nongminjun": {
           "zh": {
             "decision_text": "【压力陡增】李自成连续读到三份关于郑芝龙扩军的探报，沉默的时间一次比一次长。南明有这样一个海上强援，实力对比正在发生微妙变化。如果清军被郑家水师和江北陆军联手挡住，那么当战局僵持下来时，大顺的地位就变得尴尬了——既不站在明一边，也不是清的盟友，两方都可能先拿我们开刀。牛金星献计：不如趁现在主动向南明示好，提出共同抗清的方案，但条件是四川归我们，湖广共同管辖。李自成沉思片刻，点头：可以谈。但记住——谈判桌上说的话，大顺刀下从不算数。",
-            "commands": []
+            "commands": [
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "henan_east"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【Pressure Mounts】Li Zicheng reads three successive intelligence reports on Zheng Zhilong's military expansion — each silence lasts longer than the last. With such a powerful maritime ally, the Southern Ming's strategic balance is shifting subtly. If the Qing are checked by the combined force of the Zheng fleet and the northern Ming army, and the war stalemates, the Shun Army's position becomes awkward — aligned with neither Ming nor Qing, a target for both. Niu Jinxing suggests: Why not proactively reach out to the Southern Ming now? Propose joint resistance against the Qing — with the condition that Sichuan is ours, and Huguang is jointly administered. Li Zicheng ponders, then nods: We can talk. But remember — the Shun blade has never been bound by words spoken at a negotiating table.",
-            "commands": []
+            "commands": [
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "henan_east"
+                }
+              }
+            ]
           }
         }
       }
@@ -190,31 +528,97 @@
         "qing": {
           "zh": {
             "decision_text": "【两头猛虎】多尔衮将郑芝龙的密信摊在案上——信中措辞恭敬，但始终不称臣、不纳贡、不剃发，只提「愿为朝廷守闽海」。洪承畴在一旁冷笑：王爷，此人手握重兵而游走两朝，这不是称臣，这是以其武力要挟朝廷给他自治之权。多尔衮沉思良久：你说得对。但他现在至少不站在南明那边——这就够了。传令：默许郑氏在闽粤的特殊地位，暂不强求剃发。待天下大定之时，再算这笔账不迟。眼前之急，仍是南京。命多铎不必理会福建方向，全力南下。",
-            "commands": []
+            "commands": [
+              {
+                "type": "move",
+                "params": {
+                  "destination": "kaifeng"
+                }
+              },
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "shanxi"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【Two Tigers at the Gate】Dorgon spreads Zheng Zhilong's secret letter on the table — its language is respectful, but it never once offers submission, tribute, or the queue. It merely promises to 'guard the Fujian seas for the court.' Hong Chengchou sneers beside him: Your Highness, this man holds a powerful army and plays both courts — this is not submission; this is using armed force to extort autonomy. Dorgon reflects: You are right. But for now, he is at least not standing with the Southern Ming — and that is enough. Orders: tacitly accept the Zheng clan's special status in Fujian and Guangdong. Do not press the queue issue yet. When the realm is settled, we will settle this account. The immediate target remains Nanjing. Tell Dodo to ignore Fujian entirely and push south with all speed.",
-            "commands": []
+            "commands": [
+              {
+                "type": "move",
+                "params": {
+                  "destination": "kaifeng"
+                }
+              },
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "shanxi"
+                }
+              }
+            ]
           }
         },
         "nanming": {
           "zh": {
             "decision_text": "【刀尖上的平衡】南京的文武百官已经分成了三派——保郑派、疑郑派、骑墙派。史可法不属于任何一派。他只知道一件事：如果现在公开跟郑芝龙翻脸，长江上就再也没有阻挡清军渡江的舰队了。他写了一封很长的信给郑芝龙，信中不提忠诚、不说道义，只说利害：「公之身家性命系于闽海，然闽海之安系于江南之存。江南若没于北骑，公之商船虽多，将售与何人？公之火炮虽利，能挡八旗乎？」此信送出后，史可法对亲信说：若这封信拉不住他，那就什么都拉不住了。",
-            "commands": []
+            "commands": [
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "nanjing"
+                }
+              },
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "kaifeng"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【Balance on a Knife's Edge】The Nanjing court has splintered into three factions — pro-Zheng, anti-Zheng, and fence-sitters. Shi Kefa belongs to none of them. He knows only one thing: if we openly break with Zheng Zhilong now, there will be no fleet on the Yangtze to stop the Qing from crossing. He writes a long letter to Zheng — no mention of loyalty, no appeals to righteousness, only pure self-interest: 'Your lordship's life and fortune rest on the Fujian seas, but the safety of those seas rests on the survival of Jiangnan. If Jiangnan falls to the northern cavalry, to whom will you sell your merchant fleet's cargo? Your cannons may be sharp — can they stop the Eight Banners?' After sending the letter, Shi Kefa tells his aide: If this letter doesn't hold him, nothing will.",
-            "commands": []
+            "commands": [
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "nanjing"
+                }
+              },
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "kaifeng"
+                }
+              }
+            ]
           }
         },
         "nongminjun": {
           "zh": {
             "decision_text": "【危险的平衡术】郑芝龙的态度让李自成既佩服又警惕——此人练兵扩军、两面下注，每一步都踩在刀刃上却暂时还没掉下去，这需要的不仅是胆量，更是对各方实力消长的精准判断。李自成对牛金星说：我们是造反起家的，他是做生意起家的——但活到今天的道理是一样的：永远不要把所有赌注押在一个庄家身上。传令：维持与郑家的贸易窗口，但不签任何盟约。同时密切注意他下一步——如果清军逼近南京时他按兵不动，那就意味着他背叛南明只是时间问题。到那时，我们或许可以跟他做一个更大的交易。",
-            "commands": []
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "xiangyang"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【A Dangerous Balancing Act】Zheng Zhilong's posture earns Li Zicheng's grudging respect — and wariness. This man has raised an army and now hedges between empires, each step balanced on a blade's edge without yet falling — that requires not just courage but a precise calculus of every faction's waxing and waning power. Li Zicheng tells Niu Jinxing: We rose through rebellion; he rose through trade — but the principle of survival is the same: never stake everything on a single house. Orders: keep the trade window with the Zheng clan open, but sign no treaty. And watch his next move closely — if he holds his fleet back as the Qing close on Nanjing, it means his betrayal of the Ming is only a matter of time. When that moment comes, we might make a much larger deal with him.",
-            "commands": []
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "xiangyang"
+                }
+              }
+            ]
           }
         }
       }
@@ -226,31 +630,97 @@
         "qing": {
           "zh": {
             "decision_text": "【商人无害论】郑芝龙先是安抚江南、降低税赋，然后转向海外贸易——此人从头到尾做的都是商人的事。多尔衮对洪承畴说：这种人不会成为大清的致命威胁。他只想保住闽粤的一亩三分地和海上的商路，给他一个总督的头衔，他比谁都老实。倒是南明——郑芝龙安抚过的江南民心已定，这给我们招降增加了难度。传令：在占领区推行比南明更低的税赋——郑芝龙减三成，我们减四成。他给不了的，比如不剃发、不圈地，我们也给。用实际利益争取江南人心。",
-            "commands": []
+            "commands": [
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "jinan"
+                }
+              },
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "dengzhou"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【A Harmless Merchant, After All】Zheng Zhilong first pacified Jiangnan with tax cuts, then pivoted to overseas trade — everything he has done is the work of a merchant. Dorgon tells Hong Chengchou: This kind of man will never become a mortal threat to the Great Qing. He only wants to protect his corner of Fujian and Guangdong and his sea routes — give him a governor's title and he'll be the most obedient subject alive. The real problem is the Southern Ming — Zheng's pacification has settled Jiangnan hearts, making our persuasion harder. Orders: in occupied territories, impose taxes even lower than the Southern Ming — Zheng cut thirty percent, we cut forty. And offer what he cannot: no queue-cutting, no land seizures. Win Jiangnan with tangible benefits.",
-            "commands": []
+            "commands": [
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "jinan"
+                }
+              },
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "dengzhou"
+                }
+              }
+            ]
           }
         },
         "nanming": {
           "zh": {
             "decision_text": "【被抛弃的江南】郑芝龙安抚江南时，苏州织户复工、漕运恢复、金陵市面重现繁华——江南士绅一度以为太平日子回来了。但郑芝龙现在把精力转向了贸易，海外商船络绎不绝，却对江北越来越危急的战局不闻不问。江南士绅开始议论：郑公的船是往外洋开的，不是往淮河开的。史可法感受到了这种情绪的转变——民心可用但不可久恃。他紧急上书：请陛下诏令各省督抚自筹团练，不能单靠郑氏一家的水师。同时亲赴苏州、松江动员富商捐资助战。但成效寥寥——商人毕竟是商人，看不到朝廷的胜算，谁愿意掏钱？",
-            "commands": []
+            "commands": [
+              {
+                "type": "move",
+                "params": {
+                  "destination": "jinan"
+                }
+              },
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "kaifeng"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【Jiangnan Abandoned】When Zheng Zhilong pacified Jiangnan, Suzhou's weavers reopened their workshops, the Grand Canal pulsed with grain barges, and the Jinling markets showed signs of old prosperity — the Jiangnan gentry believed, for a moment, that peaceful times had returned. But now Zheng's energy is consumed by trade; overseas merchantmen crowd his docks while the increasingly desperate situation north of the Yangtze goes unaddressed. The Jiangnan gentry begin to murmur: Lord Zheng's ships sail outward to the ocean, not upriver to the Huai. Shi Kefa feels this shift in sentiment — popular will is useful but fleeting. He urgently petitions: Your Majesty, order every provincial governor to raise their own militias — we cannot rely on the Zheng fleet alone. He travels personally to Suzhou and Songjiang to rally merchant donations. But the results are meager — merchants are merchants; who opens their purse when the court's odds look grim?",
-            "commands": []
+            "commands": [
+              {
+                "type": "move",
+                "params": {
+                  "destination": "jinan"
+                }
+              },
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "kaifeng"
+                }
+              }
+            ]
           }
         },
         "nongminjun": {
           "zh": {
             "decision_text": "【江南的伤口】郑芝龙安抚江南的政策一度让大顺的宣传战难以施展——「闯王来了不纳粮」的口号在已经减赋三成的江南没有当年在陕西那样的号召力。但现在郑芝龙把注意力转向了海外贸易，江南的防务空虚，清军步步紧逼。李自成看到了机会：命牛金星重新组织细作潜入江南，这次的口号不是「不纳粮」，而是「明廷已弃江南，闯王保境安民」。同时，如果江南富商开始寻找退路，大顺愿意提供四川的避风港——以他们的财富和技术换取保护。江南的银子，也许可以从海上流入郑家的口袋，也可以从陆上流入大顺的口袋。",
-            "commands": []
+            "commands": [
+              {
+                "type": "move",
+                "params": {
+                  "destination": "kaifeng"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【Jiangnan's Wound】Zheng Zhilong's pacification policy once made the Shun Army's propaganda campaign difficult — 'Under King Chuang, no man pays the grain tax' didn't resonate in Jiangnan the way it had in Shaanxi when taxes had already been slashed by thirty percent. But now that Zheng's attention has turned to overseas trade, Jiangnan's defenses are bare and the Qing advance is relentless. Li Zicheng sees an opening: have Niu Jinxing reorganize covert agents into Jiangnan. The new slogan is not 'no grain tax' but 'The Ming court has abandoned Jiangnan — King Chuang protects the land and its people.' And if wealthy Jiangnan merchants begin seeking escape routes — the Shun Army offers shelter in Sichuan, protection in exchange for their wealth and skills. Jiangnan's silver may flow into Zheng's pocket by sea — or into the Shun Army's pocket by land.",
-            "commands": []
+            "commands": [
+              {
+                "type": "move",
+                "params": {
+                  "destination": "kaifeng"
+                }
+              }
+            ]
           }
         }
       }
@@ -262,31 +732,101 @@
         "qing": {
           "zh": {
             "decision_text": "【致命组合】先是安抚江南收买人心，然后大举扩军——这郑芝龙的棋路比多尔衮预估的要高明得多。民心归附加上精兵在手，闽粤已经不是一个行省的问题了，而是一个可能独立的王国。洪承畴进言：王爷，必须在他完全成气候之前拿下南京——只要弘光朝廷一灭，郑芝龙即使称王，也名不正言不顺，那时便好对付。多尔衮点头同意。但私下又给豪格下了一道密令：在天津和登州秘密囤积战船和火器——万一南京打不下来，大清要能从海上攻打福建。",
-            "commands": []
+            "commands": [
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "kaifeng"
+                }
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "beijing",
+                  "amount": 3000
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【A Lethal Combination】First pacify Jiangnan to win the people's hearts, then massively expand the military — Zheng Zhilong's strategy is far more sophisticated than Dorgon had estimated. Popular loyalty combined with crack troops — Fujian and Guangdong are no longer mere provinces but a potential independent kingdom. Hong Chengchou advises: Your Highness, we must take Nanjing before he reaches full strength. Once the Hongguang court is extinguished, even if Zheng declares himself a king, his claim lacks legitimacy — and then he becomes manageable. Dorgon nods. But privately, he issues a secret directive to Haoge: stockpile warships and firearms in Tianjin and Dengzhou in secret — if Nanjing cannot be taken from the land, the Great Qing must be able to strike Fujian from the sea.",
-            "commands": []
+            "commands": [
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "kaifeng"
+                }
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "beijing",
+                  "amount": 3000
+                }
+              }
+            ]
           }
         },
         "nanming": {
           "zh": {
             "decision_text": "【迟来的利剑】史可法在扬州检阅新到的郑家援军——三千陆战队、二十门新式火炮、粮草辎重充足。他握住带队将领的手：你们郑公终于把剑磨好了！有了这支力量，淮河防线上多了一支生力军。但朝中马士英提醒弘光帝：郑芝龙安抚江南用的是朝廷的名义、减免的是朝廷的赋税，扩军用的是朝廷的饷银——可他所有的新军都只听他一个人的号令。弘光帝含糊其辞：用人之际，不要计较。史可法则在军事会议上直言：诸位，救命的时候别问刀是谁的——先把命保住再说。",
-            "commands": []
+            "commands": [
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "nanjing",
+                  "amount": 4000
+                }
+              },
+              {
+                "type": "move",
+                "params": {
+                  "destination": "kaifeng"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【A Blade Forged Too Late】Shi Kefa inspects the newly arrived Zheng reinforcements at Yangzhou — three thousand marines, twenty modern cannons, full supply wagons. He grasps the commander's hands: Your Lord Zheng has finally sharpened his sword! With this force, the Huai River line gains a fresh corps. But in court, Ma Shiying reminds the Hongguang Emperor: Zheng Zhilong pacified Jiangnan in the court's name, cut the court's taxes, and expanded his army with the court's silver — yet all his new troops answer only to him. The Emperor mumbles: In a time of need, let us not quibble. At the war council, Shi Kefa speaks bluntly: Gentlemen, when you are drowning, do not ask who owns the rope — first, grab it and survive.",
-            "commands": []
+            "commands": [
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "nanjing",
+                  "amount": 4000
+                }
+              },
+              {
+                "type": "move",
+                "params": {
+                  "destination": "kaifeng"
+                }
+              }
+            ]
           }
         },
         "nongminjun": {
           "zh": {
             "decision_text": "【被夹在中间】郑芝龙两轮操作的结果是：江南稳了，福建强了，南明整体上比半年前更有战斗力了。这对大顺来说是最坏的局面——清军被挡在淮河以北，南明南边没有后顾之忧，那么大顺夹在两者之间就成了最显眼的目标。李自成召集众将议事：我们必须在郑家水师和南明陆军形成合力之前，做出选择——要么向清军靠拢，换取生存空间；要么主动出击，打一场立威之战，让南明不敢轻易动我们。高一功主张打：与其等死，不如拼死！刘宗敏主张谈：我们跟清军没有仇，跟他们可以谈。李自成最后说：两手都准备。谈——派人去北京。打——派人盯住夷陵。",
-            "commands": []
+            "commands": [
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "henan_east"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【Caught in the Middle】The result of Zheng Zhilong's two rounds: Jiangnan is stabilized, Fujian is strengthened, and the Southern Ming as a whole is more battleworthy than six months ago. This is the worst scenario for the Shun Army — the Qing are stalled north of the Huai, the Ming has no threats from the south, and the Shun, wedged between them, becomes the most conspicuous target. Li Zicheng summons the generals: We must decide before the Zheng fleet and the Ming army can fully coordinate — either lean toward the Qing in exchange for breathing room, or launch a preemptive strike to deter the Ming from turning on us. Gao Yigong argues for battle: Better to die fighting than to wait for slaughter! Liu Zongmin argues for negotiation: We have no blood feud with the Qing — we can talk. Li Zicheng decides: Prepare both. Talk — send someone to Beijing. Fight — keep eyes on Yiling.",
-            "commands": []
+            "commands": [
+              {
+                "type": "attack",
+                "params": {
+                  "target_territory": "henan_east"
+                }
+              }
+            ]
           }
         }
       }
@@ -298,31 +838,97 @@
         "qing": {
           "zh": {
             "decision_text": "【耐心耗尽】郑芝龙安抚了江南又玩起了两面下注——江南百姓念他的好，他却跟大清暗通款曲。多尔衮终于有些烦躁了：此人在用大清的耐心做筹码。洪承畴安抚道：王爷息怒。郑芝龙这种人，最终的决策不看仁义、不看名分，只看账本。只要我们在战场上拿到决定性的胜利——比如拿下扬州——他的账本就会告诉他：南明这笔账已经烂了，该转投新东家了。多尔衮深吸一口气：那就给他一个决定性胜利。传令多铎：不要再围而不打，全力进攻江北四镇，两个月内必须让郑芝龙看到大清的旗帜飘扬在扬州城头。",
-            "commands": []
+            "commands": [
+              {
+                "type": "move",
+                "params": {
+                  "destination": "kaifeng"
+                }
+              },
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "shanxi"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【Patience Worn Thin】Zheng Zhilong pacified Jiangnan and now plays both sides — the Jiangnan people sing his praises while he secretly negotiates with the Great Qing. Dorgon's patience finally frays: This man is gambling with the Qing's forbearance as his stake. Hong Chengchou soothes: Calm yourself, Your Highness. A man like Zheng Zhilong makes his final decision not on righteousness or legitimacy but on the ledger book. Give him a decisive victory on the battlefield — take Yangzhou, for instance — and his ledger will tell him: the Southern Ming account is bankrupt, time to switch employers. Dorgon draws a deep breath: Then give him a decisive victory. Order Dodo: no more sieges and feints — full assault on the Four Garrisons north of the river. Within two months, Zheng Zhilong must see the banners of the Great Qing flying from the walls of Yangzhou.",
-            "commands": []
+            "commands": [
+              {
+                "type": "move",
+                "params": {
+                  "destination": "kaifeng"
+                }
+              },
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "shanxi"
+                }
+              }
+            ]
           }
         },
         "nanming": {
           "zh": {
             "decision_text": "【信任破产】南京朝堂的气氛比任何时候都诡异——郑芝龙做过好事：他减免赋税让江南喘息、他扩充兵力让朝廷有了一支看得见的海上力量。但他也在做可疑的事：与北京的书信往来越来越频繁，福州港同时停泊着去长崎和去天津的商船。马士英秘密进言：陛下，郑芝龙在等——等我们和清军决出胜负，然后投向胜利者。弘光帝这一次没有含糊：如果他等，我们就让他没有等的余地。传旨：命郑芝龙立即率水师主力北上会师，限期一个月。若逾期不至——南明将宣布闽粤为叛逆之地。史可法惊闻此旨，连夜进谏：陛下这是逼他反啊！但旨意已发，再无挽回。",
-            "commands": []
+            "commands": [
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "nanjing"
+                }
+              },
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "kaifeng"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【Trust Exhausted】The atmosphere in the Nanjing court is stranger than ever — Zheng Zhilong has done good: he cut taxes, giving Jiangnan room to breathe; he expanded his forces, giving the court a visible naval arm. But he has also done suspicious things: correspondence with Beijing grows more frequent, and Fuzhou harbor now hosts ships bound for both Nagasaki and Tianjin. Ma Shiying whispers to the throne: Your Majesty, Zheng Zhilong is waiting — waiting for us and the Qing to decide the outcome, then he will join the winner. The Hongguang Emperor, for once, does not equivocate: If he waits, we shall leave him no room to wait. Imperial edict: order Zheng Zhilong to bring his main fleet north immediately and join forces — one month deadline. If he does not arrive — the Southern Ming shall declare Fujian and Guangdong rebellious territory. Shi Kefa, hearing this, rides through the night to protest: Your Majesty, this is forcing him to rebel! But the edict has already been issued — there is no recalling it.",
-            "commands": []
+            "commands": [
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "nanjing"
+                }
+              },
+              {
+                "type": "defend",
+                "params": {
+                  "territory": "kaifeng"
+                }
+              }
+            ]
           }
         },
         "nongminjun": {
           "zh": {
             "decision_text": "【最后的平静】这是暴风雨前最后的平静时刻——李自成能感觉到。郑芝龙安抚了江南、又玩起了两面手法，南明对他越来越不信任，清军对他越来越不耐烦。这种微妙的平衡注定维持不久。大顺要做的就是在这平衡破裂之时抢到最好的位置。牛金星献上最终方案：囤粮、筑城、扩军——做好最坏的准备。同时，在郑芝龙还没有最终站队之前，尝试跟他达成一项秘密交易：如果南明败亡，郑家保障大顺在四川的安全，大顺则承认郑家在闽粤的独立地位。两家联手，或许能在清、明之间撑起第三极。李自成在襄阳的城墙上望了望北方，又望了望东方，最后只说了一句：派人去福州。",
-            "commands": []
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "xiangyang"
+                }
+              }
+            ]
           },
           "en": {
             "decision_text": "【The Last Calm】This is the last calm before the storm — Li Zicheng can feel it. Zheng Zhilong pacified Jiangnan and now plays double agent; the Southern Ming trusts him less by the day, and the Qing grows more impatient. This delicate equilibrium cannot hold much longer. The Shun Army's task is to claim the best position when it shatters. Niu Jinxing presents his final plan: stockpile grain, fortify walls, expand the army — prepare for the worst. And before Zheng Zhilong commits to a side, attempt a secret pact: if the Southern Ming falls, the Zheng clan guarantees the Shun Army's safety in Sichuan; in return, the Shun recognizes Zheng's independent rule over Fujian and Guangdong. Together, the two powers might form a third pole between the Ming and Qing empires. Li Zicheng stands on the walls of Xiangyang, gazing north, then east — and says only: Send someone to Fuzhou.",
-            "commands": []
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "xiangyang"
+                }
+              }
+            ]
           }
         }
       }

@@ -1,45 +1,57 @@
 {
   "scenario": "nanming",
-  "version": 1,
+  "version": 2,
   "decisions": {
     "qing": {
       "zh": {
-        "decision_text": "【准备南征】清军刚入关，大部分兵力仍用于平定北方。摄政王多尔衮命豪格镇守北京，阿济格和多铎分别率军平定山陕和河南。待北方稳固后，再调主力南下。暂时不可轻动。",
-        "commands": []
+        "decision_text": "【南征部署】清军初入关，八旗主力尚未全部南下。摄政王多尔衮命多铎率两万铁骑为先锋，攻入河南；命阿济格率一万精锐自山西南下，进击洛阳。同时传檄江北四镇——献城归顺者，原职留任、赏万金。山东方向：命耿仲明自登州渡海，骚扰南明沿海。南征大幕已启，八旗铁骑不可阻挡！",
+        "commands": [
+          {"type": "attack", "params": {"target_territory": "kaifeng"}},
+          {"type": "attack", "params": {"target_territory": "luoyang"}}
+        ]
       },
       "en": {
-        "decision_text": "【Prepare Southern Campaign】The Qing have just entered the pass. Most forces are still pacifying the north. Regent Dorgon orders Haoge to hold Beijing while Ajige and Dodo subdue Shanxi-Shaanxi and Henan respectively. Conserve strength until the north is secure.",
-        "commands": []
+        "decision_text": "【Southern Offensive】The Qing have entered the pass — the Eight Banners prepare to march south. Regent Dorgon orders Dodo to lead 20,000 cavalry as the vanguard, striking into Henan. Ajige is to march 10,000 elite troops south from Shanxi to assault Luoyang. Simultaneously, envoys are dispatched to the Four Northern Garrisons with an ultimatum: surrender your cities and keep your ranks — with a reward of ten thousand silver taels. In Shandong, Geng Zhongming is ordered to cross the sea from Dengzhou and raid the Southern Ming coast. The Southern Campaign has begun — the Eight Banners are unstoppable!",
+        "commands": [
+          {"type": "attack", "params": {"target_territory": "kaifeng"}},
+          {"type": "attack", "params": {"target_territory": "luoyang"}}
+        ]
       }
     },
     "nongminjun": {
       "zh": {
-        "decision_text": "【休整部队】大顺军自北京败退后损失惨重。李自成命各部在四川盆地休整，补充粮草兵员。同时派出细作打探清军和南明动向，待机而动。不可轻易出击。",
-        "commands": []
+        "decision_text": "【西征收粮】大顺军退入四川后，粮草日缺。李自成召诸将议策：清军势大不可硬撼，南明江北诸城空虚——趁清军南下之际，我当挥师东出！命刘宗敏率三万精兵奇袭南阳（河南东部），夺取粮仓；命李过率两万步卒出汉中，切断清军与南明之间的联系。先抢粮，再图霸业！",
+        "commands": [
+          {"type": "attack", "params": {"target_territory": "henan_east"}},
+          {"type": "attack", "params": {"target_territory": "kaifeng"}}
+        ]
       },
       "en": {
-        "decision_text": "【Regroup Forces】The Shun Army is battered after their retreat from Beijing. Li Zicheng orders all units to regroup in the Sichuan basin — replenish food and recruits. Dispatch scouts to observe Qing and Ming movements. Do not engage recklessly.",
-        "commands": []
-      }
-    },
-    "zheng": {
-      "zh": {
-        "decision_text": "【观望时局】郑芝龙坐镇福建，拥有东亚最强大的水师。北方战火未波及闽粤，正是发展贸易、积累财富的时机。同时向南明派遣使节试探合作条件，不宜过早选边。",
-        "commands": []
-      },
-      "en": {
-        "decision_text": "【Watch the Situation】Zheng Zhilong commands East Asia's strongest fleet from Fujian. The northern war has not reached Fujian or Guangdong — a perfect time to expand trade and accumulate wealth. Meanwhile, send envoys to probe Southern Ming's cooperation terms. No need to pick sides yet.",
-        "commands": []
+        "decision_text": "【Western Raid for Grain】The Shun Army has retreated into Sichuan — food supplies dwindle by the day. Li Zicheng summons his generals: the Qing are too strong to face head-on, but the Southern Ming's northern cities lie exposed! While the Qing march south, we strike east! Order Liu Zongmin to lead 30,000 elite troops in a surprise raid on Nanyang (East Henan) — seize their granaries. Order Li Guo to march 20,000 infantry out of Hanzhong to sever the link between Qing and Ming forces. First, capture their supplies — then plan the conquest!",
+        "commands": [
+          {"type": "attack", "params": {"target_territory": "henan_east"}},
+          {"type": "attack", "params": {"target_territory": "kaifeng"}}
+        ]
       }
     },
     "nanming": {
       "zh": {
-        "decision_text": "【定策南京】弘光帝在南京即位，史可法督师江北，马士英主政朝堂。当务之急是稳住江南半壁，调集江北四镇兵力沿淮河布防，确保漕运畅通。同时遣使赴福建催促郑芝龙出兵勤王，并派员安抚左良玉，以防其拥兵自重。南明虽偏安，然江南赋税之区尚在，若能整军经武，未必不可抗衡北朝。",
-        "commands": []
+        "decision_text": "【江北布防】清军大举南下，江北危急！史可法督师扬州，命黄得功率三万精兵驰援开封，死守黄河防线；命刘良佐率两万兵增援济南，控扼山东门户。同时遣快马赴福建——请郑芝龙速发水师北上，从海路威胁清军后方。若开封、济南失守，南京门户洞开。此战关乎存亡！",
+        "commands": [
+          {"type": "defend", "params": {"territory": "kaifeng"}},
+          {"type": "defend", "params": {"territory": "jinan"}},
+          {"type": "move", "params": {"destination": "kaifeng"}},
+          {"type": "move", "params": {"destination": "jinan"}}
+        ]
       },
       "en": {
-        "decision_text": "【Secure Nanjing】The Hongguang Emperor has ascended in Nanjing — Shi Kefa commands the northern front while Ma Shiying controls the court. The immediate task is to stabilize the southern half of the realm: deploy the Four Garrisons along the Huai River, secure the Grand Canal grain shipments, and dispatch envoys to Fujian urging Zheng Zhilong to send reinforcements. Meanwhile, placate General Zuo Liangyu lest he grow too independent. Though the Southern Ming holds only half the empire, the wealthy Jiangnan tax base remains intact — with proper preparation, it may yet hold against the invaders.",
-        "commands": []
+        "decision_text": "【Northern Defense Line】The Qing are sweeping south — the northern front is in peril! Shi Kefa commands from Yangzhou: order Huang Degong to march 30,000 elite troops to reinforce Kaifeng — hold the Yellow River line at all costs. Order Liu Liangzuo to lead 20,000 men to Jinan — guard the gateway to Shandong. Meanwhile, dispatch fast riders to Fujian: urge Zheng Zhilong to send his fleet north immediately and threaten the Qing rear from the sea. If Kaifeng and Jinan fall, Nanjing's gates are wide open. This battle will decide our survival!",
+        "commands": [
+          {"type": "defend", "params": {"territory": "kaifeng"}},
+          {"type": "defend", "params": {"territory": "jinan"}},
+          {"type": "move", "params": {"destination": "kaifeng"}},
+          {"type": "move", "params": {"destination": "jinan"}}
+        ]
       }
     }
   }

@@ -124,9 +124,28 @@ class TurnController:
         for fid, faction in world_state.factions.items():
             if not faction.is_active:
                 continue
-            if faction.food < 0:
-                faction.food = 0
-                # Famine!
+            if faction.food <= 0:
+                if faction.food < 0:
+                    faction.food = 0
+
+                # Starvation attrition: troops desert or die when food runs out.
+                # Each quarter at food=0: lose 8% of deployed troops.
+                deployed = sum(
+                    a.total_troops for a in world_state.armies.values()
+                    if a.faction_id == fid
+                )
+                if deployed > 0:
+                    starve_loss = max(100, int(deployed * 0.08))
+                    # Apply to armies proportionally
+                    for a in world_state.armies.values():
+                        if a.faction_id == fid and a.total_troops > 0:
+                            for unit_type in list(a.units.keys()):
+                                if a.units[unit_type] > 0:
+                                    loss = max(1, int(a.units[unit_type] * 0.08))
+                                    a.units[unit_type] = max(0, a.units[unit_type] - loss)
+                    faction.strength_actual = max(0, faction.strength_actual - starve_loss)
+
+                # Famine effects
                 faction.morale_actual = max(0, faction.morale_actual - 5)
                 faction.legitimacy = max(0, faction.legitimacy - 10)
                 # Population in all territories of this faction drops by 5%
@@ -318,6 +337,18 @@ class TurnController:
             faction.legitimacy = updated_state.current_score
 
         # ── Step 9: State persistence (skip) ──
+
+        # ── Periodic reconciliation: sync faction.strength_actual with deployed troops ──
+        # Over multiple turns, recruitment/attrition/battles can cause drift between
+        # the faction-level strength counter and actual army unit counts.
+        for fid, faction in world_state.factions.items():
+            if not faction.is_active:
+                continue
+            deployed = sum(
+                a.total_troops for a in world_state.armies.values()
+                if a.faction_id == fid
+            )
+            faction.strength_actual = max(deployed, 0)
 
         # ── Step 10: Return TurnResult ──
         # Build faction snapshots
@@ -547,6 +578,17 @@ class TurnController:
                     )
                     battles.append(combat)
 
+                    # ── Sync faction.strength_actual with actual army totals ──
+                    # Previously strength_actual only increased (via recruit) but never
+                    # decreased when troops died in battle — causing infinite phantom manpower.
+                    for _army, _casualties in [(attacker, combat.attacker_casualties),
+                                                (defender, combat.defender_casualties)]:
+                        fid = _army.faction_id
+                        _f = world_state.factions.get(fid)
+                        if _f:
+                            total_lost = sum(_casualties.values())
+                            _f.strength_actual = max(0, _f.strength_actual - total_lost)
+
                     # If territory captured, change ownership to attacker
                     if combat.territory_captured:
                         territory = world_state.territories.get(location)
@@ -563,6 +605,47 @@ class TurnController:
                                 atk_faction = world_state.factions[attacker.faction_id]
                                 if location not in atk_faction.territories:
                                     atk_faction.territories.append(location)
+
+                                # ── Defection mechanic: decisive victories can trigger
+                                # nearby territories to surrender (historical: Qing bribery
+                                # of Ming generals like Wu Sangui, Liu Liangzuo) ──
+                                if combat.result == BattleResult.DECISIVE_VICTORY:
+                                    atk_aggression = getattr(atk_faction, "aggression", 0.5)
+                                    import random as _random
+                                    if atk_aggression > 0.6 and _random.random() < 0.25:
+                                        # Find a neighboring territory owned by the defender
+                                        # that is weakly defended
+                                        for neighbor_id in self.map_engine.get_neighbors(location):
+                                            nt = world_state.territories.get(neighbor_id)
+                                            if nt and nt.owner_id == old_owner:
+                                                # Check if this neighbor has no defending army
+                                                has_garrison = any(
+                                                    a.faction_id == old_owner and a.total_troops > 0
+                                                    for a in world_state.armies.values()
+                                                    if a.location == neighbor_id
+                                                )
+                                                if not has_garrison:
+                                                    # Defection! Territory switches sides
+                                                    nt.owner_id = attacker.faction_id
+                                                    def_faction = world_state.factions.get(old_owner) if old_owner else None
+                                                    if def_faction and neighbor_id in def_faction.territories:
+                                                        def_faction.territories.remove(neighbor_id)
+                                                    if neighbor_id not in atk_faction.territories:
+                                                        atk_faction.territories.append(neighbor_id)
+                                                    if def_faction:
+                                                        def_faction.morale_actual = max(0, def_faction.morale_actual - 15)
+                                                    atk_faction.morale_actual = min(100, atk_faction.morale_actual + 5)
+                                                    break  # One defection per decisive victory
+
+                                # ── Victory looting: capturing a territory yields food + morale ──
+                                # Historical: armies looted captured cities for supplies.
+                                def_faction = world_state.factions.get(old_owner) if old_owner else None
+                                loot_food = min(5000, int(def_faction.food * 0.15) + 2000) if def_faction else 2000
+                                atk_faction.food += loot_food
+                                atk_faction.morale_actual = min(100, atk_faction.morale_actual + 3)
+                                if def_faction:
+                                    def_faction.morale_actual = max(0, def_faction.morale_actual - 5)
+                                    def_faction.food = max(0, def_faction.food - loot_food)
 
         return battles
 

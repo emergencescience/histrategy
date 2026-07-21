@@ -52,34 +52,34 @@ INTRO_NARRATIVES_EN: dict[str, str] = {
         "strike the final blow?"
     ),
     "nanming": (
-        "Spring 1645 AD. Over a year has passed since the Chongzhen Emperor hanged himself on Coal Hill. "
-        "Prince Fu has ascended the throne in Nanjing as the Hongguang Emperor. Yet factional strife "
-        "tears at the court, the four northern garrisons plot their own ambitions, and Qing forces "
-        "occupying Beijing prepare to march south. Shi Kefa commands the defense at Yangzhou — a lone "
-        "pillar. The Southern Ming still holds half the empire, but division and distrust gnaw at its "
-        "foundations."
+        "Winter 1644 AD. Li Zicheng has breached Beijing — the Chongzhen Emperor hanged himself "
+        "on Coal Hill. Wu Sangui opened Shanhai Pass and the Eight Banners poured through. "
+        "The Qing Regent Dorgon now sits in the Forbidden City. Meanwhile in Nanjing, Prince Fu "
+        "has hastily ascended the throne as the Hongguang Emperor. Shi Kefa commands the defense "
+        "at Yangzhou — a lone pillar. The Southern Ming still holds half the empire, but the "
+        "Qing war machine is already turning south. Winter has come, and with it, the reckoning."
     ),
     "qing": (
-        "Spring 1645 AD. Regent Dorgon governs from Beijing. The Eight Banners now control Zhili, "
-        "Shanxi, Shaanxi, and Shandong. Wu Sangui's elite Shanhai Pass garrison has pledged "
-        "allegiance to the Qing, becoming the vanguard for the southern campaign. Yet Ming remnants "
-        "regroup in Nanjing, Li Zicheng's peasant army still operates in Sichuan, and the wealthy "
-        "Jiangnan region remains unconquered. Half the empire is won — but the road to unification "
-        "stretches long."
+        "Winter 1644 AD. Wu Sangui has opened Shanhai Pass. The Eight Banners swept through "
+        "Beijing and now control Zhili, Shanxi, and Shandong. Dorgon, the Prince Regent, rules "
+        "from the Forbidden City. But the Ming still holds the wealthy Jiangnan, Li Zicheng's "
+        "remnants lurk in the west, and the southern warlords are circling. "
+        "Winter freezes the Yellow River — time to plan the spring campaign."
     ),
     "nongminjun": (
-        "Spring 1645 AD. Li Zicheng's Shun dynasty has retreated into Sichuan. Beijing was taken "
-        "and lost; Qing forces flood into the Central Plains like a tide. The once-mighty peasant army "
-        "is reduced to remnants, struggling to unite Zhang Xianzhong's old turf with Li Zicheng's "
-        "survivors. The Tibetan Plateau to the west, the Southern Ming to the south, the Qing to "
-        "the north — survival is the first priority."
+        "Winter 1644 AD. Li Zicheng tasted the Dragon Throne for forty days before the Qing "
+        "swept him from Beijing. His Shun dynasty has retreated to Sichuan and Hanzhong — "
+        "a kingdom broken but not dead. Zhang Xianzhong's old territory in the west, "
+        "the Southern Ming to the south, the Qing to the north. Survival first. "
+        "Revenge can wait until spring."
     ),
     "zheng": (
-        "Spring 1645 AD. Zheng Zhilong controls the coasts of Fujian and Guangdong. He commands East "
-        "Asia's most powerful maritime force — the Zheng merchant fleet boasts over a thousand warships "
-        "and trading vessels, monopolizing sea trade between China, Japan, and Southeast Asia. But the "
-        "flames of war in the north will eventually reach the south. Zheng Zhilong faces a choice: "
-        "remain the overlord of the seas, or enter the game of continental power?"
+        "Winter 1644 AD. Zheng Zhilong controls the coasts of Fujian and Guangdong. He commands "
+        "East Asia's most powerful maritime force — over a thousand warships and trading vessels "
+        "monopolizing sea trade between China, Japan, and Southeast Asia. The Ming dynasty is "
+        "collapsing, the Qing are coming — but the Zheng fleet does not fear northern horsemen. "
+        "Zheng Zhilong faces a choice: remain the overlord of the seas, or step onto the burning "
+        "continent and play the game of empires?"
     ),
 }
 
@@ -168,50 +168,53 @@ INTRO_NARRATIVES_ZH: dict[str, dict[str, str]] = {
     },
     "nanming": {
         "classical": (
-            "弘光元年春，崇祯帝殉国已逾一载。福王朱由崧即位于南京，改元弘光。然朝中党争未息，"
-            "江北四镇各怀异志，多尔衮坐镇北京，虎视江南。史可法督师扬州，独力难支。"
-            "南明虽据半壁江山，然内忧甚于外患。"
+            "崇祯十七年冬，李自成破北京，帝自缢煤山。吴三桂引清兵入关，"
+            "多尔衮率八旗铁骑入主燕京。福王朱由崧仓促即位于南京，改元弘光。"
+            "史可法督师扬州，独木难支。寒冬已至，清军蓄势南下。"
         ),
         "vernacular": (
-            "公元1645年春，崇祯帝自缢煤山已逾一年。福王朱由崧在南京即位，建立弘光朝廷。"
-            "然而朝中党争不休，江北四镇各怀异心，清军已占据北京，正虎视眈眈准备南下。"
-            "史可法督师扬州，独木难支。南明尚有半壁江山，但分裂与内耗如蛆附骨。"
+            "公元1644年冬，李自成攻破北京，崇祯帝自缢于煤山。吴三桂打开山海关，"
+            "八旗铁骑涌入中原。摄政王多尔衮坐镇北京紫禁城。福王朱由崧在南京仓促即位，"
+            "建立弘光朝廷。史可法督师扬州，独木难支。"
+            "寒冬已至，清军正蓄势待发，准备来年春暖南下。"
         ),
     },
     "qing": {
         "classical": (
-            "顺治二年春，摄政王多尔衮坐镇北京。八旗劲旅已控直隶、山西、陕西、山东诸省。"
-            "吴三桂率关宁铁骑归附清朝，为南下先锋。然明室余烬未灭，李闯残部盘踞四川，"
-            "江南富庶之地尚未臣服。天下一统，前路仍远。"
+            "顺治元年冬，吴三桂开关迎清师。八旗劲旅进驻北京，已控直隶、山西、山东诸省。"
+            "摄政王多尔衮坐镇紫禁城。然明室据江南富庶之地，李闯残部盘踞西陲，"
+            "南方群雄环伺。黄河冰封——正是筹划来年春季攻势之时。"
         ),
         "vernacular": (
-            "公元1645年春，摄政王多尔衮坐镇北京。八旗劲旅已控制北直隶、山西、陕西和山东。"
-            "吴三桂的山海关精锐归附清朝，成为南下先锋。然而明朝残余在南京重组，李自成的"
-            "农民军仍在四川活动，江南富庶之地尚未臣服。天下已得一半，但统一之路仍漫长。"
+            "公元1644年冬，吴三桂打开山海关，八旗劲旅涌入北京。摄政王多尔衮坐镇紫禁城，"
+            "已控制直隶、山西和山东。但明朝残余仍据有富庶的江南，李自成余部盘踞四川，"
+            "南方军阀虎视眈眈。黄河封冻——正是谋划春季攻势的时机。"
         ),
     },
     "nongminjun": {
         "classical": (
-            "弘光元年春，大顺军退守四川。北京得而复失，清军如潮水涌入中原。百万义军仅余残部，"
-            "李自成与张献忠旧部艰难整合。西有藏地，南有明室，北有清虏——生存乃第一要务。"
+            "崇祯十七年冬，李自成坐龙椅仅四十日便被清军逐出北京。"
+            "大顺军退守四川与汉中，残部尚存。西有张献忠旧地，南有明室，北有清虏。"
+            "求生第一。复仇留待春来。"
         ),
         "vernacular": (
-            "公元1645年春，李自成的大顺政权已退入四川。北京得而复失，清军如潮水般涌入中原。"
-            "曾经的百万农民军如今只剩残部，在张献忠的旧地与李自成的余部之间艰难整合。"
-            "西有青藏高原，南有南明，北有清军——生存是第一要务。"
+            "公元1644年冬，李自成坐了四十天龙椅就被清军逐出北京。"
+            "大顺军退守四川和汉中，残部尚存。西边是张献忠的旧地盘，"
+            "南边是南明，北边是清军。先活下去，报仇等春天再说。"
         ),
     },
     "zheng": {
         "classical": (
-            "弘光元年春，郑芝龙掌控闽粤沿海。郑氏商团坐拥千艘战船商舶，垄断中日与南洋之海上"
-            "贸易，为东亚最强海上势力。然北方战火迟早蔓延至南。郑芝龙面临抉择——"
-            "继续做海上霸主，抑或介入大陆权力之争？"
+            "崇祯十七年冬，郑芝龙掌控闽粤沿海。郑氏水师坐拥千艘战船商舶，"
+            "垄断中日与南洋之海上贸易，为东亚最强海上势力。大明将倾，清虏将至——"
+            "然郑家舰队何惧北疆之马？郑芝龙面临抉择：继续做海上霸主，"
+            "抑或踏上燃烧的大陆，参与帝国之争？"
         ),
         "vernacular": (
-            "公元1645年春，郑芝龙控制着福建和广东沿海。他是东亚最强大的海上力量——"
-            "郑氏商团拥有上千艘战船和商船，垄断着中国与日本、东南亚的海上贸易。"
-            "但北方的战火迟早会蔓延到南方。郑芝龙面临抉择：继续做海上霸主，还是介入大陆的"
-            "权力游戏？"
+            "公元1644年冬，郑芝龙控制着福建和广东沿海。他是东亚最强大的海上力量——"
+            "郑氏水师拥有上千艘战船和商船，垄断着中国与日本、东南亚的海上贸易。"
+            "大明要完了，清军要来了——但郑家舰队怕什么北方骑兵？"
+            "郑芝龙面临抉择：继续做海上霸主，还是踏上燃烧的大陆，加入帝国之争？"
         ),
         "winter_prologue": (
             "## 序幕：甲申国变（公元1644年）\n\n"

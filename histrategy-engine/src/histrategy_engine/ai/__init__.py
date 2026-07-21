@@ -131,7 +131,12 @@ class DecisionEngine:
         if not faction or not faction.is_active:
             return {}
 
-        my_strength = faction.strength_actual
+        # Use actual deployed troop totals instead of faction.strength_actual
+        # (which was a phantom number that never decreased from casualties).
+        my_strength = sum(
+            a.total_troops for a in world_state.armies.values()
+            if a.faction_id == faction_id
+        )
         if my_strength <= 0:
             my_strength = 1
 
@@ -147,9 +152,14 @@ class DecisionEngine:
                     continue
                 nfaction = world_state.factions.get(nfid)
                 if nfaction and nfaction.is_active:
+                    # Use actual deployed troops, not phantom strength_actual
+                    n_actual = sum(
+                        a.total_troops for a in world_state.armies.values()
+                        if a.faction_id == nfid
+                    )
                     neighbor_strengths[nfid] = max(
                         neighbor_strengths.get(nfid, 0),
-                        nfaction.strength_actual,
+                        n_actual,
                     )
 
         threats = {}
@@ -302,15 +312,13 @@ class DecisionEngine:
             == HistoricalMode.HISTORICAL
         )
 
-        # Historical mode dampens aggression (stick closer to historical path)
-        # but does NOT completely disable attacks — that was a bug that made
-        # all NPCs passive in the default mode.
-        # Aggressive NPCs (>0.7) are barely affected — they're warlike by nature.
+        # Historical dampening: reduced to avoid total passivity.
+        # Aggressive NPCs (>0.7) are unaffected; cautious NPCs get ×0.85 instead of ×0.7.
         if is_historical:
             if aggression > 0.7:
-                effective_aggression = aggression * 0.85  # minimal dampening for aggressive NPCs
+                effective_aggression = aggression * 0.95
             else:
-                effective_aggression = aggression * 0.7
+                effective_aggression = aggression * 0.85
         else:
             effective_aggression = aggression
 
@@ -325,8 +333,33 @@ class DecisionEngine:
                 commands.append(self._make_recruit_command(faction))
             else:
                 commands.append(self._make_develop_command(faction))
-        elif food_low:
+        elif food_low and aggression < 0.5:
+            # Low-food cautious factions: develop to fix food shortage
             commands.append(self._make_develop_command(faction))
+        elif food_low and aggression >= 0.5 and opportunities:
+            # Low-food aggressive factions: RAID for supplies! Starvation drives conquest.
+            attack_opps = [o for o in opportunities if o["type"] == "attack"]
+            occupy_opps = [o for o in opportunities if o["type"] == "occupy"]
+            if attack_opps:
+                opp = attack_opps[0]
+                commands.append(
+                    Command(
+                        type="attack",
+                        params={"target_territory": opp["territory_id"]},
+                        faction_id=faction_id,
+                    )
+                )
+            elif occupy_opps:
+                opp = occupy_opps[0]
+                commands.append(
+                    Command(
+                        type="move",
+                        params={"destination": opp["territory_id"]},
+                        faction_id=faction_id,
+                    )
+                )
+            else:
+                commands.append(self._make_develop_command(faction))
         elif troops_low and treasury_ok and faction.territories:
             commands.append(self._make_recruit_command(faction))
         elif attack_score > develop_score and opportunities:

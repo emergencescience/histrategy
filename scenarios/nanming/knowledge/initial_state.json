@@ -1,10 +1,10 @@
 {
-  "scenario_id": "1645_spring",
+  "scenario_id": "1644_winter",
   "name": "山河鼎革",
-  "year": 1645,
-  "season": "spring",
+  "year": 1644,
+  "season": "winter",
   "player_faction": "nanming",
-  "description": "公元1645年春。崇祯帝煤山自缢已近一年，李自成被清军逐出北京，多尔衮已定鼎燕京。弘光帝朱由崧坐镇南京，史可法督师扬州誓死抗清。江北四镇各怀异心，南明朝廷内斗不休。此刻，清军铁骑正蓄势南下，华夏存亡悬于一线。",
+  "description": "公元1644年冬，李自成攻破北京，崇祯帝煤山自缢。吴三桂引清军入关，多尔衮率八旗铁骑入主中原。弘光帝朱由崧在南京仓促即位，史可法督师扬州。此刻，清军铁骑正蓄势南下，华夏存亡悬于一线。",
   "factions": {
     "nanming": {
       "name": "南明",
@@ -54,7 +54,7 @@
       "ruler": "lizicheng",
       "capital": "xiangyang",
       "territories": [
-        "xiangyang", "chengdu", "hanzhong"
+        "xiangyang", "sichuan"
       ],
       "treasury": 8000,
       "food": 10000,

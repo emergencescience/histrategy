@@ -457,25 +457,79 @@ class ScenarioLoader:
         return factions
 
     def _create_armies(self, factions: dict[str, FactionState]) -> dict[str, Army]:
-        """Create initial armies for active factions."""
+        """Create initial armies for active factions.
+
+        Troops are spread proportionally across territories with faction-specific
+        unit compositions that reflect historical military capabilities.
+        """
+        # ── Faction-specific unit compositions ──
+        _FACTION_UNIT_COMP: dict[str, dict[UnitType, float]] = {
+            "qing":         {UnitType.CAVALRY: 0.40, UnitType.INFANTRY: 0.40, UnitType.ARCHER: 0.20},
+            "nanming":      {UnitType.INFANTRY: 0.55, UnitType.ARCHER: 0.30, UnitType.CAVALRY: 0.15},
+            "nongminjun":   {UnitType.INFANTRY: 0.85, UnitType.ARCHER: 0.15},
+            "zheng":        {UnitType.NAVY: 0.35, UnitType.INFANTRY: 0.40, UnitType.ARCHER: 0.25},
+        }
+        _FACTION_TRAINING: dict[str, float] = {
+            "qing": 1.3,       # Elite Eight Banners, lifelong warriors
+            "nanming": 0.9,    # Regular army, decent equipment
+            "nongminjun": 0.6, # Raw recruits, looted weapons
+            "zheng": 1.0,      # Professional naval force
+        }
+        _FACTION_MORALE: dict[str, int] = {
+            "qing": 85,        # Conquest momentum
+            "nanming": 70,     # Defending the realm
+            "nongminjun": 75,  # Revolutionary fervor
+            "zheng": 80,       # Disciplined fleet
+        }
+
         armies: dict[str, Army] = {}
         army_idx = 1
         for fid, faction in factions.items():
             if not faction.is_active or not faction.territories:
                 continue
-            capital = faction.capital or faction.territories[0]
-            army_id = f"army_{fid}_{army_idx}"
-            armies[army_id] = Army(
-                id=army_id,
-                faction_id=fid,
-                location=capital,
-                commander_id=faction.ruler_id,
-                units={UnitType.INFANTRY: min(faction.strength_actual, 5000)},
-                morale=80,
-                training=1.0,
-                supply=30,
+
+            num_territories = len(faction.territories)
+            if num_territories <= 0:
+                num_territories = 1
+
+            comp = _FACTION_UNIT_COMP.get(fid, {UnitType.INFANTRY: 1.0})
+            training = _FACTION_TRAINING.get(fid, 1.0)
+            base_morale = _FACTION_MORALE.get(fid, 80)
+
+            # Deploy the FULL faction strength, spread across territories
+            troops_per_territory = min(
+                max(3000, faction.strength_actual // num_territories),
+                30000,
             )
-            army_idx += 1
+
+            for i, tid in enumerate(faction.territories):
+                army_id = f"army_{fid}_{army_idx}"
+                # Build unit composition
+                units = {}
+                remaining = troops_per_territory
+                unit_types = sorted(comp.keys(), key=lambda ut: comp[ut], reverse=True)
+                for j, ut in enumerate(unit_types):
+                    if j == len(unit_types) - 1:
+                        units[ut] = remaining
+                    else:
+                        n = int(troops_per_territory * comp[ut])
+                        units[ut] = max(0, n)
+                        remaining -= n
+                # Ensure no negative remaining
+                if remaining > 0:
+                    units[unit_types[0]] = units.get(unit_types[0], 0) + remaining
+
+                armies[army_id] = Army(
+                    id=army_id,
+                    faction_id=fid,
+                    location=tid,
+                    commander_id=faction.ruler_id if i == 0 else "",
+                    units=units,
+                    morale=base_morale,
+                    training=training,
+                    supply=30,
+                )
+                army_idx += 1
         return armies
 
     # ── utility ─────────────────────────────────────────────────────────

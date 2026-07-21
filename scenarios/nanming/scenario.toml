@@ -6,8 +6,8 @@ id = "nanming"
 name = "山河鼎革"
 name_en = "The Southern Ming"
 era = "late_ming"
-start_year = 1645
-start_season = "春"
+start_year = 1644
+start_season = "冬"
 end_year = 1662
 description = """
 山河鼎革 — 1645年·南明抗清。

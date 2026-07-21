@@ -12,6 +12,15 @@ food:
   # Base food production per territory per quarter
   # Southern rice paddies produce more than northern wheat
   base_per_territory: 600
+
+  # Food consumption — troops consume less in late Ming (self-supplied/foraging)
+  food_consumption:
+    civilian_formula: "population * civilian_per_capita"
+    troop_formula: "troops * troop_per_capita * supply_multiplier"
+    constants:
+      civilian_per_capita: 0.02
+      troop_per_capita: 0.15   # Reduced from 0.5: 10K troops = 1,500 food/qtr (sustainable)
+
   # Population contribution to food output
   pop_contribution_rate: 0.02  # food = pop × 0.02
   # Season multipliers (applied on top)
