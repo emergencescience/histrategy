@@ -464,22 +464,25 @@ class ScenarioLoader:
         """
         # ── Faction-specific unit compositions ──
         _FACTION_UNIT_COMP: dict[str, dict[UnitType, float]] = {
+            # Nanming
             "qing":         {UnitType.CAVALRY: 0.40, UnitType.INFANTRY: 0.40, UnitType.ARCHER: 0.20},
             "nanming":      {UnitType.INFANTRY: 0.55, UnitType.ARCHER: 0.30, UnitType.CAVALRY: 0.15},
             "nongminjun":   {UnitType.INFANTRY: 0.85, UnitType.ARCHER: 0.15},
             "zheng":        {UnitType.NAVY: 0.35, UnitType.INFANTRY: 0.40, UnitType.ARCHER: 0.25},
+            # Three Kingdoms
+            "cao":          {UnitType.CAVALRY: 0.35, UnitType.INFANTRY: 0.45, UnitType.ARCHER: 0.20},
+            "wu":           {UnitType.NAVY: 0.30, UnitType.ARCHER: 0.30, UnitType.INFANTRY: 0.40},
+            "shu":          {UnitType.INFANTRY: 0.55, UnitType.ARCHER: 0.25, UnitType.CAVALRY: 0.20},
+            "liubiao":      {UnitType.NAVY: 0.20, UnitType.INFANTRY: 0.55, UnitType.ARCHER: 0.25},
+            "liuzhang":     {UnitType.INFANTRY: 0.70, UnitType.ARCHER: 0.30},
         }
         _FACTION_TRAINING: dict[str, float] = {
-            "qing": 1.3,       # Elite Eight Banners, lifelong warriors
-            "nanming": 0.9,    # Regular army, decent equipment
-            "nongminjun": 0.6, # Raw recruits, looted weapons
-            "zheng": 1.0,      # Professional naval force
+            "qing": 1.3, "nanming": 0.9, "nongminjun": 0.6, "zheng": 1.0,
+            "cao": 1.2, "wu": 1.0, "shu": 0.85, "liubiao": 0.7, "liuzhang": 0.5,
         }
         _FACTION_MORALE: dict[str, int] = {
-            "qing": 85,        # Conquest momentum
-            "nanming": 70,     # Defending the realm
-            "nongminjun": 75,  # Revolutionary fervor
-            "zheng": 80,       # Disciplined fleet
+            "qing": 85, "nanming": 70, "nongminjun": 75, "zheng": 80,
+            "cao": 80, "wu": 75, "shu": 85, "liubiao": 55, "liuzhang": 45,
         }
 
         armies: dict[str, Army] = {}
@@ -511,6 +514,7 @@ class ScenarioLoader:
                 for j, ut in enumerate(unit_types):
                     if j == len(unit_types) - 1:
                         units[ut] = remaining
+                        remaining = 0  # All remaining troops assigned to last unit type
                     else:
                         n = int(troops_per_territory * comp[ut])
                         units[ut] = max(0, n)
