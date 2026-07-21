@@ -733,19 +733,22 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
 # ── Internal ─────────────────────────────────────────
 
 
-def _load_repo_npc_decisions(scenario: str) -> dict | None:
-    """Load pre-baked Q0 NPC decisions from repo.
+def _load_repo_npc_decisions(scenario: str, quarter: int = 0) -> dict | None:
+    """Load pre-baked NPC decisions from repo for a specific quarter.
 
-    Looks for scenarios/{scenario}/npc_decisions_q0.json.
+    Looks for scenarios/{scenario}/npc_decisions_q{quarter}.json.
     Returns the parsed dict or None if not found.
     """
-    path = os.path.join(os.path.dirname(__file__), "..", "..", "scenarios", scenario, "npc_decisions_q0.json")
+    path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "scenarios", scenario,
+        f"npc_decisions_q{quarter}.json"
+    )
     if not os.path.isfile(path):
         return None
     try:
         return _json.loads(Path(path).read_text(encoding="utf-8"))
     except Exception:
-        logger.warning(f"Failed to load repo NPC decisions for {scenario}")
+        logger.warning(f"Failed to load repo NPC decisions for {scenario} Q{quarter}")
         return None
 
 
@@ -782,22 +785,45 @@ def _trigger_npc_decisions(room: GameRoom):
     elif lang and lang.startswith("en"):
         lang = "en"
 
-    # ── Quarter 0: check for pre-baked repo decisions ──
-    if room.quarter_number == 0:
-        repo_decisions = _load_repo_npc_decisions(room.scenario)
+    # ── Quarter 0-2: check for pre-baked repo decisions ──
+    if room.quarter_number in (0, 1, 2):
+        repo_decisions = _load_repo_npc_decisions(room.scenario, quarter=room.quarter_number)
         if repo_decisions:
-            decisions_data = repo_decisions.get("decisions", {})
+            # Q0 format: {"decisions": {faction_id: {lang: {decision_text, commands}}}}
+            # Q1/Q2 format: {"player_paths": {path_key: {"decisions": {...}}}}
+            if "player_paths" in repo_decisions:
+                # Q1/Q2: lookup by player's last suggestion choice
+                last_sid = getattr(room, "_last_player_suggestion_id", "")
+                path_data = repo_decisions["player_paths"].get(last_sid)
+                if not path_data:
+                    # Try fuzzy match: check if any path_key starts with the suggestion_id
+                    for pk in repo_decisions["player_paths"]:
+                        if last_sid and (pk.startswith(last_sid) or last_sid.startswith(pk)):
+                            path_data = repo_decisions["player_paths"][pk]
+                            break
+                if path_data:
+                    decisions_data = path_data.get("decisions", {})
+                else:
+                    decisions_data = {}
+            else:
+                decisions_data = repo_decisions.get("decisions", {})
+
             all_cached = True
             for fid in ai_only:
                 faction_decisions = decisions_data.get(fid, {})
                 lang_data = faction_decisions.get(lang)
                 if lang_data and lang_data.get("decision_text"):
-                    room.slots[fid].submit_decision(lang_data["decision_text"], lang_data.get("commands", []))
+                    room.slots[fid].submit_decision(
+                        lang_data["decision_text"], lang_data.get("commands", [])
+                    )
                 else:
                     all_cached = False
 
             if all_cached:
-                logger.info(f"Room {room.id}: NPC Q0 decisions loaded from repo — {list(ai_only.keys())}")
+                logger.info(
+                    f"Room {room.id}: NPC Q{room.quarter_number} decisions "
+                    f"loaded from repo — {list(ai_only.keys())}"
+                )
                 return
             else:
                 logger.warning(
