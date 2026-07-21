@@ -414,7 +414,10 @@ def simulate_fast_path(room, player_decision: str,
     new_season = seasons[new_season_idx]
 
     season_zh = {"spring": "春", "summer": "夏", "autumn": "秋", "winter": "冬"}
-    season_str = season_zh.get(new_season, new_season)
+    if lang == "en":
+        season_str = new_season.capitalize()
+    else:
+        season_str = season_zh.get(new_season, new_season)
 
     narrative = _build_rich_narrative(
         player_fid, player_suggestion_id, events, factions, npc_actions, season_str, new_year, lang
@@ -434,7 +437,7 @@ def simulate_fast_path(room, player_decision: str,
             room.scenario or "nanming", player_fid, turn, lang),
         "game_over": None,
         "faction_status": {
-            "name": _FACTION_ZH.get(player_fid, player_fid),
+            "name": _FACTION_ZH.get(player_fid, player_fid) if lang == "zh" else _FACTION_EN.get(player_fid, player_fid),
             "faction_id": player_fid,
             "strength": pf["troops"],
             "population": pf.get("population", 0),
@@ -444,7 +447,7 @@ def simulate_fast_path(room, player_decision: str,
             "territories": pf["territories"],
             "is_active": True,
             "year": new_year,
-            "season": season_zh.get(new_season, new_season),
+            "season": season_str,
             "turn": turn,
         },
         "year": new_year,
