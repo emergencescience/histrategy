@@ -31,6 +31,16 @@
         "decision_text": "【Reorganize the Senate】After Brutus and Cassius assassinated Caesar, the Senate controls the eastern provinces. The priority is reorganizing the Senate, restoring the Republic, and winning more senatorial support against Antony's legions.",
         "commands": []
       }
+    },
+    "octavian": {
+      "zh": {
+        "decision_text": "【继承大业】屋大维年仅十九，恺撒遗嘱宣布其为养子和继承人。返回罗马后首先需要赢得军团和民众的信任，筹措资金兑现恺撒对平民的遗赠。同时试探安东尼的态度——他手握恺撒旧部，若不能合作便需另寻盟友。西塞罗和元老院或可借力，但共和派终究不可信。当前宜低调蓄势，以恺撒之名聚拢人心，静待时机。",
+        "commands": []
+      },
+      "en": {
+        "decision_text": "【Claim the Legacy】Octavian, only nineteen, has been named Caesar's adopted son and heir. Returning to Rome, the first task is to win the trust of the legions and the people — raising funds to fulfill Caesar's bequest to every Roman citizen. Meanwhile, gauge Antony's disposition: he holds Caesar's veteran legions, and if cooperation proves impossible, other allies must be found. Cicero and the Senate may be useful tools, but the Republicans can never be truly trusted. Lie low for now, gather support under Caesar's name, and wait for the right moment to strike.",
+        "commands": []
+      }
     }
   }
 }
