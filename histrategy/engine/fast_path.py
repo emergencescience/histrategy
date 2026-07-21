@@ -184,6 +184,20 @@ _TERRITORY_ZH = {
     "chengdu": "成都", "hanzhong": "汉中",
 }
 
+_TERRITORY_EN = {
+    "shandong": "Shandong", "henan": "Henan", "nanjing": "Nanjing",
+    "zhejiang": "Zhejiang", "jiangxi": "Jiangxi", "huguang": "Huguang",
+    "fujian": "Fujian", "guangdong": "Guangdong", "guangxi": "Guangxi",
+    "yunnan": "Yunnan", "sichuan": "Sichuan", "beijing": "Beijing",
+    "shengjing": "Shengjing", "shanxi": "Shanxi", "shaanxi": "Shaanxi",
+    "gansu": "Gansu", "yangzhou": "Yangzhou", "xiangyang": "Xiangyang",
+    "taiwan": "Taiwan",
+    "wuchang": "Wuchang", "huguang_west": "West Huguang", "huguang_south": "South Huguang",
+    "jinan": "Jinan", "dengzhou": "Dengzhou",
+    "kaifeng": "Kaifeng", "luoyang": "Luoyang", "henan_east": "East Henan",
+    "chengdu": "Chengdu", "hanzhong": "Hanzhong",
+}
+
 _YANGTZE_SOUTH = {"nanjing", "zhejiang", "jiangxi",
                   "wuchang", "huguang_west", "huguang_south",
                   "yangzhou", "fujian", "guangdong", "taiwan"}
@@ -315,14 +329,26 @@ def simulate_fast_path(room, player_decision: str,
             target_zh = _TERRITORY_ZH.get(target, target)
             enemy_zh = _FACTION_ZH.get(enemy_fid, enemy_fid)
 
+            # Localised names
+            _enemy_name = _FACTION_EN.get(enemy_fid, enemy_fid) if lang == "en" else enemy_zh
+            _target_name = _TERRITORY_EN.get(target, target) if lang == "en" else target_zh
+            _player_name = _FACTION_EN.get(player_fid, _FACTION_ZH.get(player_fid, player_fid)) if lang == "en" else _FACTION_ZH.get(player_fid, player_fid)
+            if lang == "en":
+                _fall_tmpl = "{attacker} captured {target}"
+                _siege_tmpl = "{attacker} besieged {target}"
+                _held_tmpl = "{defender} held {target}"
+            else:
+                _fall_tmpl = "{attacker}攻陷{target}"
+                _siege_tmpl = "{attacker}围困{target}"
+                _held_tmpl = "{defender}守住{target}"
+
             if result["city_falls"]:
                 factions[enemy_fid]["territories"].append(target)
                 player_territories.remove(target)
-                # Transfer territory population
                 _tp = _territory_population.get(target, 0)
                 factions[enemy_fid]["population"] = factions[enemy_fid].get("population", 0) + _tp
                 factions[player_fid]["population"] = max(0, factions[player_fid].get("population", 0) - _tp)
-                events.append(f"{enemy_zh}攻陷{target_zh}")
+                events.append(_fall_tmpl.format(attacker=_enemy_name, target=_target_name))
                 state_changes[target] = enemy_fid
                 factions[enemy_fid]["troops"] -= result["attacker_losses"]
                 factions[player_fid]["troops"] -= result["defender_losses"]
@@ -331,14 +357,14 @@ def simulate_fast_path(room, player_decision: str,
                 if is_south:
                     factions[enemy_fid]["morale"] -= 3
             elif result["siege_only"]:
-                events.append(f"{enemy_zh}围困{target_zh}")
+                events.append(_siege_tmpl.format(attacker=_enemy_name, target=_target_name))
                 state_changes[target] = f"sieged_by_{enemy_fid}"
                 factions[enemy_fid]["troops"] -= result["attacker_losses"]
                 factions[player_fid]["troops"] -= result["defender_losses"]
                 factions[player_fid]["food"] -= int(factions[player_fid]["food"] * 0.15)
                 factions[player_fid]["morale"] -= 3
             else:
-                events.append(f"{_FACTION_ZH.get(player_fid, player_fid)}守住{target_zh}")
+                events.append(_held_tmpl.format(defender=_player_name, target=_target_name))
                 state_changes[target] = "defended"
                 factions[enemy_fid]["troops"] -= result["attacker_losses"]
                 factions[player_fid]["troops"] -= result["defender_losses"]
@@ -348,7 +374,7 @@ def simulate_fast_path(room, player_decision: str,
 
     # Also: if player is aggressive, they may attack an enemy's border territory
     if is_player_aggressive:
-        _try_player_counterattack(player_fid, factions, npc_choices, events, state_changes, _territory_population)
+        _try_player_counterattack(player_fid, factions, npc_choices, events, state_changes, _territory_population, lang)
 
     # ── Apply player domestic/economic effects (faction-agnostic) ──
     pf = factions[player_fid]
@@ -376,7 +402,7 @@ def simulate_fast_path(room, player_decision: str,
     # ── NPC faction actions summary ──
     npc_decisions: dict[str, str] = {}
     for fid, idx in npc_choices.items():
-        action = _build_npc_action(fid, idx, factions, player_fid, events)
+        action = _build_npc_action(fid, idx, factions, player_fid, events, lang)
         npc_actions.append(action)
         npc_decisions[fid] = action
 
@@ -432,7 +458,8 @@ def simulate_fast_path(room, player_decision: str,
 def _try_player_counterattack(player_fid: str, factions: dict,
                                npc_choices: dict, events: list,
                                state_changes: dict,
-                               territory_population: dict | None = None):
+                               territory_population: dict | None = None,
+                               lang: str = "zh"):
     """If player is aggressive, they attempt to capture an enemy border territory."""
     player_territories = set(factions[player_fid]["territories"])
 
@@ -464,21 +491,24 @@ def _try_player_counterattack(player_fid: str, factions: dict,
     player_zh = _FACTION_ZH.get(player_fid, player_fid)
     enemy_zh = _FACTION_ZH.get(best_enemy, best_enemy)
 
+    # Localised names for counter-attack events
+    _p_name = _FACTION_EN.get(player_fid, player_zh) if lang == "en" else player_zh
+    _t_name = _TERRITORY_EN.get(best_target, target_zh) if lang == "en" else target_zh
+    _e_name = _FACTION_EN.get(best_enemy, enemy_zh) if lang == "en" else enemy_zh
     if result["city_falls"]:
         factions[player_fid]["territories"].append(best_target)
         factions[best_enemy]["territories"].remove(best_target)
-        # Transfer territory population
         _tp = (territory_population or {}).get(best_target, 0)
         factions[player_fid]["population"] = factions[player_fid].get("population", 0) + _tp
         factions[best_enemy]["population"] = max(0, factions[best_enemy].get("population", 0) - _tp)
-        events.append(f"{player_zh}攻陷{target_zh}")
+        events.append(f"{_p_name} captured {_t_name}" if lang == "en" else f"{_p_name}攻陷{_t_name}")
         state_changes[best_target] = player_fid
         factions[player_fid]["troops"] -= result["attacker_losses"]
         factions[best_enemy]["troops"] -= result["defender_losses"]
         factions[player_fid]["morale"] += 5
         factions[best_enemy]["morale"] -= 8
     elif result["siege_only"]:
-        events.append(f"{player_zh}围困{target_zh}")
+        events.append(f"{_p_name} besieged {_t_name}" if lang == "en" else f"{_p_name}围困{_t_name}")
         factions[player_fid]["troops"] -= result["attacker_losses"]
         factions[best_enemy]["troops"] -= result["defender_losses"]
 
@@ -487,7 +517,7 @@ def _try_player_counterattack(player_fid: str, factions: dict,
 
 
 def _build_npc_action(fid: str, package_idx: int, factions: dict,
-                      player_fid: str, events: list) -> str:
+                      player_fid: str, events: list, lang: str = "zh") -> str:
     """Build a context-aware NPC action description."""
     fname = _FACTION_ZH.get(fid, fid)
     fdata = factions.get(fid, {})
@@ -499,16 +529,28 @@ def _build_npc_action(fid: str, package_idx: int, factions: dict,
     had_siege = any("围困" in e for e in npc_events)
     was_repelled = any("守住" in e for e in npc_events)
 
-    if fid == "qing":
-        return _npc_qing(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
-    elif fid == "nongminjun":
-        return _npc_nongmin(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
-    elif fid == "zheng":
-        return _npc_zheng(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
-    elif fid == "nanming":
-        return _npc_nanming(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+    if lang == "en":
+        if fid == "qing":
+            return _npc_qing_en(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+        elif fid == "nongminjun":
+            return _npc_nongmin_en(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+        elif fid == "zheng":
+            return _npc_zheng_en(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+        elif fid == "nanming":
+            return _npc_nanming_en(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+        else:
+            return f"{_FACTION_EN.get(fid, fid)}: {f_troops//1000}K troops standing by."
     else:
-        return f"{fname}：兵力{f_troops//1000}K，按兵不动。"
+        if fid == "qing":
+            return _npc_qing(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+        elif fid == "nongminjun":
+            return _npc_nongmin(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+        elif fid == "zheng":
+            return _npc_zheng(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+        elif fid == "nanming":
+            return _npc_nanming(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+        else:
+            return f"{fname}：兵力{f_troops//1000}K，按兵不动。"
 
 
 def _npc_qing(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
@@ -570,6 +612,67 @@ def _npc_nanming(idx: int, troops: int, events: list, conquest: bool, siege: boo
         ][hash(f"nanming_c_{troops}") % 2]
 
 
+# ── English NPC action texts ──────────────────────────────────
+
+def _npc_qing_en(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
+    if idx == 0:
+        if conquest:
+            return "Qing: Dorgon ordered the Eight Banners south. Several cities have fallen; the Qing army presses toward Jiangnan."
+        elif siege:
+            return "Qing: Qing forces laid siege, cutting supply lines. The Eight Banners cavalry encamped outside the city walls."
+        else:
+            return "Qing: Dorgon mobilized the Eight Banners elite southward. Defenders held the walls and the assault was repelled."
+    elif idx == 1:
+        return "Qing: Dorgon advanced cautiously, tightening the siege while sending envoys to intimidate Jiangnan gentry."
+    else:
+        return "Qing: Qing forces paused their offensive, enforcing land enclosure and the queue order in occupied territories."
+
+
+def _npc_nongmin_en(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
+    if idx == 0:
+        if conquest:
+            return f"Peasant Army: Li Zicheng's Dashun forces seized cities, morale surging. Strength: {troops//1000}K."
+        else:
+            return f"Peasant Army: Li Zicheng's remnants advanced eastward, seizing opportunities amid chaos. Strength: {troops//1000}K. Discipline crumbling."
+    elif idx == 1:
+        return "Peasant Army: Watching the situation unfold. Li Zicheng sent envoys to all sides, seeking maximum advantage."
+    else:
+        return "Peasant Army: Holding Sichuan. Li Zicheng drilled troops and rested, awaiting the right moment."
+
+
+def _npc_zheng_en(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
+    if idx == 0:
+        if conquest:
+            return "Zheng Clan: Zheng Chenggong led a naval raid along the coast. A thousand warships captured cities — Fujian's fleet grew formidable."
+        else:
+            return "Zheng Clan: Zheng Chenggong sailed north with his fleet. A thousand warships patrolled the coast, but land forces were limited."
+    elif idx == 1:
+        return "Zheng Clan: The Zhengs leveraged maritime trade for wealth. Zheng Chenggong funded war through commerce, while sending envoys to all factions."
+    else:
+        return "Zheng Clan: Zheng Chenggong withdrew to the Fujian coast, using naval superiority to secure a maritime escape route."
+
+
+def _npc_nanming_en(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
+    if idx == 0:
+        if conquest:
+            return "Southern Ming: Shi Kefa led a northern expedition, recovering lost territory. The court's morale surged."
+        elif siege:
+            return "Southern Ming: The four garrisons marched north, besieging Qing-held cities to reclaim the Central Plains."
+        else:
+            return "Southern Ming: Shi Kefa commanded the defense at Yangzhou. Four garrisons stood ready — but factionalism crippled unified command."
+    elif idx == 1:
+        return [
+            "Southern Ming: The Hongguang court dispatched envoys in all directions — preparing for war while seeking diplomatic solutions.",
+            "Southern Ming: The appeasement faction urged dividing the realm along the Yangtze, sending secret envoys north to negotiate.",
+            "Southern Ming: Shi Kefa advocated allying with the peasant army against the Qing, sending envoys to discuss joint action.",
+        ][hash(f"nanming_d_{troops}") % 3]
+    else:
+        return [
+            "Southern Ming: Factional strife consumed the court. The four garrisons pursued their own agendas — Shi Kefa stood alone.",
+            "Southern Ming: The northern garrisons entrenched their own power. Zuo Liangyu marched east under the banner of 'purge the court'.",
+        ][hash(f"nanming_c_{troops}") % 2]
+
+
 # ── Narrative builder ────────────────────────────────────────
 
 
@@ -587,11 +690,15 @@ def _build_narrative(player_fid: str, suggestion_id: str, events: list,
     morale = pf.get('morale', 50)
     troops = pf.get('troops', 0)
 
-    # Check what happened
-    player_lost = [e for e in events if "攻陷" in e and faction_name not in e.split("攻陷")[0]]
-    player_gained = [e for e in events if "攻陷" in e and faction_name in e.split("攻陷")[0]]
-    player_sieged = [e for e in events if "围困" in e and faction_name not in e.split("围困")[0]]
-    player_held = [e for e in events if "守住" in e and faction_name in e]
+    # Check what happened (language-aware keyword matching)
+    if lang == "en":
+        _FALL_KW, _SIEGE_KW, _HELD_KW = "captured", "besieged", "held"
+    else:
+        _FALL_KW, _SIEGE_KW, _HELD_KW = "攻陷", "围困", "守住"
+    player_lost = [e for e in events if _FALL_KW in e and faction_name not in e.split(_FALL_KW)[0]]
+    player_gained = [e for e in events if _FALL_KW in e and faction_name in e.split(_FALL_KW)[0]]
+    player_sieged = [e for e in events if _SIEGE_KW in e and faction_name not in e.split(_SIEGE_KW)[0]]
+    player_held = [e for e in events if _HELD_KW in e and faction_name in e]
 
     # Compute reign year dynamically from actual year
     _REIGN_BASE = {
@@ -643,21 +750,33 @@ def _build_narrative(player_fid: str, suggestion_id: str, events: list,
             parts.append(f"{faction_name}审时度势，发布诏令。")
 
         if player_lost:
-            lost_cities = [e.split("攻陷")[1] for e in player_lost if "攻陷" in e and len(e.split("攻陷")) > 1]
+            lost_cities = [e.split(_FALL_KW)[1].strip() for e in player_lost if _FALL_KW in e and len(e.split(_FALL_KW)) > 1]
             if lost_cities:
-                parts.append(f"{'、'.join(lost_cities)}失陷，前线告急。")
+                if lang == "en":
+                    parts.append(f"{'/'.join(lost_cities)} fell — the frontline is in crisis. ")
+                else:
+                    parts.append(f"{'、'.join(lost_cities)}失陷，前线告急。")
         if player_gained:
-            gained_cities = [e.split("攻陷")[1] for e in player_gained if "攻陷" in e and len(e.split("攻陷")) > 1]
+            gained_cities = [e.split(_FALL_KW)[1].strip() for e in player_gained if _FALL_KW in e and len(e.split(_FALL_KW)) > 1]
             if gained_cities:
-                parts.append(f"攻克{'、'.join(gained_cities)}，军威大振。")
+                if lang == "en":
+                    parts.append(f"Captured {'/'.join(gained_cities)}! ")
+                else:
+                    parts.append(f"攻克{'、'.join(gained_cities)}，军威大振。")
         if player_sieged:
-            sieged = [e.split("围困")[1] for e in player_sieged if "围困" in e and len(e.split("围困")) > 1]
+            sieged = [e.split(_SIEGE_KW)[1].strip() for e in player_sieged if _SIEGE_KW in e and len(e.split(_SIEGE_KW)) > 1]
             if sieged:
-                parts.append(f"{'、'.join(sieged)}被围，粮道断绝。")
+                if lang == "en":
+                    parts.append(f"{'/'.join(sieged)} under siege. ")
+                else:
+                    parts.append(f"{'、'.join(sieged)}被围，粮道断绝。")
         if player_held:
-            held = [e.split("守住")[1] for e in player_held if "守住" in e and len(e.split("守住")) > 1]
+            held = [e.split(_HELD_KW)[1].strip() for e in player_held if _HELD_KW in e and len(e.split(_HELD_KW)) > 1]
             if held:
-                parts.append(f"{'、'.join(held)}防线稳固，士气大振。")
+                if lang == "en":
+                    parts.append(f"{'/'.join(held)} held firm. ")
+                else:
+                    parts.append(f"{'、'.join(held)}防线稳固，士气大振。")
 
         parts.append(
             f"{faction_name}尚有{morale}点民心、"

@@ -7,9 +7,20 @@
     "faction": "nanming",
     "birth": 1602,
     "death": 1645,
-    "personality": ["忠烈", "悲情", "刚正", "鞠躬尽瘁"],
-    "skills": ["统帅", "守城", "号召"],
-    "description": "南明兵部尚书、扬州督师。忠贞不二，死守扬州。"
+    "personality": [
+      "忠烈",
+      "悲情",
+      "刚正",
+      "鞠躬尽瘁"
+    ],
+    "skills": [
+      "统帅",
+      "守城",
+      "号召"
+    ],
+    "description": "南明兵部尚书、扬州督师。忠贞不二，死守扬州。",
+    "name_en": "Shi Kefa",
+    "description_en": "Southern Ming Minister of War, Yangzhou commander. Loyal to the end; died defending Yangzhou."
   },
   {
     "id": "hongguang",
@@ -19,9 +30,17 @@
     "faction": "nanming",
     "birth": 1607,
     "death": 1646,
-    "personality": ["昏庸", "享乐", "优柔寡断"],
-    "skills": ["名分"],
-    "description": "南明第一位皇帝，年号弘光。沉溺酒色，大权旁落马士英。"
+    "personality": [
+      "昏庸",
+      "享乐",
+      "优柔寡断"
+    ],
+    "skills": [
+      "名分"
+    ],
+    "description": "南明第一位皇帝，年号弘光。沉溺酒色，大权旁落马士英。",
+    "name_en": "Zhu Yousong",
+    "description_en": "First Southern Ming emperor (Hongguang era). Neglected governance for pleasure; power fell to Ma Shiying."
   },
   {
     "id": "mashiying",
@@ -31,9 +50,18 @@
     "faction": "nanming",
     "birth": 1591,
     "death": 1646,
-    "personality": ["权谋", "贪婪", "排挤忠良"],
-    "skills": ["政治", "权术"],
-    "description": "南明首辅，与阮大铖结党，排挤史可法。1645年清军破南京后被俘杀。"
+    "personality": [
+      "权谋",
+      "贪婪",
+      "排挤忠良"
+    ],
+    "skills": [
+      "政治",
+      "权术"
+    ],
+    "description": "南明首辅，与阮大铖结党，排挤史可法。1645年清军破南京后被俘杀。",
+    "name_en": "Ma Shiying",
+    "description_en": "Southern Ming Grand Secretary. Formed a faction with Ruan Dacheng, sidelined Shi Kefa. Captured and executed after Nanjing fell in 1645."
   },
   {
     "id": "duoduo",
@@ -43,9 +71,20 @@
     "faction": "qing",
     "birth": 1612,
     "death": 1650,
-    "personality": ["雄才", "果断", "冷酷", "善于用人"],
-    "skills": ["统帅", "谋略", "政治"],
-    "description": "清摄政王，八旗统帅。率清军入关，定鼎中原。实际上的清朝最高统治者。"
+    "personality": [
+      "雄才",
+      "果断",
+      "冷酷",
+      "善于用人"
+    ],
+    "skills": [
+      "统帅",
+      "谋略",
+      "政治"
+    ],
+    "description": "清摄政王，八旗统帅。率清军入关，定鼎中原。实际上的清朝最高统治者。",
+    "name_en": "Dodo",
+    "description_en": "Qing Prince Yu, Dorgon's brother. Led the southern campaign, capturing Yangzhou and Nanjing."
   },
   {
     "id": "lizicheng",
@@ -55,9 +94,20 @@
     "faction": "nongminjun",
     "birth": 1606,
     "death": 1645,
-    "personality": ["勇猛", "粗豪", "短视", "善于鼓动"],
-    "skills": ["统帅", "号召", "游击"],
-    "description": "大顺皇帝，推翻明朝但守不住江山。1644年北京称帝，随即被清军击败西逃。"
+    "personality": [
+      "勇猛",
+      "粗豪",
+      "短视",
+      "善于鼓动"
+    ],
+    "skills": [
+      "统帅",
+      "号召",
+      "游击"
+    ],
+    "description": "大顺皇帝，推翻明朝但守不住江山。1644年北京称帝，随即被清军击败西逃。",
+    "name_en": "Li Zicheng",
+    "description_en": "Leader of the peasant uprising. Briefly took Beijing before being driven out by Qing forces. Retreating in Sichuan."
   },
   {
     "id": "zhangxianzhong",
@@ -67,9 +117,18 @@
     "faction": "nongminjun",
     "birth": 1606,
     "death": 1647,
-    "personality": ["残暴", "狡诈", "好战"],
-    "skills": ["统帅", "游击"],
-    "description": "大西皇帝，据四川。与李自成时分时合，1644年入蜀建立大西政权。"
+    "personality": [
+      "残暴",
+      "狡诈",
+      "好战"
+    ],
+    "skills": [
+      "统帅",
+      "游击"
+    ],
+    "description": "大西皇帝，据四川。与李自成时分时合，1644年入蜀建立大西政权。",
+    "name_en": "张献忠",
+    "description_en": ""
   },
   {
     "id": "zhengchenggong",
@@ -79,9 +138,20 @@
     "faction": "zheng",
     "birth": 1624,
     "death": 1662,
-    "personality": ["忠义", "坚毅", "善战", "海上霸主"],
-    "skills": ["水战", "贸易", "统帅"],
-    "description": "国姓爷，郑芝龙之子。东亚最强海上力量，以金门厦门为基地，尊奉南明正朔。"
+    "personality": [
+      "忠义",
+      "坚毅",
+      "善战",
+      "海上霸主"
+    ],
+    "skills": [
+      "水战",
+      "贸易",
+      "统帅"
+    ],
+    "description": "国姓爷，郑芝龙之子。东亚最强海上力量，以金门厦门为基地，尊奉南明正朔。",
+    "name_en": "Zheng Chenggong",
+    "description_en": "Son of Zheng Zhilong. Known as Koxinga. Staunch Ming loyalist; advocated resistance against the Qing."
   },
   {
     "id": "wusangui",
@@ -91,8 +161,18 @@
     "faction": "qing",
     "birth": 1612,
     "death": 1678,
-    "personality": ["反复", "善战", "投机", "骄傲"],
-    "skills": ["骑兵", "统帅"],
-    "description": "明朝降将，引清兵入关。率关宁铁骑为清军前锋，平定南方。"
+    "personality": [
+      "反复",
+      "善战",
+      "投机",
+      "骄傲"
+    ],
+    "skills": [
+      "骑兵",
+      "统帅"
+    ],
+    "description": "明朝降将，引清兵入关。率关宁铁骑为清军前锋，平定南方。",
+    "name_en": "Wu Sangui",
+    "description_en": "Ming general who opened Shanhai Pass to the Qing, becoming their vanguard for the southern campaign."
   }
 ]
