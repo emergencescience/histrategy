@@ -1,0 +1,6 @@
+turn,year,season,active_factions,total_strength,max_strength,max_faction,min_strength,min_faction,median_strength,gini_strength,casualties,battles,diplomacy_events
+1,208,winter,29,183700,40000,cao,2100,liubei_old,3000,0.4553,0,0,0
+2,209,spring,29,196015,45000,cao,1550,liubei_old,3000,0.4895,0,0,0
+3,209,summer,28,190342,45000,cao,1025,liubei_old,3000.0,0.4991,0,0,0
+4,209,autumn,27,188759,46000,cao,763,liubei_old,3000,0.5099,0,0,0
+5,209,winter,25,179445,43850,cao,632,liubei_old,3000,0.5151,0,0,0

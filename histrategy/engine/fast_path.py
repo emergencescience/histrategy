@@ -92,7 +92,9 @@ _FACTION_ATTACK_TARGETS = {
 # Player package type detection keywords
 _DEFENSIVE_KW = ["defend", "hold", "retreat", "relocate", "peace", "sail",
                  "recover", "warlord", "watch", "defend", "taiwan", "submit",
-                 "double", "consolidate", "persuade", "serve"]
+                 "double", "consolidate", "persuade"]
+# "serve" intentionally NOT defensive — 勤王 is active military-loyalty
+_ACTIVE_LOYALTY_KW = ["serve", "ally", "rally", "pledge", "commit"]
 _AGGRESSIVE_KW = ["ally", "counter", "totalwar", "laststand", "fight",
                   "invade", "storm", "revolt", "raid", "march", "commit",
                   "offensive", "retake", "wait"]
@@ -266,6 +268,9 @@ def simulate_fast_path(room, player_decision: str,
     # ── Determine player stance ──
     is_player_defensive = any(kw in player_suggestion_id for kw in _DEFENSIVE_KW)
     is_player_aggressive = any(kw in player_suggestion_id for kw in _AGGRESSIVE_KW)
+    # Active loyalty actions (serve, rally, pledge) are neither purely defensive
+    # nor aggressive — they commit military resources but don't start new fights
+    is_player_loyalty = any(kw in player_suggestion_id for kw in _ACTIVE_LOYALTY_KW)
 
     # ── Combat: each hostile NPC may attack the player ──
     events = []
@@ -340,6 +345,10 @@ def simulate_fast_path(room, player_decision: str,
     elif is_player_aggressive:
         pf["treasury"] -= int(pf["treasury"] * 0.08)
         pf["morale"] += 3
+    elif is_player_loyalty:
+        # Loyalty/勤王: costs treasury (tribute/gifts), big morale boost
+        pf["treasury"] -= int(pf["treasury"] * 0.05)
+        pf["morale"] += 5
     else:
         # Balanced/diplomatic
         pf["treasury"] += int(pf["treasury"] * 0.03)
@@ -614,6 +623,8 @@ def _build_narrative(player_fid: str, suggestion_id: str, events: list,
             parts.append(f"{faction_name}主动出击，先发制人。")
         elif any(kw in suggestion_id for kw in ["recover", "trade", "buildup", "consolidate"]):
             parts.append(f"{faction_name}休养生息，积蓄力量。")
+        elif any(kw in suggestion_id for kw in _ACTIVE_LOYALTY_KW):
+            parts.append(f"{faction_name}遣使勤王，整军备战。")
         else:
             parts.append(f"{faction_name}审时度势，发布诏令。")
 
@@ -650,6 +661,8 @@ def _build_narrative(player_fid: str, suggestion_id: str, events: list,
             parts.append(f"launched a preemptive strike, seizing the initiative. ")
         elif any(kw in suggestion_id for kw in ["recover", "trade", "buildup", "consolidate"]):
             parts.append(f"focused on recovery and building reserves. ")
+        elif any(kw in suggestion_id for kw in _ACTIVE_LOYALTY_KW):
+            parts.append(f"sent envoys and mobilized troops in loyal service. ")
         else:
             parts.append(f"assessed the situation and issued decrees. ")
 
