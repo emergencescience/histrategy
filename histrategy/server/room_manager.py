@@ -2215,7 +2215,11 @@ def build_single_player_intro(room, faction_id: str, language_style: str, lang: 
         narrative = INTRO_NARRATIVES_EN[faction_id]
     else:
         faction_narratives = INTRO_NARRATIVES_ZH.get(faction_id, {})
+        # Winter prologue (T0) — historical backstory shown before first spring turn
+        winter = faction_narratives.get("winter_prologue", "")
         narrative = faction_narratives.get(language_style, faction_narratives.get("vernacular", ""))
+        if winter and narrative:
+            narrative = winter + "\n\n---\n\n" + narrative
         if not narrative:
             narrative = f"历史进入了关键的时刻。你将以{faction_id}势力的身份，在这乱世中书写自己的篇章。"
 

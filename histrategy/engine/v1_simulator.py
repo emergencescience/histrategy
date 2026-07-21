@@ -77,6 +77,60 @@ def _load_simulator_prompt(scenario: str | None, lang: str = "zh") -> str:
     return _DEFAULT_SYSTEM_PROMPT
 
 
+
+# ── Historical timeline reference (nanming) ──────────────────
+
+_NANMING_TIMELINE_ZH = {
+    1: """## 历史时间线（仅供参考，不强制遵循）
+- 1645年春：清摄政王多尔衮命多铎为定国大将军，率八旗精兵南下
+- 清军主攻方向：山东→徐州→扬州→南京（由北向南，沿运河南下）
+- 扬州是南京门户，史可法督师坚守。扬州在长江以北，南京在长江以南
+- 郑氏据福建广东，与清控区不相邻（中间隔着南明的浙江、江西）
+- 清军无水师，短期内无法直接威胁福建沿海""",
+    2: """## 历史时间线（仅供参考）
+- 1645年夏：多铎攻破扬州，史可法殉国。清军渡江在即
+- 南京朝廷震动，弘光帝考虑南逃
+- 郑氏水师可沿长江北上支援南京防御""",
+    3: """## 历史时间线（仅供参考）
+- 1645年秋：清军攻陷南京，弘光帝被俘。南明朝廷瓦解
+- 唐王朱聿键在福州即位（隆武），郑芝龙成为实际掌权者
+- 清军推行剃发令，激起江南士民激烈反抗""",
+    4: """## 历史时间线（仅供参考）
+- 1645年冬—1646年：清军继续南下，进入浙江、江西
+- 郑芝龙与清军秘密谈判，郑成功力主抗清
+- 福建开始面临清军直接威胁""",
+}
+
+_NANMING_TIMELINE_EN = {
+    1: "## Historical Timeline (reference only)\n"
+       "- Spring 1645: Dorgon orders Dodo south with the Eight Banners.\n"
+       "- Qing main thrust: Shandong → Xuzhou → Yangzhou → Nanjing (canal route).\n"
+       "- Yangzhou is Nanjing's northern gate; Shi Kefa holds the defense.\n"
+       "- Zheng controls Fujian/Guangdong, not bordering Qing territory.\n"
+       "- Qing has no navy — cannot directly threaten the Fujian coast.",
+    2: "## Historical Timeline (reference only)\n"
+       "- Summer 1645: Yangzhou falls, Shi Kefa dies. Qing forces prepare to cross the Yangtze.\n"
+       "- The Nanjing court panics; Hongguang Emperor considers fleeing south.\n"
+       "- Zheng's navy could sail up the Yangtze to reinforce Nanjing's defense.",
+    3: "## Historical Timeline (reference only)\n"
+       "- Autumn 1645: Nanjing falls, Hongguang Emperor captured. Southern Ming court collapses.\n"
+       "- Prince Tang enthroned in Fuzhou (Longwu era); Zheng Zhilong becomes de facto ruler.\n"
+       "- Qing enforces the queue order; Jiangnan erupts in resistance.",
+    4: "## Historical Timeline (reference only)\n"
+       "- Winter 1645-1646: Qing forces advance into Zhejiang and Jiangxi.\n"
+       "- Zheng Zhilong negotiates secretly with Qing; Zheng Chenggong urges resistance.\n"
+       "- Fujian faces direct Qing threat for the first time.",
+}
+
+def _add_historical_timeline(parts: list, turn: int, lang: str = "zh") -> None:
+    """Append historical timeline reference for nanming early turns."""
+    if lang == "en":
+        timeline = _NANMING_TIMELINE_EN.get(turn, "")
+    else:
+        timeline = _NANMING_TIMELINE_ZH.get(turn, "")
+    if timeline:
+        parts.append(timeline)
+
 # ── Bilingual labels for _build_context ────────────────────
 _LABELS = {
     "zh": {
@@ -195,6 +249,12 @@ def _build_context(
     if diplomatic_notes:
         parts.append(f"\n## {L['diplomacy']}\n")
         parts.append(diplomatic_notes)
+
+    # 5. Historical timeline reference (nanming only, early turns)
+    scenario = getattr(ws, "scenario", "")
+    turn = getattr(ws, "turn_number", 1) or 1
+    if scenario == "nanming" and turn <= 4:
+        _add_historical_timeline(parts, turn, lang)
 
     return "\n".join(parts)
 
