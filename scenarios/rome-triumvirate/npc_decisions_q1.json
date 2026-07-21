@@ -1,0 +1,115 @@
+{
+  "scenario": "rome-triumvirate",
+  "version": 1,
+  "quarter": 1,
+  "player_choices": {
+    "rally_veterans": {
+      "label_zh": "🏛️ 集结老兵",
+      "label_en": "🏛️ Rally Veterans",
+      "decisions": {
+        "antony": {
+          "zh": {
+            "decision_text": "【暴怒】那个乳臭未干的小子竟敢以恺撒之名召集我的老兵！安东尼将酒杯摔碎在地。那些军团是我和恺撒从高卢打到法萨卢斯，一刀一枪打出来的。传令：立刻向所有退役老兵发放双倍赏金——比屋大维能给的更多。同时派百夫长混入他的集会，散布谣言说这孩子根本付不起恺撒遗嘱中的三百塞斯特斯赠金。让老兵们看清楚，到底谁才是恺撒真正的继承人。另外，速调第七军团从高卢南下，枕戈待旦——如果这小子真要玩火，我就教他什么叫真正的罗马军团。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Fury】That beardless boy dares invoke Caesar's name to rally MY veterans! Antony hurls his goblet against the wall. Those legions — I bled with them from Gaul to Pharsalus, shoulder to shoulder with Caesar himself. Issue orders at once: double the donative for every retired veteran — more than Octavian can possibly offer. Meanwhile, dispatch centurions to infiltrate his rallies and spread the word: the boy hasn't the funds for Caesar's promised three hundred sesterces per citizen. Let the veterans see who truly inherited Caesar's mantle. And bring the Seventh Legion down from Gaul — if the whelp wants to play with fire, I'll show him what a real Roman legion looks like.",
+            "commands": []
+          }
+        },
+        "cleopatra": {
+          "zh": {
+            "decision_text": "【敏锐的观察】恺撒的继承人开始收拢军团了——克利奥帕特拉在亚历山大的宫殿中凝视着罗马传来的密报，嘴角泛起一丝微笑。这个年轻人比我想象的要聪明。安东尼脾气暴躁，迟早会犯错误。传令：备好尼罗河最好的小麦和三艘满载黄金的商船。派人以「吊唁恺撒」为名前往罗马，私下接触屋大维的代理人。埃及不急于选边——但风向已经变了，我得确保我的船帆能随时转向。小恺撒里昂也到了该让罗马人记住的年纪。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【A Keen Eye】Caesar's heir is rallying the legions — Cleopatra studies the coded dispatch from Rome in her Alexandrian palace, a faint smile crossing her lips. The boy is cleverer than I expected. Antony is a hot-headed brute who will blunder sooner or later. Issue orders: prepare Egypt's finest wheat and three ships laden with gold. Send an envoy under the pretext of 'mourning Caesar' to Rome, with instructions to make discreet contact with Octavian's agents. Egypt will not rush to pick sides — but the wind is shifting, and I must ensure my sails can turn at a moment's notice. And little Caesarion is old enough now that Rome should be reminded of his existence.",
+            "commands": []
+          }
+        },
+        "senate": {
+          "zh": {
+            "decision_text": "【借刀杀人】西塞罗在元老院听到屋大维集结老兵的消息，激动得手指微颤。天赐良机！这个年轻人有恺撒之名而无恺撒之权，正是对付安东尼的完美工具。我当即起身发表演说，盛赞屋大维是「共和国青年之楷模」，提议元老院授予他代行大法官的权力——一个空头衔，换他与安东尼兵戎相见。布鲁图斯在希腊来信提醒我：屋大维毕竟是恺撒的继承人，终非共和之友。但我自有分寸：先借他的刀砍掉安东尼，然后再折断这把刀，让共和国真正归来。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Enemy of My Enemy】Cicero's fingers tremble with excitement as word of Octavian's veteran rally reaches the Senate. A gift from the gods! This boy has Caesar's name without Caesar's power — the perfect weapon against Antony. I rise at once and deliver an oration hailing Octavian as 'the model of Republican youth,' proposing the Senate grant him propraetorian imperium — an empty title in exchange for open war with Antony. Brutus writes from Greece with a warning: Octavian is Caesar's heir, no true friend of the Republic. But I know what I'm doing: first, let his blade cut down Antony; then we snap that blade, and the Republic will truly be restored.",
+            "commands": []
+          }
+        }
+      }
+    },
+    "senate_speech": {
+      "label_zh": "📜 元老院演说",
+      "label_en": "📜 Senate Speech",
+      "decisions": {
+        "antony": {
+          "zh": {
+            "decision_text": "【冷笑】屋大维在元老院发表了演讲？一个小孩子站在那些披着紫边托加的老狐狸面前大谈「共和国」。安东尼在宴席上纵声大笑。让他去演说吧——元老院的掌声填不饱军团的肚子。真正的权力在马尔斯广场，不在元老院的大理石台阶上。不过，西塞罗那老滑头肯定会利用这孩子来对付我。传令：明天召集元老院会议，我要当众宣读恺撒的遗嘱附录——「更正」几个条款。同时命副将雷必达加强山南高卢的驻军，确保元老院里每一个颤抖的声音都听得到军团铁蹄的节拍。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【A Sneer】Octavian gave a speech in the Senate? A boy standing before those purple-striped old foxes prattling about 'the Republic.' Antony roars with laughter at his banquet. Let him talk — senatorial applause doesn't fill a legionary's belly. Real power lies on the Campus Martius, not the marble steps of the Curia. Still, that serpent Cicero will certainly use the boy against me. Send orders: convene the Senate tomorrow — I shall publicly read a 'supplement' to Caesar's will, with certain clauses 'corrected.' Meanwhile, have Lepidus reinforce Cisalpine Gaul, so every trembling voice in the Curia can hear the rhythm of marching legionaries.",
+            "commands": []
+          }
+        },
+        "cleopatra": {
+          "zh": {
+            "decision_text": "【分化之策】屋大维选择了元老院的讲坛而非军团的营地——克利奥帕特拉放下羊皮纸密报，若有所思。他走的是恺撒的路子：先用言辞赢得平民和元老，再图军权。这对我未必是坏事。安东尼和西塞罗水火不容，屋大维插入其间，罗马必然陷入三角争斗。传令使者：暂停与安东尼的粮食贸易谈判，就说「尼罗河水位下降，今年收成歉薄」。同时向屋大维的幕僚送去一件礼物——恺撒生前留在亚历山大图书馆的手稿，附上一句私人问候。让他们相互消耗。罗马越乱，埃及越安全。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Divide and Let Bleed】Octavian has chosen the Senate rostrum over the legionary camp — Cleopatra sets down the parchment dispatch, deep in thought. He follows Caesar's path: win the mob and the senators with words, then claim the legions. This is not necessarily bad for Egypt. Antony and Cicero are oil and water; insert Octavian between them and Rome tears itself three ways. Send instructions to my envoys: suspend the grain negotiations with Antony, claim 'the Nile has fallen, this year's harvest is poor.' Meanwhile, deliver a discreet gift to Octavian's advisors — a manuscript Caesar left in the Alexandrian Library — with a private note of condolence. Let them exhaust each other. The more fractured Rome becomes, the safer Egypt stands.",
+            "commands": []
+          }
+        },
+        "senate": {
+          "zh": {
+            "decision_text": "【精心编导的戏剧】西塞罗站在元老院的侧廊，看着屋大维在讲坛上慷慨陈词，每一句话都像是从我给他修改过的演讲稿中背诵出来的。完美——这孩子是天生演员，而我是编剧。现在安东尼一定气得发疯，这正是我要的效果。元老院通过紧急动议：宣布安东尼为公敌，其高卢行省总督之职由德西穆斯·布鲁图斯接任。一场风暴即将席卷罗马——而我，马尔库斯·图利乌斯·西塞罗，将在这场风暴的中心，亲手重铸共和国的黄金时代。至少，剧本是这么写的。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【A Carefully Staged Drama】Cicero stands in the side aisle of the Senate, watching Octavian thunder from the rostrum — every line delivered as if memorized from the speech I edited for him. Perfect. The boy is a natural actor, and I am the playwright. By now Antony must be choking with rage, which is precisely the effect I intended. The Senate passes an emergency motion: declare Antony hostis publicus — enemy of the state — and transfer his Gallic governorship to Decimus Brutus. A storm is about to break over Rome — and I, Marcus Tullius Cicero, shall stand at its center, forging with my own hands the Republic's golden rebirth. At least, that is how the script is written.",
+            "commands": []
+          }
+        }
+      }
+    },
+    "confront_antony": {
+      "label_zh": "⚔️ 正面挑战安东尼",
+      "label_en": "⚔️ Confront Antony",
+      "decisions": {
+        "antony": {
+          "zh": {
+            "decision_text": "【狮子露出獠牙】那个小鬼居然敢公然挑战我？安东尼的怒吼震动了整个执政官府邸。我曾与恺撒并肩征服高卢，在法萨卢斯踏碎庞培的军团，他屋大维不过是在阿波罗尼亚养病的毛孩子！既然他自己送上门来——传令全军：立即从布伦迪西乌姆调四个军团北上，在穆提纳城外扎营。既然他想要战争，我就给他战争。另外给雷必达写信：这不再是恺撒派内部的小摩擦，而是对恺撒遗产领导权的争夺。让他选择——站在真正的将军一边，还是站在一个仗着遗嘱逞能的少年一边。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Lion Bares His Fangs】That pup dares openly challenge ME? Antony's roar shakes the Consular residence. I conquered Gaul at Caesar's side and crushed Pompey's legions at Pharsalus — Octavian was a sickly boy recuperating in Apollonia! Since he comes asking for war — orders to all legions: march four cohorts north from Brundisium at once, encamp outside Mutina. If the boy wants war, he shall have war. And write to Lepidus: this is no longer a quarrel within Caesar's faction — this is a contest for the leadership of Caesar's legacy. Tell him to choose: stand with the real general, or with a boy wielding a dead man's will.",
+            "commands": []
+          }
+        },
+        "cleopatra": {
+          "zh": {
+            "decision_text": "【渔翁之利】屋大维直接向安东尼宣战了——克利奥帕特拉在寝宫中轻轻鼓掌。比预期来得更早，但绝非不受欢迎。安东尼那个莽夫必然会尽调精兵北上，意大利空虚，埃及的商船可以畅通无阻。传令：恢复与安东尼的粮食贸易，但要涨价三成——他打仗需要军粮，而我需要黄金。同时向屋大维的阵营秘密提供一笔「无息借款」——不签任何条约，不留任何书面记录。无论这场较量谁赢，罗马都将欠我一份人情。而懂得如何让别人欠自己人情，是统治者的第一课。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Reap Where Others Sow】Octavian has declared open war on Antony — Cleopatra claps softly in her chambers. Sooner than expected, but not unwelcome. That brute Antony will surely strip Italy of its best legions and march them north, leaving the peninsula exposed — Egyptian grain ships will sail unmolested. Send word: resume grain trade with Antony, but raise the price by a third — he needs supplies for his campaign, and I need gold. Meanwhile, extend a discreet 'interest-free loan' to Octavian's camp — no treaty signed, no record kept. Whoever wins this contest, Rome will owe Egypt a favor. And learning to put others in your debt is the first lesson of statecraft.",
+            "commands": []
+          }
+        },
+        "senate": {
+          "zh": {
+            "decision_text": "【赌上一切】西塞罗在书房中来回踱步，手心全是汗。屋大维居然直接挑战安东尼了——这步棋比我设想的早了整整六个月。但箭已离弦：元老院已经公开支持屋大维，我们没有回头路了。我连夜召集核心盟友，说服元老院通过紧急拨款，以「保卫共和国」名义资助屋大维招募三个新军团。同时给在希腊的布鲁图斯和卡西乌斯发去急信：穆提纳之战一旦打响，你们在东方的军团必须立即回师意大利。让恺撒派自相残杀——然后我们共和派收拾残局。诸神保佑这计划不要像前三头同盟那样变成新的噩梦。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【All or Nothing】Cicero paces his study, palms sweating. Octavian has openly challenged Antony — six months earlier than my calculations called for. But the die is cast: the Senate has publicly backed Octavian; there is no turning back now. I summon my core allies through the night and push through an emergency appropriation — fund Octavian's recruitment of three new legions 'in defense of the Republic.' Meanwhile, dispatch urgent letters to Brutus and Cassius in Greece: the moment battle is joined at Mutina, your eastern legions must sail for Italy. Let Caesar's heirs tear each other apart — then we Republicans will sweep up the pieces. Gods grant this plan does not become a new nightmare like the First Triumvirate.",
+            "commands": []
+          }
+        }
+      }
+    }
+  }
+}

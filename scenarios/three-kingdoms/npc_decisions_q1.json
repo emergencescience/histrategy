@@ -1,0 +1,85 @@
+{
+  "scenario": "three-kingdoms",
+  "version": 1,
+  "quarter": 1,
+  "player_choices": {
+    "seek_wu_alliance": {
+      "label_zh": "🤝 联吴抗曹",
+      "label_en": "🤝 Seek Alliance with Wu",
+      "decisions": {
+        "cao": {
+          "zh": {
+            "decision_text": "【拆散联盟】细作来报：刘备遣诸葛亮亲赴江东，欲与孙权结盟。曹操放下竹简，沉思片刻。孙刘若合，如虎添翼，南北夹击之势一成，荆州便难速取。传令：命满宠携天子诏书快马奔赴江东，册封孙权为讨虏将军、领会稽太守，并暗示若助朝廷擒拿刘备，荆州之地可划江而治。孙权虽年少，然承父兄基业，必贪尺寸之利。只要能拖住孙刘结盟的脚步，我的大军就已渡过汉水。另，命夏侯惇昼夜兼程，务必在诸葛亮返回新野之前，围困其城。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Break the Alliance】Intelligence reports: Liu Bei has dispatched Zhuge Liang in person to Jiangdong, seeking an alliance with Sun Quan. Cao Cao sets down the bamboo slip, deep in thought. If Sun and Liu unite, they become a tiger sprouting wings — a two-front pincer that would make Jing Province impossible to take swiftly. Dispatch orders: Man Chong rides to Jiangdong bearing an imperial edict, appointing Sun Quan as General Who Subdues Rebels and Governor of Kuaiji, with the hint that if he helps the court capture Liu Bei, Jing Province could be divided along the river. Sun Quan is young, but he inherited his father's ambition — he will not resist tangible gain. Stalling the Sun-Liu pact is all we need; by the time Zhuge Liang returns, my main army will have crossed the Han River. Additionally, order Xiahou Dun to march at double speed — besiege Xinye before Zhuge Liang can return.",
+            "commands": []
+          }
+        },
+        "wu": {
+          "zh": {
+            "decision_text": "【接见卧龙】诸葛亮已抵柴桑——孙权端坐中堂，周瑜、鲁肃分列左右。鲁肃力主结盟：「曹操虽强，然北人不习水战，若孙刘联手，以长江天险御之，未必不能胜。」张昭等老臣则劝以自保：「刘备乃枭雄，借荆州岂能归还？不如袖手旁观，待曹刘两败俱伤。」孙权沉吟良久，最终传令：「好生款待孔明先生，明日升帐议事。」他内心深处渴望与曹操一战——坐守江东岂是大丈夫所为？但此人向以谨慎著称，在没有看到刘备的诚意和实力之前，不会轻易下注。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Receiving the Sleeping Dragon】Zhuge Liang has arrived at Chaisang — Sun Quan sits in the main hall, flanked by Zhou Yu and Lu Su. Lu Su argues vigorously for the alliance: 'Cao Cao may be strong, but northerners cannot fight on water. If Sun and Liu join forces, using the Yangtze as our moat, victory is not beyond reach.' The elder counselors led by Zhang Zhao urge self-preservation: 'Liu Bei is a hero of ambition — once lent Jing Province, will he ever return it? Better to watch from the shore while Cao and Liu bleed each other dry.' Sun Quan deliberates long before giving the order: 'Treat Master Kongming with every courtesy — we shall convene the war council tomorrow.' Deep in his heart, Sun Quan yearns to test himself against Cao Cao — squatting in Jiangdong is no life for a true man. But he is known for caution, and until he sees Liu Bei's sincerity and strength, he will not place his wager lightly.",
+            "commands": []
+          }
+        }
+      }
+    },
+    "fortify_xinye": {
+      "label_zh": "🏰 固守新野",
+      "label_en": "🏰 Fortify Xinye",
+      "decisions": {
+        "cao": {
+          "zh": {
+            "decision_text": "【铁壁难破】军报：刘备在新野加固城防，深挖壕沟，城外设置了层层鹿砦。夏侯惇的前锋已抵达博望坡，但面对如此森严的壁垒，骑兵的冲锋无异于送死。曹操微微一笑：刘备这是要死守孤城。可新野弹丸之地，粮草能支撑多久？传我将令：不必强攻坚城——命夏侯惇在博望坡扎营，切断新野与襄阳之间的联系。同时派曹仁率偏师南下，威逼樊城，让刘备腹背受敌。等他粮尽援绝，自然不攻自破。围城打援，方是用兵之道。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【An Iron Wall Won't Fall to Brute Force】Military reports: Liu Bei reinforces Xinye's walls, deepens the moats, and lays abatis in concentric rings outside the city. Xiahou Dun's vanguard has reached Bowang Slope, but charging cavalry into such fortifications is suicide. Cao Cao allows himself a thin smile: Liu Bei means to defend a lone city to the death. But Xinye is a speck of land — how long can its granaries hold? Issue new orders: do not assault the walls — have Xiahou Dun encamp at Bowang and sever all roads between Xinye and Xiangyang. Meanwhile, send Cao Ren with a flanking force south to menace Fancheng, putting Liu Bei between two fires. When his grain runs out and relief fails to come, the city will fall without a single scaling ladder. Besiege the city and strike the relief force — that is the art of war.",
+            "commands": []
+          }
+        },
+        "wu": {
+          "zh": {
+            "decision_text": "【隔岸观火】刘备选择固守新野——鲁肃呈上军报，孙权阅后久久不语。固守是下策，但也说明刘备已被曹操逼入绝境。周瑜在一旁冷笑：「新野城小粮少，纵有孔明奇谋，也难挡曹操十万大军。刘备若败，曹操必顺势南下取荆州全境——届时江东便与曹操隔江对峙。」孙权从沉思中抬头：「公瑾，你的意思是？」周瑜拱手：「刘备可以败，但不能败得太快。请主公拨粮五千石，以商船秘密运往樊城，助刘备多拖几日。同时命柴桑水军加紧操练——无论新野之战结果如何，长江上的决战才是决定存亡的关键。」",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Watch from the Other Shore】Liu Bei has chosen to fortify Xinye — Lu Su presents the intelligence report, and Sun Quan reads in prolonged silence. Entrenchment is a strategy of desperation; it also means Liu Bei has been cornered by Cao Cao. Zhou Yu scoffs beside him: 'Xinye's walls are short, its granaries shallow. Not even Kongming's genius can hold against a hundred thousand. If Liu Bei falls, Cao Cao will sweep south and swallow all of Jing Province — and then Jiangdong faces Cao Cao across the river alone.' Sun Quan looks up from his thoughts: 'Gongjin, what do you propose?' Zhou Yu clasps his hands: 'Liu Bei may lose, but he must not lose too quickly. I ask my lord to release five thousand measures of grain, shipped secretly by merchant vessel to Fancheng, to help Liu Bei buy a few more days. Meanwhile, intensify training for the Chaisang fleet — whatever happens at Xinye, the decisive battle will be fought on the Yangtze itself.'",
+            "commands": []
+          }
+        }
+      }
+    },
+    "seek_zhuge_liang": {
+      "label_zh": "🧠 三顾茅庐",
+      "label_en": "🧠 Seek Zhuge Liang (Three Visits)",
+      "decisions": {
+        "cao": {
+          "zh": {
+            "decision_text": "【卧龙出山】探子密报：刘备携关羽、张飞三次前往隆中草庐，终于请得诸葛亮出山辅佐。曹操放下酒杯，面色凝重。诸葛亮，字孔明，自称「卧龙」——此人在荆州名士圈中素有奇才之誉，水镜先生司马徽曾言「卧龙凤雏，得一可安天下」。如今他投了刘备，如虎添翼。传令：命程昱火速搜集隆中一带的情报，凡与诸葛亮有旧的荆州士人，或以高官厚禄招揽，或以性命要挟——必须在其计谋未成之前瓦解其智囊网络。另外，原定秋季南征的计划提前——在诸葛亮完全掌握刘备军务之前，必须拿下新野。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Sleeping Dragon Awakens】Secret intelligence: Liu Bei, accompanied by Guan Yu and Zhang Fei, visited the thatched cottage at Longzhong three times — and has finally persuaded Zhuge Liang to serve as his strategist. Cao Cao sets down his wine cup, face darkening. Zhuge Liang, courtesy name Kongming, calls himself the 'Sleeping Dragon' — among the scholarly circles of Jing Province, he is famed as a prodigy. The recluse Sima Hui once declared: 'Possess either the Sleeping Dragon or the Fledgling Phoenix, and the realm shall be yours.' Now the dragon has chosen Liu Bei — a tiger gifted with wings. Issue orders: Cheng Yu is to gather every shred of intelligence from Longzhong. Any Jing Province scholar with ties to Zhuge Liang — either entice them with rank and gold, or threaten their lives. His network of minds must be dismantled before his schemes take root. Furthermore, advance the autumn southern campaign — Xinye must fall before Zhuge Liang masters Liu Bei's military machine.",
+            "commands": []
+          }
+        },
+        "wu": {
+          "zh": {
+            "decision_text": "【贤才之忧】鲁肃从荆州返回，带来了一个令孙权既兴奋又忧虑的消息：诸葛亮已出山辅佐刘备。孙权在书房踱步：「卧龙之名，孤早有耳闻。刘备得此人，如鱼得水，日后必成江东劲敌。」周瑜却抚掌而笑：「主公多虑了。诸葛亮越强，曹操越不能轻视刘备。刘备顶在前头，便是江东最好的屏障。况且孔明是我妻兄诸葛瑾之弟——此人重情义，日后未尝不可通过家兄联络。当下之计：命鲁肃再使荆州，借吊唁刘表之名，实则与诸葛亮会面，探其虚实，结一段善缘。」",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【A Sage's Worry】Lu Su returns from Jing Province with news that both excites and troubles Sun Quan: Zhuge Liang has emerged from seclusion to serve Liu Bei. Sun Quan paces his study: 'The Sleeping Dragon — I have long heard that name. Liu Bei gaining this man is like a fish finding water. In time, he will become a formidable rival to Jiangdong.' Zhou Yu, unexpectedly, slaps his hands and laughs: 'My lord worries needlessly. The stronger Zhuge Liang is, the more Cao Cao must take Liu Bei seriously. Liu Bei standing at the front line is the best shield Jiangdong could ask for. Besides — Kongming is the younger brother of my brother-in-law Zhuge Jin. The man values loyalty and kinship; when the time comes, we may reach him through family channels. For now, send Lu Su back to Jing Province — under the pretext of mourning Liu Biao, arrange a private meeting with Zhuge Liang. Gauge his caliber and plant the seeds of goodwill.'",
+            "commands": []
+          }
+        }
+      }
+    }
+  }
+}

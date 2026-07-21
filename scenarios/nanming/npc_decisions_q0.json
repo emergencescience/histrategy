@@ -31,6 +31,16 @@
         "decision_text": "【Watch the Situation】Zheng Zhilong commands East Asia's strongest fleet from Fujian. The northern war has not reached Fujian or Guangdong — a perfect time to expand trade and accumulate wealth. Meanwhile, send envoys to probe Southern Ming's cooperation terms. No need to pick sides yet.",
         "commands": []
       }
+    },
+    "nanming": {
+      "zh": {
+        "decision_text": "【定策南京】弘光帝在南京即位，史可法督师江北，马士英主政朝堂。当务之急是稳住江南半壁，调集江北四镇兵力沿淮河布防，确保漕运畅通。同时遣使赴福建催促郑芝龙出兵勤王，并派员安抚左良玉，以防其拥兵自重。南明虽偏安，然江南赋税之区尚在，若能整军经武，未必不可抗衡北朝。",
+        "commands": []
+      },
+      "en": {
+        "decision_text": "【Secure Nanjing】The Hongguang Emperor has ascended in Nanjing — Shi Kefa commands the northern front while Ma Shiying controls the court. The immediate task is to stabilize the southern half of the realm: deploy the Four Garrisons along the Huai River, secure the Grand Canal grain shipments, and dispatch envoys to Fujian urging Zheng Zhilong to send reinforcements. Meanwhile, placate General Zuo Liangyu lest he grow too independent. Though the Southern Ming holds only half the empire, the wealthy Jiangnan tax base remains intact — with proper preparation, it may yet hold against the invaders.",
+        "commands": []
+      }
     }
   }
 }
