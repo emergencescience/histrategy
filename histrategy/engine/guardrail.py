@@ -73,29 +73,105 @@ class GuardrailValidator:
                     logger.warning("Battle override rejected: %s", e)
 
         # ── Validate battle results (MacroPolicyEngine schema) ──
-        # Pass through entries referencing a known territory. The deterministic
-        # grounding in StateApplier.apply_macro_delta is the real guardrail for
-        # casualties / territory capture, so here we only drop malformed rows.
+        # Soft-check adjacency; StateApplier is the hard gate.
         for br in delta.get("battle_results", []):
             if not isinstance(br, dict):
                 continue
             loc = br.get("location", "")
-            if loc and loc in world_state.territories or loc and any(getattr(t, "name", "") == loc for t in world_state.territories.values()):
+            known_loc = loc and (
+                loc in world_state.territories
+                or any(
+                    getattr(t, "name", "") == loc
+                    for t in world_state.territories.values()
+                )
+            )
+            if known_loc:
+                # ── Soft check: warn if LLM tries to capture non-adjacent territory ──
+                wants_capture = br.get("territory_captured") or br.get("result") in (
+                    "attack_win",
+                    "rout",
+                )
+                if wants_capture:
+                    atk = br.get("attacker", "")
+                    if atk and loc in world_state.territories:
+                        target = world_state.territories[loc]
+                        atk_owns = {
+                            tid
+                            for tid, t in world_state.territories.items()
+                            if getattr(t, "owner_id", "") == atk
+                        }
+                        target_neighbors = set(getattr(target, "neighbors", []))
+                        if (
+                            not (target_neighbors & atk_owns)
+                            and getattr(target, "owner_id", "") != atk
+                        ):
+                            warnings.append(
+                                GuardrailWarning(
+                                    "battle_results.territory_captured",
+                                    (
+                                        f"LLM wants {atk} to capture {loc} but "
+                                        "attacker does not border it. "
+                                        "StateApplier will block."
+                                    ),
+                                )
+                            )
                 sanitized["battle_results"].append(br)
             else:
-                warnings.append(GuardrailWarning("battle_results.location", f"Unknown territory: {loc}"))
+                warnings.append(
+                    GuardrailWarning(
+                        "battle_results.location",
+                        f"Unknown territory: {loc}",
+                    )
+                )
 
-        # ── Pass through NPC faction actions referencing a known faction ──
+        # ── Validate NPC faction actions: cap conscription, check faction ──
         for nfa in delta.get("npc_faction_actions", []):
             if not isinstance(nfa, dict):
                 continue
             fac = nfa.get("faction", "")
-            if fac in world_state.factions or any(
-                getattr(f, "name", "") == fac for f in world_state.factions.values()
-            ):
+            faction_known = fac in world_state.factions or any(
+                getattr(f, "name", "") == fac
+                for f in world_state.factions.values()
+            )
+            if faction_known:
+                # ── Hard cap: NPC conscript <= 8% of total faction population ──
+                if nfa.get("action_type") == "conscript":
+                    amount = int(
+                        (nfa.get("params", {}) or {}).get("amount", 5000) or 5000
+                    )
+                    faction_obj = world_state.factions.get(fac)
+                    total_pop = (
+                        sum(
+                            getattr(
+                                world_state.territories.get(tid, None),
+                                "population",
+                                0,
+                            )
+                            for tid in getattr(faction_obj, "territories", [])
+                        )
+                        if faction_obj
+                        else 0
+                    )
+                    max_allowed = max(500, int(total_pop * 0.08))
+                    if amount > max_allowed:
+                        warnings.append(
+                            GuardrailWarning(
+                                f"npc_faction_action.{fac}.conscript",
+                                (
+                                    f"Conscript {amount} exceeds 8% pop cap "
+                                    f"({max_allowed}). Clamped to {max_allowed}."
+                                ),
+                            )
+                        )
+                        nfa.setdefault("params", {})["amount"] = max_allowed
                 sanitized["npc_faction_actions"].append(nfa)
             else:
-                warnings.append(GuardrailWarning("npc_faction_action.faction", f"Unknown faction: {fac}"))
+                warnings.append(
+                    GuardrailWarning(
+                        "npc_faction_action.faction",
+                        f"Unknown faction: {fac}",
+                    )
+                )
 
         # ── Validate morale events ──
         if "morale_events" in delta:
@@ -112,7 +188,7 @@ class GuardrailValidator:
                         warnings.append(
                             GuardrailWarning(
                                 f"morale_event.{me.get('faction', '?')}",
-                                f"Single-turn morale change {change} exceeds ±15 cap",
+                                f"Single-turn morale change {change} exceeds +-15 cap",
                             )
                         )
 
@@ -123,7 +199,12 @@ class GuardrailValidator:
                 if faction and faction in world_state.factions:
                     sanitized["political_events"].append(pe)
                 else:
-                    warnings.append(GuardrailWarning("political_event", f"Unknown faction: {faction}"))
+                    warnings.append(
+                        GuardrailWarning(
+                            "political_event",
+                            f"Unknown faction: {faction}",
+                        )
+                    )
 
         accepted = len(violations) == 0
 
@@ -150,33 +231,51 @@ class GuardrailValidator:
 
         # Constraint: casualties must be non-negative integers
         if not isinstance(atk_loss, (int, float)) or atk_loss < 0:
-            raise GuardrailViolation("casualties.attacker", f"Negative casualties: {atk_loss}")
+            raise GuardrailViolation(
+                "casualties.attacker", f"Negative casualties: {atk_loss}"
+            )
         if not isinstance(def_loss, (int, float)) or def_loss < 0:
-            raise GuardrailViolation("casualties.defender", f"Negative casualties: {def_loss}")
+            raise GuardrailViolation(
+                "casualties.defender", f"Negative casualties: {def_loss}"
+            )
 
         # Constraint: captured/escaped characters must be valid
         for char_id in bo.get("captured_characters", []):
             if char_id not in ws.characters:
-                raise GuardrailViolation("captured_characters", f"Unknown character: {char_id}")
+                raise GuardrailViolation(
+                    "captured_characters", f"Unknown character: {char_id}"
+                )
         for char_id in bo.get("escaped_characters", []):
             if char_id not in ws.characters:
-                raise GuardrailViolation("escaped_characters", f"Unknown character: {char_id}")
+                raise GuardrailViolation(
+                    "escaped_characters", f"Unknown character: {char_id}"
+                )
 
         # Constraint: cannot capture AND have the same character escape
         captured = set(bo.get("captured_characters", []))
         escaped = set(bo.get("escaped_characters", []))
         overlap = captured & escaped
         if overlap:
-            raise GuardrailViolation("characters", f"Characters both captured and escaped: {overlap}")
+            raise GuardrailViolation(
+                "characters", f"Characters both captured and escaped: {overlap}"
+            )
 
         # Find the baseline battle for deviation check
         if hasattr(baseline, "battles"):
             for b in baseline.battles:
                 if getattr(b, "location", "") == location:
-                    base_atk = sum(b.attacker_casualties.values()) if hasattr(b, "attacker_casualties") else 0
-                    base_def = sum(b.defender_casualties.values()) if hasattr(b, "defender_casualties") else 0
+                    base_atk = (
+                        sum(b.attacker_casualties.values())
+                        if hasattr(b, "attacker_casualties")
+                        else 0
+                    )
+                    base_def = (
+                        sum(b.defender_casualties.values())
+                        if hasattr(b, "defender_casualties")
+                        else 0
+                    )
 
-                    # Non-combat outcomes (surrender, retreat) may have zero casualties
+                    # Non-combat outcomes may have zero casualties
                     llm_result = bo.get("llm_result", "")
                     is_non_combat = llm_result in (
                         "defender_surrendered",
@@ -212,7 +311,9 @@ class GuardrailValidator:
         """Hard constraints for morale events."""
         faction_id = me.get("faction", "")
         if faction_id not in ws.factions:
-            raise GuardrailViolation("faction", f"Unknown faction: {faction_id}")
+            raise GuardrailViolation(
+                "faction", f"Unknown faction: {faction_id}"
+            )
 
         faction = ws.factions[faction_id]
         current_morale = getattr(faction, "morale_actual", 50)
@@ -221,11 +322,19 @@ class GuardrailValidator:
         # Constraint: morale must stay in [0, 100]
         new_morale = current_morale + change
         if new_morale < 0:
-            raise GuardrailViolation("change", f"Morale would go below 0: {current_morale} + {change} = {new_morale}")
+            raise GuardrailViolation(
+                "change",
+                f"Morale would go below 0: {current_morale} + {change} = {new_morale}",
+            )
         if new_morale > 100:
-            raise GuardrailViolation("change", f"Morale would exceed 100: {current_morale} + {change} = {new_morale}")
+            raise GuardrailViolation(
+                "change",
+                f"Morale would exceed 100: {current_morale} + {change} = {new_morale}",
+            )
 
         # Constraint: territory must exist if specified
         territory = me.get("territory", "")
         if territory and territory not in ws.territories:
-            raise GuardrailViolation("territory", f"Unknown territory: {territory}")
+            raise GuardrailViolation(
+                "territory", f"Unknown territory: {territory}"
+            )

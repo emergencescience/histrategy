@@ -37,6 +37,19 @@ _TROOP_ABSORB_FRAC = 0.15  # captured city → victor absorbs this fraction of l
 _MORALE_EQUILIBRIUM = 55  # wartime morale mean-reversion target
 _MORALE_REVERT_MAX = 3  # max mean-reversion step per quarter
 
+# ── NPC recruitment constraints (P1/P2: grounded economy) ──
+_NPC_CONSCRIPT_MAX_RATE = 0.05  # max 5% of total faction population per quarter
+_NPC_CONSCRIPT_CONSECUTIVE_DECAY = 0.02  # each consecutive quarter reduces rate by 2%
+_NPC_CONSCRIPT_LABOR_FLOOR_RATIO = 0.25  # below 25% of original pop, conscription blocked
+_NPC_CONSCRIPT_MIN_AMOUNT = 100  # minimum conscription even for tiny factions
+_NPC_CONSCRIPT_COST_PER_SOLDIER = 3  # gold per soldier (matches military.yaml infantry cost)
+_NPC_CONSCRIPT_FOOD_PER_SOLDIER = 0.5  # food per soldier upkeep
+
+# ── Territory adjacency check ──
+# Tracks consecutive conscription quarters per faction (module-level, resets per game)
+_npc_conscript_streak: dict[str, int] = {}
+_initial_faction_population: dict[str, int] = {}  # snapshotted on first call
+
 
 def _local_faction_id_map(ws) -> dict:
     """name/id → faction pinyin id (inlined to avoid circular import)."""
@@ -305,18 +318,26 @@ def _settle_battle(br: dict, ws, fmap: dict, tmap: dict, summary: dict) -> None:
     summary["battles_settled"] += 1
 
     # ── Territory capture: gated by force ratio OR defender morale collapse ──
+    # AND adjacency: attacker must border the target territory (P1 — no rear-line sniping)
     llm_wants_capture = bool(br.get("territory_captured")) or br.get("result") in ("attack_win", "rout")
     force_permits = a_pow > d_pow * _TERRITORY_CAPTURE_POWER_RATIO
     morale_collapse = d_mor < _MORALE_COLLAPSE_THRESHOLD
+    adjacency_ok = _attacker_borders_territory(atk, loc, ws)
     if territory and llm_wants_capture and (force_permits or morale_collapse):
-        _transfer_territory(loc, atk, dfd, ws, summary)
-        # capture morale swing
-        af.morale_actual = _clamp(getattr(af, "morale_actual", 50) + 5, 0, 100)
-        df.morale_actual = _clamp(getattr(df, "morale_actual", 50) - 8, 0, 100)
-        # If the defender lost its last city, it is finished.
-        if not df.territories:
-            df.is_active = False
-            summary["factions_defeated"] += 1
+        if not adjacency_ok:
+            logger.warning(
+                "Territory capture BLOCKED: %s does not border %s (%s)",
+                atk, loc, getattr(territory, "name", loc),
+            )
+        else:
+            _transfer_territory(loc, atk, dfd, ws, summary)
+            # capture morale swing
+            af.morale_actual = _clamp(getattr(af, "morale_actual", 50) + 5, 0, 100)
+            df.morale_actual = _clamp(getattr(df, "morale_actual", 50) - 8, 0, 100)
+            # If the defender lost its last city, it is finished.
+            if not df.territories:
+                df.is_active = False
+                summary["factions_defeated"] += 1
 
 
 def _sum_casualties(v) -> int:
@@ -336,6 +357,31 @@ def _blend_casualty(deterministic: int, llm_hint: int) -> int:
     hi = int(deterministic * 1.5)
     blended = (deterministic + _clamp(llm_hint, lo, hi)) // 2
     return max(0, blended)
+
+
+def _attacker_borders_territory(attacker_id: str, target_id: str, ws) -> bool:
+    """Check whether the attacker faction borders the target territory.
+
+    A faction "borders" a territory if it owns at least one territory that
+    is a neighbor of the target territory. Uses MapEngine adjacency when
+    available; falls back to territory neighbor lists.
+    """
+    target = ws.territories.get(target_id)
+    if not target:
+        return False
+    # Get all territories owned by the attacker
+    atk_territories = {
+        tid for tid, t in ws.territories.items()
+        if getattr(t, "owner_id", "") == attacker_id
+    }
+    # Check if any of them are neighbors of the target
+    target_neighbors = set(getattr(target, "neighbors", []))
+    if target_neighbors & atk_territories:
+        return True
+    # Also accept if attacker already owns the target (shouldn't happen normally)
+    if getattr(target, "owner_id", "") == attacker_id:
+        return True
+    return False
 
 
 def _transfer_territory(loc: str, new_owner: str, old_owner: str, ws, summary: dict) -> None:
@@ -395,10 +441,48 @@ def _apply_npc_faction_action(nfa: dict, ws, fmap: dict, summary: dict) -> None:
 
     if action_type == "conscript":
         amount = int(params.get("amount", 5000) or 5000)
-        cost = int(amount * 0.5)
-        if faction.treasury >= cost and faction.food >= amount * 0.1:
+        # ── Grounded recruitment: cap by population, treasury, food, and streak ──
+        total_pop = sum(
+            getattr(ws.territories.get(tid, None), "population", 0)
+            for tid in getattr(faction, "territories", [])
+        )
+        # Snapshot initial population on first call (for labor floor check)
+        if fid not in _initial_faction_population:
+            _initial_faction_population[fid] = max(total_pop, 1)
+        initial_pop = _initial_faction_population[fid]
+
+        # Labor floor: below 25% of original pop, no conscription possible
+        if initial_pop > 0 and total_pop < initial_pop * _NPC_CONSCRIPT_LABOR_FLOOR_RATIO:
+            logger.warning(
+                "NPC %s conscript blocked: population %d below labor floor (%d)",
+                fid, total_pop, int(initial_pop * _NPC_CONSCRIPT_LABOR_FLOOR_RATIO),
+            )
+            return
+
+        # Max conscription rate with consecutive decay
+        streak = _npc_conscript_streak.get(fid, 0)
+        effective_rate = max(0.01, _NPC_CONSCRIPT_MAX_RATE - streak * _NPC_CONSCRIPT_CONSECUTIVE_DECAY)
+        max_amount = max(_NPC_CONSCRIPT_MIN_AMOUNT, int(total_pop * effective_rate))
+        amount = min(amount, max_amount)
+
+        if amount <= 0:
+            return
+
+        # Realistic cost: 3 gold + 0.5 food per soldier (matches military.yaml)
+        cost = int(amount * _NPC_CONSCRIPT_COST_PER_SOLDIER)
+        food_cost = int(amount * _NPC_CONSCRIPT_FOOD_PER_SOLDIER)
+
+        if faction.treasury >= cost and faction.food >= food_cost:
             faction.strength_actual = getattr(faction, "strength_actual", 0) + amount
             faction.treasury -= cost
+            faction.food = max(0, faction.food - food_cost)
+            _npc_conscript_streak[fid] = streak + 1
+            logger.info(
+                "NPC %s conscripted %d troops (rate=%.2f%%, pop=%d, cost=%dg+%df, streak=%d)",
+                fid, amount, effective_rate * 100, total_pop, cost, food_cost, streak + 1,
+            )
+        else:
+            _npc_conscript_streak[fid] = 0  # failed conscription resets streak
     elif action_type == "develop":
         cost = int(params.get("cost", 300) or 300)
         if faction.treasury >= cost:
