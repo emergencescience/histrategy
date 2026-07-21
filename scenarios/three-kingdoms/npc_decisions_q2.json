@@ -1,0 +1,241 @@
+{
+  "scenario": "three-kingdoms",
+  "version": 1,
+  "quarter": 2,
+  "player_paths": {
+    "seek_wu_alliance_then_prepare_chibi": {
+      "label_zh": "R1: 联吴抗曹 → R2: 备战赤壁",
+      "label_en": "R1: Seek Wu Alliance → R2: Prepare for Chibi",
+      "decisions": {
+        "cao": {
+          "zh": {
+            "decision_text": "【八十万对五万】军报：孙刘联盟已成定局——诸葛亮亲赴柴桑，孙权拔剑斫案，誓与曹操决一死战。现在刘备更在长江南岸加紧备战，征调民船、囤积火油。曹操放下军报，放声大笑。众将不解，程昱问：「丞相何故发笑？」曹操捋须：「孙刘联军不过五万，我有大军八十三万——纵使周瑜、诸葛亮有通天之才，能变出三十万水军来吗？传令：加速从江陵水陆并进，在乌林扎下水寨，战船首尾相连，如履平地——北军不习水战，铁索连舟便无颠簸之苦。另命细作潜入江东散布谣言：周瑜功高震主，战胜之日便是兔死狗烹之时。让他们还没打仗就先内讧。」",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Eight Hundred Thousand Against Fifty Thousand】Military dispatch: The Sun-Liu alliance is sealed — Zhuge Liang traveled to Chaisang in person; Sun Quan drew his sword and cleaved his desk, swearing death before surrender to Cao Cao. Now Liu Bei intensifies preparations on the south bank of the Yangtze, commandeering civilian vessels and stockpiling fire oil. Cao Cao sets down the report and roars with laughter. His commanders are baffled; Cheng Yu asks, 'Prime Minister, why do you laugh?' Cao Cao strokes his beard: 'The combined Sun-Liu force is fifty thousand at most — I command eight hundred thirty thousand. Even if Zhou Yu and Zhuge Liang possess heaven-reaching genius, can they conjure three hundred thousand marines from thin air? Issue orders: accelerate the advance from Jiangling by both land and water. Establish the naval camp at Wulin — chain our warships stem to stern so they ride steady as dry land. Our northern troops suffer on water; iron-linked ships will feel solid beneath their feet. Also, dispatch spies into Jiangdong to spread a rumor: Zhou Yu's achievements now overshadow his lord's — the day victory comes is the day the hunting dog meets the butcher.' Let them feud before they fight.",
+            "commands": []
+          }
+        },
+        "wu": {
+          "zh": {
+            "decision_text": "【柴桑定策】孙权在柴桑升帐，文武分列。诸葛亮于帐中陈说利害，以「曹操远来疲惫、北军不习水战、荆州民心未附」三事驳斥张昭等主降派。周瑜从鄱阳湖星夜赶回，力排众议：「操虽托名汉相，实为汉贼。将军以神武雄才，兼仗父兄余烈，割据江东，兵精粮足，正当横行天下，为汉家除残去秽！」孙权闻言，拔佩剑斫面前奏案一角：「诸将吏敢复有言当迎操者，与此案同！」军心遂定。周瑜当场受命为大都督，程普为副，鲁肃为赞军校尉——即刻调柴桑水军三万精锐，联同刘备军一万，选定赤壁为决战之地。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Strategy of Chaisang】Sun Quan convenes the grand council at Chaisang, civil and military officials arrayed before him. Zhuge Liang argues the case in the main tent, refuting the capitulation faction led by Zhang Zhao with three points: Cao Cao's army is exhausted from the long march, northern soldiers cannot fight on water, and the people of Jing Province have not yet submitted to his rule. Zhou Yu races back from Lake Poyang through the night and speaks with thunderous conviction: 'Cao Cao may call himself Prime Minister of Han, but he is a traitor to Han. You, my lord, with divine martial talent and the legacy of your father and elder brother, hold Jiangdong with crack troops and full granaries — now is the time to stride across the realm and cleanse the Han house of filth!' Sun Quan hears these words, draws his blade, and slices the corner from the memorial desk before him: 'Any officer who dares speak again of surrender shall share this desk's fate!' The army's resolve is forged. Zhou Yu is appointed Grand Commander on the spot, Cheng Pu as his deputy, Lu Su as Army Supervisor — three thousand elite marines from the Chaisang fleet are mobilized immediately, joining Liu Bei's ten thousand, with Red Cliffs chosen as the field of decision.",
+            "commands": []
+          }
+        }
+      }
+    },
+    "seek_wu_alliance_then_recruit_guan_yu": {
+      "label_zh": "R1: 联吴抗曹 → R2: 调遣关羽",
+      "label_en": "R1: Seek Wu Alliance → R2: Recruit Guan Yu",
+      "decisions": {
+        "cao": {
+          "zh": {
+            "decision_text": "【青龙刀寒】军报送来一个令曹操放下酒杯的消息：刘备不仅与孙权结盟，还特调关羽率本部精兵坐镇江陵前线——青龙偃月刀已出鞘。曹操默然良久。他见过关羽——在汜水关前温酒斩华雄的那一战，那颗头颅送到案前时酒尚有余温。此人万军之中取上将首级如探囊取物，更兼义薄云天，刘备对他绝对信任。传令：夏侯惇不得轻敌冒进。我军正面强攻江陵的计划暂缓——关云长不是夏侯惇能正面击破的对手。改换策略：命张辽率轻骑骚扰江陵粮道，避免与关羽正面交锋，拖住他即可。同时命贾诩再拟密信一封致关羽——不提归降，只叙旧情。当年在许都，我对关羽三日一小宴、五日一大宴，赠赤兔马、赐汉寿亭侯——此人重情，旧恩或可牵制其一念。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Cold Gleam of the Green Dragon】The military dispatch brings news that makes Cao Cao set down his wine cup: Liu Bei has not only allied with Sun Quan but has specifically dispatched Guan Yu with his personal elite force to hold the Jiangling front line — the Green Dragon Crescent Blade has been drawn. Cao Cao falls into prolonged silence. He has seen Guan Yu — at the Sishui Pass, when Guan Yu rode out, slew Hua Xiong, and returned before the wine had cooled; the severed head was presented while the cup still steamed. This man plucks the heads of enemy commanders from amid ten thousand troops as easily as reaching into a pouch — and his loyalty is absolute; Liu Bei trusts him without reservation. Issue orders: Xiahou Dun is not to underestimate the enemy or advance recklessly. Suspend the plan for a frontal assault on Jiangling — Guan Yunchang is not an opponent Xiahou Dun can break in direct combat. Switch tactics: have Zhang Liao lead light cavalry to harass Jiangling's supply lines, avoiding direct engagement with Guan Yu — merely pin him down. Meanwhile, order Jia Xu to draft another secret letter to Guan Yu — no mention of surrender, only reminiscence of old times. In Xuchang, I feasted Guan Yu every three days with minor banquets and every five days with grand ones, gifted him Red Hare, bestowed upon him the Marquis of Hanshou — this man values past kindness; old debts may yet stay his blade.",
+            "commands": []
+          }
+        },
+        "wu": {
+          "zh": {
+            "decision_text": "【武圣坐镇】鲁肃急报：刘备命关羽率水军五千进入江陵，接管前线防务。周瑜闻讯，眉头微皱。关羽之名，天下皆知——当年斩颜良诛文丑、过五关斩六将，连曹操都曾感叹「得关羽胜过十万精兵」。此人在前线，对鼓舞联军士气大有裨益。但周瑜也有隐忧：关羽性傲，目中除了刘备几乎无人可入其眼。若两军协同作战时此人刚愎自用、不听都督号令，反而坏事。周瑜对鲁肃说：「子敬，烦你亲赴关羽营中走一遭。礼数要周，言辞要敬，但必须让他明白——此战我是大都督，水战调度需一令而行。关将军骁勇无双，但赤壁之战不是单骑冲阵，是五万对八十万的生死棋局。」",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The God of War Takes His Post】Lu Su sends an urgent report: Liu Bei has dispatched Guan Yu with five thousand marines to Jiangling, taking command of the front-line defense. Zhou Yu reads the dispatch and his brow furrows slightly. Guan Yu's name is known to all under Heaven — he felled Yan Liang and executed Wen Chou in a single campaign, crossed five passes slaying six generals, and even Cao Cao once sighed, 'To gain Guan Yu is worth more than a hundred thousand crack troops.' Having this man at the front is a tremendous boost to coalition morale. But Zhou Yu harbors a private concern: Guan Yu's pride is legendary; few men beyond Liu Bei himself can meet his gaze. If he acts with stubborn self-assurance during joint operations and refuses the Grand Commander's orders, he could do more harm than good. Zhou Yu tells Lu Su: 'Zijing, I must trouble you to visit Guan Yu's camp in person. Observe every courtesy, speak with every respect — but make him understand: in this battle, I am Grand Commander. Naval maneuvers require unified command. General Guan's valor is peerless, but Red Cliffs is not a lone rider charging the enemy line — it is a game of life and death where fifty thousand face eight hundred thousand.'",
+            "commands": []
+          }
+        }
+      }
+    },
+    "seek_wu_alliance_then_develop_jingzhou": {
+      "label_zh": "R1: 联吴抗曹 → R2: 经营荆州",
+      "label_en": "R1: Seek Wu Alliance → R2: Develop Jingzhou",
+      "decisions": {
+        "cao": {
+          "zh": {
+            "decision_text": "【根深叶茂】军报连番呈上：刘备一边与孙权结盟共拒我军，一边在荆州南部招募流民、开垦荒地、征辟荆州士人入幕。曹操将竹简缓缓卷起，面色沉重。这比孙刘联盟的消息更让他忧虑——联盟是战术，经营荆州是战略。刘备正在从一支流窜的客军变成有根据地的诸侯。有地盘就有兵源，有兵源就有持久战的能力。传令：命曹仁加强对襄阳的控制，严守汉水防线。同时在襄阳推行屯田——他刘备在南边种地，我曹操在北边种地。看谁的庄稼先熟、谁的土地更广。另外，致书荆州各郡豪强——许以保留地方武装和不触动地方利益的承诺。不能让荆州的上层社会集体倒向刘备。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Deep Roots, Flourishing Leaves】Dispatches arrive in succession: Liu Bei, while allying with Sun Quan to resist our army, is simultaneously recruiting refugees, opening wasteland, and enlisting Jing Province scholars into his administration across southern Jing. Cao Cao slowly rolls the bamboo slip shut, his expression dark. This troubles him more than the Sun-Liu alliance — the alliance is a tactic; developing Jing Province is a strategy. Liu Bei is transforming from a roving band into a territorial lord. With territory comes recruitment; with recruitment comes the ability to wage prolonged war. Issue orders: Cao Ren is to tighten control over Xiangyang and rigidly hold the Han River line. At the same time, initiate military-agricultural colonies around Xiangyang — if Liu Bei farms in the south, Cao Cao farms in the north. Let us see whose crops ripen first and whose fields are wider. Furthermore, send letters to the powerful clans of every Jing commandery — promise to preserve their local militias and not to disturb local interests. Jing Province's elite must not collectively swing behind Liu Bei.",
+            "commands": []
+          }
+        },
+        "wu": {
+          "zh": {
+            "decision_text": "【荆州之根】鲁肃从荆州南部巡查归来，向孙权禀报：刘备以诸葛亮主理荆州政务，招募流民屯垦江夏、零陵之间荒地，又开办学馆延揽荆州士人子弟。孙权静听之后，默然良久。联盟抗曹是一回事——但刘备在荆州扎根是另一回事。荆州是江东的门户，若刘备在此深固根基，将来曹军一退，孙刘之间关于荆州归属必有大争。周瑜直言：「刘备，世之枭雄。孔明，王佐之才。二人合力经营荆州，不出三年，必成尾大不掉之势。不如趁曹操大兵压境之际，向刘备提出：荆州北部抗曹军务由联军共管，战后荆州以襄阳为界，南属孙、北还刘。」鲁肃力劝不可——此时生隙，正中曹操下怀。孙权最终折中：暂不提及荆州归属，但命周瑜在赤壁之战中尽可能保存江东水军实力——仗要打赢，但兵不能全打光。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Jingzhou Takes Root】Lu Su returns from an inspection tour of southern Jing Province and reports to Sun Quan: Liu Bei has placed Zhuge Liang in charge of Jing's civil administration, recruiting refugees to reclaim the wasteland between Jiangxia and Lingling, and establishing academies to attract the sons of Jing's scholar-gentry. Sun Quan listens in prolonged silence. Allying against Cao Cao is one thing — Liu Bei sinking roots into Jing Province is another entirely. Jing is Jiangdong's gateway; if Liu Bei establishes a deep foundation here, the moment Cao Cao retreats, Sun and Liu will clash fiercely over Jing's ownership. Zhou Yu speaks bluntly: 'Liu Bei is a hero of the age. Kongming is a talent fit for a king's chancellor. If the two of them build a power base in Jing together, within three years they will become a tail too heavy to wag. Better to seize the moment while Cao Cao presses hard and propose: northern Jing's military affairs shall be jointly administered. After the war, Jing Province shall be divided at Xiangyang — the south to Sun, the north to Liu.' Lu Su urges restraint — opening a rift now is exactly what Cao Cao hopes for. Sun Quan ultimately finds a middle path: say nothing of Jing's ownership for now, but instruct Zhou Yu to preserve as much of Jiangdong's naval strength as possible during the Red Cliffs campaign — win the battle, but do not spend every last ship and soldier.",
+            "commands": []
+          }
+        }
+      }
+    },
+    "fortify_xinye_then_prepare_chibi": {
+      "label_zh": "R1: 固守新野 → R2: 备战赤壁",
+      "label_en": "R1: Fortify Xinye → R2: Prepare for Chibi",
+      "decisions": {
+        "cao": {
+          "zh": {
+            "decision_text": "【铜墙铁壁之后的利剑】夏侯惇从博望坡传来军报：新野城防固若金汤，城头守军轮换有序、士气高昂，强攻数次皆被击退。但同时细作来报：刘备正在暗中将主力从新野向长江南岸转移，新野守军看似未减，实为虚张声势。曹操读罢，将竹简递给程昱：「你看——刘备不是死守新野，他是用新野拖住我军前锋，主力已在为赤壁之战做准备。」程昱沉吟道：「若新野久攻不下，我军锐气必挫。然若放弃新野直扑长江，又恐新野之敌断我后路。」曹操决断：「命夏侯惇继续围城，但不强攻——每日佯攻两次，敲鼓放箭，虚耗其精力。主力随我由汉水南下，直取夏口——刘备不是在为赤壁准备吗？我就在赤壁之前截住他！」",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【A Blade Behind the Iron Wall】Xiahou Dun sends a dispatch from Bowang Slope: Xinye's defenses are impregnable — the garrison rotates in disciplined shifts with sky-high morale; repeated assaults have been repelled each time. But simultaneously, spies report: Liu Bei is secretly relocating his main force from Xinye to the Yangtze's south bank. Xinye's defenders appear undiminished, but it is a bluff. Cao Cao reads the report and passes the bamboo slip to Cheng Yu: 'Look — Liu Bei is not defending Xinye to the death. He is using Xinye to pin down our vanguard while his main force prepares for a battle at Red Cliffs.' Cheng Yu ponders: 'If Xinye remains untaken, our army's edge will dull. Yet if we bypass Xinye and charge straight for the Yangtze, the Xinye garrison could sever our rear.' Cao Cao decides: 'Have Xiahou Dun maintain the siege but cease costly assaults — launch two mock attacks daily, beat the drums, loose arrows, drain their stamina. The main army follows me south along the Han River, making straight for Xiakou. Liu Bei is preparing for Red Cliffs? I will intercept him before he reaches it!'",
+            "commands": []
+          }
+        },
+        "wu": {
+          "zh": {
+            "decision_text": "【坚城与火攻】周瑜细读前线军报：刘备以少量兵力固守新野拖住夏侯惇，主力已悄然南移准备赤壁会战。他将竹简缓缓放在案上，目光闪烁。此计甚妙——用一座孤城换时间，用时间换赤壁战场的天时地利。如果刘备在新野能再拖夏侯惇二十日，联军便有充足时间在赤壁沿岸布置火攻所需的一切——火船、东风观测、芦苇丛中的伏兵。周瑜传令：立即派精锐工匠赶赴赤壁前线，赶造轻便火船二百艘，满载浸油干柴、硫磺硝石，以黑布覆盖。同时命黄盖加紧操练「苦肉计」——诈降曹营，为火攻创造战机。万事俱备——只等刘备从新野撤出的那一天。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Fortress and the Fire Attack】Zhou Yu reads the frontline dispatches with care: Liu Bei has left a skeleton force to hold Xinye and pin down Xiahou Dun, while his main force has silently shifted south to prepare for the Red Cliffs campaign. He sets the bamboo slip down slowly, eyes glinting. An elegant stratagem — trade a lone city for time, and trade time for the advantages of terrain and weather at Red Cliffs. If Liu Bei can hold Xiahou Dun for twenty more days at Xinye, the coalition will have ample opportunity to arrange everything needed for the fire attack along the Red Cliffs shore — fire ships, wind observation posts, ambushers hidden in the reed beds. Zhou Yu issues orders: immediately dispatch elite shipwrights to the Red Cliffs front. Construct two hundred light fire ships, loaded with oil-soaked kindling, sulfur, and saltpeter, concealed beneath black canvas. Meanwhile, instruct Huang Gai to intensify rehearsals of the 'self-torture ruse' — feigning defection to the Cao camp, creating the opening for the fire strike. All is nearly ready — awaiting only the day Liu Bei withdraws from Xinye.",
+            "commands": []
+          }
+        }
+      }
+    },
+    "fortify_xinye_then_recruit_guan_yu": {
+      "label_zh": "R1: 固守新野 → R2: 调遣关羽",
+      "label_en": "R1: Fortify Xinye → R2: Recruit Guan Yu",
+      "decisions": {
+        "cao": {
+          "zh": {
+            "decision_text": "【最强之盾】新野——一座弹丸小城，守将是关羽。夏侯惇的军报语气中已透出沮丧：三次攻城，三次被击退。关羽在城头指挥若定，城中粮草充足、士气如铁。曹操深吸一口气，缓缓将竹简放在案上。夏侯惇不是关羽的对手——这在预料之中。问题在于：新野拖延了我军整整一个月的南下步伐。如果不能速破新野，赤壁的联军就有充分时间部署。传令：命夏侯惇停止正面攻城，以围困为主。另派徐晃率精兵绕道樊城侧后，切断新野到襄阳之间的补给线。没有粮草，关羽再勇也只能弃城。同时——命曹纯率虎豹骑在汉水北岸游弋，若关羽弃城南撤，半渡而击。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Strongest Shield】Xinye — a speck of a city, garrisoned by Guan Yu. Xiahou Dun's dispatches now carry a tone of frustration: three assaults, three repulses. Guan Yu commands from the walls with absolute composure; the granaries are full, morale is iron. Cao Cao draws a long breath and sets the bamboo slip down slowly. Xiahou Dun is no match for Guan Yu — this was foreseeable. The problem is: Xinye has stalled our army's southern march for a full month. If Xinye does not fall quickly, the coalition at Red Cliffs will have ample time to deploy. Issue orders: Xiahou Dun is to cease frontal assaults and tighten the siege. Additionally, dispatch Xu Huang with crack troops to circle behind Fancheng and sever the supply line between Xinye and Xiangyang. Without grain, even Guan Yu cannot hold a city. And — assign Cao Chun with the Tiger-Leopard Cavalry to patrol the north bank of the Han River. Should Guan Yu abandon Xinye and retreat southward, strike him mid-crossing.",
+            "commands": []
+          }
+        },
+        "wu": {
+          "zh": {
+            "decision_text": "【神将守孤城】鲁肃从前线带回消息：关羽以三千兵力困守新野，竟将夏侯惇的五万大军挡在城外整整三十日，曹军死伤逾千。孙权闻报，惊叹不已：「云长真神将也！」张昭等老臣虽一向谨慎，此时也不得不承认——有这样一个猛将挡在前头，江东的压力确实减轻了许多。周瑜却冷静分析：「关云长确实骁勇，但新野之围终不可解。夏侯惇久攻不下，曹操必遣别部断其后路。关羽弃城只是时间问题。」他对孙权说：「主公，新野之役为联军争取了宝贵的三十日——这三十日，足够我们把赤壁的火船造好、把风向测明。待关将军撤出之日，便是我军火攻之时。」",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【A Divine General Defends a Lonely City】Lu Su returns from the front with news: Guan Yu, with a mere three thousand men, has held Xinye against Xiahou Dun's fifty thousand for thirty full days — Cao casualties now exceed a thousand. Sun Quan receives the report in open astonishment: 'Yunchang is truly a general of the gods!' Even the cautious elder counselors led by Zhang Zhao must now concede — having such a fierce warrior standing at the front has indeed lightened Jiangdong's burden considerably. Zhou Yu, however, analyzes with cold clarity: 'Guan Yunchang is peerless in valor, but the siege of Xinye cannot be sustained indefinitely. Xiahou Dun has failed to take it by direct assault — Cao Cao will certainly dispatch a flanking force to cut off his rear. Guan Yu abandoning the city is only a matter of time.' He tells Sun Quan: 'My lord, the Xinye campaign has bought the coalition thirty precious days — thirty days enough to build the fire ships at Red Cliffs and gauge the wind patterns. The day General Guan withdraws is the day we strike with fire.'",
+            "commands": []
+          }
+        }
+      }
+    },
+    "fortify_xinye_then_develop_jingzhou": {
+      "label_zh": "R1: 固守新野 → R2: 经营荆州",
+      "label_en": "R1: Fortify Xinye → R2: Develop Jingzhou",
+      "decisions": {
+        "cao": {
+          "zh": {
+            "decision_text": "【铁壁之后是沃土】深层军报：刘备在新野坚守的同时，让诸葛亮在荆州南部推行屯田、安抚士族、整顿赋税。曹操放下酒杯，神情变得极为严肃。新野只是前哨阵地，荆州南部才是刘备真正的根基所在。他在用空间换时间——新野多守一天，荆州南部的根基就深一寸。这是当年高祖刘邦在汉中屯田养兵的翻版。传令：加速从许都调集粮草辎重，做好长期战争的准备。同时命贾诩拟定对荆州士族的拉拢策略——蔡瑁、蒯氏这些荆州世家，必须有人站在我们一边。刘备有诸葛亮治国，我有荀彧筹粮——这场战争比的不仅是兵将，更是谁能养得起兵将。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Fertile Soil Behind the Iron Wall】Deep intelligence: While Liu Bei holds Xinye, he has Zhuge Liang promoting agricultural colonies, pacifying the gentry, and restructuring tax collection across southern Jing Province. Cao Cao sets down his wine cup, his expression turning deadly serious. Xinye is a forward outpost; southern Jing is Liu Bei's true foundation. He is trading space for time — every extra day Xinye holds, the roots in southern Jing sink an inch deeper. This is Liu Bang's playbook from Hanzhong, where he farmed and trained troops before conquering the realm. Issue orders: accelerate the transfer of grain and materiel from Xuchang — prepare for a long war. And have Jia Xu devise a strategy to win over the Jing Province gentry clans — the Cai family, the Kuai family: some of these great houses of Jing must stand with us. Liu Bei has Zhuge Liang to govern; I have Xun Yu to provision. This war will be decided not only by generals but by who can feed their armies.",
+            "commands": []
+          }
+        },
+        "wu": {
+          "zh": {
+            "decision_text": "【既喜且忧】孙权召鲁肃、周瑜入书房密议。鲁肃将诸葛亮在荆南推行的政策详细呈报：兴修水利、招抚流民、整顿吏治——每一招都打在要害上。孙权沉默良久，终于开口：「孔明之才，十倍于孤。今刘备得此人治理荆州，不出两年，荆南必成人间乐土。然——乐土为谁而建？」周瑜接口：「为主公之忧，瑜亦同感。曹操之患在眼前，刘备之患在日后。眼下之计：联盟必须维持，但战后江东盟军必须参与荆州防务。瑜请战后在江陵驻军——名为协防，实为监视。」孙权点头，但不忘叮嘱：「此事务必机密。曹操未退之前，联盟大旗不可倒。」",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【Both Joy and Worry】Sun Quan summons Lu Su and Zhou Yu to his private study. Lu Su reports in detail on Zhuge Liang's policies in southern Jing: irrigation projects, resettlement of refugees, reform of local officialdom — every measure strikes at the vital points. Sun Quan is silent for a long moment, then finally speaks: 'Kongming's talent is ten times my own. With such a man governing Jing Province for Liu Bei, within two years, southern Jing will become a paradise on earth. Yet — for whom is this paradise being built?' Zhou Yu takes up the thread: 'My lord's concern is one I share. The threat of Cao Cao is in front of our eyes; the threat of Liu Bei lies in the years ahead. For now, the alliance must hold — but after the war, Jiangdong forces must participate in Jing's defense. I request permission to garrison troops at Jiangling after the war — publicly, joint defense; in truth, surveillance.' Sun Quan nods but adds a caution: 'This must remain absolutely secret. Until Cao Cao retreats, the banner of the alliance must not waver.'",
+            "commands": []
+          }
+        }
+      }
+    },
+    "seek_zhuge_liang_then_prepare_chibi": {
+      "label_zh": "R1: 三顾茅庐 → R2: 备战赤壁",
+      "label_en": "R1: Seek Zhuge Liang → R2: Prepare for Chibi",
+      "decisions": {
+        "cao": {
+          "zh": {
+            "decision_text": "【卧龙展翅】程昱呈上两份情报，曹操读罢茶盏久久未举。第一份：诸葛亮已完全接手刘备军务，新野驻防、荆南屯田、军队整编皆由他一手调度——一支混乱的客军在一个月内变成了纪律严明的作战部队。第二份：诸葛亮亲赴赤壁前线踏勘地形，绘制长江水文图，在芦苇荡中伏下引火之物，又在各处山头设立风向观测哨。曹操放下茶盏，长叹：「隆中对——当年水镜先生所言不虚。此人确有经天纬地之才。」传令全军：即日起，一切行军路线、扎营地点由程昱和贾诩双重审核——诸葛亮善用火攻，军中防火为第一要务。水寨外围加设铁索三道，防止火船突袭。另命细作散布谣言：诸葛亮之兄诸葛瑾在江东为孙权效力，此战孙刘联军必有猜忌。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Sleeping Dragon Spreads His Wings】Cheng Yu presents two intelligence reports; Cao Cao reads them and his tea cup remains suspended in the air. First: Zhuge Liang has fully taken command of Liu Bei's military affairs — Xinye's defenses, southern Jing's agricultural colonies, the army's reorganization, all directed by his hand alone. A chaotic band of guest troops has been transformed within a single month into a disciplined fighting force. Second: Zhuge Liang has personally surveyed the Red Cliffs battlefield, mapped the Yangtze's hydrography, cached fire-kindling materials in the reed beds, and established wind observation posts on every hilltop. Cao Cao sets down his cup and sighs deeply: 'The Longzhong Plan — the Water Mirror's words were no exaggeration. This man possesses talent that spans the heavens and encompasses the earth.' Orders to the entire army: effective immediately, all marching routes and encampment sites are to be double-reviewed by Cheng Yu and Jia Xu. Zhuge Liang is a master of fire attacks — fire prevention is the army's highest priority. Add three iron chains across the outer perimeter of the naval camp to block fire-ship raids. Also, dispatch spies to circulate a rumor: Zhuge Liang's elder brother Zhuge Jin serves Sun Quan in Jiangdong — in this campaign, the Sun-Liu coalition must harbor mutual suspicions.",
+            "commands": []
+          }
+        },
+        "wu": {
+          "zh": {
+            "decision_text": "【龙与都督】周瑜与诸葛亮第一次在赤壁大营中会面。两人对视片刻，彼此都从对方眼中看到了不同寻常的光芒。周瑜先开口：「孔明先生，赤壁之战，瑜为主帅。水陆调度、攻守节奏，需一令而行。」诸葛亮微笑拱手：「都督放心。亮之所长在谋，不在阵前指挥。此战亮只献三策——火攻、东风、苦肉计。其余军务调度，皆听都督号令。」周瑜暗暗吃惊——这三策正是他心中盘算已久的方案。此人竟与我所见略同，甚至比我更先一步布置。心中敬意与警惕同时升起。周瑜还礼：「有先生相助，破曹必矣。然有一事需先言明——战后利权分配，望先生以联盟长久为念。」诸葛亮仍是微笑：「此事战后自当与都督详议。眼下——先破曹操。」",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Dragon and the Grand Commander】Zhou Yu and Zhuge Liang meet for the first time in the great camp at Red Cliffs. Their eyes lock for a long moment; each man sees an uncommon light in the other's gaze. Zhou Yu speaks first: 'Master Kongming, at Red Cliffs, I am Grand Commander. All maneuvers — on water and land, attack and defense — require unified command.' Zhuge Liang smiles and clasps his hands: 'Rest assured, Grand Commander. My strength lies in stratagem, not frontline command. For this battle, I offer only three plans — fire attack, the eastern wind, and the self-torture ruse. All other military affairs are yours to direct.' Zhou Yu is secretly stunned — these three stratagems are precisely the ones he has been contemplating. This man sees what I see — and has laid groundwork even before I did. Respect and wariness rise in his chest simultaneously. Zhou Yu returns the salute: 'With your aid, Master Kongming, Cao Cao's defeat is certain. But one matter must be spoken of in advance — the division of gains after the war. I hope you will keep the alliance's long-term survival in mind.' Zhuge Liang's smile remains: 'That is a matter for detailed discussion after the war. For now — first, let us break Cao Cao.'",
+            "commands": []
+          }
+        }
+      }
+    },
+    "seek_zhuge_liang_then_recruit_guan_yu": {
+      "label_zh": "R1: 三顾茅庐 → R2: 调遣关羽",
+      "label_en": "R1: Seek Zhuge Liang → R2: Recruit Guan Yu",
+      "decisions": {
+        "cao": {
+          "zh": {
+            "decision_text": "【智勇双全的噩梦】程昱深夜入帐，将最新军报呈上——其上只有两行字：「诸葛亮统军务，关羽领前锋。」曹操看了很久。他一生征战无数，杀吕布、灭袁术、破袁绍，但从未面对过这样的组合：卧龙之智加上云长之勇。这两个人，一个有最锋利的头脑，一个有最锋利的刀。他们合在一起，不是一加一等于二——是一加一等于一百。传令：全军进入最高戒备状态。夏侯惇的前锋不得再主动进攻——等待主力到达后再行合围。同时，命程昱和贾诩各拟一套作战方案：一套以智破智——针对孔明；一套以力制勇——针对云长。曹操在帐中踱步至东方既白，最后对左右说了一句：「若得此二人之一，何愁天下不定。今二人皆在敌手——此战非同小可。」",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Nightmare of Wisdom and Valor Combined】Cheng Yu enters the command tent late at night, presenting the latest intelligence — it carries only two lines: 'Zhuge Liang commands the military. Guan Yu leads the vanguard.' Cao Cao reads it for a very long time. He has fought countless campaigns — slain Lü Bu, crushed Yuan Shu, shattered Yuan Shao — but he has never faced a combination like this: the wisdom of the Sleeping Dragon paired with the valor of Yunchang. One possesses the sharpest mind; the other, the sharpest blade. Together, they are not one plus one equals two — they are one plus one equals one hundred. Orders: the entire army to maximum alert. Xiahou Dun's vanguard is to cease all offensive action — await the main army before attempting any envelopment. Additionally, order Cheng Yu and Jia Xu each to draft a plan of operations — one to defeat wisdom with wisdom, targeting Kongming; one to overpower valor with force, targeting Yunchang. Cao Cao paces his tent until the eastern sky whitens, then finally says to his attendants: 'If I had but one of these two men, the realm would be settled without worry. Now both stand in the enemy's camp — this battle is no ordinary affair.'",
+            "commands": []
+          }
+        },
+        "wu": {
+          "zh": {
+            "decision_text": "【极致的组合】鲁肃第三次从前线返回柴桑，这次他脸上的表情让孙权立刻屏退了左右。鲁肃压低声音：「主公，刘备不仅得卧龙辅佐，更让关羽独领一军坐镇前线。孔明之谋、云长之勇——此二人合璧，天下罕有敌手。曹操虽八十万大军，面对此二人未必能稳操胜券。」孙权默然。他忧的不是今日——今天孙刘联军需要诸葛亮和关羽来打败曹操。他忧的是明天——当曹操败退之后，拥有卧龙和关羽的刘备，将是比刘表难对付百倍的邻居。周瑜敏锐地捕捉到了孙权的沉默，进言道：「主公，眼下曹操才是大敌。与刘备争荆州，是胜曹之后的事。胜曹之前——诸葛亮和关羽越强，对我们就越有利。」孙权点头，但心中已暗记一条：战后荆州之事，必须与刘备白纸黑字。",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Ultimate Combination】Lu Su returns from the front to Chaisang for the third time, and the expression on his face makes Sun Quan dismiss all attendants instantly. Lu Su lowers his voice: 'My lord, Liu Bei has not only gained the Sleeping Dragon's counsel — he has given Guan Yu an independent command on the front line. Kongming's stratagems and Yunchang's valor — this pairing is unmatched under Heaven. Cao Cao may have eight hundred thousand, but against these two, his victory is far from certain.' Sun Quan remains silent. It is not today that worries him — today, the Sun-Liu coalition needs Zhuge Liang and Guan Yu to defeat Cao Cao. It is tomorrow that troubles him — after Cao Cao retreats, a Liu Bei who possesses both the Sleeping Dragon and Guan Yu will be a neighbor a hundred times more dangerous than Liu Biao ever was. Zhou Yu, sharp as ever, catches the silence and offers: 'My lord, Cao Cao is the great enemy now. Contending with Liu Bei over Jing Province is a matter for after Cao Cao's defeat. Before that — the stronger Zhuge Liang and Guan Yu are, the better it is for us.' Sun Quan nods, but in his heart, he makes a note: after the war, any arrangement over Jing Province must be in black and white, signed and sealed.",
+            "commands": []
+          }
+        }
+      }
+    },
+    "seek_zhuge_liang_then_develop_jingzhou": {
+      "label_zh": "R1: 三顾茅庐 → R2: 经营荆州",
+      "label_en": "R1: Seek Zhuge Liang → R2: Develop Jingzhou",
+      "decisions": {
+        "cao": {
+          "zh": {
+            "decision_text": "【隆中对的第一个果实】荀彧从许都发来分析文书，洋洋千言，核心只有一句：「诸葛亮正在把荆州变成第二个汉中。」曹操反复读了数遍，面色越来越凝重。汉中——刘邦当年就是从那片四面环山的盆地起家，以巴蜀钱粮养兵三载，终得天下。如今诸葛亮推行的政策如出一辙：兴修水利、减轻赋税、整顿户籍、开设学馆——他甚至派人去成都联络刘璋，为日后取益州铺路！曹操当机立断：「不能让他把荆州建成铁桶。传令：加速南征步伐——要在诸葛亮的屯田第一批粮食收割之前拿下荆州全境。另外致书荆州各郡太守——归降者不仅保留原职，还可加封朝廷爵位。我曹操能用的人，不要让诸葛亮先用去。」",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The First Fruit of Longzhong】Xun Yu sends an analytical memorandum from Xuchang — a thousand words, distilled to a single core: 'Zhuge Liang is turning Jing Province into a second Hanzhong.' Cao Cao reads it repeatedly, his expression darkening with each pass. Hanzhong — it was from that mountain-ringed basin that Liu Bang rose, nourishing his army for three years with the grain and silver of Ba-Shu, ultimately winning the realm. Now Zhuge Liang's policies follow the exact same script: irrigation works, tax reductions, household registries, scholarly academies — he is even sending envoys to Chengdu to make contact with Liu Zhang, laying groundwork for a future conquest of Yi Province! Cao Cao decides on the spot: 'He must not be allowed to forge Jing into an iron fortress. Accelerate the southern campaign — seize all of Jing Province before Zhuge Liang's agricultural colonies yield their first harvest. Additionally, write to every commandery administrator in Jing — those who surrender shall not only keep their posts but receive imperial titles from the court. Men who can serve Cao Cao must not be taken by Zhuge Liang first.'",
+            "commands": []
+          }
+        },
+        "wu": {
+          "zh": {
+            "decision_text": "【长远之忧】鲁肃将诸葛亮在荆南推行的详细举措整理成册呈给孙权。翻看之间，孙权越看越心惊——这不仅仅是行政措施，这是一整套建国方略。水利工程为粮食，学馆为人才，户籍为民力，每一项都在为长期割据打下坚实基础。张昭在一旁叹道：「孔明此人，非百里之才。他治荆南如治一国。」孙权合上册子，良久不语。鲁肃却开口：「主公，孔明之才越高，曹贼越寝食难安。眼下来看，这对我们是好事——曹操的主力会被刘备方面的防守和经营牢牢吸住，江东得以积蓄力量。但长远来看……」孙权抬手制止：「不用说了。长远之事长远计。当下先败曹操。至于荆州——我们战后有的是时间跟刘备来个了断。」",
+            "commands": []
+          },
+          "en": {
+            "decision_text": "【The Worry of the Long Term】Lu Su compiles Zhuge Liang's detailed measures in southern Jing into a volume and presents it to Sun Quan. As he pages through it, Sun Quan's alarm grows — this is not merely administrative policy; this is a complete blueprint for state-building. Irrigation for grain, academies for talent, household registries for population control — every measure lays a deep foundation for long-term independent rule. Zhang Zhao sighs beside him: 'Kongming is no talent for a hundred li. He governs southern Jing as though governing a kingdom.' Sun Quan closes the volume and remains silent for a long time. But Lu Su speaks up: 'My lord, the higher Kongming's talent, the more sleepless Cao Cao's nights. For now, this benefits us — Cao Cao's main force will be firmly pinned by Liu Bei's defense and development, giving Jiangdong room to accumulate strength. But looking further ahead...' Sun Quan raises his hand: 'Say no more. Long-term matters will be settled in the long term. Right now, defeat Cao Cao first. As for Jing Province — we will have all the time in the world to settle accounts with Liu Bei after the war.'",
+            "commands": []
+          }
+        }
+      }
+    }
+  }
+}
