@@ -179,8 +179,8 @@ def _pick_npc_package(faction_id: str, aggression: float, caution: float,
     # Historical context: Cao Cao on turn 1-2 should be cautious
     # (still pacifying Wuhuan, preparing southern campaign, Liu Biao not dead yet)
     if faction_id == "cao" and turn <= 2:
-        scores[0] -= 3.0  # Strong preference against immediate attack
-        scores[1] += 2.0  # Prefer diplomatic/preparation
+        scores[0] -= 1.0  # Mild hesitation before attacking Jingzhou
+        scores[1] += 1.0  # Slight preference for preparation
 
     if is_winning:
         scores[0] += 2.0
@@ -389,7 +389,7 @@ def simulate_fast_path(room, player_decision: str,
     # ── Adjust NPC aggression based on player's strategic choice ──
     # When player reinforces defenses or serves loyally, NPCs are less likely to siege
     if is_player_defensive or is_player_loyalty:
-        _siege_modifier = 0.5  # 50% less likely to successfully siege
+        _siege_modifier = 0.7  # 30% less likely to successfully siege
     elif is_player_aggressive:
         _siege_modifier = 1.2  # 20% more likely
     else:
