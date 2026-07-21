@@ -78,9 +78,49 @@ _FACTION_DEFAULT_TERRITORIES = {
     "qing": ["beijing", "shengjing", "shanxi", "shaanxi", "gansu"],
     "nongminjun": ["sichuan", "xiangyang"],
     "zheng": ["fujian", "guangdong", "guangxi", "taiwan"],
+    # three-kingdoms
+    "cao": ["xuchang", "wancheng", "luoyang", "ye", "ji", "puyang", "beihai", "xiapi", "changshan"],
+    "shu": ["xinye"],
+    "wu": ["jianye", "wu", "chaisang", "lujiang", "kuaiji", "yuzhang", "danyang"],
+    "liubiao": ["xiangyang", "jiangling", "changsha", "jiangkou"],
+    "liuzhang": ["chengdu", "hanshui"],
+    "zhanglu": ["hanzhong"],
+    "machao": ["hanshui", "changshan"],
 }
 
 # Which territories an aggressive faction targets when attacking each player
+# three-kingdoms attack targets (border conflicts)
+_TK_ATTACK_TARGETS = {
+    "cao": {
+        "shu": ["xinye"],
+        "wu": ["lujiang", "chaisang"],
+        "liubiao": ["xiangyang", "wancheng"],
+        "liuzhang": ["hanshui"],
+        "zhanglu": ["hanzhong"],
+        "machao": ["changshan"],
+    },
+    "shu": {
+        "cao": ["wancheng"],
+        "liubiao": ["xiangyang"],
+        "liuzhang": ["hanshui"],
+    },
+    "wu": {
+        "cao": ["lujiang", "xiapi"],
+        "liubiao": ["jiangkou", "jiangling"],
+        "shu": ["xinye"],
+    },
+    "liubiao": {
+        "cao": ["wancheng"],
+        "wu": ["chaisang", "yuzhang"],
+        "shu": ["xinye"],
+    },
+    "liuzhang": {
+        "cao": ["hanshui"],
+        "liubiao": ["xiangyang"],
+        "zhanglu": ["hanzhong"],
+    },
+}
+
 _FACTION_ATTACK_TARGETS = {
     "qing": {
         "nanming": ["kaifeng", "luoyang", "henan_east", "jinan", "dengzhou"],
@@ -103,6 +143,8 @@ _FACTION_ATTACK_TARGETS = {
         "nongminjun": ["guangdong"],
     },
 }
+# Merge three-kingdoms targets
+_FACTION_ATTACK_TARGETS.update(_TK_ATTACK_TARGETS)
 
 # Player package type detection keywords
 _DEFENSIVE_KW = ["defend", "hold", "retreat", "relocate", "peace", "sail",
@@ -133,6 +175,12 @@ def _pick_npc_package(faction_id: str, aggression: float, caution: float,
     scores[2] += caution * 2.0
     scores[1] += diplomacy * 2.0
     scores[1] += development * 1.5
+
+    # Historical context: Cao Cao on turn 1-2 should be cautious
+    # (still pacifying Wuhuan, preparing southern campaign, Liu Biao not dead yet)
+    if faction_id == "cao" and turn <= 2:
+        scores[0] -= 3.0  # Strong preference against immediate attack
+        scores[1] += 2.0  # Prefer diplomatic/preparation
 
     if is_winning:
         scores[0] += 2.0
@@ -197,6 +245,14 @@ _TERRITORY_ZH = {
     "jinan": "济南", "dengzhou": "登州",
     "kaifeng": "开封", "luoyang": "洛阳", "henan_east": "河南东部",
     "chengdu": "成都", "hanzhong": "汉中",
+    # three-kingdoms
+    "xinye": "新野", "xuchang": "许昌", "ye": "邺城",
+    "wancheng": "宛城", "beihai": "北海", "ji": "蓟",
+    "puyang": "濮阳", "xiapi": "下邳", "changshan": "常山",
+    "jianye": "建业", "wu": "吴", "chaisang": "柴桑",
+    "lujiang": "庐江", "kuaiji": "会稽", "yuzhang": "豫章",
+    "danyang": "丹阳", "jiangkou": "江口", "jiangling": "江陵",
+    "changsha": "长沙", "hanshui": "汉水",
 }
 
 _TERRITORY_EN = {
@@ -211,11 +267,22 @@ _TERRITORY_EN = {
     "jinan": "Jinan", "dengzhou": "Dengzhou",
     "kaifeng": "Kaifeng", "luoyang": "Luoyang", "henan_east": "East Henan",
     "chengdu": "Chengdu", "hanzhong": "Hanzhong",
+    # three-kingdoms
+    "xinye": "Xinye", "xuchang": "Xuchang", "ye": "Ye",
+    "wancheng": "Wancheng", "beihai": "Beihai", "ji": "Ji",
+    "puyang": "Puyang", "xiapi": "Xiapi", "changshan": "Changshan",
+    "jianye": "Jianye", "wu": "Wu", "chaisang": "Chaisang",
+    "lujiang": "Lujiang", "kuaiji": "Kuaiji", "yuzhang": "Yuzhang",
+    "danyang": "Danyang", "jiangkou": "Jiangkou", "jiangling": "Jiangling",
+    "changsha": "Changsha", "hanshui": "Hanshui",
 }
 
 _YANGTZE_SOUTH = {"nanjing", "zhejiang", "jiangxi",
                   "wuchang", "huguang_west", "huguang_south",
-                  "yangzhou", "fujian", "guangdong", "taiwan"}
+                  "yangzhou", "fujian", "guangdong", "taiwan",
+                  # three-kingdoms: south of Yangtze
+                  "jianye", "wu", "yuzhang", "kuaiji", "danyang",
+                  "chaisang", "changsha", "jiangkou", "jiangling"}
 
 
 # ── Main simulation ──────────────────────────────────────────
@@ -338,6 +405,8 @@ def simulate_fast_path(room, player_decision: str,
             continue
 
         player_territories = factions[player_fid]["territories"]
+        if not player_territories:
+            continue  # No territories to attack
         for target in targets:
             if target not in player_territories:
                 continue  # Already controlled by attacker or another faction
@@ -397,6 +466,39 @@ def simulate_fast_path(room, player_decision: str,
                 factions[player_fid]["morale"] += 5
 
             break  # One attack per NPC faction per turn
+
+    # ── Liu Bei retreat mechanism ──
+    # If shu loses xinye and their suggestion was retreat/evacuation,
+    # they escape to an allied territory instead of being eliminated.
+    if player_fid == "shu":
+        _shu_retreat_kw = ["retreat", "evacuation", "relocate", "南迁", "撤"]
+        _should_retreat = any(kw in player_suggestion_id for kw in _shu_retreat_kw)
+        if _should_retreat and "xinye" not in factions["shu"]["territories"]:
+            # Find a safe allied territory to retreat to
+            # Liu Biao (liubiao) is friendly to Liu Bei (relation +40)
+            _refuge_target = None
+            if "liubiao" in factions and factions.get("liubiao", {}).get("is_active", False):
+                _liubiao_terrs = factions["liubiao"]["territories"]
+                if _liubiao_terrs:
+                    _refuge_target = _liubiao_terrs[0]  # Take first territory
+            # If no liubiao, try wu
+            if not _refuge_target and "wu" in factions and factions.get("wu", {}).get("is_active", False):
+                _wu_terrs = factions["wu"]["territories"]
+                if _wu_terrs:
+                    _refuge_target = _wu_terrs[0]
+            if _refuge_target:
+                factions["shu"]["territories"] = [_refuge_target]
+                _refuge_name = _TERRITORY_EN.get(_refuge_target, _refuge_target) if lang == "en" else _TERRITORY_ZH.get(_refuge_target, _refuge_target)
+                if lang == "en":
+                    events.append(f"Liu Bei evacuated to {_refuge_name} under {_FACTION_EN.get('liubiao', 'Liu Biao') if 'liubiao' in factions else _FACTION_EN.get('wu', 'Sun Quan')}'s protection")
+                else:
+                    _host = _FACTION_ZH.get("liubiao", "刘表") if "liubiao" in factions else _FACTION_ZH.get("wu", "孙权")
+                    events.append(f"刘备率百姓南迁，投奔{_host}，暂驻{_refuge_name}")
+                # Transfer population
+                factions["shu"]["population"] = factions["shu"].get("population", 30000)
+                factions["shu"]["morale"] += 3  # People are grateful for protection
+                # Liu Bei's troops take attrition from the retreat
+                factions["shu"]["troops"] = int(factions["shu"]["troops"] * 0.7)
 
     # Also: if player is aggressive, they may attack an enemy's border territory
     if is_player_aggressive:
@@ -567,6 +669,17 @@ def _build_npc_action(fid: str, package_idx: int, factions: dict,
             return _npc_zheng_en(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
         elif fid == "nanming":
             return _npc_nanming_en(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+        # three-kingdoms
+        elif fid == "cao":
+            return _npc_cao_en(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+        elif fid == "shu":
+            return _npc_shu_en(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+        elif fid == "wu":
+            return _npc_wu_en(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+        elif fid == "liubiao":
+            return _npc_liubiao_en(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+        elif fid == "liuzhang":
+            return _npc_liuzhang_en(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
         else:
             return f"{_FACTION_EN.get(fid, fid)}: {f_troops//1000}K troops standing by."
     else:
@@ -578,9 +691,136 @@ def _build_npc_action(fid: str, package_idx: int, factions: dict,
             return _npc_zheng(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
         elif fid == "nanming":
             return _npc_nanming(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+        # three-kingdoms
+        elif fid == "cao":
+            return _npc_cao(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+        elif fid == "shu":
+            return _npc_shu(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+        elif fid == "wu":
+            return _npc_wu(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+        elif fid == "liubiao":
+            return _npc_liubiao_zh(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
+        elif fid == "liuzhang":
+            return _npc_liuzhang_zh(package_idx, f_troops, npc_events, had_conquest, had_siege, was_repelled)
         else:
             return f"{fname}：兵力{f_troops//1000}K，按兵不动。"
 
+
+# ── Three-kingdoms NPC action texts (zh) ──────────────────────
+
+def _npc_cao(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
+    if idx == 0:
+        if conquest:
+            return f"曹操：亲率大军南下，连克数城。许昌精锐尽出，兵力{troops//1000}K，势如破竹。"
+        elif siege:
+            return f"曹操：大军围城，切断粮道。曹军于城外扎营，日夜擂鼓震慑守军。"
+        else:
+            return f"曹操：调集主力南征，然守军据城死守，攻势受阻。兵力{troops//1000}K。"
+    elif idx == 1:
+        return "曹操：一面备战一面遣使四方，以朝廷名义招抚诸侯，分化瓦解。"
+    else:
+        return "曹操：暂且休兵，在占领地推行屯田制，积蓄粮草以待天时。"
+
+def _npc_shu(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
+    if idx == 0:
+        if conquest:
+            return f"刘备：关羽张飞率军出战，攻克城池。仁德之师所到之处百姓箪食壶浆。兵力{troops//1000}K。"
+        elif siege:
+            return f"刘备：诸葛亮设计围城，断敌粮道。关张二将领兵日夜攻打。"
+        else:
+            return f"刘备：亲率关张赵出战，然寡不敌众。诸葛亮劝其暂避锋芒，另图良策。"
+    elif idx == 1:
+        return "刘备：诸葛亮运筹帷幄，一面联络东吴鲁肃共商大计，一面遣使安抚荆州士族。"
+    else:
+        return "刘备：采纳诸葛亮隆中之策，休养生息，招揽人才，暗蓄实力。"
+
+def _npc_wu(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
+    if idx == 0:
+        if conquest:
+            return f"孙权：周瑜率水师出击，楼船蔽江，一举攻占城池。江东子弟士气如虹。"
+        elif siege:
+            return f"孙权：周瑜水陆并进，围困敌城。长江天险已为东吴所据。"
+        else:
+            return f"孙权：周瑜督师北上，然曹军势大，水陆夹击下暂退。江东诸将厉兵秣马。"
+    elif idx == 1:
+        return "孙权：鲁肃力主联刘抗曹，孙权召集群臣商议，张昭等主和派与周瑜等主战派激烈辩论。"
+    else:
+        return "孙权：坐断东南，内修政理，外联诸侯。鲁肃奉命巡江，巩固沿江防线。"
+
+def _npc_liubiao_zh(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
+    if idx == 0:
+        return f"刘表：荆州军据守要地，蔡瑁张允统兵布防。然刘表年迈多病，二子争嗣，军心不稳。兵力{troops//1000}K。"
+    elif idx == 1:
+        return "刘表：坐拥荆襄富庶之地，不图进取，静观天下大势。"
+    else:
+        return "刘表：病重卧床，蔡氏与蒯越把持朝政，荆州内部暗流涌动。"
+
+def _npc_liuzhang_zh(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
+    if idx == 0:
+        return f"刘璋：益州军据守蜀道天险，然刘璋暗弱，法正张松等暗通外敌。兵力{troops//1000}K。"
+    elif idx == 1:
+        return "刘璋：偏安一隅，遣使与各方交好，以求自保。"
+    else:
+        return "刘璋：内政混乱，张鲁据汉中虎视眈眈，益州士族各怀鬼胎。"
+
+# ── Three-kingdoms NPC action texts (en) ──────────────────────
+
+def _npc_cao_en(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
+    if idx == 0:
+        if conquest:
+            return f"Cao Cao: Led the army south, capturing cities. Xuchang elites fully deployed. Strength: {troops//1000}K."
+        elif siege:
+            return f"Cao Cao: Besieged the city, cutting supply lines. Drums beat day and night outside the walls."
+        else:
+            return f"Cao Cao: Mobilized southward. Defenders held the walls - assault repelled. Strength: {troops//1000}K."
+    elif idx == 1:
+        return "Cao Cao: Prepared for war while sending envoys in the Emperor's name to divide the vassals."
+    else:
+        return "Cao Cao: Paused military operations, implementing the tuntian farm system to stockpile grain."
+
+def _npc_shu_en(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
+    if idx == 0:
+        if conquest:
+            return f"Liu Bei: Guan Yu and Zhang Fei led the charge, seizing the city. The people welcomed the benevolent army. Strength: {troops//1000}K."
+        elif siege:
+            return f"Liu Bei: Zhuge Liang devised a siege, cutting enemy supply lines. Guan and Zhang attacked day and night."
+        else:
+            return f"Liu Bei: Led Guan, Zhang, and Zhao Yun into battle - but outnumbered. Zhuge Liang advised a strategic withdrawal."
+    elif idx == 1:
+        return "Liu Bei: Zhuge Liang masterminded diplomacy - contacting Lu Su of Wu while courting Jing Province gentry."
+    else:
+        return "Liu Bei: Following Zhuge Liang's Longzhong Plan: rest and recover, recruit talent, build strength in secret."
+
+def _npc_wu_en(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
+    if idx == 0:
+        if conquest:
+            return f"Sun Quan: Zhou Yu's fleet struck - towering warships darkened the river. Jiangdong morale soared."
+        elif siege:
+            return f"Sun Quan: Zhou Yu advanced by land and water, besieging the enemy. The Yangtze is now Wu's shield."
+        else:
+            return f"Sun Quan: Zhou Yu led the offensive north, but Cao Cao's forces were overwhelming. The fleet regrouped."
+    elif idx == 1:
+        return "Sun Quan: Lu Su urged alliance with Liu Bei against Cao Cao. The court split - appeasers vs. war hawks in fierce debate."
+    else:
+        return "Sun Quan: Ruled the southeast, building internal strength while managing external alliances. Lu Su patrolled the Yangtze line."
+
+def _npc_liubiao_en(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
+    if idx == 0:
+        return f"Liu Biao: Jing Province forces held key positions. Cai Mao and Zhang Yun commanded the defense. But Liu Biao was old and ill - his sons fought over succession. Strength: {troops//1000}K."
+    elif idx == 1:
+        return "Liu Biao: Sat on wealthy Jing-Xiang lands, content to watch the realm from the sidelines."
+    else:
+        return "Liu Biao: Bedridden. The Cai clan controlled the court. Jing Province simmered with internal strife."
+
+def _npc_liuzhang_en(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
+    if idx == 0:
+        return f"Liu Zhang: Yi Province forces held the mountain passes - natural fortresses. But Liu Zhang was weak; Fa Zheng and Zhang Song conspired with outsiders. Strength: {troops//1000}K."
+    elif idx == 1:
+        return "Liu Zhang: Ruled a remote corner, sending envoys to all sides seeking self-preservation."
+    else:
+        return "Liu Zhang: Internal chaos - Zhang Lu threatened from Hanzhong, Yi Province gentry pursued their own agendas."
+
+# ── Nanming NPC action texts (zh) ──────────────────────────────
 
 def _npc_qing(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
     if idx == 0:
@@ -735,14 +975,22 @@ def _build_narrative(player_fid: str, suggestion_id: str, events: list,
         "qing": ("顺治", 1644),
         "nongminjun": ("永昌", 1644),
         "zheng": ("隆武", 1645),
+        # three-kingdoms: all under Han Jian'an era
+        "cao": ("建安", 196), "shu": ("建安", 196), "wu": ("建安", 196),
+        "liubiao": ("建安", 196), "liuzhang": ("建安", 196),
+        "zhanglu": ("建安", 196), "machao": ("建安", 196),
     }
     _REIGN_EN = {
         "nanming": ("Hongguang", 1645),
         "qing": ("Shunzhi", 1644),
         "nongminjun": ("Yongchang", 1644),
         "zheng": ("Longwu", 1645),
+        # three-kingdoms
+        "cao": ("Jian'an", 196), "shu": ("Jian'an", 196), "wu": ("Jian'an", 196),
+        "liubiao": ("Jian'an", 196), "liuzhang": ("Jian'an", 196),
+        "zhanglu": ("Jian'an", 196), "machao": ("Jian'an", 196),
     }
-    _CN_NUM = {1: "元", 2: "二", 3: "三", 4: "四", 5: "五", 6: "六", 7: "七", 8: "八"}
+    _CN_NUM = {1: "元", 2: "二", 3: "三", 4: "四", 5: "五", 6: "六", 7: "七", 8: "八", 9: "九", 10: "十", 11: "十一", 12: "十二", 13: "十三", 14: "十四", 15: "十五", 16: "十六", 17: "十七", 18: "十八", 19: "十九", 20: "二十", 21: "二十一", 22: "二十二", 23: "二十三", 24: "二十四", 25: "二十五"}
 
     if lang == "zh":
         _reign_name, _reign_start = _REIGN_BASE.get(player_fid, ("", year))
