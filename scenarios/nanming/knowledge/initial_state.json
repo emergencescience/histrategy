@@ -12,10 +12,17 @@
       "ruler": "hongguang",
       "capital": "nanjing",
       "territories": [
-        "nanjing", "zhejiang", "jiangxi",
-        "wuchang", "huguang_west", "huguang_south",
-        "jinan", "dengzhou",
-        "kaifeng", "luoyang", "henan_east"
+        "nanjing",
+        "zhejiang",
+        "jiangxi",
+        "wuchang",
+        "huguang_west",
+        "huguang_south",
+        "jinan",
+        "dengzhou",
+        "kaifeng",
+        "luoyang",
+        "henan_east"
       ],
       "treasury": 50000,
       "food": 45000,
@@ -24,9 +31,24 @@
       "prestige": 70,
       "tax_rate": 0.3,
       "morale_actual": 65,
-      "tech_levels": { "agriculture": 3, "commerce": 4, "military": 2 },
-      "relations": { "qing": -90, "nongminjun": -70, "zheng": 30 },
-      "personality": { "aggression": 0.3, "cunning": 0.5, "caution": 0.6, "diplomacy": 0.7, "development": 0.5, "mercy": 0.6 },
+      "tech_levels": {
+        "agriculture": 3,
+        "commerce": 4,
+        "military": 2
+      },
+      "relations": {
+        "qing": -90,
+        "nongminjun": -70,
+        "zheng": 30
+      },
+      "personality": {
+        "aggression": 0.3,
+        "cunning": 0.5,
+        "caution": 0.6,
+        "diplomacy": 0.7,
+        "development": 0.5,
+        "mercy": 0.6
+      },
       "advisor": "shikefa"
     },
     "qing": {
@@ -35,7 +57,11 @@
       "ruler": "duoduo",
       "capital": "beijing",
       "territories": [
-        "beijing", "shengjing", "shanxi", "shaanxi", "gansu"
+        "beijing",
+        "shengjing",
+        "shanxi",
+        "shaanxi",
+        "gansu"
       ],
       "treasury": 40000,
       "food": 35000,
@@ -44,9 +70,24 @@
       "prestige": 85,
       "tax_rate": 0.3,
       "morale_actual": 72,
-      "tech_levels": { "agriculture": 2, "commerce": 2, "military": 5 },
-      "relations": { "nanming": -90, "nongminjun": -85, "zheng": -20 },
-      "personality": { "aggression": 0.70, "cunning": 0.8, "caution": 0.2, "diplomacy": 0.4, "development": 0.4, "mercy": 0.15 }
+      "tech_levels": {
+        "agriculture": 2,
+        "commerce": 2,
+        "military": 5
+      },
+      "relations": {
+        "nanming": -90,
+        "nongminjun": -85,
+        "zheng": -20
+      },
+      "personality": {
+        "aggression": 0.7,
+        "cunning": 0.8,
+        "caution": 0.2,
+        "diplomacy": 0.4,
+        "development": 0.4,
+        "mercy": 0.15
+      }
     },
     "nongminjun": {
       "name": "农民军",
@@ -54,7 +95,8 @@
       "ruler": "lizicheng",
       "capital": "xiangyang",
       "territories": [
-        "xiangyang", "sichuan"
+        "xiangyang",
+        "sichuan"
       ],
       "treasury": 8000,
       "food": 10000,
@@ -63,9 +105,24 @@
       "prestige": 25,
       "tax_rate": 0.1,
       "morale_actual": 70,
-      "tech_levels": { "agriculture": 1, "commerce": 1, "military": 2 },
-      "relations": { "nanming": -70, "qing": -85, "zheng": -10 },
-      "personality": { "aggression": 0.6, "cunning": 0.4, "caution": 0.5, "diplomacy": 0.2, "development": 0.2, "mercy": 0.5 }
+      "tech_levels": {
+        "agriculture": 1,
+        "commerce": 1,
+        "military": 2
+      },
+      "relations": {
+        "nanming": -70,
+        "qing": -85,
+        "zheng": -10
+      },
+      "personality": {
+        "aggression": 0.6,
+        "cunning": 0.4,
+        "caution": 0.5,
+        "diplomacy": 0.2,
+        "development": 0.2,
+        "mercy": 0.5
+      }
     },
     "zheng": {
       "name": "郑氏",
@@ -73,7 +130,8 @@
       "ruler": "zhengchenggong",
       "capital": "fujian",
       "territories": [
-        "fujian", "guangdong"
+        "fujian",
+        "guangdong"
       ],
       "treasury": 35000,
       "food": 12000,
@@ -82,35 +140,197 @@
       "prestige": 45,
       "tax_rate": 0.2,
       "morale_actual": 60,
-      "tech_levels": { "agriculture": 2, "commerce": 5, "military": 3 },
-      "relations": { "nanming": 30, "qing": -20, "nongminjun": -10 },
-      "personality": { "aggression": 0.3, "cunning": 0.7, "caution": 0.7, "diplomacy": 0.6, "development": 0.7, "mercy": 0.5 }
+      "tech_levels": {
+        "agriculture": 2,
+        "commerce": 5,
+        "military": 3
+      },
+      "relations": {
+        "nanming": 30,
+        "qing": -20,
+        "nongminjun": -10
+      },
+      "personality": {
+        "aggression": 0.5,
+        "cunning": 0.7,
+        "caution": 0.7,
+        "diplomacy": 0.6,
+        "development": 0.7,
+        "mercy": 0.5
+      }
     }
   },
   "territories": {
-    "nanjing":       { "name": "南京", "owner": "nanming", "population": 300000, "development": 75, "terrain": "plains", "climate_zone": "central", "has_river": true,  "fertility": 9 },
-    "beijing":       { "name": "北京", "owner": "qing",    "population": 200000, "development": 60, "terrain": "plains", "climate_zone": "north",   "fertility": 6 },
-    "xiangyang":     { "name": "襄阳", "owner": "nongminjun", "population": 100000, "development": 40, "terrain": "plains", "climate_zone": "central", "has_river": true,  "fertility": 7 },
-    "fuzhou":        { "name": "福州", "owner": "zheng",   "population": 120000, "development": 55, "terrain": "coast",  "climate_zone": "south",   "has_coast": true, "fertility": 6 },
-    "wuchang":       { "name": "武昌", "owner": "nanming", "population": 200000, "development": 50, "terrain": "plains", "climate_zone": "central", "has_river": true,  "fertility": 8 },
-    "huguang_west":  { "name": "湖广西部", "owner": "nanming", "population": 150000, "development": 30, "terrain": "hills",  "climate_zone": "central", "fertility": 5 },
-    "huguang_south": { "name": "湖广南部", "owner": "nanming", "population": 100000, "development": 35, "terrain": "hills",  "climate_zone": "south",   "fertility": 6 },
-    "jinan":         { "name": "济南", "owner": "nanming", "population": 150000, "development": 45, "terrain": "plains", "climate_zone": "north",   "fertility": 7 },
-    "dengzhou":      { "name": "登州", "owner": "nanming", "population": 80000,  "development": 30, "terrain": "coast",  "climate_zone": "north",   "has_coast": true, "fertility": 5 },
-    "kaifeng":       { "name": "开封", "owner": "nanming", "population": 180000, "development": 55, "terrain": "plains", "climate_zone": "central", "has_river": true,  "fertility": 8 },
-    "luoyang":       { "name": "洛阳", "owner": "nanming", "population": 100000, "development": 45, "terrain": "plains", "climate_zone": "central", "fertility": 6 },
-    "henan_east":    { "name": "河南东部", "owner": "nanming", "population": 80000,  "development": 25, "terrain": "plains", "climate_zone": "central", "fertility": 6 },
-    "chengdu":       { "name": "成都", "owner": "nongminjun", "population": 120000, "development": 40, "terrain": "basin",  "climate_zone": "central", "has_river": true,  "fertility": 8 },
-    "hanzhong":      { "name": "汉中", "owner": "nongminjun", "population": 60000,  "development": 30, "terrain": "hills",  "climate_zone": "central", "fertility": 5 }
+    "nanjing": {
+      "name": "南京",
+      "owner": "nanming",
+      "population": 300000,
+      "development": 75,
+      "terrain": "plains",
+      "climate_zone": "central",
+      "has_river": true,
+      "fertility": 9
+    },
+    "beijing": {
+      "name": "北京",
+      "owner": "qing",
+      "population": 200000,
+      "development": 60,
+      "terrain": "plains",
+      "climate_zone": "north",
+      "fertility": 6
+    },
+    "xiangyang": {
+      "name": "襄阳",
+      "owner": "nongminjun",
+      "population": 100000,
+      "development": 40,
+      "terrain": "plains",
+      "climate_zone": "central",
+      "has_river": true,
+      "fertility": 7
+    },
+    "fuzhou": {
+      "name": "福州",
+      "owner": "zheng",
+      "population": 120000,
+      "development": 55,
+      "terrain": "coast",
+      "climate_zone": "south",
+      "has_coast": true,
+      "fertility": 6
+    },
+    "wuchang": {
+      "name": "武昌",
+      "owner": "nanming",
+      "population": 200000,
+      "development": 50,
+      "terrain": "plains",
+      "climate_zone": "central",
+      "has_river": true,
+      "fertility": 8
+    },
+    "huguang_west": {
+      "name": "湖广西部",
+      "owner": "nanming",
+      "population": 150000,
+      "development": 30,
+      "terrain": "hills",
+      "climate_zone": "central",
+      "fertility": 5
+    },
+    "huguang_south": {
+      "name": "湖广南部",
+      "owner": "nanming",
+      "population": 100000,
+      "development": 35,
+      "terrain": "hills",
+      "climate_zone": "south",
+      "fertility": 6
+    },
+    "jinan": {
+      "name": "济南",
+      "owner": "nanming",
+      "population": 150000,
+      "development": 45,
+      "terrain": "plains",
+      "climate_zone": "north",
+      "fertility": 7
+    },
+    "dengzhou": {
+      "name": "登州",
+      "owner": "nanming",
+      "population": 80000,
+      "development": 30,
+      "terrain": "coast",
+      "climate_zone": "north",
+      "has_coast": true,
+      "fertility": 5
+    },
+    "kaifeng": {
+      "name": "开封",
+      "owner": "nanming",
+      "population": 180000,
+      "development": 55,
+      "terrain": "plains",
+      "climate_zone": "central",
+      "has_river": true,
+      "fertility": 8
+    },
+    "luoyang": {
+      "name": "洛阳",
+      "owner": "nanming",
+      "population": 100000,
+      "development": 45,
+      "terrain": "plains",
+      "climate_zone": "central",
+      "fertility": 6
+    },
+    "henan_east": {
+      "name": "河南东部",
+      "owner": "nanming",
+      "population": 80000,
+      "development": 25,
+      "terrain": "plains",
+      "climate_zone": "central",
+      "fertility": 6
+    },
+    "chengdu": {
+      "name": "成都",
+      "owner": "nongminjun",
+      "population": 120000,
+      "development": 40,
+      "terrain": "basin",
+      "climate_zone": "central",
+      "has_river": true,
+      "fertility": 8
+    },
+    "hanzhong": {
+      "name": "汉中",
+      "owner": "nongminjun",
+      "population": 60000,
+      "development": 30,
+      "terrain": "hills",
+      "climate_zone": "central",
+      "fertility": 5
+    }
   },
   "initial_events": [
-    { "event_id": "qing_southward_campaign_1645", "status": "pending", "trigger_condition": "year >= 1645 and qing exists" },
-    { "event_id": "nanming_internal_strife", "status": "active", "trigger_condition": "nanming faction exists, morale < 70" }
+    {
+      "event_id": "qing_southward_campaign_1645",
+      "status": "pending",
+      "trigger_condition": "year >= 1645 and qing exists"
+    },
+    {
+      "event_id": "nanming_internal_strife",
+      "status": "active",
+      "trigger_condition": "nanming faction exists, morale < 70"
+    }
   ],
   "objectives": [
-    { "id": "survive_qing_invasion", "description": "在清军南下中存活", "type": "main", "reward": "继续游戏" },
-    { "id": "form_united_front", "description": "团结农民军与郑氏共同抗清", "type": "main", "reward": "三军联手，逆转战局" },
-    { "id": "defend_yangzhou", "description": "守住扬州，为南京争取时间", "type": "secondary", "reward": "延缓清军推进" },
-    { "id": "restore_central_authority", "description": "削平江北四镇，统一指挥权", "type": "secondary", "reward": "士气和战力提升" }
+    {
+      "id": "survive_qing_invasion",
+      "description": "在清军南下中存活",
+      "type": "main",
+      "reward": "继续游戏"
+    },
+    {
+      "id": "form_united_front",
+      "description": "团结农民军与郑氏共同抗清",
+      "type": "main",
+      "reward": "三军联手，逆转战局"
+    },
+    {
+      "id": "defend_yangzhou",
+      "description": "守住扬州，为南京争取时间",
+      "type": "secondary",
+      "reward": "延缓清军推进"
+    },
+    {
+      "id": "restore_central_authority",
+      "description": "削平江北四镇，统一指挥权",
+      "type": "secondary",
+      "reward": "士气和战力提升"
+    }
   ]
 }

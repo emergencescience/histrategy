@@ -267,6 +267,15 @@ class MilitaryEngine:
         # Apply fortification bonus to defender
         def_power *= map_engine.get_fortification_bonus(location)
 
+        # ── Terrain defense modifier ──
+        # Mountainous/hill terrain favors defenders (historical: Sichuan basin,
+        # Fujian highlands repelled invaders for centuries)
+        if terrain in (TerrainType.MOUNTAIN, TerrainType.HILLS):
+            def_power *= 1.30  # +30% defense in rough terrain
+            # Cavalry is severely hindered in mountains
+            if terrain == TerrainType.MOUNTAIN:
+                atk_power *= 0.70  # -30% attack in mountains
+
         # ── Cavalry charge bonus ──
         # Factions with significant cavalry get a decisive advantage
         # against infantry-heavy defenders (historical: Eight Banners vs Ming infantry)

@@ -226,6 +226,61 @@ class TurnController:
         # ── Step 4: Command validation ──
         valid_commands = self._validate_commands(all_commands, world_state)
 
+        # ── Common enemy alliances ──
+        # If two factions both hate a third more than they hate each other,
+        # they tacitly coordinate: attacks between them are redirected to the
+        # common enemy if possible (historical: Ming loyalists + peasant remnants
+        # vs Qing in the 1650s).
+        for cmd in list(valid_commands):
+            if cmd.type not in ("attack",):
+                continue
+            attacker = world_state.factions.get(cmd.faction_id)
+            if not attacker:
+                continue
+            target_id = (cmd.params.get("target_territory") or
+                        cmd.params.get("destination") or
+                        cmd.params.get("territory", ""))
+            target_terr = world_state.territories.get(target_id)
+            if not target_terr or not target_terr.owner_id:
+                continue
+            defender_id = target_terr.owner_id
+            if defender_id == cmd.faction_id:
+                continue
+
+            # Check for common enemy
+            atk_rels = getattr(attacker, "relations", {})
+            def_faction = world_state.factions.get(defender_id)
+            if not def_faction:
+                continue
+            def_rels = getattr(def_faction, "relations", {})
+
+            # Find factions both hate more than each other
+            for common_enemy_id in world_state.factions:
+                if common_enemy_id in (cmd.faction_id, defender_id):
+                    continue
+                atk_hate = atk_rels.get(common_enemy_id, 0)
+                def_hate = def_rels.get(common_enemy_id, 0)
+                atk_mutual = atk_rels.get(defender_id, 0)
+                # Both hate the common enemy more than they hate each other
+                if atk_hate < -70 and def_hate < -70 and atk_mutual > atk_hate:
+                    # Redirect attack to common enemy's nearest territory
+                    common_f = world_state.factions.get(common_enemy_id)
+                    if common_f and common_f.territories:
+                        # Find nearest common-enemy territory
+                        new_target = common_f.territories[0]
+                        for tid in common_f.territories:
+                            # Prefer territories bordering the attacker
+                            for nid in self.map_engine.get_neighbors(tid):
+                                if world_state.territories.get(nid) and world_state.territories[nid].owner_id == cmd.faction_id:
+                                    new_target = tid
+                                    break
+                        cmd.params["target_territory"] = new_target
+                        import random as _ra
+                        if _ra.random() < 0.1:
+                            # Improve relations slightly
+                            attacker.relations[defender_id] = min(100, atk_mutual + 5)
+                        break
+
         # Separate commands by type
         move_commands = [c for c in valid_commands if c.type in ("move", "attack", "defend")]
         domestic_commands = [c for c in valid_commands if c.type in ("recruit", "develop", "tax")]
@@ -638,14 +693,47 @@ class TurnController:
                                                     break  # One defection per decisive victory
 
                                 # ── Victory looting: capturing a territory yields food + morale ──
-                                # Historical: armies looted captured cities for supplies.
+                                # Historical: armies looted captured cities. But defenders
+                                # sometimes practiced "scorched earth" (坚壁清野).
                                 def_faction = world_state.factions.get(old_owner) if old_owner else None
-                                loot_food = min(5000, int(def_faction.food * 0.15) + 2000) if def_faction else 2000
+                                import random as _rl
+                                if _rl.random() < 0.30:
+                                    # Scorched earth: defender destroyed supplies before retreat
+                                    loot_food = 0
+                                else:
+                                    loot_food = min(5000, int(def_faction.food * 0.15) + 2000) if def_faction else 2000
                                 atk_faction.food += loot_food
-                                atk_faction.morale_actual = min(100, atk_faction.morale_actual + 3)
+                                # Conquest momentum: consecutive victories build morale
+                                conquest_bonus = getattr(atk_faction, '_conquest_streak', 0)
+                                atk_faction._conquest_streak = conquest_bonus + 1
+                                morale_gain = min(3 + conquest_bonus, 10)
+                                atk_faction.morale_actual = min(100, atk_faction.morale_actual + morale_gain)
                                 if def_faction:
                                     def_faction.morale_actual = max(0, def_faction.morale_actual - 5)
                                     def_faction.food = max(0, def_faction.food - loot_food)
+                                    def_faction._conquest_streak = 0  # Reset defender's streak
+                                    # ── Morale collapse: extended demoralization triggers defection ──
+                                    if def_faction.morale_actual <= 0:
+                                        # Each morale=0 turn, 15% chance a random territory defects
+                                        if _rl.random() < 0.15 and len(def_faction.territories) > 1:
+                                            # Find a border territory without garrison
+                                            for tid in list(def_faction.territories):
+                                                if tid == location:
+                                                    continue  # Not the one just captured
+                                                has_garr = any(
+                                                    a.faction_id == old_owner and a.total_troops > 0
+                                                    for a in world_state.armies.values()
+                                                    if a.location == tid
+                                                )
+                                                if not has_garr and _rl.random() < 0.5:
+                                                    # Territory defects to attacker
+                                                    t = world_state.territories.get(tid)
+                                                    if t:
+                                                        t.owner_id = attacker.faction_id
+                                                        def_faction.territories.remove(tid)
+                                                        atk_faction.territories.append(tid)
+                                                        atk_faction.morale_actual = min(100, atk_faction.morale_actual + 3)
+                                                    break
 
         return battles
 
