@@ -257,6 +257,8 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
     if sid and room.quarter_number < 4:
         try:
             _dbgt1 = _dbgt.time()
+            # Track player's suggestion choice for Q1/Q2 NPC pre-baking
+            room._last_player_suggestion_id = sid
             # Record decision on slot
             slot = room.slots.get(human_fid)
             if slot:

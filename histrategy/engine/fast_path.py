@@ -319,6 +319,15 @@ def simulate_fast_path(room, player_decision: str,
     state_changes = {}
     npc_actions = []
 
+    # ── Adjust NPC aggression based on player's strategic choice ──
+    # When player reinforces defenses or serves loyally, NPCs are less likely to siege
+    if is_player_defensive or is_player_loyalty:
+        _siege_modifier = 0.5  # 50% less likely to successfully siege
+    elif is_player_aggressive:
+        _siege_modifier = 1.2  # 20% more likely
+    else:
+        _siege_modifier = 1.0
+
     for enemy_fid, choice_idx in npc_choices.items():
         if choice_idx != 0:
             continue  # Only aggressive NPCs (package 0) attack
@@ -336,6 +345,8 @@ def simulate_fast_path(room, player_decision: str,
             atk_ratio = 0.4 if choice_idx == 0 else 0.25
             atk = int(factions[enemy_fid]["troops"] * atk_ratio)
             def_troops = int(factions[player_fid]["troops"] / max(len(player_territories), 1))
+            # Apply siege modifier: defensive/loyalty choices reduce effective attacker strength
+            atk = int(atk * _siege_modifier)
             is_south = target in _YANGTZE_SOUTH
 
             result = _resolve_combat(atk, def_troops, is_south,
