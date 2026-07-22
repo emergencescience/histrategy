@@ -1014,16 +1014,46 @@ def _build_narrative(player_fid: str, suggestion_id: str, events: list,
     # Action description based on package type
     if lang == "zh":
         if "defend" in suggestion_id or "hold" in suggestion_id:
-            parts.append(f"{faction_name}加固防线，坚守阵地。")
+            _defend_map = {
+                "nanming": f"史可法坐镇扬州，督师江北四镇。{faction_name}加固淮河—扬州—南京纵深防线，高杰、黄得功、刘良佐、刘泽清四总兵各守要冲。",
+                "qing": f"多尔衮坐镇北京，命八旗固守已占州郡。{faction_name}暂缓南征，先巩固北直隶根基，圈地安民等待时机。",
+                "nongminjun": f"李自成退守襄阳，在城下构筑三层壕沟防线。{faction_name}收编溃兵、招募流民，日夜加固城防。",
+                "zheng": f"郑芝龙坐镇泉州，水师战船巡弋于台海之间。{faction_name}加固闽粤沿海防线，静观大陆局势变幻。",
+            }
+            parts.append(_defend_map.get(player_fid, f"{faction_name}加固防线，坚守阵地。"))
         elif "retreat" in suggestion_id or "relocate" in suggestion_id or "sail" in suggestion_id:
-            parts.append(f"{faction_name}保存实力，战略转移。")
+            _retreat_map = {
+                "nanming": f"史可法含泪下令南撤。{faction_name}放弃江北，退保长江南岸，百姓扶老携幼跟随官军渡江。",
+                "qing": f"{faction_name}收缩战线，放弃突出部，集中兵力保卫核心州郡。",
+                "nongminjun": f"李自成率大顺残部且战且退。{faction_name}放弃前线据点，向四川方向转移保存火种。",
+                "zheng": f"郑芝龙下令船队起锚。{faction_name}放弃闽粤大陆据点，全军登船驶向深海。",
+            }
+            parts.append(_retreat_map.get(player_fid, f"{faction_name}保存实力，战略转移。"))
         elif any(kw in suggestion_id for kw in ["ally", "counter", "invade", "storm", "march",
                                                   "commit", "offensive", "retake"]):
-            parts.append(f"{faction_name}主动出击，先发制人。")
+            _attack_map = {
+                "nanming": f"史可法亲率督标营出扬州，传檄四镇同时北进。{faction_name}誓师北伐，兵锋直指中原。",
+                "qing": f"多尔衮在武英殿召集诸王贝勒，颁下南征令。{faction_name}八旗铁骑倾巢而出，马蹄声震动京畿。",
+                "nongminjun": f"李自成拔剑北指，大顺军轰然开拔。{faction_name}趁清军主力他顾之际，突入空虚之地。",
+                "zheng": f"郑芝龙点齐水师，千帆竞发。{faction_name}以海为路，战舰载着陆战队沿江而上。",
+            }
+            parts.append(_attack_map.get(player_fid, f"{faction_name}主动出击，先发制人。"))
         elif any(kw in suggestion_id for kw in ["recover", "trade", "buildup", "consolidate"]):
-            parts.append(f"{faction_name}休养生息，积蓄力量。")
+            _build_map = {
+                "nanming": f"弘光帝在南京宫中召见群臣。{faction_name}颁诏减免江南赋税，遣使四方采购军粮，意在以富庶的江南为根基徐图恢复。",
+                "qing": f"多尔衮采纳范文程建议。{faction_name}在已占领土推行轻徭薄赋，招揽前明官员留任，以汉治汉。",
+                "nongminjun": f"李自成在川中推行屯田。{faction_name}分田于民、减免赋税，休养生息以待时机。",
+                "zheng": f"郑芝龙遣商船队南下吕宋、北上日本。{faction_name}以海上贸易之利充实国库，购置火炮战船。",
+            }
+            parts.append(_build_map.get(player_fid, f"{faction_name}休养生息，积蓄力量。"))
         elif any(kw in suggestion_id for kw in _ACTIVE_LOYALTY_KW):
-            parts.append(f"{faction_name}遣使勤王，整军备战。")
+            _loyal_map = {
+                "nanming": f"史可法血书上奏，请弘光帝下勤王诏。{faction_name}遣使至各镇，号召天下兵马共赴国难。",
+                "qing": f"{faction_name}遣使安抚降清明将，许以高官厚禄，分化南明阵营。",
+                "nongminjun": f"李自成遣使联络各方反清势力。{faction_name}以共抗清军为名，争取盟友和粮饷支援。",
+                "zheng": f"郑芝龙接受南明册封。{faction_name}以忠义之名号召闽粤士绅，捐资助战。",
+            }
+            parts.append(_loyal_map.get(player_fid, f"{faction_name}遣使勤王，整军备战。"))
         else:
             parts.append(f"{faction_name}审时度势，发布诏令。")
 
