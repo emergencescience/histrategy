@@ -458,9 +458,34 @@ class NPCDecisionEngine:
             )
             decision_parts.append(f"征兵{amount}" if not is_en else f"Conscript {amount}")
 
+        # ── Priority 2.5: Starvation — MUST develop if food is 0 ──
+        if food <= 0 and territories:
+            # Develop the capital or most populated territory to grow food
+            develop_target = capital or territories[0]
+            commands.append(
+                _cmd(
+                    "develop",
+                    {"territory": develop_target},
+                    "粮草断绝，紧急屯田以解燃眉之急" if not is_en else "Starving — emergency farming to avert famine",
+                )
+            )
+            decision_parts.append(
+                f"屯田{develop_target}" if not is_en else f"Farm {develop_target}"
+            )
+            # Also trade for food if treasury allows
+            if treasury > 1000:
+                commands.append(
+                    _cmd(
+                        "trade",
+                        {"resource": "food"},
+                        "以金购粮，救急" if not is_en else "Buy food with treasury",
+                    )
+                )
+
         # ── Priority 3: Attack weak hostile neighbor ──
+        # ⚠️ Food gate: no attacking when starving — develop/trade instead
         attack_made = False
-        if hostile_neighbors and aggression > 0.3:
+        if hostile_neighbors and aggression > 0.3 and food > 0:
             # Sort by strength ascending — target the weakest hostile neighbor
             hostile_neighbors.sort(key=lambda x: x[2])
             for nid, nf, n_strength in hostile_neighbors:
