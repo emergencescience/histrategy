@@ -579,9 +579,12 @@ class IntentParser:
 
             value = 0
             if tens:
-                # "三十" → 30, "十" → 10 (handle bare "十")
-                tens_digit = cn_nums.get(tens[0], 1)
-                value += tens_digit * 10
+                # "三十" → 30, bare "十" → 10 (十二=12, 十五=15)
+                if tens == "十":
+                    value = 10
+                else:
+                    tens_digit = cn_nums.get(tens[0], 1)
+                    value += tens_digit * 10
             if ones:
                 value += cn_nums.get(ones, 0)
 
