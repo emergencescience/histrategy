@@ -924,15 +924,41 @@ def save_v1_state_to_db(
                 "is_active": True,
             }
 
+    # ── ALWAYS use WorldState values for troops/morale ──
+    # The LLM output has already been guardrail-validated and applied to
+    # WorldState. Raw LLM values may hallucinate incorrect troop counts
+    # (e.g. reporting only newly-raised troops as total). WorldState is
+    # the authoritative source after guardrails.
+    _ws_override: dict[str, dict] = {}
+    for fid, faction in ws.factions.items():
+        if not faction.is_active:
+            continue
+        _ws_override[fid] = {
+            "population": getattr(faction, "population", 0),
+            "troops": getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0,
+            "food": getattr(faction, "food", 0),
+            "treasury": getattr(faction, "treasury", 0),
+            "morale": getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50) or 50,
+            "territories": [
+                {"id": tid, "name": ws.territories[tid].name if tid in ws.territories else tid}
+                for tid in getattr(faction, "territories", [])
+            ],
+            "policies": getattr(faction, "policies", {}),
+            "is_active": True,
+        }
+
     success_count = 0
     error_count = 0
-    for fid, data in v1_factions.items():
+    for fid, _llm_data in v1_factions.items():
         try:
-            # Skip factions not present in the actual WorldState (regardless of scenario)
+            # Skip factions not present in the actual WorldState
             faction = ws.factions.get(fid)
             if not faction:
                 logger.debug(f"V1 DB save: skipping unknown faction '{fid}' (not in WorldState). room={room_id}")
                 continue
+
+            # Prefer WorldState values (guardrail-validated) over raw LLM output
+            data = _ws_override.get(fid, _llm_data)
 
             # Coerce numeric fields (LLM may return strings or non-numeric values)
             def _safe_int(val, default=0):
