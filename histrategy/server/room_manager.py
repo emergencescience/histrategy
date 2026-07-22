@@ -355,6 +355,22 @@ def submit_decision(room_id: str, faction_id: str, decision: str, skip_narrative
         return {"ok": False, "error": f"势力 {faction_id} 由AI控制"}
 
     slot.submit_decision(decision)
+
+    # ── Parse human free-text into structured commands ──
+    # The V3 QuarterlyResolver parses commands at resolution time (line 105 of
+    # quarterly_resolver.py), but those parsed commands are never persisted back
+    # to the slot.  This means the turn API always returns commands=[] for human
+    # factions, making it impossible for players to see what the engine understood
+    # from their orders.  Parse here at submit time so commands are visible in the
+    # API and stored in the quarter_turn record.
+    try:
+        from histrategy.parser.intent import IntentParser
+        parser = IntentParser(llm_adapter=None)  # keyword-based, no LLM latency
+        parsed = parser.parse(decision, faction_id)
+        if parsed:
+            slot.pending_commands = [c.to_dict() if hasattr(c, 'to_dict') else c for c in parsed]
+    except Exception as parse_err:
+        logger.warning(f"Intent parse failed for {faction_id}: {parse_err}")
     _try_save(room)
 
     submitted = [fid for fid, s in room.slots.items() if s.is_active and s.has_submitted()]
