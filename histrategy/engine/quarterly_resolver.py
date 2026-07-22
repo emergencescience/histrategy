@@ -182,7 +182,10 @@ class QuarterlyResolver:
         # ── Pre-sync: reconcile strength_actual from deployed armies ──
         # Deployment (helpers.py L770) reduces strength_actual. Battles need
         # total troops, not just reserves. Sync before macro sim → state applier.
-        if hasattr(world_state, 'armies') and world_state.armies:
+        has_armies = hasattr(world_state, 'armies')
+        army_count = len(world_state.armies) if has_armies and world_state.armies else 0
+        print(f"DEBUG [room={room.id}] pre-sync: has_armies={has_armies} army_count={army_count} faction_count={len(world_state.factions)}", flush=True)
+        if has_armies and world_state.armies:
             from .state_applier import _MIN_ACTIVE_TROOPS
             for fid in world_state.factions:
                 faction = world_state.factions[fid]
@@ -192,6 +195,7 @@ class QuarterlyResolver:
                 )
                 reserve = getattr(faction, 'strength_actual', 0) or 0
                 new_total = max(deployed, reserve + deployed, _MIN_ACTIVE_TROOPS)
+                print(f"DEBUG [room={room.id}] sync {fid}: deployed={deployed} reserve={reserve} new_total={new_total}", flush=True)
                 if new_total and new_total != reserve:
                     faction.strength_actual = new_total
 
@@ -243,6 +247,8 @@ class QuarterlyResolver:
         # strength_actual is reduced during deployment (helpers.py L770) to track
         # available reserves. After battles, reconcile it from army totals so the
         # API and next turn's battle code see the correct total troop count.
+        post_army_count = len(world_state.armies) if hasattr(world_state, 'armies') and world_state.armies else 0
+        print(f"DEBUG [room={room.id}] post-sync: army_count={post_army_count}", flush=True)
         if hasattr(world_state, 'armies') and world_state.armies:
             from .state_applier import _MIN_ACTIVE_TROOPS
             for fid in world_state.factions:
