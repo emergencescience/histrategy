@@ -619,7 +619,7 @@ def _armies_to_dict(ws) -> dict:
             "faction_id": a.faction_id,
             "location": a.location,
             "commander_id": a.commander_id,
-            "units": {str(k): v for k, v in a.units.items()},
+            "units": {k.value: v for k, v in a.units.items()},
             "morale": a.morale,
             "training": a.training,
             "supply": a.supply,
@@ -639,7 +639,14 @@ def _armies_from_dict(ws, data: dict) -> None:
             try:
                 ut = UnitType(k)
             except (ValueError, KeyError):
-                continue
+                # Try matching by value string
+                ut = None
+                for member in UnitType:
+                    if member.value == k:
+                        ut = member
+                        break
+                if ut is None:
+                    continue
             units[ut] = v
         ws.armies[aid] = Army(
             id=ad["id"],
