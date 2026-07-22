@@ -139,6 +139,29 @@ class QuarterlyResolver:
 
                 all_commands[faction_id] = parsed
 
+        # ── Step 1.5: 从 DB 加载已有政策到 faction.policies ──
+        try:
+            from histrategy.db.models import get_active_policies
+            for fid in world_state.factions:
+                db_policies = get_active_policies(room.id, fid)
+                if db_policies:
+                    faction = world_state.factions[fid]
+                    existing = getattr(faction, "policies", None)
+                    if not isinstance(existing, dict):
+                        existing = {}
+                    for p in db_policies:
+                        pname = p.get("policy_name", "")
+                        if pname and pname not in existing:
+                            existing[pname] = {
+                                "type": p.get("policy_type", "law"),
+                                "level": p.get("policy_level", 1),
+                                "params": p.get("params", {}),
+                                "status": p.get("status", "active"),
+                            }
+                    faction.policies = existing
+        except Exception:
+            pass
+
         # ── Step 2: 确定性基线 ──
         baseline = None
         if self.turn_controller:
@@ -238,6 +261,10 @@ class QuarterlyResolver:
                 logger.info("[room=%s] StateApplier settled: %s", room.id, applied)
             except Exception as e:
                 logger.error("[room=%s] StateApplier failed: %s", room.id, e)
+
+        # ── Step 5.3: 从 macro_delta 提取政策并持久化到 faction.policies ──
+        if macro_delta:
+            _extract_policies_from_delta(macro_delta, world_state, room.id)
 
         # ── Step 5.5: Sync faction strength_actual from deployed army totals ──
         # strength_actual is reduced during deployment (helpers.py L770) to track
@@ -474,6 +501,111 @@ class QuarterlyResult:
 
 
 # ── Helpers ────────────────────────────────────────
+
+
+def _extract_policies_from_delta(macro_delta: dict, world_state, room_id: str) -> None:
+    """Extract policy declarations from macro simulation delta.
+
+    Converts political_events and diplomatic npc_faction_actions into
+    structured policy entries on each faction. These are then saved to
+    the policy_state table by _save_v3_state_to_db.
+
+    Policy types matched:
+    - court_intrigue → law (e.g. "马士英党争", "史可法被参")
+    - reform_feedback → law (e.g. "税制改革", "减田赋")
+    - diplomacy actions → diplomacy (e.g. "结盟", "缔和")
+    - tax actions → economic (e.g. "加征商税", "减税")
+    - conscript actions → military (e.g. "大征兵", "募乡勇")
+    """
+    political_events = macro_delta.get("political_events", []) or []
+    npc_actions = macro_delta.get("npc_faction_actions", []) or []
+
+    # Track which policies we've already set to avoid duplicates
+    seen = {}  # (faction, policy_type, policy_name) → True
+
+    for event in political_events:
+        fid = event.get("faction", "")
+        event_type = event.get("type", "")
+        desc = event.get("description", "")
+        effects = event.get("effects", {})
+
+        if not fid or fid not in world_state.factions:
+            continue
+
+        faction = world_state.factions[fid]
+        policies = getattr(faction, "policies", None)
+        if not isinstance(policies, dict):
+            faction.policies = {}
+            policies = faction.policies
+
+        # Map event types to policy names
+        policy_name = None
+        policy_type = "law"
+
+        if event_type == "court_intrigue":
+            policy_name = "朝堂党争"
+            policy_type = "law"
+        elif event_type == "reform_feedback":
+            policy_name = "政制改革"
+            policy_type = "law"
+        elif event_type == "factionalism":
+            policy_name = "派系斗争"
+            policy_type = "law"
+        elif event_type == "succession":
+            policy_name = "继嗣之争"
+            policy_type = "law"
+
+        if policy_name and (fid, policy_type, policy_name) not in seen:
+            seen[(fid, policy_type, policy_name)] = True
+            policies[policy_name] = {
+                "type": policy_type,
+                "level": 1,
+                "params": {"description": desc[:200], "effects": effects},
+                "status": "active",
+            }
+
+    for action in npc_actions:
+        fid = action.get("faction", "")
+        action_type = action.get("action_type", "")
+        target = action.get("target", "")
+        reason = action.get("reason", "")
+
+        if not fid or fid not in world_state.factions:
+            continue
+
+        faction = world_state.factions[fid]
+        policies = getattr(faction, "policies", None)
+        if not isinstance(policies, dict):
+            faction.policies = {}
+            policies = faction.policies
+
+        policy_name = None
+        policy_type = "law"
+
+        if action_type == "diplomacy" and target:
+            policy_name = f"外交_{target}"
+            policy_type = "diplomacy"
+        elif action_type == "tax":
+            policy_name = "税制调整"
+            policy_type = "economic"
+        elif action_type == "conscript":
+            policy_name = "征兵令"
+            policy_type = "military"
+        elif action_type == "develop":
+            policy_name = "发展令"
+            policy_type = "economic"
+        elif action_type == "declare_war" and target:
+            policy_name = f"征伐_{target}"
+            policy_type = "military"
+
+        if policy_name and (fid, policy_type, policy_name) not in seen:
+            seen[(fid, policy_type, policy_name)] = True
+            policies[policy_name] = {
+                "type": policy_type,
+                "level": 1,
+                "params": {"reason": reason[:200], "target": target},
+                "status": "active",
+            }
 
 
 def _empty_baseline(ws: WorldState):
