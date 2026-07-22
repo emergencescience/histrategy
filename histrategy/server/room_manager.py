@@ -2044,6 +2044,15 @@ def _get_faction_names(room, lang: str = "zh") -> dict[str, str]:
     for fid in getattr(room, "slots", {}):
         if fid not in names:
             names[fid] = fid
+    # Final fallback: use fast_path's _FACTION_EN/_FACTION_ZH maps
+    if lang == "en":
+        try:
+            from histrategy.engine.fast_path import _FACTION_EN
+            for fid in names:
+                if not names[fid] or names[fid] == fid:
+                    names[fid] = _FACTION_EN.get(fid, names[fid])
+        except Exception:
+            pass
     return names
 
 
@@ -2129,11 +2138,11 @@ def build_faction_status_for_api(room, faction_id: str) -> dict:
     return {
         "name": getattr(faction, "name", faction_id),
         "faction_id": faction_id,
-        "strength": getattr(faction, "strength", 0) or getattr(faction, "strength_actual", 0) or 0,
+        "strength": getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0,
         "food": int(getattr(faction, "food", 0) or 0),
         "treasury": int(getattr(faction, "treasury", 0) or 0),
         "territories": territories,
-        "morale": getattr(faction, "morale", 50) or getattr(faction, "morale_actual", 50) or 50,
+        "morale": getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50) or 50,
         "is_active": getattr(faction, "is_active", True),
         "population": pop_sum,
         "loyalty": getattr(faction, "loyalty", 50) or 50,

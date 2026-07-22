@@ -2,6 +2,7 @@
   {
     "id": "nanming",
     "name": "南明",
+    "name_en": "Southern Ming",
     "ruler_id": "hongguang",
     "color": "green",
     "description": "弘光朝廷，据有江南富庶之地。正统所在，但内部党争激烈，江北四镇各自为政。",
@@ -13,6 +14,7 @@
   {
     "id": "qing",
     "name": "大清",
+    "name_en": "Qing Empire",
     "ruler_id": "duoduo",
     "color": "yellow",
     "description": "八旗精锐已入关，定都北京。多尔衮摄政，吴三桂为前锋。军事最强但汉人抵抗不断。",
@@ -24,6 +26,7 @@
   {
     "id": "nongminjun",
     "name": "农民军",
+    "name_en": "Peasant Army",
     "ruler_id": "lizicheng",
     "color": "red",
     "description": "李自成大顺军残部+张献忠大西军。兵多但极穷，不懂治国，被南北夹击。",
@@ -35,6 +38,7 @@
   {
     "id": "zheng",
     "name": "郑氏",
+    "name_en": "Zheng Clan",
     "ruler_id": "zhengchenggong",
     "color": "cyan",
     "description": "东亚最强水师，掌控海上贸易。据福建、广东沿海，台湾为退路。陆地战力有限。",
@@ -46,6 +50,7 @@
   {
     "id": "other",
     "name": "其他势力",
+    "name_en": "Minor Factions",
     "ruler_id": null,
     "color": "grey",
     "npc_only": true,
