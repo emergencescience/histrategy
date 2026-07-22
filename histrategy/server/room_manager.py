@@ -1169,6 +1169,13 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
     if len(room._narrative_history) > 20:
         room._narrative_history = room._narrative_history[-20:]
 
+    # ── Bug H35c fix: landless faction recovery ──
+    # When a faction loses all territories but still has troops, they enter
+    # exile. Without land they can't recruit, develop, or attack — commands
+    # silently fail. Grant a small territory from unclaimed lands so the
+    # faction can recover.
+    _recover_landless_factions(room, ws)
+
     # ── NPC territory combat resolution ──
     # After LLM generates NPC decisions, run deterministic combat for any
     # military actions. Without this, NPC battles are pure narrative fiction
@@ -1265,6 +1272,111 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
         logger.warning("[room=%s] bg thread spawn failed, running sync: %s", room.id, e)
         _trigger_npc_decisions(room)
         _try_save(room, ws_dict)
+
+
+def _recover_landless_factions(room, ws) -> None:
+    """Bug H35c: Grant recovery territory to landless factions with troops.
+
+    When a faction loses all territories, they enter exile. Without land
+    they can't recruit, develop, or attack — creating a death spiral where
+    they slowly bleed troops to zero. Grant a random small territory from
+    unclaimed lands (or from allies) so the faction can recover.
+
+    Recovery conditions:
+    - faction.is_active and faction.territories is empty
+    - faction has troops > 0
+    - there exists an unclaimed territory or ally territory to grant
+    """
+    import random as _random
+
+    logger = logging.getLogger("histrategy")
+
+    for fid, faction in ws.factions.items():
+        if not faction.is_active:
+            continue
+        territories = getattr(faction, "territories", []) or []
+        if territories:
+            continue  # Has land already
+
+        troops = (
+            getattr(faction, "strength_actual", 0)
+            or getattr(faction, "strength", 0)
+            or 0
+        )
+        if troops <= 0:
+            continue  # No troops to recover with
+
+        # ── Find a recovery territory ──
+        # Priority 1: unclaimed territory
+        # Priority 2: territory from lowest-strength enemy
+        recovery_tid = None
+
+        # Priority 1: unclaimed territories
+        unclaimed = []
+        for tid, t in (ws.territories.items() if hasattr(ws, "territories") else {}):
+            owner = getattr(t, "owner_id", "")
+            if not owner:
+                unclaimed.append(tid)
+
+        if unclaimed:
+            recovery_tid = _random.choice(unclaimed)
+
+        # Priority 2: take from weakest enemy
+        if not recovery_tid:
+            allies = getattr(faction, "allies", []) or []
+            best_target = None
+            best_strength = float("inf")
+            for other_fid, other_f in ws.factions.items():
+                if other_fid == fid or not other_f.is_active:
+                    continue
+                if other_fid in allies:
+                    continue
+                other_territories = getattr(other_f, "territories", []) or []
+                if not other_territories:
+                    continue
+                other_strength = (
+                    getattr(other_f, "strength_actual", 0)
+                    or getattr(other_f, "strength", 0)
+                    or 0
+                )
+                # Only take from enemies we can actually beat
+                if other_strength < troops * 2 and other_strength < best_strength:
+                    best_target = other_fid
+                    best_strength = other_strength
+
+            if best_target:
+                other_f = ws.factions.get(best_target)
+                if other_f:
+                    other_territories = list(getattr(other_f, "territories", []) or [])
+                    if other_territories:
+                        # Take their least valuable territory (fewest neighbors)
+                        scored = []
+                        for tid in other_territories:
+                            t = ws.territories.get(tid) if hasattr(ws, "territories") else None
+                            neighbors = len(getattr(t, "neighbors", [])) if t else 999
+                            scored.append((neighbors, tid))
+                        scored.sort()
+                        recovery_tid = scored[0][1] if scored else None
+                        # Remove from original owner
+                        if recovery_tid:
+                            if other_territories and recovery_tid in other_territories:
+                                other_f.territories.remove(recovery_tid)
+                            if hasattr(ws, "territories") and recovery_tid in ws.territories:
+                                ws.territories[recovery_tid].owner_id = fid
+
+        # Apply recovery
+        if recovery_tid:
+            faction.territories = [recovery_tid]
+            if hasattr(ws, "territories") and recovery_tid in ws.territories:
+                ws.territories[recovery_tid].owner_id = fid
+            t_name = getattr(ws.territories.get(recovery_tid), "name", recovery_tid) if hasattr(ws, "territories") else recovery_tid
+            logger.info(
+                "H35c recovery: %s (%s) granted territory '%s' (troops=%d)",
+                getattr(faction, "name", fid),
+                fid,
+                t_name,
+                troops,
+            )
 
 
 def _apply_deterministic_economy(ws) -> None:
