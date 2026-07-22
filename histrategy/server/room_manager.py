@@ -1169,6 +1169,13 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
     if len(room._narrative_history) > 20:
         room._narrative_history = room._narrative_history[-20:]
 
+    # ── Bug H35c fix: landless faction recovery ──
+    # When a faction loses all territories but still has troops, they enter
+    # exile. Without land they can't recruit, develop, or attack — commands
+    # silently fail. Grant a small territory from unclaimed lands so the
+    # faction can recover.
+    _recover_landless_factions(room, ws)
+
     # ── NPC territory combat resolution ──
     # After LLM generates NPC decisions, run deterministic combat for any
     # military actions. Without this, NPC battles are pure narrative fiction
@@ -1267,6 +1274,165 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
         _try_save(room, ws_dict)
 
 
+def _recover_landless_factions(room, ws) -> None:
+    """Bug H35c: Grant recovery territory to landless factions with troops.
+
+    When a faction loses all territories, they enter exile. Without land
+    they can't recruit, develop, or attack — creating a death spiral where
+    they slowly bleed troops to zero. Grant a random small territory from
+    unclaimed lands (or from allies) so the faction can recover.
+
+    Recovery conditions:
+    - faction.is_active and faction.territories is empty
+    - faction has troops > 0
+    - there exists an unclaimed territory or ally territory to grant
+    """
+    import random as _random
+
+    logger = logging.getLogger("histrategy")
+
+    for fid, faction in ws.factions.items():
+        if not faction.is_active:
+            continue
+        territories = getattr(faction, "territories", []) or []
+        if territories:
+            continue  # Has land already
+
+        troops = (
+            getattr(faction, "strength_actual", 0)
+            or getattr(faction, "strength", 0)
+            or 0
+        )
+        if troops <= 0:
+            continue  # No troops to recover with
+
+        # ── Find a recovery territory ──
+        # Priority 1: unclaimed territory
+        # Priority 2: territory from lowest-strength enemy
+        recovery_tid = None
+
+        # Priority 1: unclaimed territories
+        unclaimed = []
+        for tid, t in (ws.territories.items() if hasattr(ws, "territories") else {}):
+            owner = getattr(t, "owner_id", "")
+            if not owner:
+                unclaimed.append(tid)
+
+        if unclaimed:
+            recovery_tid = _random.choice(unclaimed)
+
+        # Priority 2: take from weakest enemy
+        if not recovery_tid:
+            allies = getattr(faction, "allies", []) or []
+            best_target = None
+            best_strength = float("inf")
+            for other_fid, other_f in ws.factions.items():
+                if other_fid == fid or not other_f.is_active:
+                    continue
+                if other_fid in allies:
+                    continue
+                other_territories = getattr(other_f, "territories", []) or []
+                if not other_territories:
+                    continue
+                other_strength = (
+                    getattr(other_f, "strength_actual", 0)
+                    or getattr(other_f, "strength", 0)
+                    or 0
+                )
+                # Only take from enemies we can actually beat
+                if other_strength < troops * 2 and other_strength < best_strength:
+                    best_target = other_fid
+                    best_strength = other_strength
+
+            if best_target:
+                other_f = ws.factions.get(best_target)
+                if other_f:
+                    other_territories = list(getattr(other_f, "territories", []) or [])
+                    if other_territories:
+                        # Take their least valuable territory (fewest neighbors)
+                        scored = []
+                        for tid in other_territories:
+                            t = ws.territories.get(tid) if hasattr(ws, "territories") else None
+                            neighbors = len(getattr(t, "neighbors", [])) if t else 999
+                            scored.append((neighbors, tid))
+                        scored.sort()
+                        recovery_tid = scored[0][1] if scored else None
+                        # Remove from original owner
+                        if recovery_tid:
+                            if other_territories and recovery_tid in other_territories:
+                                other_f.territories.remove(recovery_tid)
+                            if hasattr(ws, "territories") and recovery_tid in ws.territories:
+                                ws.territories[recovery_tid].owner_id = fid
+
+        # Apply recovery
+        if recovery_tid:
+            faction.territories = [recovery_tid]
+            if hasattr(ws, "territories") and recovery_tid in ws.territories:
+                ws.territories[recovery_tid].owner_id = fid
+            t_name = getattr(ws.territories.get(recovery_tid), "name", recovery_tid) if hasattr(ws, "territories") else recovery_tid
+            logger.info(
+                "H35c recovery: %s (%s) granted territory '%s' (troops=%d)",
+                getattr(faction, "name", fid),
+                fid,
+                t_name,
+                troops,
+            )
+
+
+def _apply_deterministic_economy(ws) -> None:
+    """Bug H35b: Apply deterministic tax revenue and military upkeep per quarter.
+
+    V1 simulation relies solely on LLM output for economy changes. The LLM
+    often ignores or forgets to update treasury and food, causing them to
+    stay nearly frozen across turns. This function applies a lightweight
+    deterministic economy tick that mirrors the V2/V3 DomesticEngine logic.
+
+    Tax revenue: sum(population * tax_rate * 0.01) per territory
+    Military upkeep: 1 food per 100 troops (round up)
+    """
+    logger = logging.getLogger("histrategy.economy")
+
+    for fid, faction in ws.factions.items():
+        if not faction.is_active:
+            continue
+
+        territories = getattr(faction, "territories", []) or []
+        tax_rate = getattr(faction, "tax_rate", 0.3)
+
+        # ── Tax revenue from owned territories ──
+        tax_total = 0
+        for tid in territories:
+            t = ws.territories.get(tid) if hasattr(ws, "territories") else None
+            if t:
+                pop = getattr(t, "population", 0) or 0
+                # Simple per-capita tax: pop * tax_rate * 0.01 gold per head
+                tax_total += int(pop * tax_rate * 0.01)
+
+        if tax_total > 0:
+            old_treasury = getattr(faction, "treasury", 0) or 0
+            faction.treasury = old_treasury + tax_total
+            logger.debug(
+                "V1 economy: %s tax_revenue=%d treasury %d→%d",
+                fid, tax_total, old_treasury, faction.treasury,
+            )
+
+        # ── Military food upkeep ──
+        troops = (
+            getattr(faction, "strength_actual", 0)
+            or getattr(faction, "strength", 0)
+            or 0
+        )
+        if troops > 0:
+            upkeep = max(1, troops // 100)  # 1 food per 100 troops
+            old_food = getattr(faction, "food", 0) or 0
+            faction.food = max(0, old_food - upkeep)
+
+            # ── Military gold upkeep ──
+            # Each soldier costs ~0.5 gold per quarter
+            gold_upkeep = max(1, troops // 200)
+            faction.treasury = max(0, faction.treasury - gold_upkeep)
+
+
 def _capture_faction_state(ws) -> dict:
     """Capture pre-resolution state for turn_delta calculation.
 
@@ -1275,8 +1441,16 @@ def _capture_faction_state(ws) -> dict:
     old_state = {}
     for fid in ws.factions:
         faction = ws.factions[fid]
+        # Bug H35a: compute population from territory sum
+        pop_val = getattr(faction, "population", 0)
+        if not pop_val:
+            pop_val = sum(
+                getattr(ws.territories.get(tid), "population", 0)
+                for tid in getattr(faction, "territories", [])
+                if ws.territories.get(tid)
+            )
         old_state[fid] = {
-            "population": getattr(faction, "population", 0),
+            "population": pop_val,
             "troops": getattr(faction, "strength_actual", 0),
             "food": faction.food,
             "treasury": faction.treasury,
@@ -1284,6 +1458,18 @@ def _capture_faction_state(ws) -> dict:
             "territories": list(getattr(faction, "territories", [])),
         }
     return old_state
+
+
+def _capture_faction_population(ws, faction) -> int:
+    """Compute faction population from territory sum (FactionState has no population field)."""
+    pop_val = getattr(faction, "population", 0)
+    if not pop_val:
+        pop_val = sum(
+            getattr(ws.territories.get(tid), "population", 0)
+            for tid in getattr(faction, "territories", [])
+            if ws.territories.get(tid)
+        )
+    return pop_val
 
 
 def _resolve_v1(room, ws, decisions, llm):
@@ -1359,8 +1545,16 @@ def _resolve_v1(room, ws, decisions, llm):
                 continue
             troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
             morale = getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50) or 50
+            # Bug H35a: compute population from territory sum
+            pop_val_delta = getattr(faction, "population", 0)
+            if not pop_val_delta:
+                pop_val_delta = sum(
+                    getattr(ws.territories.get(tid), "population", 0)
+                    for tid in getattr(faction, "territories", [])
+                    if ws.territories.get(tid)
+                )
             v1_factions[fid] = {
-                "population": getattr(faction, "population", 0),
+                "population": pop_val_delta,
                 "troops": troops + delta.get("strength_delta", 0),
                 "food": faction.food,
                 "treasury": faction.treasury + delta.get("treasury_delta", 0),
@@ -1380,7 +1574,7 @@ def _resolve_v1(room, ws, decisions, llm):
             if not faction.is_active:
                 continue
             old_state[fid] = {
-                "population": getattr(faction, "population", 0),
+                "population": _capture_faction_population(ws, faction),
                 "troops": getattr(faction, "strength_actual", 0),
                 "food": faction.food,
                 "treasury": faction.treasury,
@@ -1391,7 +1585,7 @@ def _resolve_v1(room, ws, decisions, llm):
             faction = ws.factions.get(fid)
             if faction:
                 old_state[fid] = {
-                    "population": getattr(faction, "population", 0),
+                    "population": _capture_faction_population(ws, faction),
                     "troops": getattr(faction, "strength_actual", 0),
                     "food": faction.food,
                     "treasury": faction.treasury,
@@ -1400,6 +1594,13 @@ def _resolve_v1(room, ws, decisions, llm):
 
     # 将 V1 结果应用到 WorldState
     _apply_v1_state_to_world(ws, v1_factions)
+
+    # ── Bug H35b fix: deterministic economy tick ──
+    # V1 simulation relies on LLM to produce economy changes, but the LLM often
+    # ignores tax revenue and military upkeep, resulting in frozen treasuries.
+    # Apply deterministic tax + food/upkeep after LLM state application so
+    # treasury and food always change each quarter.
+    _apply_deterministic_economy(ws)
 
     # ── Territory change narrative enhancement ──
     # Detect undocumented territory changes and append to narrative.
@@ -1633,8 +1834,16 @@ def _build_v1_result(room, ws, decisions, v1_result, fd, lang):
         faction = ws.factions[fid]
         if not faction.is_active:
             continue
+        # Bug H35a fix: compute population from territory sum (FactionState has no population field)
+        pop_val = getattr(faction, "population", 0)
+        if not pop_val:
+            pop_val = sum(
+                getattr(ws.territories.get(tid), "population", 0)
+                for tid in (getattr(faction, "territories", []) or [])
+                if ws.territories.get(tid)
+            )
         stats = {
-            "population": getattr(faction, "population", 0),
+            "population": pop_val,
             "troops": getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0,
             "food": getattr(faction, "food", 0),
             "treasury": getattr(faction, "treasury", 0),

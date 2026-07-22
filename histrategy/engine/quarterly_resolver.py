@@ -712,11 +712,16 @@ def _extract_state_changes(
     ws: WorldState,
     decisions: dict[str, DecisionResult],
 ) -> dict[str, dict]:
-    """提取所有 faction 的状态变更摘要。"""
+    """Extract state change summaries for ALL active factions.
+
+    Bug H35d fix: previously only iterated over factions in the decisions dict,
+    which excluded NPC factions that didn't submit explicit decisions. Now
+    iterates over ALL active factions in the WorldState so NPCs always show
+    their actual strength/morale/food/treasury in the API response.
+    """
     changes = {}
-    for faction_id, _dr in decisions.items():
-        faction = ws.factions.get(faction_id)
-        if not faction:
+    for faction_id, faction in ws.factions.items():
+        if not faction.is_active:
             continue
         changes[faction_id] = {
             "strength": getattr(faction, "strength_actual", 0),

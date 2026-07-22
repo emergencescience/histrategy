@@ -559,8 +559,16 @@ class V1Simulator:
                 continue
             troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
             morale = getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50) or 50
+            # Bug H35a fix: compute population from territory sum
+            pop_val = getattr(faction, "population", 0)
+            if not pop_val:
+                pop_val = sum(
+                    ws.territories[tid].population
+                    for tid in faction.territories
+                    if tid in ws.territories
+                )
             factions[fid] = {
-                "population": getattr(faction, "population", 0),
+                "population": pop_val,
                 "troops": troops,
                 "food": faction.food,
                 "treasury": faction.treasury,
@@ -924,8 +932,16 @@ def save_v1_state_to_db(
                 continue
             troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
             morale = getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50) or 50
+            # Bug H35a fix: compute population from territory sum (FactionState has no population field)
+            pop_val = getattr(faction, "population", 0)
+            if not pop_val:
+                pop_val = sum(
+                    ws.territories[tid].population
+                    for tid in faction.territories
+                    if tid in ws.territories
+                )
             v1_factions[fid] = {
-                "population": getattr(faction, "population", 0),
+                "population": pop_val,
                 "troops": troops,
                 "food": faction.food,
                 "treasury": faction.treasury,
@@ -947,8 +963,16 @@ def save_v1_state_to_db(
     for fid, faction in ws.factions.items():
         if not faction.is_active:
             continue
+        # Bug H35a fix: FactionState has no population field — compute from territory sum
+        computed_population = getattr(faction, "population", 0)
+        if not computed_population:
+            computed_population = sum(
+                ws.territories[tid].population
+                for tid in getattr(faction, "territories", [])
+                if tid in ws.territories
+            )
         _ws_override[fid] = {
-            "population": getattr(faction, "population", 0),
+            "population": computed_population,
             "troops": getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0,
             "food": getattr(faction, "food", 0),
             "treasury": getattr(faction, "treasury", 0),
