@@ -548,7 +548,8 @@ def simulate_fast_path(room, player_decision: str,
         season_str = season_zh.get(new_season, new_season)
 
     narrative = _build_rich_narrative(
-        player_fid, player_suggestion_id, events, factions, npc_actions, season_str, new_year, lang
+        player_fid, player_suggestion_id, events, factions, npc_actions, season_str, new_year, lang,
+        scenario=getattr(room, "scenario", "three-kingdoms")
     )
     aftermath = f"公元{new_year}年{season_str}。{'、'.join(events) if events else '各方按兵不动，局势暂时平稳。'}"
 
@@ -1102,16 +1103,71 @@ def _build_narrative(player_fid: str, suggestion_id: str, events: list,
     return "".join(parts)
 
 
+def _load_prebaked_narrative(scenario: str, suggestion_id: str, lang: str) -> dict | None:
+    """Load pre-baked narrative for a suggestion_id from the scenario's JSON file.
+
+    Returns {'narrative': str, 'npc_actions': [str]} or None if not found.
+    """
+    try:
+        import json as _json
+        from pathlib import Path as _Path
+
+        # Find the JSON file relative to this module
+        _dir = _Path(__file__).resolve().parent
+        fp = _dir / f"fast_path_narratives_{scenario}.json"
+        if not fp.exists():
+            return None
+
+        data = _json.loads(fp.read_text())
+        entry = data.get(suggestion_id)
+        if not entry:
+            return None
+
+        narrative = entry.get(lang, entry.get("zh", ""))
+        npc_actions = entry.get("npc_actions", {}).get(lang, [])
+        if not npc_actions:
+            npc_actions = entry.get("npc_actions", {}).get("zh", [])
+
+        return {"narrative": narrative, "npc_actions": npc_actions}
+    except Exception:
+        return None
+
+
 def _build_rich_narrative(player_fid: str, suggestion_id: str, events: list,
                           factions: dict, npc_actions: list, season: str,
-                          year: int = 0, lang: str = "zh") -> str:
+                          year: int = 0, lang: str = "zh", scenario: str = "") -> str:
     """Compose a multi-section markdown narrative for a hard-coded (fast-path) turn.
 
     Even without an LLM call, a fast-path turn should read like a proper chronicle
     (大事纪 / 兵争武事 / 各方动向), so the shared page and game UI look identical to
-    LLM turns. Reuses _build_narrative for the opening summary, then appends the
-    deterministic events and the hard-coded NPC actions as their own sections.
+    LLM turns.
+
+    Priority:
+    1. Pre-baked narrative from fast_path_narratives_{scenario}.json (if exists)
+    2. Template-generated narrative (fallback)
     """
+    # ── Try pre-baked narrative ──
+    if scenario and suggestion_id:
+        prebaked = _load_prebaked_narrative(scenario, suggestion_id, lang)
+        if prebaked:
+            sections: list[str] = []
+            if lang == "zh":
+                sections.append("### 大事纪\n" + prebaked["narrative"])
+                if events:
+                    sections.append("### 兵争武事\n" + "；".join(events) + "。")
+                prebaked_npc = prebaked.get("npc_actions", [])
+                if prebaked_npc:
+                    sections.append("### 各方动向\n" + "\n".join(f"- {a}" for a in prebaked_npc))
+            else:
+                sections.append("### Chronicle\n" + prebaked["narrative"])
+                if events:
+                    sections.append("### Military Affairs\n" + "; ".join(events) + ".")
+                prebaked_npc = prebaked.get("npc_actions", [])
+                if prebaked_npc:
+                    sections.append("### Factions' Movements\n" + "\n".join(f"- {a}" for a in prebaked_npc))
+            return "\n\n".join(sections)
+
+    # ── Fallback: template-generated narrative ──
     base = _build_narrative(player_fid, suggestion_id, events, factions, season, year, lang)
     sections: list[str] = []
     if lang == "zh":

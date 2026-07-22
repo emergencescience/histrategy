@@ -1,0 +1,105 @@
+{
+  "_description": "Pre-baked rich narratives for fast-path hard-coded suggestions (T1-T2). Each entry maps suggestion_id → {zh, en, npc_actions: {zh, en}}. These replace the formulaic template output from _build_narrative.",
+  
+  "octavian_t1_rally": {
+    "zh": "公元前44年春，年仅十八岁的屋大维在布伦迪西乌姆港登陆。他没有军队，没有官职，只有一个名字——恺撒。但这个名字就是他的军团。\n\n他派出的密使星夜奔赴坎帕尼亚、皮克努姆和萨莫奈——那些曾经跟随恺撒征战高卢的老兵聚居地。在坎帕尼亚的退伍老兵定居点，曾在阿莱西亚之战中斩下高卢王韦辛格托里克斯旗帜的老百夫长马尔库斯·塞维利乌斯率先举旗响应。三日之内，八百名老兵带着旧日的鹰旗和未曾生锈的铁剑汇聚到他的麾下。\n\n「恺撒的血没有白流。」老兵们说。「他的继承人需要我们。」\n\n这些身经百战的第十军团老兵虽然人数不多，却个个以一当十。他们带来了高卢战场上的战术记忆、凯尔特人的血腥格斗技巧，以及最重要的——对恺撒的绝对忠诚。屋大维在坎帕尼亚的庄园里，用养父留下的微薄遗产组建了他的第一支私兵。\n\n消息传到罗马，安东尼嗤之以鼻：「一个拿着恺撒名字的小男孩，带着八百个退伍老兵，也想继承罗马？」但他不知道的是，这些老兵正是恺撒最锋利的剑——而屋大维，正准备拔出它。",
+    "en": "Spring, 44 BC. Octavian, barely eighteen, disembarked at Brundisium. He had no army, no office, no territory — only a name. Caesar. And that name was his legion.\n\nHis riders galloped through the night to Campania, Picenum, and Samnium — the veteran colonies where Caesar's Gallic War soldiers had retired. At the Campanian settlement, old Centurion Marcus Servilius, who had cut down Vercingetorix's standard at Alesia, was the first to raise his sword in answer. Within three days, eight hundred veterans converged on Octavian's camp, bearing their old eagle standards and swords that had never rusted.\n\n\"Caesar's blood was not shed in vain,\" the veterans muttered. \"His heir has need of us.\"\n\nThese men of the legendary Tenth Legion — few in number but each worth ten ordinary soldiers — brought with them the tactical memory of the Gallic campaigns, the brutal close-combat techniques of the Celtic wars, and above all, absolute loyalty to the name of Caesar. With the meager inheritance his adoptive father had left him, Octavian raised his first private army on an estate in Campania.\n\nWhen news reached Rome, Antony laughed dismissively. \"A boy with Caesar's name and eight hundred pensioners thinks he can inherit Rome?\" But what Antony failed to grasp was that these veterans were Caesar's sharpest sword — and Octavian was about to draw it.",
+    "npc_actions": {
+      "zh": [
+        "安东尼以执政官之尊坐镇罗马城，调动恺撒国库充实七个军团的军备。他在元老院公开发表演说：「恺撒的遗嘱中并未提及这个希腊来的少年。」同时，他命麾下副将前往山南高卢，安抚当地驻军，防止屋大维渗透。",
+        "克利奥帕特拉刚刚从罗马逃回亚历山大里亚。恺撒遇刺那天她正在罗马——亲眼看见暴徒冲进元老院。她下令加固亚历山大里亚城墙，扩充尼罗河三角洲的卫戍部队，并派遣特使带着尼罗河的珍宝前往罗马，试探安东尼的态度。",
+        "西塞罗在元老院发表了著名的演说：「这个年轻人应该被利用、被赞扬——然后被抛弃。」元老院表面上对屋大维表示善意，实则各怀鬼胎：有人想利用他对付安东尼，有人惧怕恺撒的名字重新燃起平民的热情。"
+      ],
+      "en": [
+        "Mark Antony, as consul, tightened his grip on Rome, drawing from Caesar's treasury to arm seven legions. In the Senate, he publicly declared: 'Caesar's will makes no mention of this boy from Greece.' Meanwhile, he dispatched lieutenants to Cisalpine Gaul to secure the loyalty of the garrison there — preempting any move by Octavian.",
+        "Cleopatra had just fled Rome for Alexandria. She had been in the city on the Ides of March — had heard the shouts in the Forum, had seen the blood. She ordered the walls of Alexandria reinforced, expanded the Delta garrison, and sent emissaries bearing the treasures of the Nile to test Antony's disposition.",
+        "Cicero delivered his famous verdict in the Senate: 'This young man should be praised, decorated — and discarded.' The Senate outwardly welcomed Octavian, but each faction had its own design: some saw a weapon against Antony, others feared the Caesar name rekindling plebeian fervor."
+      ]
+    }
+  },
+
+  "octavian_t1_senate": {
+    "zh": "屋大维选择了一条比剑更锋利的道路——言辞。他以恺撒养子的身份步入元老院，站在那些二十三天前还在为恺撒之死而欢呼、如今却在权力真空中瑟瑟发抖的元老们面前。\n\n「诸位父亲们，」他用了这个古老而尊贵的称呼，声音不大，却穿透了元老院的大理石柱廊。他没有直接谴责刺杀者，而是缓缓展开恺撒的遗嘱——那个在维斯塔贞女庙中尘封了数月的羊皮卷。\n\n当遗嘱读到「赠予每一位罗马公民三百塞斯特斯」时，元老席上响起压抑的议论声。当读到「将台伯河畔的花园开放为公共园林」时，后排的平民保民官们交换了意味深长的目光。屋大维合上遗嘱，用几乎听不到的声音说：「我将履行养父的每一个诺言。」\n\n西塞罗眯起了眼睛。他看得出这个少年的危险之处——他不像安东尼那样气势汹汹，不像布鲁图斯那样慷慨激昂。他只是安静地站在那里，用恺撒的名字和恺撒的钱，在每一个罗马公民心中种下了忠诚的种子。\n\n走出元老院时，屋大维获得了二十名元老的私人承诺支持。更重要的是，罗马街头开始流传一句话：「恺撒的儿子回来了。」",
+    "en": "Octavian chose a path sharper than the sword — words. He entered the Senate as Caesar's adopted son, standing before the very men who had cheered Caesar's death twenty-three days earlier and now trembled in the power vacuum that followed.\n\n\"Conscript Fathers,\" he began, using the ancient and hallowed address. His voice was quiet, yet it carried through the marble colonnade. He did not directly condemn the assassins. Instead, he slowly unrolled Caesar's will — the parchment that had lain sealed in the Temple of Vesta for months.\n\nWhen the reading reached \"to every Roman citizen, three hundred sesterces,\" a suppressed murmur rippled through the senatorial benches. At \"my gardens beyond the Tiber shall be opened as public parks,\" the tribunes of the plebs in the back rows exchanged meaningful glances. Octavian closed the scroll and said, almost inaudibly: \"I shall honor every promise my adoptive father made.\"\n\nCicero narrowed his eyes. He could see what made this youth dangerous — unlike Antony's bluster or Brutus' high-flown rhetoric, Octavian simply stood there, using Caesar's name and Caesar's money to plant seeds of loyalty in every Roman heart.\n\nWhen Octavian left the Senate, he had the private pledges of twenty senators. More importantly, a whisper began to circulate in the streets of Rome: \"Caesar's son has returned.\"",
+    "npc_actions": {
+      "zh": [
+        "安东尼冷眼旁观了整场演说。他私下对副官说：「遗嘱里没有他的名字——这孩子在浪费唾沫。」但他低估了屋大维的政治天赋：遗嘱中的公民赠款是安东尼自己的执政官预算无法承担的。罗马平民已经开始比较两位「恺撒继承人」了。",
+        "克利奥帕特拉在亚历山大里亚接到密报后陷入了沉思。屋大维的演说意味着罗马出现了第三个权力中心——加上安东尼和元老院，罗马的局势比恺撒在世时更加混乱。她召来首席财政官，要求核算埃及国库的黄金储备：「罗马人会需要我们的谷物和黄金的——问题是，谁会先来敲门？」",
+        "元老院内部分裂为三派：以西塞罗为首的共和派视屋大维为对抗安东尼的工具；以潘萨为首的温和派担心内战重燃；而少数恺撒旧部已经开始悄悄向屋大维靠拢。罗马的政治天平，正在无声地倾斜。"
+      ],
+      "en": [
+        "Antony watched the speech with cold disdain. 'The will doesn't name him — the boy is wasting his breath,' he told his aides. But he underestimated Octavian's political genius: the citizen bequests in Caesar's will were more than Antony's consular budget could ever match. The Roman plebs had already begun comparing the two 'heirs of Caesar.'",
+        "Cleopatra, receiving the intelligence in Alexandria, fell into deep thought. Octavian's speech meant a third center of power had emerged in Rome — alongside Antony and the Senate, the situation was now more chaotic than it had been in Caesar's lifetime. She summoned her chief treasurer to audit Egypt's gold reserves: 'The Romans will need our grain and our gold. The question is — who will come knocking first?'",
+        "The Senate fractured into three camps: Cicero's Republicans saw Octavian as a weapon against Antony; the moderates led by Pansa feared another civil war; and a handful of Caesar's old partisans had already begun drifting toward Octavian. Rome's political scales were tilting, silently."
+      ]
+    }
+  },
+
+  "octavian_t1_confront": {
+    "zh": "公元前44年4月，屋大维做了一件让整个罗马都屏住呼吸的事：他独自一人——没有卫队，没有扈从——走进了执政官安东尼的宅邸。\n\n这座位于帕拉丁山上的宅邸原本属于庞培，如今堆满了从恺撒国库搬来的金银器皿和东方丝绸。安东尼半躺在宴会榻上，用打量一个不懂事的孩子的目光打量着屋大维。\n\n「你要什么？」安东尼问。\n\n「养父的遗产。」屋大维平静地说。「按照遗嘱，我应继承他的私人财产——大约七千万塞斯特斯——以及他在罗马城内的宅邸。」\n\n安东尼大笑起来。他站起来，走到屋大维面前，居高临下地说：「恺撒的钱已经花在了他的葬礼上。恺撒的宅邸现在是我的私人住所。如果你想要遗产——去问那些刺杀他的人。」\n\n屋大维没有后退。他看着安东尼的眼睛说：「恺撒的葬礼花了不到他财产的十分之一。而且，执政官阁下，葬礼的费用是你自己批准的——你当时向元老院报告的账目，我很乐意重新检查一遍。」\n\n屋大维转身离开，走进罗马的夜色中。安东尼的笑容凝固了。这个少年已经读过他的财务报告——这意味着他在元老院里有耳目。第一次，安东尼感到了一丝寒意。",
+    "en": "In April, 44 BC, Octavian did something that made all of Rome hold its breath: he walked alone — no guards, no lictors — into the house of Consul Mark Antony.\n\nThis house on the Palatine Hill had once belonged to Pompey the Great. Now it was stuffed with gold plate and Eastern silks carted from Caesar's treasury. Antony reclined on a dining couch, examining Octavian with the gaze one reserves for a presumptuous child.\n\n\"What do you want?\" Antony asked.\n\n\"My adoptive father's inheritance,\" Octavian replied calmly. \"Under the terms of his will, I am to receive his private fortune — approximately seventy million sesterces — and his residence in Rome.\"\n\nAntony laughed. He rose, walked up to Octavian, and looked down at him: \"Caesar's money was spent on his funeral. Caesar's house is now my private residence. If you want an inheritance — go ask the men who killed him.\"\n\nOctavian did not step back. He met Antony's eyes and said: \"Caesar's funeral cost less than a tenth of his estate. And, Consul, since you personally approved the funeral expenses — and submitted the accounts to the Senate — I would be happy to re-examine them.\"\n\nOctavian turned and walked into the Roman night. Antony's smile froze. The boy had already read his financial reports — which meant he had ears inside the Senate. For the first time, Mark Antony felt a chill.",
+    "npc_actions": {
+      "zh": [
+        "安东尼在屋大维离开后暴跳如雷。他连夜召集亲信，命令财务官篡改恺撒国库的账目。「这个小崽子以为他能用算盘打败我？」但账目的问题已经引起了元老院的注意——西塞罗第二天就在元老院提议成立「恺撒遗产调查委员会」。",
+        "克利奥帕特拉得知安东尼被一个少年逼到墙角后，对安东尼的政治前途产生了怀疑。她召来间谍总管：'我需要知道罗马城内每一股力量的强弱——尤其是这个叫屋大维的少年。'她的情报网络开始向意大利半岛延伸。",
+        "元老院内，屋大维的勇气赢得了不少元老的私下赞许。「恺撒会为他骄傲的。」一位老元老低声说。但更多的人在观望：安东尼仍然掌握着七个军团和罗马城的权力——而屋大维只有八百老兵和一个名字。"
+      ],
+      "en": [
+        "Antony raged after Octavian's departure. He summoned his inner circle that night, ordering his quaestor to doctor Caesar's treasury records. 'The whelp thinks he can beat me with an abacus?' But the accounting irregularities had already caught the Senate's attention — Cicero proposed a 'Committee on Caesar's Inheritance' the very next day.",
+        "Cleopatra, learning that Antony had been cornered by a boy, began to doubt his political future. She called in her spymaster: 'I need to know the strength of every faction in Rome — especially this boy called Octavian.' Her intelligence network began extending its tendrils into the Italian peninsula.",
+        "In the Senate, Octavian's courage earned quiet admiration. 'Caesar would be proud,' an elderly senator murmured. But most watched and waited: Antony still commanded seven legions and the power of Rome — while Octavian had only eight hundred veterans and a name."
+      ]
+    }
+  },
+
+  "antony_t1_secure": {
+    "zh": "安东尼以铁腕巩固了他在罗马的控制权。作为唯一的执政官，他拥有调动国库、指挥军团、颁布法令的全部权力——而元老院在这个被刺杀阴影笼罩的春天里，几乎没有反抗的勇气。\n\n他从恺撒国库中调拨了三万第纳尔，用于补充七个军团的装备和军饷。在高卢征战多年积累的战争经验告诉他：真正的权力不在元老院的辩论台上，而在军营里。他命麾下的百夫长们在意大利各地设立征兵站，以「为恺撒复仇」的名义招募新兵——这个口号既能笼络恺撒旧部，又不会得罪那些依然自诩为「解放者」的刺杀者。\n\n与此同时，他巧妙地利用了自己的执政官身份。他签署了一系列法令：确认恺撒任命的行省总督继续留任、向罗马平民发放额外粮食补贴、为退伍老兵分配坎帕尼亚的土地——每一项法令都在巩固他的政治基础。\n\n「让他们去辩论吧。」安东尼对副官说，指了指元老院的方向。「当他们还在争论一个逗号的位置时，我已经控制了这个帝国。」",
+    "en": "Antony consolidated his grip on Rome with an iron hand. As sole consul, he wielded full authority over the treasury, the legions, and the edicts — and the Senate, in this spring shadowed by assassination, scarcely dared to resist.\n\nHe drew thirty thousand denarii from Caesar's treasury to re-equip seven legions and pay their arrears. The hard lessons of the Gallic campaigns had taught him a simple truth: real power lay not on the Senate floor but in the barracks. He ordered his centurions to open recruiting stations across Italy under the banner of \"avenging Caesar\" — a slogan that rallied Caesar's veterans without offending the assassins who still styled themselves \"Liberators.\"\n\nSimultaneously, he wielded his consular authority with cunning precision. He signed edicts confirming Caesar's provincial governors in their posts, distributed supplemental grain to Rome's plebs, and allocated Campanian land to retired veterans — each decree reinforcing his political foundation.\n\n\"Let them debate,\" Antony said to his lieutenant, gesturing toward the Senate. \"While they argue over the placement of a comma, I am taking command of this empire.\"",
+    "npc_actions": {
+      "zh": [
+        "屋大维在坎帕尼亚冷眼旁观。安东尼的每一个动作——征兵、法令、土地分配——都在模仿恺撒。但模仿者永远不是本人。屋大维派出更多的密使前往恺撒老兵定居点：「安东尼给了你们土地——但恺撒的遗嘱给了你们钱。你们要土地，还是要你们的恺撒？」",
+        "克利奥帕特拉对安东尼的巩固姿态感到满意。一个强大的安东尼是她需要的盟友——如果他太弱，元老院就会把注意力转向埃及。她下令从亚历山大里亚运送三千吨谷物前往罗马，作为「埃及人民对罗马人民的友谊馈赠」。这份礼物既是拉拢，也是警告：罗马的粮食命脉，握在埃及手中。",
+        "元老院在安东尼的压力下陷入了瘫痪。西塞罗私下写道：「共和国正在被她的执政官塞进棺材——而棺材上钉的每一颗钉子，都来自恺撒的国库。」他决定暂时隐退到他在图斯库卢姆的庄园，等待反击的时机。"
+      ],
+      "en": [
+        "Octavian watched from Campania. Every move Antony made — the levies, the edicts, the land distributions — was an imitation of Caesar. But imitators are never the real thing. Octavian sent more riders to Caesar's veteran colonies: 'Antony gave you land — but Caesar's will gave you coin. Do you want land, or do you want your Caesar?'",
+        "Cleopatra was pleased by Antony's consolidation. A strong Antony was the ally she needed — a weak Antony would leave the Senate free to turn its attention to Egypt. She ordered three thousand tons of grain shipped from Alexandria to Rome as 'a gift of friendship from the people of Egypt to the people of Rome.' It was both a gesture of goodwill and a reminder: Rome's grain supply lay in Egyptian hands.",
+        "The Senate sank into paralysis under Antony's pressure. Cicero wrote privately: 'The Republic is being nailed into its coffin by her own consul — and every nail comes from Caesar's treasury.' He decided to withdraw temporarily to his villa at Tusculum, waiting for his moment to strike back."
+      ]
+    }
+  },
+
+  "cleopatra_t1_consolidate": {
+    "zh": "克利奥帕特拉七世回到亚历山大里亚后的第一件事，不是哀悼恺撒——她在罗马已经流干了眼泪——而是重新掌控她的王国。\n\n她以法老的身份巡视了亚历山大里亚的每一个城区：从希腊区的图书馆到埃及区的塞拉皮斯神庙，从港口的舰队锚地到城南的粮仓。她召见了各地诺姆的总督，重新确认了他们对王室的忠诚——同时不动声色地更换了三个在罗马内战期间表现出政治野心的总督。\n\n在昔兰尼加，她亲自视察了边境要塞。这片位于埃及与迦太基故地之间的缓冲地带常年受到沙漠部落的骚扰。她下令增派两千名希腊雇佣兵驻守，并恢复了托勒密王朝早期废弃的烽火预警系统。\n\n「恺撒死了。」她在大议事厅对聚集的朝臣们说。「但埃及依然活着。而且，罗马人很快就会明白——没有埃及的谷物，他们的共和国连一个冬天都撑不过去。」她的声音平静，但每一个在场的大臣都能从那双深色的眼睛里看到钢铁般的意志。\n\n尼罗河的洪水在这一年格外丰沛——这是哈皮神对她的恩赐。她充分利用了这个好兆头：下令疏浚运河、扩建灌溉网络、降低农民税率一成。埃及的粮仓，正在为即将到来的风暴积蓄力量。",
+    "en": "The first thing Cleopatra VII did upon returning to Alexandria was not to mourn Caesar — she had wept her tears in Rome — but to reassert control over her kingdom.\n\nAs Pharaoh, she toured every district of Alexandria: from the Library in the Greek Quarter to the Temple of Serapis in the Egyptian sector, from the naval anchorage at the harbor to the southern granaries. She summoned the nomarchs — the governors of Egypt's provinces — and reconfirmed their allegiance, while quietly replacing three who had shown political ambition during the Roman civil war.\n\nIn Cyrenaica, she personally inspected the frontier fortresses. This buffer zone between Egypt and the former Carthaginian territories was perpetually harassed by desert tribes. She ordered two thousand Greek mercenaries deployed there and restored the beacon early-warning system that had fallen into disuse since the early Ptolemaic period.\n\n\"Caesar is dead,\" she told the assembled court in the great audience hall. \"But Egypt lives. And the Romans will soon discover — without Egypt's grain, their Republic cannot survive a single winter.\" Her voice was calm, but every minister present could see the steel in those dark eyes.\n\nThe Nile flood was unusually generous that year — a blessing from Hapy. She seized the omen: canals were dredged, irrigation networks expanded, peasant taxes reduced by a tenth. Egypt's granaries were filling, storing strength for the coming storm.",
+    "npc_actions": {
+      "zh": [
+        "安东尼注意到了克利奥帕特拉的国内动作。他通过埃及使节向女王表达了友好的问候——同时也暗示：埃及的谷物如果运来罗马，价格可以比市场价高出两成。这对安东尼是一笔政治筹码：谁能让罗马吃饱，谁就能掌控平民的投票。",
+        "屋大维在坎帕尼亚接到关于埃及的情报时，仅做了简短批注：「尼罗河的女王——她会选择胜利者，而非创造胜利者。」但他仍命人将克利奥帕特拉的名字加入他的情报重点关注名单。",
+        "塞克斯图斯·庞培——那个在地中海西部游荡的庞培之子——听闻埃及海军的扩建消息后嗤之以鼻：「埃及的战船？那是托勒密的花瓶。真正的水手在西西里。」但他还是下令加强了对埃及商船的监视。"
+      ],
+      "en": [
+        "Antony took note of Cleopatra's domestic moves. Through Egyptian envoys, he extended cordial greetings to the Queen — with a subtle hint: Egyptian grain shipped to Rome could command a price twenty percent above market rates. For Antony, this was a political weapon: whoever could feed Rome controlled the plebeian vote.",
+        "Octavian, receiving the intelligence on Egypt from Campania, made a brief annotation: 'The Queen of the Nile — she chooses winners, not creates them.' But he added Cleopatra's name to his priority watch list nonetheless.",
+        "Sextus Pompey — son of Pompey the Great, still prowling the western Mediterranean — scoffed at news of Egypt's naval buildup: 'Egyptian warships? Ptolemaic ornaments. Real sailors are in Sicily.' But he ordered increased surveillance of Egyptian merchant vessels anyway."
+      ]
+    }
+  },
+
+  "senate_t1_defend": {
+    "zh": "西塞罗站在元老院的讲坛上，白发在春日的光线中闪着银光。他已经六十三岁了，但当他开口时，整个元老院——包括那些最敌视他的人——都安静了下来。\n\n「共和国不是恺撒的遗产，」他的声音在石柱间回荡，「共和国是我们祖先用五百年的血建造的殿堂。布鲁图斯和卡西乌斯除掉了暴君——但他们忘了做完另一件事：重建共和国的权威。」\n\n这是一篇精心设计的演说。他避开了直接谴责安东尼——那太危险了。他避开了赞扬刺杀者——那会引起平民的愤怒。他选择了第三条路径：共和制度本身。他援引了十二铜表法，追述了格拉古兄弟的改革，甚至提到了远在三百年前推翻塔克文王朝的英雄事迹。\n\n演说的核心信息只有一个：军人不能统治罗马。法律可以。元老院可以。共和国可以。\n\n当西塞罗坐下时，元老院内响起了稀疏但坚定的掌声。二十三名元老走上前来，表示支持他的立场——尽管更多的人在观望。安东尼在执政官席上阴沉着脸，但他没有打断演说。他不能——西塞罗的每一个字都在共和国的法律框架之内。\n\n「他已经宣战了。」安东尼在散会后对亲信说。「只是他用的不是剑，而是舌头。」",
+    "en": "Cicero stood at the Senate rostrum, his white hair glinting silver in the spring light. He was sixty-three years old, but when he spoke, the entire Senate — even his bitterest enemies — fell silent.\n\n\"The Republic is not Caesar's inheritance,\" his voice echoed through the stone columns. \"The Republic is a temple built by our ancestors with five hundred years of blood. Brutus and Cassius removed the tyrant — but they forgot to do the other thing: restore the authority of the Republic.\"\n\nIt was a masterfully crafted oration. He avoided directly condemning Antony — too dangerous. He avoided praising the assassins — that would provoke the plebs. He chose a third path: the Republic itself. He cited the Twelve Tables, recalled the reforms of the Gracchi, even invoked the heroes who overthrew the Tarquin kings three centuries ago.\n\nThe speech's core message was singular: soldiers cannot rule Rome. The law can. The Senate can. The Republic can.\n\nWhen Cicero sat down, sparse but firm applause rippled through the chamber. Twenty-three senators approached him afterward, pledging support — though many more watched and waited. Antony glowered from the consular bench but did not interrupt. He could not — every word Cicero had spoken was perfectly within the Republic's legal framework.\n\n\"He has declared war,\" Antony told his confidants afterward. \"Only he fights not with a sword, but with a tongue.\"",
+    "npc_actions": {
+      "zh": [
+        "安东尼在元老院外召开了紧急军事会议。西塞罗的演说虽然没有直接点名，但矛头所指无人不知。他命令驻守在罗马的两个军团进入戒备状态，并向山南高卢总督发出了紧急信函——要求确保阿尔卑斯山通道的控制权。",
+        "屋大维在坎帕尼亚听说了演说的内容后，派出一名密使向元老院递交了一封私人信函。信中措辞谨慎，既表达了对共和制度的尊重，又巧妙地暗示自己对元老院的支持。西塞罗收信后对友人说：「这个年轻人——他明白言语的力量。」",
+        "元老院内部分裂加剧。潘萨和希尔提乌斯等温和派担心西塞罗的强硬路线会激怒安东尼导致内战；而卡西乌斯·隆基努斯的支持者则认为元老院应该趁安东尼尚未完全控制军队时果断出手。共和国最后的守护者们，在犹豫中消耗着时间。"
+      ],
+      "en": [
+        "Antony convened an emergency military council outside the Senate. Cicero's speech, while avoiding direct accusation, had pointed at no one else. He placed the two legions garrisoned in Rome on alert and dispatched an urgent letter to the governor of Cisalpine Gaul — demanding he secure control of the Alpine passes.",
+        "Octavian, learning of the speech's content from Campania, sent a courier to deliver a private letter to the Senate. Its language was careful — expressing respect for republican institutions while subtly hinting at his support for the Senatorial cause. Cicero, after reading it, remarked to a friend: 'This young man — he understands the power of words.'",
+        "The Senate's internal fractures deepened. Moderates like Pansa and Hirtius feared Cicero's hard line would provoke Antony into open civil war; Cassius Longinus' supporters argued the Senate should strike before Antony had fully secured the army. The Republic's last guardians were hesitating, letting time run through their fingers."
+      ]
+    }
+  }
+}
