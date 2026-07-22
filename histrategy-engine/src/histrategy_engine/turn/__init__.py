@@ -472,7 +472,16 @@ class TurnController:
                 or cmd.params.get("target_territory")
                 or cmd.params.get("territory", "")
             )
-            return not (not target or target not in world_state.territories)
+            if not target or target not in world_state.territories:
+                return False
+            # ── Skip attacks on own territories ──
+            # NPC LLM may hallucinate commands to attack already-owned territory
+            # (e.g. Qing attacking Kaifeng when Kaifeng is already under Qing control).
+            if cmd_type == "attack":
+                territory = world_state.territories.get(target)
+                if territory and territory.owner_id == fid:
+                    return False
+            return True
 
         if cmd.type == "tax":
             rate = cmd.params.get("rate")

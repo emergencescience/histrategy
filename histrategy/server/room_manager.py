@@ -1750,11 +1750,13 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
             next_quarter = room.quarter_number + 1
 
             # Compute population from territory objects (FactionState has no
-            # native population field — it's derived from Territory.population)
+            # native population field — it's derived from Territory.population).
+            # Territory.population defaults to 50000. Use getattr for safety
+            # against serialized Territory dicts or missing keys after DB round-trip.
             computed_population = _safe_int(getattr(faction, "population", 0))
             if computed_population == 0 and ws:
                 computed_population = sum(
-                    ws.territories[tid].population
+                    max(100, _safe_int(getattr(ws.territories.get(tid), "population", 50000)))
                     for tid in getattr(faction, "territories", [])
                     if tid in ws.territories
                 )
