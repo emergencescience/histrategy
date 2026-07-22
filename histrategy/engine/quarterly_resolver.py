@@ -179,6 +179,22 @@ class QuarterlyResolver:
             except Exception as e:
                 logger.warning("[room=%s] BlackSwanInjector failed: %s", room.id, e)
 
+        # ── Pre-sync: reconcile strength_actual from deployed armies ──
+        # Deployment (helpers.py L770) reduces strength_actual. Battles need
+        # total troops, not just reserves. Sync before macro sim → state applier.
+        if hasattr(world_state, 'armies') and world_state.armies:
+            from .state_applier import _MIN_ACTIVE_TROOPS
+            for fid in world_state.factions:
+                faction = world_state.factions[fid]
+                deployed = sum(
+                    a.total_troops for a in world_state.armies.values()
+                    if getattr(a, 'faction_id', '') == fid
+                )
+                reserve = getattr(faction, 'strength_actual', 0) or 0
+                new_total = max(deployed, reserve + deployed, _MIN_ACTIVE_TROOPS)
+                if new_total and new_total != reserve:
+                    faction.strength_actual = new_total
+
         # ── Step 4: LLM 宏观模拟 (V3 mode — runs when macro_policy_engine is available) ──
         macro_delta = {}
         if self.macro_policy_engine and llm:
@@ -222,6 +238,23 @@ class QuarterlyResolver:
                 logger.info("[room=%s] StateApplier settled: %s", room.id, applied)
             except Exception as e:
                 logger.error("[room=%s] StateApplier failed: %s", room.id, e)
+
+        # ── Step 5.5: Sync faction strength_actual from deployed army totals ──
+        # strength_actual is reduced during deployment (helpers.py L770) to track
+        # available reserves. After battles, reconcile it from army totals so the
+        # API and next turn's battle code see the correct total troop count.
+        if hasattr(world_state, 'armies') and world_state.armies:
+            from .state_applier import _MIN_ACTIVE_TROOPS
+            for fid in world_state.factions:
+                faction = world_state.factions[fid]
+                deployed = sum(
+                    a.total_troops for a in world_state.armies.values()
+                    if getattr(a, 'faction_id', '') == fid
+                )
+                reserve = getattr(faction, 'strength_actual', 0) or 0
+                new_total = max(deployed, reserve + deployed, _MIN_ACTIVE_TROOPS)
+                if new_total and new_total != reserve:
+                    faction.strength_actual = new_total
 
         # ── Step 6: Per-faction 叙事生成 ──
         # Streaming mode: skip the ~22s narrative LLM call here and stash the
