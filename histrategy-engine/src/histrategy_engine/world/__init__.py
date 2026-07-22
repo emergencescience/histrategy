@@ -529,6 +529,9 @@ def _worldstate_from_dict(self, data: dict) -> None:
         )
         self.territories[tid] = t
 
+    # Restore armies (added for round-trip safety)
+    _armies_from_dict(self, data)
+
 
 WorldState.from_dict = _worldstate_from_dict  # type: ignore[attr-defined]
 
@@ -600,7 +603,54 @@ def _worldstate_to_dict(self) -> dict:
         "event_history": list(self.event_history),
         "factions": factions_dict,
         "territories": territories_dict,
+        "armies": _armies_to_dict(self),
     }
+
+
+# ─── Army serialization helpers ───────────────────────────────
+
+
+def _armies_to_dict(ws) -> dict:
+    """Serialize armies dict for DB persistence."""
+    result = {}
+    for aid, a in ws.armies.items():
+        result[aid] = {
+            "id": a.id,
+            "faction_id": a.faction_id,
+            "location": a.location,
+            "commander_id": a.commander_id,
+            "units": {str(k): v for k, v in a.units.items()},
+            "morale": a.morale,
+            "training": a.training,
+            "supply": a.supply,
+        }
+    return result
+
+
+def _armies_from_dict(ws, data: dict) -> None:
+    """Restore armies from serialized dict."""
+    armies_data = data.get("armies", {})
+    if not armies_data:
+        return
+    ws.armies.clear()
+    for aid, ad in armies_data.items():
+        units = {}
+        for k, v in ad.get("units", {}).items():
+            try:
+                ut = UnitType(k)
+            except (ValueError, KeyError):
+                continue
+            units[ut] = v
+        ws.armies[aid] = Army(
+            id=ad["id"],
+            faction_id=ad["faction_id"],
+            location=ad["location"],
+            commander_id=ad.get("commander_id", ""),
+            units=units,
+            morale=ad.get("morale", 80),
+            training=ad.get("training", 1.0),
+            supply=ad.get("supply", 30),
+        )
 
 
 WorldState.to_dict = _worldstate_to_dict  # type: ignore[attr-defined]
