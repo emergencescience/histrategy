@@ -298,10 +298,17 @@ class NarrativeEngine:
             lines.append(f"- {fname} ({fid}): {decision[:200]}")
         lines.append("")
 
-        # Baseline results
-        lines.append("## Baseline Results")
-        lines.append(str(baseline))
+        # Baseline results — use structured formatter instead of raw str()
+        from .narrative_context import format_baseline_for_narrative
+
+        lines.append("## Baseline Results (Authoritative Physics Engine Output)")
+        lines.append(format_baseline_for_narrative(baseline, ws))
         lines.append("")
+        lines.append("⚠️ ABOVE IS AUTHORITATIVE: Territory ownership, battle outcomes,")
+        lines.append("and resource changes above are the GROUND TRUTH. Your narrative")
+        lines.append("MUST reflect these facts exactly. Do NOT invent battles that")
+        lines.append("are not listed. Do NOT describe territory as belonging to a")
+        lines.append("faction that does not own it per the Post-Battle Territory list.")
 
         # Macro adjustments
         if macro_delta:
@@ -394,9 +401,15 @@ class NarrativeEngine:
             lines.append(f"- {fname} ({fid}): {decision[:200]}")
         lines.append("")
 
-        lines.append("## Baseline Results")
-        lines.append(str(baseline))
+        # Baseline results — structured formatter
+        from .narrative_context import format_baseline_for_narrative
+
+        lines.append("## Baseline Results (Authoritative Physics Engine Output)")
+        lines.append(format_baseline_for_narrative(baseline, ws))
         lines.append("")
+        lines.append("⚠️ ABOVE IS AUTHORITATIVE: Territory ownership, battle outcomes,")
+        lines.append("and resource changes above are the GROUND TRUTH. Your narrative")
+        lines.append("MUST reflect these facts exactly.")
 
         if macro_delta:
             lines.append("## Macro Adjustments")

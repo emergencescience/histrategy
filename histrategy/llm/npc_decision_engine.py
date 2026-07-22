@@ -49,6 +49,24 @@ if TYPE_CHECKING:
 
     from histrategy.llm.adapter import LLMAdapter
 
+def _load_active_policies_for_faction(ws, faction_id: str) -> list[dict]:
+    """Load active policies from policy_state table for a faction.
+
+    Returns list of policy dicts with keys: policy_name, policy_type,
+    policy_level, params, status.
+    """
+    try:
+        from histrategy.db.models import get_active_policies
+
+        # Determine room_id from world_state
+        room_id = getattr(ws, "room_id", "")
+        if not room_id:
+            return []
+        return get_active_policies(room_id, faction_id)
+    except Exception:
+        return []
+
+
 # Module-level cache of NPC decision prompts keyed by (scenario, language)
 _NPC_PROMPT_CACHE: dict[tuple[str, str], str] = {}
 
@@ -696,6 +714,26 @@ class NPCDecisionEngine:
                 f"{L['territories']}={ft}"
             )
         lines.append("")
+
+        # Active policies — inject faction-specific political/diplomatic state
+        # (e.g. "马士英被闲置", "屯田制已实施", "与南明结盟").
+        # This prevents LLM from hallucinating events that contradict past decisions.
+        active_policies = _load_active_policies_for_faction(ws, faction_id)
+        if active_policies:
+            lines.append("## 📜 当前生效的政策法令 (Active Policies)")
+            lines.append("以下政策是此前决策的结果，已实际生效。你的决策必须遵守这些约束：")
+            for p in active_policies:
+                pname = p.get("policy_name", "")
+                ptype = p.get("policy_type", "law")
+                plevel = p.get("policy_level", 1)
+                pparams = p.get("params", {})
+                extra = ""
+                if isinstance(pparams, dict) and pparams:
+                    extra_parts = [f"{k}={v}" for k, v in pparams.items() if k not in ("status", "type")]
+                    if extra_parts:
+                        extra = f" ({', '.join(extra_parts)})"
+                lines.append(f"- [{ptype}] {pname} (Lv.{plevel}){extra}")
+            lines.append("")
 
         # Historical memory
         if turn_memory:

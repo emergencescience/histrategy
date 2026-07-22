@@ -376,6 +376,22 @@ class QuarterlyResolver:
                     }
                 )
 
+        # Load active policies for all factions to inject as epoch_memory
+        epoch_memory = []
+        try:
+            from histrategy.db.models import get_active_policies
+            for fid in all_decisions:
+                policies = get_active_policies(room.id, fid)
+                for p in policies:
+                    pname = p.get("policy_name", "")
+                    ptype = p.get("policy_type", "law")
+                    epoch_memory.append({
+                        "note": f"[{fid}] [{ptype}] {pname}: level={p.get('policy_level',1)}, "
+                                f"status={p.get('status','active')}, params={p.get('params',{})}"
+                    })
+        except Exception:
+            pass
+
         return self.macro_policy_engine.simulate(
                 ws,
                 policy_commands=player_commands,
@@ -385,6 +401,7 @@ class QuarterlyResolver:
                 if bs_proposals
                 else [],
                 turn_memory=room.turn_summaries[-8:] if room.turn_summaries else [],
+                epoch_memory=epoch_memory,
                 room_id=room.id,
             )
 
