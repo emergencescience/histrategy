@@ -1685,7 +1685,7 @@ def _clamp_extreme_changes(ws, old_state: dict):
                     faction.strength_actual = clamped
                 elif hasattr(faction, "strength"):
                     faction.strength = clamped
-                old_food = getattr(faction, "food", 0) or 0
+                old_food = old.get("food", 0) or getattr(faction, "food", 0) or 0
                 if old_food > 0 and ratio > 1.0:
                     faction.food = int(old_food * min(1 + _MAX, 2.0))
                     logger.warning(
