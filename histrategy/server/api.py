@@ -1019,6 +1019,73 @@ def create_app(llm_provider: str | None = None) -> Any:
             "has_timeline": len(events) > 0,
         }
 
+    @app.post("/api/events")
+    async def api_track_event(body: dict = Body(...)):
+        """Track a client-side analytics event.
+
+        Accepts JSON: {event_type, room_id?, user_id?, event_data?, session_id?}
+        Writes to analytics_event table.
+        """
+        import uuid as _uuid
+        from datetime import datetime, timezone
+
+        event_id = str(_uuid.uuid4())
+        event_type = body.get("event_type", "unknown")
+        room_id = body.get("room_id", "")
+        user_id = body.get("user_id", "")
+        event_data = body.get("event_data", {})
+        session_id = body.get("session_id", "")
+        now = datetime.now(timezone.utc).isoformat()
+
+        try:
+            from histrategy.db.models import execute_write, json_dumps
+
+            execute_write(
+                """INSERT INTO analytics_event
+                    (id, room_id, user_id, event_type, event_data, session_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    event_id,
+                    room_id,
+                    user_id,
+                    event_type,
+                    json_dumps(event_data) if isinstance(event_data, dict) else str(event_data),
+                    session_id,
+                    now,
+                ),
+            )
+        except Exception as db_err:
+            import logging
+            logging.getLogger("histrategy").warning("analytics_event insert failed: %s", db_err)
+
+        return {"ok": True, "event_id": event_id}
+
+    @app.get("/api/events/stats")
+    def api_event_stats(room_id: str = "", hours: int = 24):
+        """Get analytics event counts grouped by event_type."""
+        from histrategy.db.models import execute
+
+        try:
+            if room_id:
+                rows = execute(
+                    """SELECT event_type, COUNT(*) as cnt
+                    FROM analytics_event
+                    WHERE room_id = ? AND created_at::timestamptz >= NOW() - (? || ' hours')::interval
+                    GROUP BY event_type ORDER BY cnt DESC""",
+                    (room_id, str(hours)),
+                )
+            else:
+                rows = execute(
+                    """SELECT event_type, COUNT(*) as cnt
+                    FROM analytics_event
+                    WHERE created_at::timestamptz >= NOW() - (? || ' hours')::interval
+                    GROUP BY event_type ORDER BY cnt DESC""",
+                    (str(hours),),
+                )
+            return {"ok": True, "events": rows, "hours": hours, "room_id": room_id or None}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
     return app
 
 

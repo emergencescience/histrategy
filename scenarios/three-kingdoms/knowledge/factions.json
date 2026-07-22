@@ -7,8 +7,15 @@
     "color": "red",
     "description": "西凉铁骑，挟天子以令诸侯。已灭亡，不参与AI决策。",
     "capital": "changan",
-    "starting_territories": ["sili", "liangzhou"],
-    "strength": 150000, "economy": 60, "morale": 55, "intel_level": 70, "aggression": 85,
+    "starting_territories": [
+      "sili",
+      "liangzhou"
+    ],
+    "strength": 150000,
+    "economy": 60,
+    "morale": 55,
+    "intel_level": 70,
+    "aggression": 85,
     "diplomacy_tendency": "hostile"
   },
   {
@@ -19,8 +26,17 @@
     "color": "blue",
     "description": "四世三公，讨董盟主，河北霸主。已灭亡，不参与AI决策。",
     "capital": "yecheng",
-    "starting_territories": ["jizhou", "qingzhou", "youzhou", "bingzhou"],
-    "strength": 80000, "economy": 75, "morale": 70, "intel_level": 65, "aggression": 60,
+    "starting_territories": [
+      "jizhou",
+      "qingzhou",
+      "youzhou",
+      "bingzhou"
+    ],
+    "strength": 80000,
+    "economy": 75,
+    "morale": 70,
+    "intel_level": 65,
+    "aggression": 60,
     "diplomacy_tendency": "neutral"
   },
   {
@@ -31,8 +47,14 @@
     "color": "yellow",
     "description": "乱世奸雄，奉天子以令不臣。势力代表曹魏政权，不以个人生死为限。",
     "capital": "xuchang",
-    "starting_territories": ["yanzhou"],
-    "strength": 30000, "economy": 55, "morale": 75, "intel_level": 80, "aggression": 70,
+    "starting_territories": [
+      "yanzhou"
+    ],
+    "strength": 30000,
+    "economy": 55,
+    "morale": 75,
+    "intel_level": 80,
+    "aggression": 70,
     "diplomacy_tendency": "calculating"
   },
   {
@@ -43,8 +65,14 @@
     "color": "green",
     "description": "汉室宗亲，以仁德取天下。势力代表蜀汉政权，匡扶汉室为旗帜。",
     "capital": "pingyuan",
-    "starting_territories": ["pingyuan"],
-    "strength": 5000, "economy": 35, "morale": 90, "intel_level": 60, "aggression": 50,
+    "starting_territories": [
+      "pingyuan"
+    ],
+    "strength": 5000,
+    "economy": 35,
+    "morale": 90,
+    "intel_level": 60,
+    "aggression": 50,
     "diplomacy_tendency": "friendly"
   },
   {
@@ -55,8 +83,15 @@
     "color": "cyan",
     "description": "江东基业，据长江天险。势力代表东吴政权，历经孙坚、孙策、孙权三代。",
     "capital": "changsha",
-    "starting_territories": ["changsha", "yuzhang"],
-    "strength": 20000, "economy": 50, "morale": 80, "intel_level": 55, "aggression": 75,
+    "starting_territories": [
+      "changsha",
+      "yuzhang"
+    ],
+    "strength": 20000,
+    "economy": 50,
+    "morale": 80,
+    "intel_level": 55,
+    "aggression": 75,
     "diplomacy_tendency": "pragmatic"
   },
   {
@@ -67,8 +102,15 @@
     "color": "magenta",
     "description": "四世三公，妄自称帝。已灭亡，不参与AI决策。",
     "capital": "shouchun",
-    "starting_territories": ["nanyang", "jiujiang"],
-    "strength": 50000, "economy": 65, "morale": 45, "intel_level": 50, "aggression": 40,
+    "starting_territories": [
+      "nanyang",
+      "jiujiang"
+    ],
+    "strength": 50000,
+    "economy": 65,
+    "morale": 45,
+    "intel_level": 50,
+    "aggression": 40,
     "diplomacy_tendency": "arrogant"
   },
   {
@@ -79,8 +121,14 @@
     "npc_only": true,
     "description": "荆州牧，保境安民。次要势力，不参与AI决策。",
     "capital": "xiangyang",
-    "starting_territories": ["jingzhou"],
-    "strength": 60000, "economy": 70, "morale": 60, "intel_level": 55, "aggression": 20,
+    "starting_territories": [
+      "jingzhou"
+    ],
+    "strength": 60000,
+    "economy": 70,
+    "morale": 60,
+    "intel_level": 55,
+    "aggression": 20,
     "diplomacy_tendency": "defensive"
   },
   {
@@ -91,8 +139,24 @@
     "npc_only": true,
     "description": "割据一方的诸侯和小势力。次要势力，不参与AI决策。",
     "capital": "",
-    "starting_territories": ["xuzhou", "yizhou", "jiaozhou", "yongzhou"],
-    "strength": 10000, "economy": 40, "morale": 50, "intel_level": 40, "aggression": 30,
+    "starting_territories": [
+      "xuzhou",
+      "yizhou",
+      "jiaozhou",
+      "yongzhou"
+    ],
+    "strength": 10000,
+    "economy": 40,
+    "morale": 50,
+    "intel_level": 40,
+    "aggression": 30,
     "diplomacy_tendency": "neutral"
+  },
+  {
+    "id": "liuzhang",
+    "name": "刘璋",
+    "color": "#8B4513",
+    "npc_only": true,
+    "description": "益州牧，暗弱无能，偏安一隅。"
   }
 ]

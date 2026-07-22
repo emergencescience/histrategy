@@ -422,11 +422,17 @@ def get_game_state(room_id: str, quarter_number: int, faction_id: str) -> dict |
 
 
 def get_latest_game_states(room_id: str, quarter_number: int) -> list[dict]:
-    """Get all factions' latest game states for a quarter."""
+    """Get all factions' latest game states for a quarter.
+
+    Deduplicates by (room_id, quarter_number, faction_id) using the most
+    recent created_at row when duplicates exist (defense against race
+    conditions or multi-path saves producing stale records).
+    """
     return execute(
-        """SELECT * FROM game_state
+        """SELECT DISTINCT ON (faction_id) *
+        FROM game_state
         WHERE room_id = ? AND quarter_number = ?
-        ORDER BY faction_id""",
+        ORDER BY faction_id, created_at DESC""",
         (room_id, quarter_number),
     )
 
