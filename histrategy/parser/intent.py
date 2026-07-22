@@ -115,7 +115,11 @@ class IntentParser:
         return commands
 
     def _llm_parse(self, text: str, faction_id: str) -> list:
-        """Use LLM to parse text into commands."""
+        """Use LLM to parse text into commands.
+
+        Retries once if LLM returns empty commands, with a stronger prompt
+        that explicitly asks for re-parsing into structured commands.
+        """
 
         user_msg = f"## 玩家势力\nfaction_id: {faction_id}\n\n## 玩家指令\n{text}\n\n请解析以上文本为结构化命令。"
 
@@ -138,33 +142,53 @@ class IntentParser:
         if faction_refs:
             system_prompt += f"\n\n## 当前势力ID\n{', '.join(faction_refs)}"
 
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_msg},
-        ]
-
-        try:
-            result = self.llm.chat_structured(
-                messages,
-                response_format={"type": "json_object"},
-                temperature=0.1,
-                max_tokens=4096,
-            )
-        except Exception:
-            # Fallback to plain chat with JSON extraction
+        # LLM call helper (first attempt + optional retry)
+        def _do_llm_call(prompt_override: str | None = None) -> dict:
+            msg_body = prompt_override if prompt_override else user_msg
+            msgs = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": msg_body},
+            ]
             try:
-                result = self.llm.chat(
-                    messages,
+                result = self.llm.chat_structured(
+                    msgs,
+                    response_format={"type": "json_object"},
                     temperature=0.1,
                     max_tokens=4096,
                 )
-                result = self._extract_json(result)
+                return result
             except Exception:
-                return []
+                try:
+                    result = self.llm.chat(
+                        msgs,
+                        temperature=0.1,
+                        max_tokens=4096,
+                    )
+                    return self._extract_json(result)
+                except Exception:
+                    return {}
+
+        result = _do_llm_call()
 
         commands_data = result.get("commands", [])
         if not isinstance(commands_data, list):
-            return []
+            commands_data = []
+
+        # ── Retry: if LLM returned empty commands, retry with explicit error message ──
+        if not commands_data:
+            retry_msg = (
+                "You returned empty commands. Please re-parse the following text "
+                "into one or more structured Command objects. Each command should "
+                "have 'type' and 'params'. Return a JSON with a 'commands' array.\n\n"
+                f"## 玩家势力\nfaction_id: {faction_id}\n\n## 玩家指令\n{text}"
+            )
+            try:
+                result = _do_llm_call(prompt_override=retry_msg)
+                retry_commands = result.get("commands", [])
+                if isinstance(retry_commands, list) and retry_commands:
+                    commands_data = retry_commands
+            except Exception:
+                pass
 
         commands: list[Command] = []
         for cmd_data in commands_data:
@@ -175,7 +199,31 @@ class IntentParser:
         return commands
 
     def _keyword_parse(self, text: str, faction_id: str) -> list:
-        """Keyword-based fallback parser when no LLM available."""
+        """Keyword-based fallback parser when no LLM available.
+
+        Splits multi-clause text on ；。, then parses each segment
+        independently to handle complex multi-step commands.
+        """
+        from histrategy_engine.world import Command
+
+        # Split on sentence/clause delimiters and parse each segment
+        segments = re.split(r"[；。；,]", text)
+        segments = [s.strip() for s in segments if s.strip()]
+
+        # If no delimiters found, parse the whole text as one segment
+        if not segments:
+            segments = [text]
+
+        commands: list[Command] = []
+
+        for segment in segments:
+            segment_commands = self._parse_single_segment(segment, faction_id)
+            commands.extend(segment_commands)
+
+        return commands
+
+    def _parse_single_segment(self, text: str, faction_id: str) -> list:
+        """Parse a single clause/segment into commands via keyword matching."""
         from histrategy_engine.world import Command
 
         commands: list[Command] = []
