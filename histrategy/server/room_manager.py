@@ -1439,6 +1439,7 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
         logger.warning(f"GameEngine init for {mode.upper()} failed: {e}, using bare resolver")
         resolver = QuarterlyResolver()
         result = resolver.resolve(room, ws, decisions, llm=llm, skip_narrative=skip_narrative)
+        _clamp_extreme_changes(ws, old_state)
         _save_v3_state_to_db(room, ws, decisions, result, old_state)
         return result
 
@@ -1467,6 +1468,10 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
             resolver.narrative_engine.lang = lang
 
     result = resolver.resolve(room, ws, decisions, llm=llm, skip_narrative=skip_narrative)
+
+    # ── Post-resolve guardrail ──
+    _clamp_extreme_changes(ws, old_state)
+
     _save_v3_state_to_db(room, ws, decisions, result, old_state)
     return result
 
@@ -1652,6 +1657,41 @@ def _territories_to_list(ws, faction) -> list[dict]:
         t = ws.territories.get(tid)
         result.append({"id": tid, "name": t.name if t else tid})
     return result
+
+
+def _clamp_extreme_changes(ws, old_state: dict):
+    """Clamp per-turn faction state changes to ±30%.
+
+    V3 QuarterlyResolver has no built-in guardrail for troop/food changes.
+    This prevents LLM-hallucinated extreme swings (e.g. +200% troops from
+    alliance events) that cause instant famine or invincibility.
+    """
+    _MAX = 0.30
+    for fid, faction in ws.factions.items():
+        if not faction.is_active:
+            continue
+        old = old_state.get(fid, {})
+        old_troops = old.get("troops", 0)
+        new_troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
+        if old_troops > 0 and new_troops != old_troops:
+            ratio = abs(new_troops - old_troops) / old_troops
+            if ratio > _MAX:
+                clamped = int(old_troops * (1 + _MAX)) if new_troops > old_troops else int(old_troops * (1 - _MAX))
+                logger.warning(
+                    f"V3 guardrail: {faction.name} ({fid}) troops "
+                    f"{old_troops}->{new_troops} ({ratio:.0%}) clamped to {clamped}"
+                )
+                if hasattr(faction, "strength_actual"):
+                    faction.strength_actual = clamped
+                elif hasattr(faction, "strength"):
+                    faction.strength = clamped
+                old_food = getattr(faction, "food", 0) or 0
+                if old_food > 0 and ratio > 1.0:
+                    faction.food = int(old_food * min(1 + _MAX, 2.0))
+                    logger.warning(
+                        f"V3 guardrail: {faction.name} ({fid}) food auto-scaled "
+                        f"{old_food}->{faction.food}"
+                    )
 
 
 def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
