@@ -116,8 +116,27 @@ class IntentParser:
 
         user_msg = f"## 玩家势力\nfaction_id: {faction_id}\n\n## 玩家指令\n{text}\n\n请解析以上文本为结构化命令。"
 
+        # Build scenario-aware system prompt with territory/faction IDs
+        system_prompt = INTENT_PARSE_SYSTEM
+
+        # Inject current scenario's territory map so LLM knows valid IDs
+        territory_refs = []
+        for name, tid in sorted(TERRITORY_NAME_MAP.items(), key=lambda x: -len(x[0])):
+            if len(name) > 1 and name != tid and not name.startswith("_"):
+                territory_refs.append(f"{tid}({name})")
+        if territory_refs:
+            system_prompt += f"\n\n## 当前可用领土ID\n{', '.join(territory_refs)}"
+
+        # Inject faction map
+        faction_refs = []
+        for name, fid in sorted(FACTION_NAME_MAP.items(), key=lambda x: -len(x[0])):
+            if len(name) > 1 and name != fid:
+                faction_refs.append(f"{fid}({name})")
+        if faction_refs:
+            system_prompt += f"\n\n## 当前势力ID\n{', '.join(faction_refs)}"
+
         messages = [
-            {"role": "system", "content": INTENT_PARSE_SYSTEM},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_msg},
         ]
 
