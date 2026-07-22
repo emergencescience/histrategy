@@ -1275,8 +1275,16 @@ def _capture_faction_state(ws) -> dict:
     old_state = {}
     for fid in ws.factions:
         faction = ws.factions[fid]
+        # Bug H35a: compute population from territory sum
+        pop_val = getattr(faction, "population", 0)
+        if not pop_val:
+            pop_val = sum(
+                getattr(ws.territories.get(tid), "population", 0)
+                for tid in getattr(faction, "territories", [])
+                if ws.territories.get(tid)
+            )
         old_state[fid] = {
-            "population": getattr(faction, "population", 0),
+            "population": pop_val,
             "troops": getattr(faction, "strength_actual", 0),
             "food": faction.food,
             "treasury": faction.treasury,
@@ -1284,6 +1292,18 @@ def _capture_faction_state(ws) -> dict:
             "territories": list(getattr(faction, "territories", [])),
         }
     return old_state
+
+
+def _capture_faction_population(ws, faction) -> int:
+    """Compute faction population from territory sum (FactionState has no population field)."""
+    pop_val = getattr(faction, "population", 0)
+    if not pop_val:
+        pop_val = sum(
+            getattr(ws.territories.get(tid), "population", 0)
+            for tid in getattr(faction, "territories", [])
+            if ws.territories.get(tid)
+        )
+    return pop_val
 
 
 def _resolve_v1(room, ws, decisions, llm):
@@ -1359,8 +1379,16 @@ def _resolve_v1(room, ws, decisions, llm):
                 continue
             troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
             morale = getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50) or 50
+            # Bug H35a: compute population from territory sum
+            pop_val_delta = getattr(faction, "population", 0)
+            if not pop_val_delta:
+                pop_val_delta = sum(
+                    getattr(ws.territories.get(tid), "population", 0)
+                    for tid in getattr(faction, "territories", [])
+                    if ws.territories.get(tid)
+                )
             v1_factions[fid] = {
-                "population": getattr(faction, "population", 0),
+                "population": pop_val_delta,
                 "troops": troops + delta.get("strength_delta", 0),
                 "food": faction.food,
                 "treasury": faction.treasury + delta.get("treasury_delta", 0),
@@ -1380,7 +1408,7 @@ def _resolve_v1(room, ws, decisions, llm):
             if not faction.is_active:
                 continue
             old_state[fid] = {
-                "population": getattr(faction, "population", 0),
+                "population": _capture_faction_population(ws, faction),
                 "troops": getattr(faction, "strength_actual", 0),
                 "food": faction.food,
                 "treasury": faction.treasury,
@@ -1391,7 +1419,7 @@ def _resolve_v1(room, ws, decisions, llm):
             faction = ws.factions.get(fid)
             if faction:
                 old_state[fid] = {
-                    "population": getattr(faction, "population", 0),
+                    "population": _capture_faction_population(ws, faction),
                     "troops": getattr(faction, "strength_actual", 0),
                     "food": faction.food,
                     "treasury": faction.treasury,
@@ -1633,8 +1661,16 @@ def _build_v1_result(room, ws, decisions, v1_result, fd, lang):
         faction = ws.factions[fid]
         if not faction.is_active:
             continue
+        # Bug H35a fix: compute population from territory sum (FactionState has no population field)
+        pop_val = getattr(faction, "population", 0)
+        if not pop_val:
+            pop_val = sum(
+                getattr(ws.territories.get(tid), "population", 0)
+                for tid in (getattr(faction, "territories", []) or [])
+                if ws.territories.get(tid)
+            )
         stats = {
-            "population": getattr(faction, "population", 0),
+            "population": pop_val,
             "troops": getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0,
             "food": getattr(faction, "food", 0),
             "treasury": getattr(faction, "treasury", 0),
