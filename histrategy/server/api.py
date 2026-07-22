@@ -627,10 +627,15 @@ def create_app(llm_provider: str | None = None) -> Any:
             # Merge faction stats (population, troops, food, etc.) from game_state
             try:
                 from histrategy.db.models import get_latest_game_states
+                from histrategy.server.room_manager import _get_npc_only_ids
+
+                npc_ids = _get_npc_only_ids(room_id)
                 gs_rows = get_latest_game_states(room_id, qn)
                 faction_stats = {}
                 for gs in gs_rows:
                     fid = gs["faction_id"]
+                    if fid in npc_ids:
+                        continue  # Skip npc_only factions (e.g. sextus_pompey)
                     faction_stats[fid] = {
                         "population": gs.get("population", 0),
                         "troops": gs.get("troops", 0),

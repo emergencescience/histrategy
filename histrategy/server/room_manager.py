@@ -617,16 +617,7 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
         raw_states = get_latest_game_states(room_id, room.quarter_number)
 
         # ── Get npc_only factions to exclude from ranking ──
-        npc_only_ids = set()
-        try:
-            from histrategy.engine.scenario_loader import ScenarioLoader
-            room = _get_room(room_id)
-            if room:
-                loader = ScenarioLoader(room.scenario)
-                factions_raw = loader.load_factions()
-                npc_only_ids = {fid for fid, f in factions_raw.items() if f.get("npc_only", False)}
-        except Exception:
-            pass
+        npc_only_ids = _get_npc_only_ids(room_id)
 
         ranking = []
         for row in raw_states:
@@ -1600,8 +1591,12 @@ def _build_v1_result(room, ws, decisions, v1_result, fd, lang):
 
     # Extract per-faction stats (population, troops, food, treasury, morale, loyalty)
     # Include ALL active factions (major from decisions + minor NPC factions)
+    # EXCEPT npc_only factions (e.g. sextus_pompey) which should not appear in UI
+    npc_ids = _get_npc_only_ids(room.id)
     faction_stats = {}
     for fid in ws.factions:
+        if fid in npc_ids:
+            continue  # Skip npc_only factions
         faction = ws.factions[fid]
         if not faction.is_active:
             continue
@@ -2008,6 +2003,59 @@ def _collect_quarter_tokens(room_id: str, quarter_number: int) -> dict | None:
     except Exception:
         pass
     return None
+
+
+def _get_npc_only_ids(room_id: str) -> set[str]:
+    """Return the set of faction IDs marked npc_only for a room's scenario.
+
+    Tries multiple fallback strategies so that a transient import or disk-read
+    error doesn't silently leak npc_only factions into the ranking / UI.
+    """
+    room = _get_room(room_id)
+    if not room:
+        return set()
+
+    scenario = getattr(room, "scenario", "three-kingdoms") or "three-kingdoms"
+
+    # Strategy 1: ScenarioLoader → load_factions() (most accurate)
+    try:
+        from histrategy.engine.scenario_loader import ScenarioLoader
+
+        loader = ScenarioLoader(scenario)
+        factions_raw = loader.load_factions()
+        return {fid for fid, f in factions_raw.items() if f.get("npc_only", False)}
+    except Exception as _exc1:
+        logger.debug("ScenarioLoader read failed for room=%s scenario=%s: %s", room_id, scenario, _exc1)
+
+    # Strategy 2: Read factions.json directly
+    try:
+        import json as _json
+        from pathlib import Path as _Path
+
+        root = _Path(__file__).resolve().parents[2]  # histrategy repo root
+        fp = root / "scenarios" / scenario / "knowledge" / "factions.json"
+        if fp.exists():
+            data = _json.loads(fp.read_text())
+            if isinstance(data, list):
+                return {f["id"] for f in data if f.get("npc_only", False)}
+            return {fid for fid, f in data.items() if f.get("npc_only", False)}
+    except Exception as _exc2:
+        logger.debug("factions.json direct read failed for scenario=%s: %s", scenario, _exc2)
+
+    # Strategy 3: Read scenario.toml npc_only list
+    try:
+        import tomllib as _toml
+        from pathlib import Path as _Path
+
+        root = _Path(__file__).resolve().parents[2]
+        fp = root / "scenarios" / scenario / "scenario.toml"
+        if fp.exists():
+            cfg = _toml.loads(fp.read_text())
+            return set(cfg.get("factions", {}).get("npc_only", []))
+    except Exception:
+        pass
+
+    return set()
 
 
 def _get_faction_names(room, lang: str = "zh") -> dict[str, str]:
