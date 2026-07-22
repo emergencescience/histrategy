@@ -314,8 +314,9 @@ def simulate_fast_path(room, player_decision: str,
     _territory_population = {}
     for _tid, _tobj in (_ws_territories.items() if isinstance(_ws_territories, dict) else []):
         _tp = getattr(_tobj, 'population', 0) or 0
-        if _tp:
-            _territory_population[_tid] = _tp
+        if not _tp:
+            _tp = 50000  # default population per territory
+        _territory_population[_tid] = _tp
 
     for fid, f in ws.factions.items():
         _terrs = list(getattr(f, 'territories', []))
