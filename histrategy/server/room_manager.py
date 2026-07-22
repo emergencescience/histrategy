@@ -1267,6 +1267,60 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
         _try_save(room, ws_dict)
 
 
+def _apply_deterministic_economy(ws) -> None:
+    """Bug H35b: Apply deterministic tax revenue and military upkeep per quarter.
+
+    V1 simulation relies solely on LLM output for economy changes. The LLM
+    often ignores or forgets to update treasury and food, causing them to
+    stay nearly frozen across turns. This function applies a lightweight
+    deterministic economy tick that mirrors the V2/V3 DomesticEngine logic.
+
+    Tax revenue: sum(population * tax_rate * 0.01) per territory
+    Military upkeep: 1 food per 100 troops (round up)
+    """
+    logger = logging.getLogger("histrategy.economy")
+
+    for fid, faction in ws.factions.items():
+        if not faction.is_active:
+            continue
+
+        territories = getattr(faction, "territories", []) or []
+        tax_rate = getattr(faction, "tax_rate", 0.3)
+
+        # ── Tax revenue from owned territories ──
+        tax_total = 0
+        for tid in territories:
+            t = ws.territories.get(tid) if hasattr(ws, "territories") else None
+            if t:
+                pop = getattr(t, "population", 0) or 0
+                # Simple per-capita tax: pop * tax_rate * 0.01 gold per head
+                tax_total += int(pop * tax_rate * 0.01)
+
+        if tax_total > 0:
+            old_treasury = getattr(faction, "treasury", 0) or 0
+            faction.treasury = old_treasury + tax_total
+            logger.debug(
+                "V1 economy: %s tax_revenue=%d treasury %d→%d",
+                fid, tax_total, old_treasury, faction.treasury,
+            )
+
+        # ── Military food upkeep ──
+        troops = (
+            getattr(faction, "strength_actual", 0)
+            or getattr(faction, "strength", 0)
+            or 0
+        )
+        if troops > 0:
+            upkeep = max(1, troops // 100)  # 1 food per 100 troops
+            old_food = getattr(faction, "food", 0) or 0
+            faction.food = max(0, old_food - upkeep)
+
+            # ── Military gold upkeep ──
+            # Each soldier costs ~0.5 gold per quarter
+            gold_upkeep = max(1, troops // 200)
+            faction.treasury = max(0, faction.treasury - gold_upkeep)
+
+
 def _capture_faction_state(ws) -> dict:
     """Capture pre-resolution state for turn_delta calculation.
 
@@ -1428,6 +1482,13 @@ def _resolve_v1(room, ws, decisions, llm):
 
     # 将 V1 结果应用到 WorldState
     _apply_v1_state_to_world(ws, v1_factions)
+
+    # ── Bug H35b fix: deterministic economy tick ──
+    # V1 simulation relies on LLM to produce economy changes, but the LLM often
+    # ignores tax revenue and military upkeep, resulting in frozen treasuries.
+    # Apply deterministic tax + food/upkeep after LLM state application so
+    # treasury and food always change each quarter.
+    _apply_deterministic_economy(ws)
 
     # ── Territory change narrative enhancement ──
     # Detect undocumented territory changes and append to narrative.
