@@ -101,15 +101,25 @@ class IntentParser:
             except Exception:
                 commands = []
 
-        # Always fall back to keyword parsing if LLM returned nothing
-        if not commands:
-            commands = self._keyword_parse(resolved_text, faction_id)
-            if llm_used and commands:
-                # LLM failed but keywords worked — log
+        # Always run keyword fallback to catch commands the LLM missed.
+        # Merge LLM results + keyword results (deduplicate by type+territory/faction).
+        kw_commands = self._keyword_parse(resolved_text, faction_id)
+        if kw_commands:
+            # Deduplicate: if LLM already parsed a command of the same type for the
+            # same target, skip the keyword version.
+            llm_sigs = set()
+            for cmd in commands:
+                sig = (cmd.type, tuple(sorted(cmd.params.items())))
+                llm_sigs.add(sig)
+            for kw_cmd in kw_commands:
+                kw_sig = (kw_cmd.type, tuple(sorted(kw_cmd.params.items())))
+                if kw_sig not in llm_sigs:
+                    commands.append(kw_cmd)
+            if llm_used and len(commands) > len(llm_sigs):
                 import logging
                 logging.getLogger("histrategy.parser").info(
-                    "LLM parse returned 0 commands for faction=%s, keyword fallback found %d",
-                    faction_id, len(commands),
+                    "Keyword fallback added %d commands LLM missed for faction=%s",
+                    len(commands) - len(llm_sigs), faction_id,
                 )
 
         return commands
@@ -288,7 +298,7 @@ class IntentParser:
                 )
 
         # Move (includes 北上, 南下, 东进, 西征, 回师)
-        if any(kw in text_lower for kw in ("移动", "行军", "调兵", "移师", "北上", "南下", "东进", "西征", "回师", "进发", "开赴")):
+        if any(kw in text_lower for kw in ("移动", "行军", "调兵", "移师", "北上", "南下", "东进", "西征", "回师", "进发", "开赴", "支援", "增援", "驰援")):
             dest = self._extract_territory(text) or ""
             if dest:
                 params = {"destination": dest}
