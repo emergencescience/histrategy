@@ -41,7 +41,7 @@ def _ensure_scenario_territories(scenario: str | None = None):
         import json
         from pathlib import Path
 
-        repo_root = Path(__file__).resolve().parents[3]  # histrategy/
+        repo_root = Path(__file__).resolve().parents[2]  # histrategy/ repo root
         tfile = repo_root / "scenarios" / scenario / "knowledge" / "territories.json"
         if not tfile.exists():
             return
@@ -55,8 +55,11 @@ def _ensure_scenario_territories(scenario: str | None = None):
                 TERRITORY_NAME_MAP[name] = tid
             if tid and tid not in TERRITORY_NAME_MAP:
                 TERRITORY_NAME_MAP[tid] = tid
-    except Exception:
-        pass
+    except Exception as e:
+        import logging
+        logging.getLogger("histrategy.parser").warning(
+            "Failed to load scenario territories for %s: %s", scenario, e
+        )
 
 
 class IntentParser:
