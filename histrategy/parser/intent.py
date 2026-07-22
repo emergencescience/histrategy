@@ -28,12 +28,46 @@ from histrategy.engine.faction_slot import (
 from histrategy.llm.prompt_loader import INTENT_PARSE_SYSTEM
 
 
+def _ensure_scenario_territories(scenario: str | None = None):
+    """Lazily populate TERRITORY_NAME_MAP with scenario-specific territory names.
+
+    The base TERRITORY_NAME_MAP only has Three Kingdoms territories.
+    Nanming/Rome etc. territories are loaded from scenarios/<id>/knowledge/territories.json.
+    """
+    if not scenario or getattr(_ensure_scenario_territories, "_loaded", None) == scenario:
+        return
+    _ensure_scenario_territories._loaded = scenario  # type: ignore[attr-defined]
+    try:
+        import json
+        from pathlib import Path
+
+        repo_root = Path(__file__).resolve().parents[3]  # histrategy/
+        tfile = repo_root / "scenarios" / scenario / "knowledge" / "territories.json"
+        if not tfile.exists():
+            return
+        with open(tfile) as f:
+            territories = json.load(f)
+        for t in territories:
+            tid = t["id"]
+            name = t.get("name", "")
+            # Only add if not already present (don't overwrite existing mappings)
+            if name and name not in TERRITORY_NAME_MAP:
+                TERRITORY_NAME_MAP[name] = tid
+            if tid and tid not in TERRITORY_NAME_MAP:
+                TERRITORY_NAME_MAP[tid] = tid
+    except Exception:
+        pass
+
+
 class IntentParser:
     """Parses player free-text into structured Command objects via LLM or keyword fallback."""
 
-    def __init__(self, llm_adapter: LLMAdapter | None = None):
+    def __init__(self, llm_adapter: LLMAdapter | None = None, scenario: str | None = None):
         self.llm = llm_adapter
         self.llm_available = llm_adapter is not None and llm_adapter.is_available
+        self.scenario = scenario
+        # Ensure scenario territory names are loaded for keyword matching
+        _ensure_scenario_territories(scenario)
 
     def parse(self, raw_text: str, faction_id: str) -> list:
         """Parse natural language text into a list of Command objects.
@@ -54,13 +88,28 @@ class IntentParser:
         # Pre-process: resolve territory and faction names
         resolved_text = self._resolve_names(text, faction_id)
 
+        commands = []
+        llm_used = False
+
         if self.llm_available and self.llm:
             try:
-                return self._llm_parse(resolved_text, faction_id)
+                commands = self._llm_parse(resolved_text, faction_id)
+                llm_used = True
             except Exception:
-                return []
+                commands = []
 
-        return self._keyword_parse(resolved_text, faction_id)
+        # Always fall back to keyword parsing if LLM returned nothing
+        if not commands:
+            commands = self._keyword_parse(resolved_text, faction_id)
+            if llm_used and commands:
+                # LLM failed but keywords worked — log
+                import logging
+                logging.getLogger("histrategy.parser").info(
+                    "LLM parse returned 0 commands for faction=%s, keyword fallback found %d",
+                    faction_id, len(commands),
+                )
+
+        return commands
 
     def _llm_parse(self, text: str, faction_id: str) -> list:
         """Use LLM to parse text into commands."""
@@ -168,8 +217,8 @@ class IntentParser:
                     )
                 )
 
-        # Move
-        if any(kw in text_lower for kw in ("移动", "行军", "调兵", "移师")):
+        # Move (includes 北上, 南下, 东进, 西征, 回师)
+        if any(kw in text_lower for kw in ("移动", "行军", "调兵", "移师", "北上", "南下", "东进", "西征", "回师", "进发", "开赴")):
             dest = self._extract_territory(text) or ""
             if dest:
                 params = {"destination": dest}
@@ -243,16 +292,6 @@ class IntentParser:
                     )
                 )
 
-        # Rest
-        if any(kw in text_lower for kw in ("休整", "休息", "修整")):
-            commands.append(
-                Command(
-                    type="rest",
-                    params={},
-                    faction_id=faction_id,
-                )
-            )
-
         # Negotiate
         if any(kw in text_lower for kw in ("联盟", "结盟", "外交", "谈判", "同盟", "遣使", "修好")):
             target = self._extract_target_faction(text) or ""
@@ -265,8 +304,8 @@ class IntentParser:
                     )
                 )
 
-        # Spy
-        if any(kw in text_lower for kw in ("细作", "间谍", "侦查", "情报")):
+        # Spy (includes "策反", "密探", "探虚实")
+        if any(kw in text_lower for kw in ("细作", "间谍", "侦查", "情报", "策反", "探虚实", "探", "密探", "窥")):
             target = self._extract_target_faction(text) or ""
             if target:
                 commands.append(
@@ -276,6 +315,57 @@ class IntentParser:
                         faction_id=faction_id,
                     )
                 )
+
+        # Rest (includes "养精蓄锐", "休养生息")
+        if any(kw in text_lower for kw in ("休整", "休息", "修整", "养精蓄锐", "休养生息", "休养", "偃旗息鼓")):
+            commands.append(
+                Command(
+                    type="rest",
+                    params={},
+                    faction_id=faction_id,
+                )
+            )
+
+        # Blockade / naval strangle (mapped to defend + notes)
+        if any(kw in text_lower for kw in ("封锁", "断绝", "截断", "绝其", "锁断")):
+            tid = self._extract_territory(text) or ""
+            commands.append(
+                Command(
+                    type="defend",
+                    params={"territory": tid} if tid else {},
+                    faction_id=faction_id,
+                    notes="封锁/断绝指令: " + (tid if tid else "交通要道"),
+                )
+            )
+
+        # Amphibious landing (mapped to move)
+        if any(kw in text_lower for kw in ("登陆", "抢滩", "渡海", "叩关")):
+            tid = self._extract_territory(text) or ""
+            if tid:
+                amount = self._extract_number(text) if any(c.isdigit() for c in text) else 0
+                params: dict = {"destination": tid}
+                if amount:
+                    params["amount"] = amount
+                commands.append(
+                    Command(
+                        type="move",
+                        params=params,
+                        faction_id=faction_id,
+                        notes=f"两栖登陆: 目标{tid}",
+                    )
+                )
+
+        # Logistics / supply (mapped to trade)
+        if any(kw in text_lower for kw in ("运粮", "补给", "粮道", "供给")):
+            tid = self._extract_territory(text) or ""
+            commands.append(
+                Command(
+                    type="trade",
+                    params={"resource": "food", "territory": tid} if tid else {"resource": "food"},
+                    faction_id=faction_id,
+                    notes="后勤补给指令",
+                )
+            )
 
         return commands
 

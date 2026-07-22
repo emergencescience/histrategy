@@ -365,7 +365,7 @@ def submit_decision(room_id: str, faction_id: str, decision: str, skip_narrative
     # API and stored in the quarter_turn record.
     try:
         from histrategy.parser.intent import IntentParser
-        parser = IntentParser(llm_adapter=None)  # keyword-based, no LLM latency
+        parser = IntentParser(llm_adapter=None, scenario=room.scenario)  # keyword-based, no LLM latency
         parsed = parser.parse(decision, faction_id)
         if parsed:
             slot.pending_commands = [c.to_dict() if hasattr(c, 'to_dict') else c for c in parsed]

@@ -32,9 +32,9 @@ class EconomyParams:
     base_population_growth: float = 0.003  # per quarter (1.2%/year, down from 2%)
 
     # ── Food ──
-    base_food_per_soldier: float = 0.012  # food per soldier per quarter (balanced: 10k troops eat 120/qtr)
-    base_food_per_civilian: float = 0.002  # food per civilian per quarter
-    food_production_multiplier: float = 0.025  # food output per population * dev * fertility (halved from 0.05)
+    base_food_per_soldier: float = 0.008  # food per soldier per quarter (was 0.012, reduced for sustainability)
+    base_food_per_civilian: float = 0.0015  # food per civilian per quarter (was 0.002)
+    food_production_multiplier: float = 0.03  # food output per population * dev * fertility (was 0.025)
 
     # ── Seasonal food coefficients (spring=0, summer=1, autumn=2, winter=3) ──
     # Default: East Asian monsoon climate (spring planting, autumn harvest, winter barren)
@@ -244,8 +244,9 @@ class QuarterlyEngine:
             elif food_delta > 2000:
                 morale_change += int(food_delta / 2000 * p.food_morale_impact)
             # Natural morale regen toward 50 — prevents death spiral
-            if morale < 40 and morale_change <= 0:
-                morale_change += 2  # slow recovery toward neutral
+            # H16: No morale recovery when starving (food <= 0)
+            if morale < 40 and morale_change <= 0 and food > 0:
+                morale_change += 2  # slow recovery toward neutral (only if not starving)
             # Diminishing returns above 80 — harder to reach 100
             if morale >= 80 and morale_change > 0:
                 diminishing = int((morale - 80) / 10)  # -1 at 80, -2 at 90, -3 at 99

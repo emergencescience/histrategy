@@ -229,11 +229,11 @@ class GameEngineCore:
                     self._intent_llm = llm
                 from ..parser.intent import IntentParser
 
-                self.intent_parser = IntentParser(self._intent_llm)
+                self.intent_parser = IntentParser(self._intent_llm, scenario=self.scenario)
             else:
                 from ..parser.intent import IntentParser
 
-                self.intent_parser = IntentParser(llm)
+                self.intent_parser = IntentParser(llm, scenario=self.scenario)
 
             from ..parser.validator import CommandValidator
 
@@ -242,7 +242,7 @@ class GameEngineCore:
             # Offline mode: still have parser/validator (keyword-based)
             from ..parser.intent import IntentParser
 
-            self.intent_parser = IntentParser(None)  # keyword fallback
+            self.intent_parser = IntentParser(None, scenario=self.scenario)
 
             from ..parser.validator import CommandValidator
 
