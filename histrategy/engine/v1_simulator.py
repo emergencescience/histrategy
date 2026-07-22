@@ -805,9 +805,9 @@ def _apply_v1_state_to_world(ws: WorldState, v1_factions: dict) -> WorldState:
         # 数值更新 — 兼容两个 WorldState 版本的字段名
         if "population" in data and hasattr(faction, "population"):
             faction.population = data["population"]
+        old_troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
         if "troops" in data:
             new_troops = int(data["troops"])
-            old_troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
             # ── 边界守卫: clamp ±30% except for the very first turn (Q0→Q1) ──
             if old_troops > 0 and new_troops != old_troops:
                 ratio = abs(new_troops - old_troops) / old_troops
@@ -830,6 +830,20 @@ def _apply_v1_state_to_world(ws: WorldState, v1_factions: dict) -> WorldState:
                 faction.strength = new_troops
         if "food" in data:
             faction.food = data["food"]
+        elif "troops" in data and old_troops > 0:
+            # ── Food auto-scale: if LLM changes troops but doesn't set food,
+            #     scale food proportionally so player doesn't starve instantly.
+            #     Massive troop boosts without food = guaranteed famine next turn.
+            new_troops_val = int(data["troops"])
+            ratio = new_troops_val / old_troops
+            if ratio > 1.3:  # Only auto-scale when LLM gives massive boosts
+                old_food = getattr(faction, "food", 0) or 0
+                faction.food = int(old_food * min(ratio, 2.0))  # Cap at 2x
+                logger.warning(
+                    f"V1 guardrail: {faction.name} ({fid}) troops "
+                    f"{old_troops}→{new_troops_val} ({ratio:.0%}) without food update. "
+                    f"Auto-scaling food {old_food}→{faction.food}"
+                )
         if "treasury" in data:
             faction.treasury = data["treasury"]
         if "morale" in data:
