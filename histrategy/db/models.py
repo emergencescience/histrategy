@@ -500,15 +500,34 @@ def save_policy_state(
     params: dict | None = None,
     status: str = "active",
 ) -> str:
-    """Save a policy/tech state. Returns the policy ID."""
+    """Save a policy/tech state. Returns the policy ID.
+
+    Sets activated_at to now when status='active'. Revoked policies
+    should use revoke_policy() which sets revoked_at.
+    """
     policy_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+
+    # Serialize params safely: if already a string, use as-is;
+    # if a dict, json_dumps once; otherwise default to "{}"
+    if params is None:
+        params_json = "{}"
+    elif isinstance(params, str):
+        # Already serialized — use directly to avoid double-escaping
+        params_json = params
+    elif isinstance(params, dict):
+        params_json = json_dumps(params)
+    else:
+        params_json = json_dumps(params)
+
+    activated = now if status == "active" else ""
 
     if _IS_SQLITE:
         execute_write(
             """INSERT OR REPLACE INTO policy_state
                 (id, room_id, quarter_number, faction_id, policy_type,
-                 policy_name, policy_level, params, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                 policy_name, policy_level, params, status, activated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 policy_id,
                 room_id,
@@ -517,21 +536,23 @@ def save_policy_state(
                 policy_type,
                 policy_name,
                 policy_level,
-                json_dumps(params) if params else "{}",
+                params_json,
                 status,
+                activated,
             ),
         )
     else:
         execute_write(
             """INSERT INTO policy_state
                 (id, room_id, quarter_number, faction_id, policy_type,
-                 policy_name, policy_level, params, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 policy_name, policy_level, params, status, activated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (room_id, faction_id, policy_name, status) DO UPDATE SET
                 quarter_number = EXCLUDED.quarter_number,
                 policy_type = EXCLUDED.policy_type,
                 policy_level = EXCLUDED.policy_level,
-                params = EXCLUDED.params""",
+                params = EXCLUDED.params,
+                activated_at = EXCLUDED.activated_at""",
             (
                 policy_id,
                 room_id,
@@ -540,8 +561,9 @@ def save_policy_state(
                 policy_type,
                 policy_name,
                 policy_level,
-                json_dumps(params) if params else "{}",
+                params_json,
                 status,
+                activated,
             ),
         )
     return policy_id
@@ -579,3 +601,41 @@ def revoke_policy(room_id: str, faction_id: str, policy_name: str) -> bool:
         (now, room_id, faction_id, policy_name),
     )
     return result > 0
+
+
+def advance_policies(room_id: str, current_quarter: int) -> int:
+    """Auto-expire policies that have exceeded their duration.
+
+    Policies without an explicit duration last 4 turns (quarters) by default.
+    Looks at active policies' quarter_number (activated quarter) and expires
+    any that are more than DEFAULT_POLICY_DURATION quarters old.
+
+    Returns the number of policies expired.
+    """
+    from datetime import datetime, timezone
+
+    DEFAULT_POLICY_DURATION = 4  # quarters
+
+    active_policies = execute(
+        """SELECT id, faction_id, policy_name, quarter_number
+        FROM policy_state
+        WHERE room_id = ? AND status = 'active'""",
+        (room_id,),
+    )
+
+    now = datetime.now(timezone.utc).isoformat()
+    expired_count = 0
+
+    for p in active_policies:
+        activated_q = p.get("quarter_number", 0)
+        age = current_quarter - activated_q
+        if age > DEFAULT_POLICY_DURATION:
+            execute_write(
+                """UPDATE policy_state
+                SET status = 'expired', revoked_at = ?
+                WHERE id = ? AND status = 'active'""",
+                (now, p["id"]),
+            )
+            expired_count += 1
+
+    return expired_count

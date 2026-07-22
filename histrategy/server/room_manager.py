@@ -1184,6 +1184,18 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
     # Do NOT call _advance_season(ws) here — it would double-advance.
     room.advance_quarter()
 
+    # ── Auto-expire stale policies ──
+    try:
+        from histrategy.db.models import advance_policies
+        expired = advance_policies(room.id, room.quarter_number)
+        if expired:
+            logging.getLogger("histrategy.room").info(
+                "[room=%s] Policy auto-expiry: %d policies expired at quarter %d",
+                room.id, expired, room.quarter_number,
+            )
+    except Exception:
+        pass
+
     # 同步 WorldState 的 year/season 到 room（否则网页永远显示初始值）
     if hasattr(ws, "year"):
         room.year = ws.year
