@@ -567,8 +567,9 @@ class IntentParser:
             return num
         # Multi-character Chinese: "三十五万" → 350000, "十二万" → 120000, "两千" → 2000
         # Pattern: optional tens digit + optional unit digit + magnitude
+        # [一两二三四五六七八九]?十 matches: 三十, 二十, or bare 十 (for 十二/十五 etc.)
         match_cn = re.search(
-            r"([一两二三四五六七八九]十)?([一两二三四五六七八九])?([万千百])",
+            r"([一两二三四五六七八九]?十)?([一两二三四五六七八九])?([万千百])",
             text,
         )
         if match_cn:
