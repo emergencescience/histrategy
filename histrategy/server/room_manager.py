@@ -1981,6 +1981,10 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
                     for tid in getattr(faction, "territories", [])
                     if tid in ws.territories
                 )
+            # Fallback: if ws is None or territories dict is empty, use 50000 per territory
+            if not computed_population:
+                n_territories = len(getattr(faction, "territories", []))
+                computed_population = max(100, n_territories * 50000)
 
             save_game_state(
                 room_id=room.id,
