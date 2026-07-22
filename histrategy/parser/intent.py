@@ -492,9 +492,19 @@ class IntentParser:
         return None
 
     def _extract_number(self, text: str) -> int:
-        """Extract a numeric amount from text."""
-        # Chinese numerals
-        cn_nums = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
+        """Extract a numeric amount from text.
+
+        Handles:
+        - Arabic digits: "5万" → 50000, "300" → 300
+        - Simple Chinese: "三千" → 3000, "五百" → 500
+        - Special "两": "两万" → 20000, "两千" → 2000
+        - Multi-character: "三十五万" → 350000, "十二万" → 120000
+        """
+        # Chinese numerals (including 两 for 2 and 百 for 100)
+        cn_nums = {
+            "一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5,
+            "六": 6, "七": 7, "八": 8, "九": 9, "十": 10, "百": 100,
+        }
         # Match Arabic digits optionally followed by magnitude: "5万" → 50000, "1千" → 1000, "300" → 300
         match = re.search(r"(\d+)\s*([万千百])?", text)
         if match:
@@ -507,8 +517,37 @@ class IntentParser:
             elif mag == "百":
                 num *= 100
             return num
-        # "三千" → 3000, "五百" → 500, "五万" → 50000
-        match_cn = re.search(r"([一二三四五六七八九十])([万千百十])", text)
+        # Multi-character Chinese: "三十五万" → 350000, "十二万" → 120000, "两千" → 2000
+        # Pattern: optional tens digit + optional unit digit + magnitude
+        match_cn = re.search(
+            r"([一两二三四五六七八九]十)?([一两二三四五六七八九])?([万千百])",
+            text,
+        )
+        if match_cn:
+            tens = match_cn.group(1)  # e.g. "三十" or None
+            ones = match_cn.group(2)  # e.g. "五" or None
+            unit = match_cn.group(3)  # e.g. "万"
+
+            value = 0
+            if tens:
+                # "三十" → 30, "十" → 10 (handle bare "十")
+                tens_digit = cn_nums.get(tens[0], 1)
+                value += tens_digit * 10
+            if ones:
+                value += cn_nums.get(ones, 0)
+
+            if value == 0:
+                value = 1  # bare magnitude with no digits: "万" → 10000
+
+            if unit == "万":
+                return value * 10000
+            elif unit == "千":
+                return value * 1000
+            elif unit == "百":
+                return value * 100
+
+        # Simple Chinese: "三千" → 3000, "五百" → 500, "五万" → 50000
+        match_cn = re.search(r"([一两二三四五六七八九十])([万千百十])", text)
         if match_cn:
             digit = cn_nums.get(match_cn.group(1), 1)
             unit = match_cn.group(2)
