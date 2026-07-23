@@ -27,6 +27,14 @@ PROVIDER_CONFIGS = [
         "supports_json_mode": True,
     },
     {
+        "name": "gemini",
+        "env_key": "GEMINI_API_KEY",
+        "env_base": "GEMINI_API_BASE",
+        "default_base": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "default_model": "gemini-2.5-flash",
+        "supports_json_mode": True,
+    },
+    {
         "name": "openai",
         "env_key": "OPENAI_API_KEY",
         "env_base": "OPENAI_API_BASE",
