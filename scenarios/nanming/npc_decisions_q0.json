@@ -6,15 +6,35 @@
       "zh": {
         "decision_text": "【南征部署】清军初入关，八旗主力尚未全部南下。摄政王多尔衮命多铎率两万铁骑为先锋，攻入河南；命阿济格率一万精锐自山西南下，进击洛阳。同时传檄江北四镇——献城归顺者，原职留任、赏万金。山东方向：命耿仲明自登州渡海，骚扰南明沿海。南征大幕已启，八旗铁骑不可阻挡！",
         "commands": [
-          {"type": "attack", "params": {"target_territory": "kaifeng"}},
-          {"type": "attack", "params": {"target_territory": "luoyang"}}
+          {
+            "type": "attack",
+            "params": {
+              "target_territory": "kaifeng"
+            }
+          },
+          {
+            "type": "attack",
+            "params": {
+              "target_territory": "luoyang"
+            }
+          }
         ]
       },
       "en": {
         "decision_text": "【Southern Offensive】The Qing have entered the pass — the Eight Banners prepare to march south. Regent Dorgon orders Dodo to lead 20,000 cavalry as the vanguard, striking into Henan. Ajige is to march 10,000 elite troops south from Shanxi to assault Luoyang. Simultaneously, envoys are dispatched to the Four Northern Garrisons with an ultimatum: surrender your cities and keep your ranks — with a reward of ten thousand silver taels. In Shandong, Geng Zhongming is ordered to cross the sea from Dengzhou and raid the Southern Ming coast. The Southern Campaign has begun — the Eight Banners are unstoppable!",
         "commands": [
-          {"type": "attack", "params": {"target_territory": "kaifeng"}},
-          {"type": "attack", "params": {"target_territory": "luoyang"}}
+          {
+            "type": "attack",
+            "params": {
+              "target_territory": "kaifeng"
+            }
+          },
+          {
+            "type": "attack",
+            "params": {
+              "target_territory": "luoyang"
+            }
+          }
         ]
       }
     },
@@ -22,15 +42,35 @@
       "zh": {
         "decision_text": "【西征收粮】大顺军退入四川后，粮草日缺。李自成召诸将议策：清军势大不可硬撼，南明江北诸城空虚——趁清军南下之际，我当挥师东出！命刘宗敏率三万精兵奇袭南阳（河南东部），夺取粮仓；命李过率两万步卒出汉中，切断清军与南明之间的联系。先抢粮，再图霸业！",
         "commands": [
-          {"type": "attack", "params": {"target_territory": "henan_east"}},
-          {"type": "attack", "params": {"target_territory": "kaifeng"}}
+          {
+            "type": "attack",
+            "params": {
+              "target_territory": "henan_east"
+            }
+          },
+          {
+            "type": "attack",
+            "params": {
+              "target_territory": "kaifeng"
+            }
+          }
         ]
       },
       "en": {
         "decision_text": "【Western Raid for Grain】The Shun Army has retreated into Sichuan — food supplies dwindle by the day. Li Zicheng summons his generals: the Qing are too strong to face head-on, but the Southern Ming's northern cities lie exposed! While the Qing march south, we strike east! Order Liu Zongmin to lead 30,000 elite troops in a surprise raid on Nanyang (East Henan) — seize their granaries. Order Li Guo to march 20,000 infantry out of Hanzhong to sever the link between Qing and Ming forces. First, capture their supplies — then plan the conquest!",
         "commands": [
-          {"type": "attack", "params": {"target_territory": "henan_east"}},
-          {"type": "attack", "params": {"target_territory": "kaifeng"}}
+          {
+            "type": "attack",
+            "params": {
+              "target_territory": "henan_east"
+            }
+          },
+          {
+            "type": "attack",
+            "params": {
+              "target_territory": "kaifeng"
+            }
+          }
         ]
       }
     },
@@ -38,19 +78,119 @@
       "zh": {
         "decision_text": "【江北布防】清军大举南下，江北危急！史可法督师扬州，命黄得功率三万精兵驰援开封，死守黄河防线；命刘良佐率两万兵增援济南，控扼山东门户。同时遣快马赴福建——请郑芝龙速发水师北上，从海路威胁清军后方。若开封、济南失守，南京门户洞开。此战关乎存亡！",
         "commands": [
-          {"type": "defend", "params": {"territory": "kaifeng"}},
-          {"type": "defend", "params": {"territory": "jinan"}},
-          {"type": "move", "params": {"destination": "kaifeng"}},
-          {"type": "move", "params": {"destination": "jinan"}}
+          {
+            "type": "defend",
+            "params": {
+              "territory": "kaifeng"
+            }
+          },
+          {
+            "type": "defend",
+            "params": {
+              "territory": "jinan"
+            }
+          },
+          {
+            "type": "move",
+            "params": {
+              "destination": "kaifeng"
+            }
+          },
+          {
+            "type": "move",
+            "params": {
+              "destination": "jinan"
+            }
+          }
         ]
       },
       "en": {
         "decision_text": "【Northern Defense Line】The Qing are sweeping south — the northern front is in peril! Shi Kefa commands from Yangzhou: order Huang Degong to march 30,000 elite troops to reinforce Kaifeng — hold the Yellow River line at all costs. Order Liu Liangzuo to lead 20,000 men to Jinan — guard the gateway to Shandong. Meanwhile, dispatch fast riders to Fujian: urge Zheng Zhilong to send his fleet north immediately and threaten the Qing rear from the sea. If Kaifeng and Jinan fall, Nanjing's gates are wide open. This battle will decide our survival!",
         "commands": [
-          {"type": "defend", "params": {"territory": "kaifeng"}},
-          {"type": "defend", "params": {"territory": "jinan"}},
-          {"type": "move", "params": {"destination": "kaifeng"}},
-          {"type": "move", "params": {"destination": "jinan"}}
+          {
+            "type": "defend",
+            "params": {
+              "territory": "kaifeng"
+            }
+          },
+          {
+            "type": "defend",
+            "params": {
+              "territory": "jinan"
+            }
+          },
+          {
+            "type": "move",
+            "params": {
+              "destination": "kaifeng"
+            }
+          },
+          {
+            "type": "move",
+            "params": {
+              "destination": "jinan"
+            }
+          }
+        ]
+      }
+    },
+    "zheng": {
+      "zh": {
+        "decision_text": "【巩固海防】郑成功继承父志，据守福建沿海。当前清军南下，南明内斗不休。首要任务是巩固厦门、金门海防基地，扩建水师舰队，同时派遣商船赴日本、东南亚贸易以充实军资。暂不主动出击，静观时变。",
+        "commands": [
+          {
+            "type": "develop",
+            "params": {
+              "territory": "fujian"
+            },
+            "reasoning": "发展福建沿海农业和贸易，为水师提供粮草和资金"
+          },
+          {
+            "type": "recruit",
+            "params": {
+              "territory": "fujian",
+              "amount": 3000,
+              "unit_type": "水军"
+            },
+            "reasoning": "郑氏以水师立身，扩建舰队是生存之本"
+          },
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "nanming",
+              "action": "ally"
+            },
+            "reasoning": "与南明朝廷保持同盟关系，共同抗清"
+          }
+        ]
+      },
+      "en": {
+        "decision_text": "Koxinga consolidates his hold on the Fujian coast. With the Qing advancing south and the Southern Ming divided, the priority is to fortify the naval bases at Xiamen and Jinmen while expanding the war fleet. Trade missions to Japan and Southeast Asia will fund military preparations.",
+        "commands": [
+          {
+            "type": "develop",
+            "params": {
+              "territory": "fujian"
+            },
+            "reasoning": "Develop coastal agriculture and trade in Fujian to supply the fleet"
+          },
+          {
+            "type": "recruit",
+            "params": {
+              "territory": "fujian",
+              "amount": 3000,
+              "unit_type": "navy"
+            },
+            "reasoning": "The Zheng clan is first and foremost a naval power"
+          },
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "nanming",
+              "action": "ally"
+            },
+            "reasoning": "Maintain the alliance with the Southern Ming court against the Qing"
+          }
         ]
       }
     }

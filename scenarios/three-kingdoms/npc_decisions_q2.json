@@ -26,6 +26,66 @@
             "decision_text": "【The Strategy of Chaisang】Sun Quan convenes the grand council at Chaisang, civil and military officials arrayed before him. Zhuge Liang argues the case in the main tent, refuting the capitulation faction led by Zhang Zhao with three points: Cao Cao's army is exhausted from the long march, northern soldiers cannot fight on water, and the people of Jing Province have not yet submitted to his rule. Zhou Yu races back from Lake Poyang through the night and speaks with thunderous conviction: 'Cao Cao may call himself Prime Minister of Han, but he is a traitor to Han. You, my lord, with divine martial talent and the legacy of your father and elder brother, hold Jiangdong with crack troops and full granaries — now is the time to stride across the realm and cleanse the Han house of filth!' Sun Quan hears these words, draws his blade, and slices the corner from the memorial desk before him: 'Any officer who dares speak again of surrender shall share this desk's fate!' The army's resolve is forged. Zhou Yu is appointed Grand Commander on the spot, Cheng Pu as his deputy, Lu Su as Army Supervisor — three thousand elite marines from the Chaisang fleet are mobilized immediately, joining Liu Bei's ten thousand, with Red Cliffs chosen as the field of decision.",
             "commands": []
           }
+        },
+        "shu": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "shu"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "shu",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "wu",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "shu"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "shu",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "wu",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
+          }
         }
       }
     },
@@ -51,6 +111,66 @@
           "en": {
             "decision_text": "【The God of War Takes His Post】Lu Su sends an urgent report: Liu Bei has dispatched Guan Yu with five thousand marines to Jiangling, taking command of the front-line defense. Zhou Yu reads the dispatch and his brow furrows slightly. Guan Yu's name is known to all under Heaven — he felled Yan Liang and executed Wen Chou in a single campaign, crossed five passes slaying six generals, and even Cao Cao once sighed, 'To gain Guan Yu is worth more than a hundred thousand crack troops.' Having this man at the front is a tremendous boost to coalition morale. But Zhou Yu harbors a private concern: Guan Yu's pride is legendary; few men beyond Liu Bei himself can meet his gaze. If he acts with stubborn self-assurance during joint operations and refuses the Grand Commander's orders, he could do more harm than good. Zhou Yu tells Lu Su: 'Zijing, I must trouble you to visit Guan Yu's camp in person. Observe every courtesy, speak with every respect — but make him understand: in this battle, I am Grand Commander. Naval maneuvers require unified command. General Guan's valor is peerless, but Red Cliffs is not a lone rider charging the enemy line — it is a game of life and death where fifty thousand face eight hundred thousand.'",
             "commands": []
+          }
+        },
+        "shu": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "shu"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "shu",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "wu",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "shu"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "shu",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "wu",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
           }
         }
       }
@@ -78,6 +198,66 @@
             "decision_text": "【Jingzhou Takes Root】Lu Su returns from an inspection tour of southern Jing Province and reports to Sun Quan: Liu Bei has placed Zhuge Liang in charge of Jing's civil administration, recruiting refugees to reclaim the wasteland between Jiangxia and Lingling, and establishing academies to attract the sons of Jing's scholar-gentry. Sun Quan listens in prolonged silence. Allying against Cao Cao is one thing — Liu Bei sinking roots into Jing Province is another entirely. Jing is Jiangdong's gateway; if Liu Bei establishes a deep foundation here, the moment Cao Cao retreats, Sun and Liu will clash fiercely over Jing's ownership. Zhou Yu speaks bluntly: 'Liu Bei is a hero of the age. Kongming is a talent fit for a king's chancellor. If the two of them build a power base in Jing together, within three years they will become a tail too heavy to wag. Better to seize the moment while Cao Cao presses hard and propose: northern Jing's military affairs shall be jointly administered. After the war, Jing Province shall be divided at Xiangyang — the south to Sun, the north to Liu.' Lu Su urges restraint — opening a rift now is exactly what Cao Cao hopes for. Sun Quan ultimately finds a middle path: say nothing of Jing's ownership for now, but instruct Zhou Yu to preserve as much of Jiangdong's naval strength as possible during the Red Cliffs campaign — win the battle, but do not spend every last ship and soldier.",
             "commands": []
           }
+        },
+        "shu": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "shu"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "shu",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "wu",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "shu"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "shu",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "wu",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
+          }
         }
       }
     },
@@ -103,6 +283,66 @@
           "en": {
             "decision_text": "【The Fortress and the Fire Attack】Zhou Yu reads the frontline dispatches with care: Liu Bei has left a skeleton force to hold Xinye and pin down Xiahou Dun, while his main force has silently shifted south to prepare for the Red Cliffs campaign. He sets the bamboo slip down slowly, eyes glinting. An elegant stratagem — trade a lone city for time, and trade time for the advantages of terrain and weather at Red Cliffs. If Liu Bei can hold Xiahou Dun for twenty more days at Xinye, the coalition will have ample opportunity to arrange everything needed for the fire attack along the Red Cliffs shore — fire ships, wind observation posts, ambushers hidden in the reed beds. Zhou Yu issues orders: immediately dispatch elite shipwrights to the Red Cliffs front. Construct two hundred light fire ships, loaded with oil-soaked kindling, sulfur, and saltpeter, concealed beneath black canvas. Meanwhile, instruct Huang Gai to intensify rehearsals of the 'self-torture ruse' — feigning defection to the Cao camp, creating the opening for the fire strike. All is nearly ready — awaiting only the day Liu Bei withdraws from Xinye.",
             "commands": []
+          }
+        },
+        "shu": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "shu"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "shu",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "wu",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "shu"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "shu",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "wu",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
           }
         }
       }
@@ -130,6 +370,66 @@
             "decision_text": "【A Divine General Defends a Lonely City】Lu Su returns from the front with news: Guan Yu, with a mere three thousand men, has held Xinye against Xiahou Dun's fifty thousand for thirty full days — Cao casualties now exceed a thousand. Sun Quan receives the report in open astonishment: 'Yunchang is truly a general of the gods!' Even the cautious elder counselors led by Zhang Zhao must now concede — having such a fierce warrior standing at the front has indeed lightened Jiangdong's burden considerably. Zhou Yu, however, analyzes with cold clarity: 'Guan Yunchang is peerless in valor, but the siege of Xinye cannot be sustained indefinitely. Xiahou Dun has failed to take it by direct assault — Cao Cao will certainly dispatch a flanking force to cut off his rear. Guan Yu abandoning the city is only a matter of time.' He tells Sun Quan: 'My lord, the Xinye campaign has bought the coalition thirty precious days — thirty days enough to build the fire ships at Red Cliffs and gauge the wind patterns. The day General Guan withdraws is the day we strike with fire.'",
             "commands": []
           }
+        },
+        "shu": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "shu"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "shu",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "wu",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "shu"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "shu",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "wu",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
+          }
         }
       }
     },
@@ -155,6 +455,66 @@
           "en": {
             "decision_text": "【Both Joy and Worry】Sun Quan summons Lu Su and Zhou Yu to his private study. Lu Su reports in detail on Zhuge Liang's policies in southern Jing: irrigation projects, resettlement of refugees, reform of local officialdom — every measure strikes at the vital points. Sun Quan is silent for a long moment, then finally speaks: 'Kongming's talent is ten times my own. With such a man governing Jing Province for Liu Bei, within two years, southern Jing will become a paradise on earth. Yet — for whom is this paradise being built?' Zhou Yu takes up the thread: 'My lord's concern is one I share. The threat of Cao Cao is in front of our eyes; the threat of Liu Bei lies in the years ahead. For now, the alliance must hold — but after the war, Jiangdong forces must participate in Jing's defense. I request permission to garrison troops at Jiangling after the war — publicly, joint defense; in truth, surveillance.' Sun Quan nods but adds a caution: 'This must remain absolutely secret. Until Cao Cao retreats, the banner of the alliance must not waver.'",
             "commands": []
+          }
+        },
+        "shu": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "shu"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "shu",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "wu",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "shu"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "shu",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "wu",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
           }
         }
       }
@@ -182,6 +542,66 @@
             "decision_text": "【The Dragon and the Grand Commander】Zhou Yu and Zhuge Liang meet for the first time in the great camp at Red Cliffs. Their eyes lock for a long moment; each man sees an uncommon light in the other's gaze. Zhou Yu speaks first: 'Master Kongming, at Red Cliffs, I am Grand Commander. All maneuvers — on water and land, attack and defense — require unified command.' Zhuge Liang smiles and clasps his hands: 'Rest assured, Grand Commander. My strength lies in stratagem, not frontline command. For this battle, I offer only three plans — fire attack, the eastern wind, and the self-torture ruse. All other military affairs are yours to direct.' Zhou Yu is secretly stunned — these three stratagems are precisely the ones he has been contemplating. This man sees what I see — and has laid groundwork even before I did. Respect and wariness rise in his chest simultaneously. Zhou Yu returns the salute: 'With your aid, Master Kongming, Cao Cao's defeat is certain. But one matter must be spoken of in advance — the division of gains after the war. I hope you will keep the alliance's long-term survival in mind.' Zhuge Liang's smile remains: 'That is a matter for detailed discussion after the war. For now — first, let us break Cao Cao.'",
             "commands": []
           }
+        },
+        "shu": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "shu"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "shu",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "wu",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "shu"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "shu",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "wu",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
+          }
         }
       }
     },
@@ -208,6 +628,66 @@
             "decision_text": "【The Ultimate Combination】Lu Su returns from the front to Chaisang for the third time, and the expression on his face makes Sun Quan dismiss all attendants instantly. Lu Su lowers his voice: 'My lord, Liu Bei has not only gained the Sleeping Dragon's counsel — he has given Guan Yu an independent command on the front line. Kongming's stratagems and Yunchang's valor — this pairing is unmatched under Heaven. Cao Cao may have eight hundred thousand, but against these two, his victory is far from certain.' Sun Quan remains silent. It is not today that worries him — today, the Sun-Liu coalition needs Zhuge Liang and Guan Yu to defeat Cao Cao. It is tomorrow that troubles him — after Cao Cao retreats, a Liu Bei who possesses both the Sleeping Dragon and Guan Yu will be a neighbor a hundred times more dangerous than Liu Biao ever was. Zhou Yu, sharp as ever, catches the silence and offers: 'My lord, Cao Cao is the great enemy now. Contending with Liu Bei over Jing Province is a matter for after Cao Cao's defeat. Before that — the stronger Zhuge Liang and Guan Yu are, the better it is for us.' Sun Quan nods, but in his heart, he makes a note: after the war, any arrangement over Jing Province must be in black and white, signed and sealed.",
             "commands": []
           }
+        },
+        "shu": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "shu"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "shu",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "wu",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "shu"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "shu",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "wu",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
+          }
         }
       }
     },
@@ -233,6 +713,66 @@
           "en": {
             "decision_text": "【The Worry of the Long Term】Lu Su compiles Zhuge Liang's detailed measures in southern Jing into a volume and presents it to Sun Quan. As he pages through it, Sun Quan's alarm grows — this is not merely administrative policy; this is a complete blueprint for state-building. Irrigation for grain, academies for talent, household registries for population control — every measure lays a deep foundation for long-term independent rule. Zhang Zhao sighs beside him: 'Kongming is no talent for a hundred li. He governs southern Jing as though governing a kingdom.' Sun Quan closes the volume and remains silent for a long time. But Lu Su speaks up: 'My lord, the higher Kongming's talent, the more sleepless Cao Cao's nights. For now, this benefits us — Cao Cao's main force will be firmly pinned by Liu Bei's defense and development, giving Jiangdong room to accumulate strength. But looking further ahead...' Sun Quan raises his hand: 'Say no more. Long-term matters will be settled in the long term. Right now, defeat Cao Cao first. As for Jing Province — we will have all the time in the world to settle accounts with Liu Bei after the war.'",
             "commands": []
+          }
+        },
+        "shu": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "shu"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "shu",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "wu",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "shu"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "shu",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "wu",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
           }
         }
       }

@@ -36,6 +36,66 @@
             "decision_text": "【A Dangerous Weapon】Cicero stands in the side aisle of the Curia, watching recruitment officers read Octavian's enlistment call in the Forum — a river of young men queue to sign their names. His heart swirls with hope and dread — hope, that an army to counter Antony is finally taking shape; dread, that this army is called 'Caesar's Legions,' not 'the Republic's Legions.' I forged this blade with my own hands, but the blade has a will of its own. Cicero summons the Republican inner circle through the night: we must control this army. Propose that the Senate dispatch tribunes to join Octavian's military staff — officially, to 'coordinate operations'; in truth, to place our men at his side, whispering in his ear: you fight for the Republic, not for yourself.",
             "commands": []
           }
+        },
+        "octavian": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "octavian"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "octavian",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "antony",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "octavian"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "octavian",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "antony",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
+          }
         }
       }
     },
@@ -71,6 +131,66 @@
           "en": {
             "decision_text": "【Bread and the Sword】The first queue for the grain dole has already formed in the Forum — twice as long as usual. Cicero feels the temperature rising in the city's streets. Octavian has seized the grain routes — his cleverest move yet: without spilling a drop of blood, he has plunged Antony into a consular crisis. But Cicero's instincts also detect the danger — a young man who controls Rome's belly is one step away from gripping Rome's throat. He proposes a compromise in the Senate: the Republic shall assume direct control of the Ostian granaries through a newly formed 'Commission for Grain Security,' co-chaired by Cicero himself and an Octavian representative. Publicly, a sharing of authority; in truth, splitting the key to the granary from one set of hands into two — and then, when the moment is ripe, into the Republic's hands alone.",
             "commands": []
+          }
+        },
+        "octavian": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "octavian"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "octavian",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "antony",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "octavian"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "octavian",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "antony",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
           }
         }
       }
@@ -108,6 +228,66 @@
             "decision_text": "【Meeting His Match】Cicero examines the copies of Octavian's diplomatic correspondence — to the governor of Syria, to the province of Asia, to the King of Bithynia... each one invokes Republican law, each one signs off in the name of 'the Senate and People of Rome.' The boy no longer needs me to edit his drafts! Cicero's emotions defy easy description: pride — his student has graduated; unease — his student is overtaking the master. Octavian's diplomatic offensive is isolating Antony across the known world — a masterstroke, but a dangerous one. If the Eastern provinces transfer their allegiance directly to Octavian rather than to the Senate, we have toppled one tyrant only to breed another. Cicero decides: publicly, praise Octavian's diplomatic triumphs in the Senate. Privately, send a letter to Brutus — watch Asia closely. A power vacuum is being filled, and the man filling it is not necessarily a friend of the Republic.",
             "commands": []
           }
+        },
+        "octavian": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "octavian"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "octavian",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "antony",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "octavian"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "octavian",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "antony",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
+          }
         }
       }
     },
@@ -143,6 +323,66 @@
           "en": {
             "decision_text": "【A Contained Flame】The Senate granted Octavian propraetorian imperium, and he immediately used it to raise three legions — precisely the effect Cicero intended. But the speed and scale send a shiver through the seasoned politician. Privately, he tells his dear friend Atticus: I lit a fire to burn down Antony's house, but now the fire is building a palace of its own. Cicero proposes a new motion in the Senate: establish the office of 'Senatorial Military Inspector,' staffed by two senior senators, charged with overseeing all legions raised in the name of the Republic — including Octavian's. Publicly, an act of military diligence; in truth, implanting a Republican control valve into Octavian's military machine. The motion passes by a razor-thin majority.",
             "commands": []
+          }
+        },
+        "octavian": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "octavian"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "octavian",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "antony",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "octavian"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "octavian",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "antony",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
           }
         }
       }
@@ -180,6 +420,66 @@
             "decision_text": "【The Price of Victory】Cicero watches as Octavian, wielding the authority the Senate granted him, successfully takes control of the Sicilian grain route. Rome's bread prices plummet overnight, and the mob cheers. This is a victory of Cicero's own engineering — but the price is surfacing. Octavian now controls Rome's belly, and whoever controls the belly can sway the mob without senatorial approval. Cicero writes to Brutus: 'Our ally is becoming our master — at a pace that takes the breath away.' He pushes a new law through the Senate: grain distribution authority shall be exercised jointly by the Senate and the Consul — a safety valve. But before the legislation even reaches Octavian's hands, Cicero knows it is too late. The first grain wagons departing Ostia's harbor have already been daubed in red paint with a single word: 'CAESAR.'",
             "commands": []
           }
+        },
+        "octavian": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "octavian"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "octavian",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "antony",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "octavian"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "octavian",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "antony",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
+          }
         }
       }
     },
@@ -215,6 +515,66 @@
           "en": {
             "decision_text": "【The Shadow of Genius】Octavian's diplomatic offensive spans the world — from Hispania to Syria, every provincial governor has received his personal letter, each one beginning in the Senate's name and concluding in Caesar's. Cicero's delight has given way to unease. This young man's political gifts far exceed my expectations — but the more gifted the ally, the greater the danger. Cicero delivers a meticulously crafted oration in the Senate on the theme: 'Diplomatic Authority Belongs to the Senate.' He proposes: all embassies dispatched in the Republic's name must be approved by the Senate Foreign Affairs Committee. The direct target is not Octavian — in its wording, it is aimed at Antony's 'unauthorized Eastern commitments.' But Cicero knows: this legal shield will, sooner or later, have to be raised against Octavian.",
             "commands": []
+          }
+        },
+        "octavian": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "octavian"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "octavian",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "antony",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "octavian"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "octavian",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "antony",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
           }
         }
       }
@@ -252,6 +612,66 @@
             "decision_text": "【Helmsman in the Tempest】Cicero receives Antony's ultimatum — declare Octavian a public enemy, or legions march on Rome. His fingers tremble slightly — not from fear but from exhilaration. The final hour has come. He convenes an emergency Senate session and delivers the most stirring oration of his life — the Fourteenth Philippic. 'Senators! Antony's blade is drawn. This is not a threat — it is a confession. He means to trample the Senate's dignity beneath legionary boots, exactly as Caesar crossed the Rubicon. The only difference: today, we have Octavian and his legions standing between Antony and Rome!' The Senate erupts in deafening applause and passes the resolution: reject Antony's ultimatum. Formally authorize Octavian to command all forces in northern Italy in the name of the Republic. As Cicero casts his vote in favor, he feels his fingertips brush the fabric of history itself.",
             "commands": []
           }
+        },
+        "octavian": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "octavian"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "octavian",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "antony",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "octavian"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "octavian",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "antony",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
+          }
         }
       }
     },
@@ -288,6 +708,66 @@
             "decision_text": "【Bread Over Blades】Cicero proposes a bold plan in the emergency Senate session — no legions, no alliances, only bread. Antony's army is starving, and his soldiers' loyalty erodes by the day. Cicero argues: 'We need not rely on Octavian's legions alone to win this war. Let Antony's own soldiers decide the outcome.' The Senate passes a resolution: send couriers to infiltrate Antony's camps and distribute pamphlets to the rank and file — any deserter who comes over shall receive not only a full pardon for all crimes but also the Republic's promised settlement land and a year's grain ration. More crucially, the couriers carry not weapons but actual sacks of wheat. Cicero smiles: 'Hunger is more persuasive than any oration.'",
             "commands": []
           }
+        },
+        "octavian": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "octavian"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "octavian",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "antony",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "octavian"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "octavian",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "antony",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
+          }
         }
       }
     },
@@ -323,6 +803,66 @@
           "en": {
             "decision_text": "【The Last Republican Dance】Octavian is crushing Antony on both the battlefield and the diplomatic stage — Cicero gazes at the mounting piles of war dispatches and diplomatic correspondence on his desk, feeling a near-vertiginous satisfaction. Everything he engineered has succeeded: Antony is isolated, Octavian is the Republic's sword, the Senate has reclaimed the power of decision. But he is Cicero — and one of his gifts is seeing the crisis within the victory. He takes up his stylus and writes a long letter to Brutus: 'Dear Brutus, Antony's defeat is only Act One. Act Two is called Octavian — he bears Caesar's name and now holds military and diplomatic authority granted by the Senate. His power flows from us — which means we must retrieve it before he discovers he no longer needs us.' The letter's final line: 'Return from Greece with all haste. Not to fight Antony — but to stand opposite Octavian, so he sees that the Republic is more than one man.'",
             "commands": []
+          }
+        },
+        "octavian": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "octavian"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "octavian",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "antony",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "octavian"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "octavian",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "antony",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
           }
         }
       }
