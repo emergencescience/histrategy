@@ -102,6 +102,66 @@
               }
             ]
           }
+        },
+        "zheng": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "zheng"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "zheng",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "nanming",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "zheng"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "zheng",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "nanming",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
+          }
         }
       }
     },
@@ -208,6 +268,66 @@
               }
             ]
           }
+        },
+        "zheng": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "zheng"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "zheng",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "nanming",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "zheng"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "zheng",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "nanming",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
+          }
         }
       }
     },
@@ -310,6 +430,66 @@
               }
             ]
           }
+        },
+        "zheng": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "zheng"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "zheng",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "nanming",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "zheng"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "zheng",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "nanming",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
+          }
         }
       }
     },
@@ -409,6 +589,66 @@
                 "params": {
                   "destination": "kaifeng"
                 }
+              }
+            ]
+          }
+        },
+        "zheng": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "zheng"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "zheng",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "nanming",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "zheng"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "zheng",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "nanming",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
               }
             ]
           }
@@ -518,6 +758,66 @@
               }
             ]
           }
+        },
+        "zheng": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "zheng"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "zheng",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "nanming",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "zheng"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "zheng",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "nanming",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
+          }
         }
       }
     },
@@ -620,6 +920,66 @@
               }
             ]
           }
+        },
+        "zheng": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "zheng"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "zheng",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "nanming",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "zheng"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "zheng",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "nanming",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
+          }
         }
       }
     },
@@ -719,6 +1079,66 @@
                 "params": {
                   "destination": "kaifeng"
                 }
+              }
+            ]
+          }
+        },
+        "zheng": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "zheng"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "zheng",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "nanming",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "zheng"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "zheng",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "nanming",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
               }
             ]
           }
@@ -828,6 +1248,66 @@
               }
             ]
           }
+        },
+        "zheng": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "zheng"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "zheng",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "nanming",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "zheng"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "zheng",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "nanming",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
+              }
+            ]
+          }
         }
       }
     },
@@ -927,6 +1407,66 @@
                 "params": {
                   "territory": "xiangyang"
                 }
+              }
+            ]
+          }
+        },
+        "zheng": {
+          "zh": {
+            "decision_text": "【战略调整】根据当前形势调整方略，发展本土经济，招募新兵，积极开展外交。",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "zheng"
+                },
+                "reasoning": "发展核心领地经济"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "zheng",
+                  "amount": 2000,
+                  "unit_type": "步兵"
+                },
+                "reasoning": "补充兵力"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "nanming",
+                  "action": "non_aggression"
+                },
+                "reasoning": "外交维稳"
+              }
+            ]
+          },
+          "en": {
+            "decision_text": "Strategic adjustment: develops core economy, recruits troops, pursues diplomatic stability.",
+            "commands": [
+              {
+                "type": "develop",
+                "params": {
+                  "territory": "zheng"
+                },
+                "reasoning": "Develop core territory"
+              },
+              {
+                "type": "recruit",
+                "params": {
+                  "territory": "zheng",
+                  "amount": 2000,
+                  "unit_type": "infantry"
+                },
+                "reasoning": "Replenish forces"
+              },
+              {
+                "type": "diplomacy",
+                "params": {
+                  "target_faction": "nanming",
+                  "action": "non_aggression"
+                },
+                "reasoning": "Diplomatic stabilization"
               }
             ]
           }

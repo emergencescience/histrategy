@@ -1,328 +1,239 @@
 {
-  "scenario": "nanming",
-  "version": 1,
-  "quarter": 1,
-  "player_choices": {
-    "serve_ming": {
-      "label_zh": "【🤝 勤王抗清】Serve the Ming",
-      "label_en": "【🤝 Serve the Ming】Resist the Qing",
-      "decisions": {
-        "qing": {
-          "zh": {
-            "decision_text": "【利刃出鞘】探马来报——南明伪帝居然妄图重整旗鼓，四处遣使勤王。豪格冷笑：螳臂当车，自取其辱。江南士绅素来厌战，弘光朝内斗不休，其所谓「勤王」不过是纸糊的架子。命多铎加快平定河南，同时向江北四镇暗遣细作，以高官厚禄诱降刘良佐、刘泽清之辈。待其自乱阵脚，我八旗铁骑自当一鼓而下江南。",
-            "commands": [
-              {
-                "type": "attack",
-                "params": {
-                  "target_territory": "kaifeng"
-                }
-              },
-              {
-                "type": "move",
-                "params": {
-                  "destination": "jinan"
-                }
-              }
-            ]
+  "decisions": {
+    "qing": {
+      "zh": {
+        "decision_text": "【南下伐明】八旗精锐已整装待发。南明朝堂内斗不休，正是南征良机。命多铎率八旗五万从京师南下，直取山东；阿济格领兵三万经山西入河南。同时传檄南明江北诸将劝降，分化明军。减税至20%以安新附之民。",
+        "commands": [
+          {
+            "type": "attack",
+            "params": {
+              "target_territory": "shandong",
+              "from_territory": "beijing",
+              "amount": 50000,
+              "unit_type": "骑兵"
+            },
+            "reasoning": "八旗铁骑南下取山东，打开南征通道"
           },
-          "en": {
-            "decision_text": "【Draw the Blade】Scouts report the Southern Ming puppet court is rallying loyalist forces across the realm. Haoge scoffs: an ant trying to topple a tree. The Jiangnan gentry despise war, and the Hongguang court is consumed by factional infighting — their so-called 'loyalist call' is a paper tiger. Order Dodo to quicken the pacification of Henan while planting agents among the Four Northern Garrisons, tempting generals like Liu Liangzuo and Liu Zeqing to defect with promises of rank and wealth. Once they collapse from within, the Eight Banners' cavalry will sweep Jiangnan in a single stroke.",
-            "commands": [
-              {
-                "type": "attack",
-                "params": {
-                  "target_territory": "kaifeng"
-                }
-              },
-              {
-                "type": "move",
-                "params": {
-                  "destination": "jinan"
-                }
-              }
-            ]
-          }
-        },
-        "nanming": {
-          "zh": {
-            "decision_text": "【隆恩浩荡】陛下龙兴金陵，天下忠义之士闻风而动。江北督师史可法上疏：今勤王之师云集，当趁此人心可用之际，整合四镇为一军，由朝廷统一调度。马士英则力主先安内后攘外——左良玉拥兵八十万坐镇武昌，若不加以笼络，恐为肘腋之患。另闻福建郑氏水师可抵十万雄兵，速派使臣携厚礼南下，许以闽浙总督之职，务必说动郑芝龙出兵相助。",
-            "commands": [
-              {
-                "type": "move",
-                "params": {
-                  "destination": "kaifeng"
-                }
-              },
-              {
-                "type": "defend",
-                "params": {
-                  "territory": "kaifeng"
-                }
-              },
-              {
-                "type": "recruit",
-                "params": {
-                  "territory": "nanjing",
-                  "amount": 3000
-                }
-              }
-            ]
+          {
+            "type": "move",
+            "params": {
+              "from_territory": "shanxi",
+              "to_territory": "henan_east",
+              "amount": 30000
+            },
+            "reasoning": "阿济格经山西入河南，夹击南明"
           },
-          "en": {
-            "decision_text": "【Imperial Grace】The Emperor has risen in Nanjing, and loyal hearts across the realm stir in response. Northern Commander Shi Kefa petitions: with loyalist forces gathering, now is the moment to unite the Four Garrisons under a single command. Ma Shiying argues the reverse — pacify the interior before confronting the external foe: Zuo Liangyu sits in Wuchang with 800,000 troops; without careful handling, he may become a dagger at our back. Meanwhile, the Zheng fleet in Fujian could match a hundred thousand soldiers — dispatch envoys with lavish gifts, offering Zheng Zhilong the governorship of Fujian-Zhejiang, and secure his naval support by any means.",
-            "commands": [
-              {
-                "type": "move",
-                "params": {
-                  "destination": "kaifeng"
-                }
-              },
-              {
-                "type": "defend",
-                "params": {
-                  "territory": "kaifeng"
-                }
-              },
-              {
-                "type": "recruit",
-                "params": {
-                  "territory": "nanjing",
-                  "amount": 3000
-                }
-              }
-            ]
+          {
+            "type": "tax",
+            "params": {
+              "tax_rate": 0.2
+            },
+            "reasoning": "减税安抚新附汉民"
           }
-        },
-        "nongminjun": {
-          "zh": {
-            "decision_text": "【隔岸观火】李自成听闻南明四处勤王，冷笑三声：崇祯老儿在时，我大顺已取北京逼死昏君，如今他的子孙倒想起忠义来了？南明与满清狗咬狗，正是我等休养生息之机。命李过、高一功加紧在四川收编溃兵，扩充步军。同时留意江南战局——若南明与清军两败俱伤，我大顺便可顺江而下，再入中原。忍耐，是猎人的美德。",
-            "commands": [
-              {
-                "type": "move",
-                "params": {
-                  "destination": "henan_east"
-                }
-              }
-            ]
+        ]
+      },
+      "en": {
+        "decision_text": "The Eight Banners stand ready. The Southern Ming court is divided — perfect timing to strike south. Dodo leads 50,000 cavalry from Beijing toward Shandong. Ajige moves 30,000 through Shanxi into Henan, enveloping Ming defenses.",
+        "commands": [
+          {
+            "type": "attack",
+            "params": {
+              "target_territory": "shandong",
+              "from_territory": "beijing",
+              "amount": 50000,
+              "unit_type": "cavalry"
+            },
+            "reasoning": "Banner cavalry sweeps south through Shandong"
           },
-          "en": {
-            "decision_text": "【Watch from Afar】Li Zicheng scoffs at news of Southern Ming's loyalist rally: the Chongzhen fool hanged himself when we took Beijing — now his descendants remember loyalty? Let the Ming remnants and the Manchu dogs tear each other apart while the Shun Army recuperates. Order Li Guo and Gao Yigong to absorb scattered garrisons in Sichuan, swelling the infantry. But keep eyes fixed on Jiangnan — if Ming and Qing bleed each other white, the Shun will sail down the Yangtze and claim the Central Plains once more. Patience is a hunter's virtue.",
-            "commands": [
-              {
-                "type": "move",
-                "params": {
-                  "destination": "henan_east"
-                }
-              }
-            ]
+          {
+            "type": "move",
+            "params": {
+              "from_territory": "shanxi",
+              "to_territory": "henan_east",
+              "amount": 30000
+            },
+            "reasoning": "Ajige moves through Shanxi into Henan"
+          },
+          {
+            "type": "tax",
+            "params": {
+              "tax_rate": 0.2
+            },
+            "reasoning": "Lower taxes to pacify newly conquered Han subjects"
           }
-        }
+        ]
       }
     },
-    "expand_military": {
-      "label_zh": "【⚓ 扩军备战】Expand Military",
-      "label_en": "【⚓ Expand Military】Prepare for War",
-      "decisions": {
-        "qing": {
-          "zh": {
-            "decision_text": "【卧虎之醒】多尔衮阅罢军报，眉头微蹙——南明不图议和苟安，反而扩军备战，其志不小。江南富庶，若给予喘息，再假名将整训，实为心腹之患。传令：阿济格不必再纠缠山陕残明诸部，速调主力南下，与多铎合兵，务必在明年春汛之前突破淮河防线。同时命范文程草拟一道诏书，以「为崇祯复仇」之名招降南明将领——凡倒戈者，原职留用，加官进爵。攻心为上，攻城为下。",
-            "commands": [
-              {
-                "type": "attack",
-                "params": {
-                  "target_territory": "luoyang"
-                }
-              },
-              {
-                "type": "move",
-                "params": {
-                  "destination": "henan_east"
-                }
-              }
-            ]
+    "nanming": {
+      "zh": {
+        "decision_text": "【整饬江防】弘光帝登基南京，然清军已入关，兵锋直指江淮。命史可法督师江北，整饬江防；马士英坐镇南京调度粮草。同时遣使赴福建，联络郑氏水师，共保长江。减税至20%以收民心。",
+        "commands": [
+          {
+            "type": "defend",
+            "params": {
+              "territory": "yangzhou"
+            },
+            "reasoning": "扬州为江北门户，史可法督师防守"
           },
-          "en": {
-            "decision_text": "【A Stirring Tiger】Dorgon studies the intelligence report, brow furrowed — the Southern Ming isn't suing for peace; they're arming for war. Ambition, not desperation, drives them. Jiangnan is wealthy; give them a breathing spell under capable commanders and they become a mortal threat. Dispatch urgent orders: Ajige need not mop up every Ming remnant in Shanxi-Shaanxi — march south at once, link up with Dodo, and breach the Huai River line before spring floods. Meanwhile, instruct Fan Wencheng to draft an edict proclaiming the Qing as 'avengers of the Chongzhen Emperor' — any Ming officer who defects keeps his rank with promotion. Win hearts first, cities second.",
-            "commands": [
-              {
-                "type": "attack",
-                "params": {
-                  "target_territory": "luoyang"
-                }
-              },
-              {
-                "type": "move",
-                "params": {
-                  "destination": "henan_east"
-                }
-              }
-            ]
-          }
-        },
-        "nanming": {
-          "zh": {
-            "decision_text": "【厉兵秣马】朝堂之上争论不休。史可法力赞扩军之议：清军虽强，然以骑射称雄，江南水网密布，利水师而不利铁骑。宜在扬州设水师都督府，广募太湖、鄱阳湖渔民编练水军，以长克短。马士英则暗怀鬼胎，唯恐军权旁落——遂提议由其心腹阮大铖督造火器，借以分史可法之兵权。弘光帝左右为难，只批下「酌情办理」，江南扩军之举，未出朝堂已先打了三分折扣。",
-            "commands": [
-              {
-                "type": "recruit",
-                "params": {
-                  "territory": "nanjing",
-                  "amount": 5000
-                }
-              },
-              {
-                "type": "defend",
-                "params": {
-                  "territory": "nanjing"
-                }
-              }
-            ]
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "zheng",
+              "action": "ally"
+            },
+            "reasoning": "联络郑氏水师，协防长江"
           },
-          "en": {
-            "decision_text": "【Sharpen Weapons, Feed Horses】The court erupts in debate. Shi Kefa argues fiercely for the expansion plan: the Qing may dominate on horseback, but Jiangnan is a labyrinth of rivers and lakes — build a navy, not a cavalry, and turn terrain to advantage. He proposes a Yangzhou Naval Command, recruiting fishermen from Lake Tai and Poyang. Ma Shiying, fearing diminished influence, schemes in the shadows — he nominates his crony Ruan Dacheng to oversee firearms production, a move designed to carve a slice of military authority for his faction. The Hongguang Emperor, paralyzed by the infighting, approves only a vague 'proceed as appropriate' — the expansion is sabotaged before a single soldier is raised.",
-            "commands": [
-              {
-                "type": "recruit",
-                "params": {
-                  "territory": "nanjing",
-                  "amount": 5000
-                }
-              },
-              {
-                "type": "defend",
-                "params": {
-                  "territory": "nanjing"
-                }
-              }
-            ]
+          {
+            "type": "tax",
+            "params": {
+              "tax_rate": 0.2
+            },
+            "reasoning": "减税收民心，稳固新朝廷根基"
           }
-        },
-        "nongminjun": {
-          "zh": {
-            "decision_text": "【磨刀霍霍】探子飞报：南明在江北广募新兵，扬州、镇江日夜打造战船。李自成的脸色沉了下来——这些官军亡我之心不死，竟要趁我喘息之时先发制人？传令：刘宗敏率精兵五千东出夔门，在夷陵一带设伏。南明若真敢沿江西进，便让他们尝尝大顺军的刀锋。同时命牛金星加紧屯田，以备长久对峙。谁先出刀不重要——重要的是最后站着的是谁。",
-            "commands": [
-              {
-                "type": "move",
-                "params": {
-                  "destination": "kaifeng"
-                }
-              }
-            ]
+        ]
+      },
+      "en": {
+        "decision_text": "The Hongguang Emperor consolidates his court at Nanjing. The Qing have entered the pass — their armies threaten the Yangtze. Shi Kefa is appointed Grand Commander of the Northern Defense. Envoys sail to Fujian seeking alliance with the Zheng clan's naval power.",
+        "commands": [
+          {
+            "type": "defend",
+            "params": {
+              "territory": "yangzhou"
+            },
+            "reasoning": "Yangzhou is the gateway north of the Yangtze"
           },
-          "en": {
-            "decision_text": "【Sharpening the Knife】Scouts return with urgent reports: the Southern Ming is recruiting heavily north of the Yangtze, and Yangzhou and Zhenjiang ring with the sound of shipbuilding. Li Zicheng's face darkens — these imperial officials dream of eradicating the Shun, and now they intend to strike while we're still recovering? Issue immediate orders: Liu Zongmin takes five thousand elite troops east through the Kui Gate to lay ambush near Yiling. If the Ming dare march west up the river, let them taste Shun steel. Meanwhile, Niu Jinxing intensifies agricultural colonies for a long war of attrition. It doesn't matter who draws first — what matters is who remains standing.",
-            "commands": [
-              {
-                "type": "move",
-                "params": {
-                  "destination": "kaifeng"
-                }
-              }
-            ]
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "zheng",
+              "action": "ally"
+            },
+            "reasoning": "Secure Zheng naval alliance for Yangtze defense"
+          },
+          {
+            "type": "tax",
+            "params": {
+              "tax_rate": 0.2
+            },
+            "reasoning": "Lower taxes to win popular support"
           }
-        }
+        ]
       }
     },
-    "pacify_jiangnan": {
-      "label_zh": "【📜 招抚江南】Pacify Jiangnan",
-      "label_en": "【📜 Pacify Jiangnan】Stabilize the South",
-      "decisions": {
-        "qing": {
-          "zh": {
-            "decision_text": "【以静制动】南明选择安抚江南、轻徭薄赋，这一手倒是聪明——得民心者得天下，自古以来便是这个道理。但多尔衮岂会坐视其收买人心？传令范文程：速拟一道剃发易服令，先在北直隶试行。同时让降清的洪承畴写劝降信——他是万历进士，又曾是崇祯倚重的蓟辽督师，江南士绅对他尚有几分尊敬。既然南明想用仁义拉拢人心，那我大清便用比他们更大的仁义——凡投诚者，免三年赋税，府县原官留任。看江南百姓是信弘光还是信我大清。",
-            "commands": [
-              {
-                "type": "attack",
-                "params": {
-                  "target_territory": "jinan"
-                }
-              },
-              {
-                "type": "move",
-                "params": {
-                  "destination": "dengzhou"
-                }
-              }
-            ]
+    "nongminjun": {
+      "zh": {
+        "decision_text": "【休养生息】李自成退守襄阳、四川。清军势大，南明尚存。当务之急是休养生息，发展生产，招募士卒。同时严守门户，坐观清明相争，待其两败俱伤再出击。遣使与南明议和，暂不交兵。",
+        "commands": [
+          {
+            "type": "develop",
+            "params": {
+              "territory": "sichuan"
+            },
+            "reasoning": "四川天府之国，发展农业积蓄实力"
           },
-          "en": {
-            "decision_text": "【Counter Calm with Strategy】The Southern Ming has chosen to pacify Jiangnan with light taxes and gentle rule — a shrewd move. He who wins hearts wins the empire, as the ancients taught. But Dorgon will not stand idle while they seduce the populace. Summon Fan Wencheng: draft the queue-and-robe edict, to be trialed first in Zhili. Meanwhile, have the surrendered Ming grandee Hong Chengchou compose a personal appeal — he was a jinshi under Wanli and the Chongzhen Emperor's trusted Liaodong commander; the Jiangnan gentry still respect him. If the Ming court wields benevolence, the Qing shall wield greater benevolence: all who submit receive three years' tax exemption, and all local officials keep their posts. Let the people of Jiangnan decide whom to trust — the Hongguang pretender or the Great Qing.",
-            "commands": [
-              {
-                "type": "attack",
-                "params": {
-                  "target_territory": "jinan"
-                }
-              },
-              {
-                "type": "move",
-                "params": {
-                  "destination": "dengzhou"
-                }
-              }
-            ]
-          }
-        },
-        "nanming": {
-          "zh": {
-            "decision_text": "【安民为本】江南士绅奔走相告：朝廷减赋三成，废止崇祯末年的辽饷、剿饷、练饷三大加派，民心大悦。苏州、松江的织户率先复业，漕运恢复，金陵市面重现繁华。史可法趁机上奏：民心已附，当趁热打铁，号召江南富商捐资助饷，以商养战。然马士英从中作梗，暗中授意党羽把持各地税关，中饱私囊。招抚江南本是一步好棋——可惜庙堂之上，蛀虫比明君更知道如何分赃。",
-            "commands": [
-              {
-                "type": "develop",
-                "params": {
-                  "territory": "nanjing"
-                }
-              },
-              {
-                "type": "defend",
-                "params": {
-                  "territory": "jinan"
-                }
-              }
-            ]
+          {
+            "type": "develop",
+            "params": {
+              "territory": "xiangyang"
+            },
+            "reasoning": "襄阳为南北要冲，屯田备战"
           },
-          "en": {
-            "decision_text": "【Pacify the People】Word races through Jiangnan: the court has slashed taxes by thirty percent and abolished the hated 'three levies' of the late Chongzhen era — the Liaodong surtax, the bandit-suppression tax, and the training levy. The gentry rejoice. Suzhou and Songjiang weavers reopen their workshops first, the Grand Canal pulses with grain barges again, and the markets of Jinling show signs of old prosperity. Shi Kefa seizes the moment: with the people now behind us, enlist wealthy Jiangnan merchants to fund the military — let commerce fuel the war. But Ma Shiying works behind the scenes, planting his cronies at every customs checkpoint to line their pockets. Pacifying Jiangnan was a masterstroke — pity the palace vermin know better how to steal than the Emperor knows how to rule.",
-            "commands": [
-              {
-                "type": "develop",
-                "params": {
-                  "territory": "nanjing"
-                }
-              },
-              {
-                "type": "defend",
-                "params": {
-                  "territory": "jinan"
-                }
-              }
-            ]
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "nanming",
+              "action": "non_aggression"
+            },
+            "reasoning": "与南明互不侵犯，避免两线作战"
           }
-        },
-        "nongminjun": {
-          "zh": {
-            "decision_text": "【民心之争】牛金星呈上江南情报：南明废三饷、减赋税，江南百姓欢声雷动。李自成沉默良久，忽然大笑——这帮官老爷终于学会了我大顺「均田免赋」的手段！可他们学得不像：减免的是江南富户的税，四川、湖广的贫苦百姓谁来管？传令各军：凡大顺所到之处，开仓放粮，当众烧毁官府田契。同时派细作潜入江西、湖广散布揭帖：「闯王来了不纳粮」。南明想用赋税收买人心？我大顺直接让百姓不交税。看谁的旗号更得人心。",
-            "commands": [
-              {
-                "type": "move",
-                "params": {
-                  "destination": "luoyang"
-                }
-              }
-            ]
+        ]
+      },
+      "en": {
+        "decision_text": "Li Zicheng retreats to Xiangyang and Sichuan. The Qing are powerful, the Southern Ming still fights. The priority is recovery — develop agriculture, recruit troops, and watch the Qing and Ming exhaust each other.",
+        "commands": [
+          {
+            "type": "develop",
+            "params": {
+              "territory": "sichuan"
+            },
+            "reasoning": "Sichuan is the breadbasket — develop agriculture"
           },
-          "en": {
-            "decision_text": "【Battle for Hearts】Niu Jinxing presents the Jiangnan intelligence: the Southern Ming has abolished the three levies, slashed taxes, and the common folk are cheering. Li Zicheng falls silent — then laughs thunderously. These mandarins have finally learned the Shun Army's trick: 'Equalize the land, abolish the grain tax!' But their imitation is half-hearted: they cut taxes for wealthy Jiangnan landlords while peasants in Sichuan and Huguang are left to starve. Order all banners: wherever the Shun Army marches, throw open the granaries and publicly burn the landlords' land deeds. Plant agents across Jiangxi and Huguang to spread handbills reading 'Under King Chuang, no man pays grain tax.' The Ming court tries to buy hearts with tax cuts? The Shun Army will simply let the people pay nothing at all. Let us see whose banner they flock to.",
-            "commands": [
-              {
-                "type": "move",
-                "params": {
-                  "destination": "luoyang"
-                }
-              }
-            ]
+          {
+            "type": "develop",
+            "params": {
+              "territory": "xiangyang"
+            },
+            "reasoning": "Xiangyang is strategically vital — fortify and farm"
+          },
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "nanming",
+              "action": "non_aggression"
+            },
+            "reasoning": "Non-aggression with Ming avoids two-front war"
           }
-        }
+        ]
+      }
+    },
+    "zheng": {
+      "zh": {
+        "decision_text": "【扩建水师】郑成功以厦门为基地，招募沿海渔民扩建水师。派遣商船赴日本、琉球、吕宋贸易，换取军资火器。与南明朝廷保持联络，承诺协防长江口。同时修缮金门炮台，巩固海防。",
+        "commands": [
+          {
+            "type": "recruit",
+            "params": {
+              "territory": "fujian",
+              "amount": 5000,
+              "unit_type": "水军"
+            },
+            "reasoning": "扩建水师是郑氏立身之本"
+          },
+          {
+            "type": "develop",
+            "params": {
+              "territory": "fujian"
+            },
+            "reasoning": "发展福建沿海贸易充实军资"
+          },
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "nanming",
+              "action": "ally"
+            },
+            "reasoning": "与南明结盟，协防长江口"
+          }
+        ]
+      },
+      "en": {
+        "decision_text": "Koxinga expands his naval base at Xiamen, recruiting fishermen into the fleet. Trade ships sail to Japan, Ryukyu, and Luzon for funds and firearms. Envoys reaffirm the alliance with the Southern Ming, pledging to guard the Yangtze estuary.",
+        "commands": [
+          {
+            "type": "recruit",
+            "params": {
+              "territory": "fujian",
+              "amount": 5000,
+              "unit_type": "navy"
+            },
+            "reasoning": "The Zheng clan lives and dies by its navy"
+          },
+          {
+            "type": "develop",
+            "params": {
+              "territory": "fujian"
+            },
+            "reasoning": "Develop coastal trade for military funding"
+          },
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "nanming",
+              "action": "ally"
+            },
+            "reasoning": "Alliance with Southern Ming to defend the Yangtze"
+          }
+        ]
       }
     }
   }
