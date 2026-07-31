@@ -373,6 +373,26 @@ def submit_decision(room_id: str, faction_id: str, decision: str, skip_narrative
         parsed = parser.parse(decision, faction_id)
         if parsed:
             slot.pending_commands = [c.to_dict() if hasattr(c, 'to_dict') else c for c in parsed]
+        # ── Log keyword-based parse for debug traceability (H31c fix) ──
+        try:
+            import json as _json
+            from histrategy.db.models import log_llm_call
+            log_llm_call(
+                room_id=room.id,
+                quarter_number=room.quarter_number,
+                call_type="policy_parse",
+                provider="keyword_parser",
+                model="keyword",
+                prompt_tokens=len(decision),
+                completion_tokens=len(_json.dumps(parsed, ensure_ascii=False)) if parsed else 0,
+                total_tokens=len(decision) + (len(_json.dumps(parsed, ensure_ascii=False)) if parsed else 0),
+                latency_ms=0,
+                user_prompt=decision,
+                response=_json.dumps([c.to_dict() if hasattr(c, 'to_dict') else c for c in parsed], ensure_ascii=False) if parsed else "[]",
+                faction_id=faction_id,
+            )
+        except Exception as _log_err:
+            pass  # non-critical
     except Exception as parse_err:
         logger.warning(f"Intent parse failed for {faction_id}: {parse_err}")
     _try_save(room)

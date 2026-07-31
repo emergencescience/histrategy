@@ -363,13 +363,31 @@ class LLMAdapter:
                         continue
 
                 latency = time.perf_counter() - start_time
+                full_text = "".join(full_content)
                 self._logger.info(
                     "LLM chat_stream done: provider=%s model=%s latency=%.1fs output_chars=%d",
                     self.provider_name,
                     self.model,
                     latency,
-                    len("".join(full_content)),
+                    len(full_text),
                 )
+                # ── Write to DB (was missing — H31b fix) ──
+                try:
+                    prompt_chars = sum(len(str(m.get("content", ""))) for m in messages)
+                    stats = {
+                        "provider": self.provider_name,
+                        "model": self.model,
+                        "latency": latency,
+                        "prompt_tokens": max(1, prompt_chars // 4),
+                        "completion_tokens": max(1, len(full_text) // 4),
+                        "total_tokens": max(1, (prompt_chars + len(full_text)) // 4),
+                        "reasoning_tokens": 0,
+                    }
+                    self._log_llm_call_to_db(
+                        messages, full_text, stats, latency, metadata, error=None
+                    )
+                except Exception as _log_err:
+                    self._logger.warning("chat_stream DB log failed: %s", _log_err)
         except Exception as e:
             latency = time.perf_counter() - start_time
             self._logger.error(
@@ -379,6 +397,22 @@ class LLMAdapter:
                 latency,
                 str(e)[:200],
             )
+            # ── Write error to DB (was missing — H31b fix) ──
+            try:
+                stats = {
+                    "provider": self.provider_name,
+                    "model": self.model,
+                    "latency": latency,
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "total_tokens": 0,
+                    "reasoning_tokens": 0,
+                }
+                self._log_llm_call_to_db(
+                    messages, "", stats, latency, metadata, error=str(e)[:500]
+                )
+            except Exception as _log_err:
+                self._logger.warning("chat_stream error DB log failed: %s", _log_err)
             raise
 
     def chat_structured(
