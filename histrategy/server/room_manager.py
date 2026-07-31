@@ -427,6 +427,11 @@ def stream_and_persist_narrative(room):
     ws = room.world_state
     lang = getattr(room, "metadata", {}).get("lang", "zh") if getattr(room, "metadata", None) else "zh"
 
+    logger.info(
+        "[room=%s] narrative-live-stream: stash=%s quarter=%d ws=%s",
+        room.id, "AVAILABLE" if ctx else "MISSING", quarter, "AVAILABLE" if ws else "MISSING",
+    )
+
     # ── No stashed context: replay cached DB narrative or offline fallback ──
     if not ctx or not ws:
         cached = ""

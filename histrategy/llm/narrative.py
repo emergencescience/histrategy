@@ -445,15 +445,28 @@ class NarrativeEngine:
 
         user_prompt = "\n".join(lines)
 
+        import logging
+        _logger = logging.getLogger("histrategy.narrative_stream")
+
         try:
+            chunk_count = 0
             for chunk in self.llm.chat_stream(
                 [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
                 temperature=0.7,
                 max_tokens=3072,
                 metadata={"category": "global_narrative", "room_id": room_id, "scenario": scenario},
             ):
+                chunk_count += 1
                 yield chunk
-        except Exception:
+            _logger.info(
+                "[room=%s] Global narrative stream: %d chunks from LLM",
+                room_id, chunk_count,
+            )
+        except Exception as e:
+            _logger.error(
+                "[room=%s] Global narrative LLM stream FAILED, falling back to offline: %s",
+                room_id, str(e)[:200],
+            )
             yield self._offline_global_narrative(ws, faction_decisions)
 
     def _offline_global_narrative(self, ws, faction_decisions: dict[str, str]) -> str:
