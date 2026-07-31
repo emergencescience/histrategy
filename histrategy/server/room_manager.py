@@ -904,12 +904,12 @@ def _trigger_npc_decisions(room: GameRoom):
     elif lang and lang.startswith("en"):
         lang = "en"
 
-    # ── Quarter 0-2: check for pre-baked repo decisions ──
-    if room.quarter_number in (0, 1, 2):
+    # ── Quarter 0-1: check for pre-baked repo decisions ──
+    # Q2+ skipped: state divergence from Q1 simulation makes pre-baking unreliable
+    if room.quarter_number in (0, 1):
         repo_decisions = _load_repo_npc_decisions(room.scenario, quarter=room.quarter_number)
         if repo_decisions:
-            # Q0 format: {"decisions": {faction_id: {lang: {decision_text, commands}}}}
-            # Q1/Q2 format: {"player_paths": {path_key: {"decisions": {...}}}}
+            # Q0/Q1 format: {"decisions": {faction_id: {lang: {decision_text, commands}}}}
             if "player_paths" in repo_decisions:
                 # Q1/Q2: lookup by player's last suggestion choice
                 last_sid = getattr(room, "_last_player_suggestion_id", "")
