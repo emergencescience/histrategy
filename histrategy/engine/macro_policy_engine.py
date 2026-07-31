@@ -117,6 +117,7 @@ class MacroPolicyEngine:
         turn_memory: list[dict] | None = None,
         epoch_memory: list[dict] | None = None,
         room_id: str = "",
+        quarter_number: int = 0,
     ) -> dict:
         """Generate quarterly historical simulation.
 
@@ -152,6 +153,7 @@ class MacroPolicyEngine:
                     "category": "macro_sim",
                     "reason": "quarterly_simulation",
                     "room_id": room_id,
+                    "quarter_number": quarter_number,
                 },
             )
             # chat_structured may return raw string if json.loads fails

@@ -849,7 +849,17 @@ def _trigger_npc_decisions(room: GameRoom):
 
     Quarter 0 decisions are cached to disk to avoid redundant LLM calls
     on room creation (same initial state for each scenario).
+
+    Thread-safe: uses _NPC_DECISION_LOCK to prevent concurrent generation
+    for the same room.  Persists via _try_save() inside this function so
+    no window exists between generation and DB write.
     """
+
+    # ── Re-entry guard ──
+    if room.id in _NPC_DECISION_LOCK:
+        logger.info(f"Room {room.id}: NPC decisions already in-flight, skipping duplicate trigger")
+        return
+
     from histrategy.engine.decision_bus import collect_all_decisions
 
     ws = room.world_state
@@ -914,17 +924,14 @@ def _trigger_npc_decisions(room: GameRoom):
                     f"loaded from repo — {list(ai_only.keys())}"
                 )
                 return
-            else:
-                logger.warning(
-                    f"Room {room.id}: Repo NPC decisions found but missing lang={lang} "
-                    f"for some factions — falling through to LLM"
-                )
 
-    # 临时替换 room.slots 为只含 AI 的版本，避免 DecisionBus 等待人类
-    # 使用 collect_all_decisions 为 AI 生成决策
-    # 90s 超时：每个 NPC LLM 调用 60s 超时 + 30s buffer
-    _NPC_TRIGGER_TIMEOUT = 90
+    # ── Acquire lock before LLM generation ──
+    _NPC_DECISION_LOCK.add(room.id)
     try:
+        # 临时替换 room.slots 为只含 AI 的版本，避免 DecisionBus 等待人类
+        # 使用 collect_all_decisions 为 AI 生成决策
+        # 90s 超时：每个 NPC LLM 调用 60s 超时 + 30s buffer
+        _NPC_TRIGGER_TIMEOUT = 90
         decisions = collect_all_decisions(
             room, ws, llm=llm, turn_memory=room.turn_summaries, lang=lang,
             timeout=_NPC_TRIGGER_TIMEOUT,
@@ -933,9 +940,15 @@ def _trigger_npc_decisions(room: GameRoom):
         for fid, dr in decisions.items():
             if fid in room.slots:
                 room.slots[fid].submit_decision(dr.decision_text, dr.commands)
+
+        # ── Persist immediately so concurrent _get_room() loads see the decisions ──
+        _try_save(room)
+
         logger.info(f"Room {room.id}: NPC decisions ready — {list(decisions.keys())}")
     except Exception as e:
         logger.error("[room=%s] NPC decision trigger failed: %s", room.id, e)
+    finally:
+        _NPC_DECISION_LOCK.discard(room.id)
 
 
 def _get_room(room_id: str) -> GameRoom | None:
@@ -977,6 +990,14 @@ def _get_room(room_id: str) -> GameRoom | None:
 # only needs to survive the submit → reload → response → stream window (~1s).
 # stream_and_persist_narrative pops it after generating + persisting the text.
 _NARRATIVE_CONTEXT_STASH: dict[str, dict] = {}
+
+# ── NPC decision generation guard (prevents concurrent triggers) ──
+# When multiple requests hit _get_room() while _trigger_npc_decisions() is
+# running in a background thread, each load sees the stale DB state (NPC
+# decisions not yet saved) and triggers a fresh round.  This set tracks
+# rooms that currently have an NPC generation in flight so concurrent
+# callers skip instead of duplicating LLM work.
+_NPC_DECISION_LOCK: set[str] = set()
 
 
 def _stash_narrative_context(room_id: str, ctx: dict, quarter: int) -> None:

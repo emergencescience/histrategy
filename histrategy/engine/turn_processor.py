@@ -777,6 +777,8 @@ class TurnProcessorMixin:
                 baseline,
                 bs_proposals,
                 turn_memory=getattr(self, "_turn_summaries", [])[-8:],  # last 8 quarters
+                room_id=getattr(self, "_room_id", ""),
+                quarter_number=ws.turn_number,
             )
 
             if mlm and hasattr(mlm, "total_all_tokens"):
