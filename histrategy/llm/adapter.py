@@ -23,8 +23,9 @@ PROVIDER_CONFIGS = [
         "env_key": "DOUBAO_API_KEY",
         "env_base": "DOUBAO_API_BASE",
         "default_base": "https://ark.cn-beijing.volces.com/api/v3",
-        "default_model": "doubao-pro-32k",
+        "default_model": "ep-20260731233019-dnsbd",
         "supports_json_mode": True,
+        "thinking_disabled": True,       # Disable reasoning tokens for faster responses
     },
     {
         "name": "deepseek",
@@ -95,7 +96,7 @@ def detect_provider() -> dict:
                 "name": cfg["name"],
                 "api_key": key,
                 "api_base": base_override or cfg["default_base"],
-                "model": os.environ.get("LLM_MODEL", cfg["default_model"]),
+                "model": cfg["default_model"],  # Provider-specific: use its default, ignore LLM_MODEL
                 "supports_json_mode": cfg["supports_json_mode"],
             }
 
@@ -249,14 +250,18 @@ class LLMAdapter:
         )
         def _do_chat():
             start = time.perf_counter()
+            body = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            }
+            # Doubao Seed 2.1 turbo disables reasoning tokens for faster responses
+            if self.provider_name == "doubao":
+                body["thinking"] = {"type": "disabled"}
             resp = self.client.post(
                 "/chat/completions",
-                json={
-                    "model": self.model,
-                    "messages": messages,
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
-                },
+                json=body,
             )
             latency = time.perf_counter() - start
             self._logger.info("LLM chat response: status=%d latency=%.1fs", resp.status_code, latency)
@@ -339,16 +344,20 @@ class LLMAdapter:
         )
 
         try:
+            stream_body = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "stream": True,
+            }
+            # Doubao Seed 2.1 turbo disables reasoning tokens for faster responses
+            if self.provider_name == "doubao":
+                stream_body["thinking"] = {"type": "disabled"}
             with self.client.stream(
                 "POST",
                 "/chat/completions",
-                json={
-                    "model": self.model,
-                    "messages": messages,
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
-                    "stream": True,
-                },
+                json=stream_body,
                 timeout=120.0,
             ) as response:
                 response.raise_for_status()

@@ -212,8 +212,9 @@ def create_room(
             scenario_faction_ids = {fid for fid, f in all_factions.items() if not f.get("npc_only", False)}
         # Major NPCs: all playable scenario factions not assigned to humans
         npc_factions = list(scenario_faction_ids - set(internal_ids))
-    except Exception:
+    except Exception as e:
         # Fallback to hardcoded defaults
+        logger.warning("[create_room] NPC faction resolution failed, using fallback: %s", e)
         npc_factions = fallback_npc_factions
 
     for fid in npc_factions:
@@ -713,8 +714,8 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
                             npc_actions = nr2
                         if npc_actions:
                             room._last_npc_actions = npc_actions
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("[room=%s] NPC actions lookup failed (display only): %s", room.id, e)
         # Unified narrative (public, same for all factions)
         status["narrative"] = narratives.get("global", "") if narratives else ""
         if npc_actions:
@@ -744,8 +745,8 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
                 )
             # Cache for subsequent calls
             room._narrative_history = history
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("[room=%s] Narrative history load failed (display only): %s", room.id, e)
     if history:
         status["turns"] = history
 
@@ -848,8 +849,8 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
                         base_owner = t.get("owner_id", "") or ""
                         if base_owner:
                             territory_owners[tid] = base_owner
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("[room=%s] Territory owners lookup failed (display only): %s", room.id, e)
 
         status["territory_owners"] = territory_owners
         status["territory_populations"] = territory_populations
@@ -1026,8 +1027,8 @@ def _get_room(room_id: str) -> GameRoom | None:
                         f"NPC decisions already present for {[s.faction_id for s in ai_slots]}"
                     )
             return room
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("NPC decision persistence failed: %s", e)
     return None
 
 
@@ -1123,8 +1124,8 @@ def _init_world_state(room: GameRoom):
             room.year = meta["start_year"]
             if room.world_state:
                 room.world_state.year = meta["start_year"]
-    except Exception:
-        pass  # Graceful: keep existing year if TOML parse fails
+    except Exception as e:
+        logger.warning("[room=%s] Scenario year parse failed, keeping existing year: %s", room.id, e)  # Graceful: keep existing year if TOML parse fails
 
     # ── Defensive check: after fallback, verify slot factions exist in WorldState ──
     if room.world_state is not None and room.scenario not in ("", "three-kingdoms"):
@@ -1282,8 +1283,8 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
         _progress_lang = getattr(room, "metadata", {}).get("lang", "zh")
         _set_progress(room.id, "simulating",
             "正在推演天下大势…" if _progress_lang == "zh" else "Simulating the realm…")
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Progress update failed (non-critical): %s", e)
 
     # 根据引擎模式选择仿真器
     # skip_narrative 仅对 V3 有意义（V1/V2 无 LLM 叙事引擎）。
@@ -1351,8 +1352,8 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
     # bypassing pre-baked scenario files.
     try:
         _trigger_npc_decisions(room)
-    except Exception:
-        pass  # non-critical; fallback to on-the-fly generation
+    except Exception as e:
+        logger.warning("[room=%s] NPC decision trigger failed (non-critical): %s", room.id, e)
 
     # ── Auto-expire stale policies ──
     try:
@@ -1363,8 +1364,8 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
                 "[room=%s] Policy auto-expiry: %d policies expired at quarter %d",
                 room.id, expired, room.quarter_number,
             )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("[room=%s] Policy auto-expiry check failed: %s", room.id, e)
 
     # 同步 WorldState 的 year/season 到 room（否则网页永远显示初始值）
     if hasattr(ws, "year"):
@@ -2342,8 +2343,8 @@ def _collect_quarter_tokens(room_id: str, quarter_number: int) -> dict | None:
                 "completion_tokens": rows[0]["completion"],
                 "llm_calls": rows[0]["calls"],
             }
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Token usage lookup failed (non-critical): %s", e)
     return None
 
 
@@ -2394,8 +2395,8 @@ def _get_npc_only_ids(room_id: str) -> set[str]:
         if fp.exists():
             cfg = _toml.loads(fp.read_text())
             return set(cfg.get("factions", {}).get("npc_only", []))
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("NPC-only ids lookup failed: %s", e)
 
     return set()
 
@@ -2420,8 +2421,8 @@ def _get_faction_names(room, lang: str = "zh") -> dict[str, str]:
                 names[fid] = f.get("name_en", f.get("name", fid))
             else:
                 names[fid] = f.get("name", f.get("name_en", fid))
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("[room=%s] Faction name resolution failed: %s", room.id, e)
     # Fallback: derive from room slots + world_state
     ws = getattr(room, "world_state", None)
     if ws:
@@ -2441,8 +2442,8 @@ def _get_faction_names(room, lang: str = "zh") -> dict[str, str]:
             for fid in names:
                 if not names[fid] or names[fid] == fid:
                     names[fid] = _FACTION_EN.get(fid, names[fid])
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Faction EN name fallback failed: %s", e)
     return names
 
 
@@ -2452,8 +2453,8 @@ def _write_backup(room, ws_dict):
 
         write_room_snapshot(room, ws_dict, "quarter_complete")
         cleanup_old_backups(room.id, keep=20)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("[room=%s] Backup write failed: %s", room.id, e)
 
 
 # ── Single-Player API Helpers ────────────────────────────────────
@@ -2473,8 +2474,8 @@ def _compute_navy(ws, faction_id: str) -> int:
                     unit_str = str(unit_type).lower() if hasattr(unit_type, "lower") else str(unit_type)
                     if "trireme" in unit_str or "navy" in unit_str or "naval" in unit_str:
                         navy += count
-    except Exception:
-        pass  # Old WorldState may not have armies
+    except Exception as e:
+        logger.debug("Navy count failed (non-critical, old WorldState compat): %s", e)  # Old WorldState may not have armies
     return navy
 
 def build_faction_status_for_api(room, faction_id: str) -> dict:
@@ -2522,8 +2523,8 @@ def build_faction_status_for_api(room, faction_id: str) -> dict:
                 if row.get("faction_id") == faction_id:
                     pop_sum = row.get("population", 0) or 0
                     break
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("[room=%s] Population sum lookup failed: %s", room.id, e)
 
     return {
         "name": getattr(faction, "name", faction_id),
