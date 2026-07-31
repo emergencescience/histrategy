@@ -343,12 +343,12 @@ class TestNPCTriggerDecisions:
         return MockWS({fid: MockFaction(**data) for fid, data in factions_data.items()})
 
     def test_trigger_generates_decisions_for_ai_slots(self):
-        """After _trigger_npc_decisions, all AI slots should have pending decisions."""
+        """After _trigger_npc_decisions, major AI slots should have pending decisions."""
         room = create_single_player_room("cao", "test-user")
         room.world_state = self._make_mock_world_state()
 
         # Initially no AI slots have submitted
-        for slot in room.ai_slots():
+        for slot in room.major_ai_slots():
             assert not slot.has_submitted(), f"AI slot {slot.faction_id} should start unsubmitted"
 
         # Trigger NPC decisions
@@ -356,11 +356,12 @@ class TestNPCTriggerDecisions:
 
         _trigger_npc_decisions(room)
 
-        # All AI slots should now have submitted decisions
-        ai_slots = room.ai_slots()
-        assert len(ai_slots) > 0, "Room should have AI slots"
+        # Only major AI slots (shu, wu) should have decisions — 
+        # npc_only minors (liuzhang, etc.) use heuristic not LLM
+        ai_slots = room.major_ai_slots()
+        assert len(ai_slots) > 0, "Room should have major AI slots"
         for slot in ai_slots:
-            assert slot.has_submitted(), f"AI slot {slot.faction_id} should have pending_decision after trigger"
+            assert slot.has_submitted(), f"Major AI slot {slot.faction_id} should have pending_decision after trigger"
             assert isinstance(slot.pending_decision, str) and len(slot.pending_decision) > 0
 
     def test_no_ai_slots_returns_early(self):
@@ -389,9 +390,11 @@ class TestNPCTriggerDecisions:
 
         _trigger_npc_decisions(room)
 
-        # Record first round decisions
-        first_decisions = {fid: slot.pending_decision for fid, slot in room.slots.items() if slot.is_ai()}
-        assert len(first_decisions) == 3  # shu, wu, liuzhang
+        # Record first round decisions (major AI slots only: shu, wu)
+        major_ids = getattr(room, "major_npc_ids", None) or {"shu", "wu"}
+        first_decisions = {fid: slot.pending_decision for fid, slot in room.slots.items()
+                          if slot.is_ai() and fid in major_ids}
+        assert len(first_decisions) == 2  # shu, wu (liuzhang is npc_only minor)
 
         # Advance quarter — should clear ALL decisions
         room.advance_quarter()
@@ -399,11 +402,11 @@ class TestNPCTriggerDecisions:
         for slot in room.slots.values():
             assert not slot.has_submitted(), f"Slot {slot.faction_id} should be cleared after advance_quarter"
 
-        # Re-trigger for next round
+        # Re-trigger for next round — only major AI should get decisions
         _trigger_npc_decisions(room)
-        for slot in room.ai_slots():
+        for slot in room.major_ai_slots():
             assert slot.has_submitted(), (
-                f"AI slot {slot.faction_id} should have new decision for Q{room.quarter_number}"
+                f"Major AI slot {slot.faction_id} should have new decision for Q{room.quarter_number}"
             )
             # Decision may be the same (heuristic is deterministic) — that's fine
             # The important thing is that it was regenerated

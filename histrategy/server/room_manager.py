@@ -888,8 +888,16 @@ def _trigger_npc_decisions(room: GameRoom):
 
     llm = _get_llm()
 
-    # 只收集 AI NPC 的决策（人类会在自己的时机提交）
-    ai_only = {fid: s for fid, s in room.slots.items() if s.is_ai() and s.is_active}
+    # 只收集主要 AI NPC 的决策（人类会在自己的时机提交）
+    # 使用 major_npc_ids/LLM_NPC_FACTIONS 过滤，排除 npc_only 死势力（liuzhang/liubiao等）
+    major_ids = getattr(room, "major_npc_ids", None)
+    if not major_ids:
+        from histrategy.engine.faction_slot import LLM_NPC_FACTIONS
+        major_ids = LLM_NPC_FACTIONS
+    ai_only = {
+        fid: s for fid, s in room.slots.items()
+        if s.is_ai() and s.is_active and fid in major_ids
+    }
 
     if not ai_only:
         return

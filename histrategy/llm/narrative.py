@@ -352,7 +352,12 @@ class NarrativeEngine:
                 [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
                 temperature=0.7,
                 max_tokens=3072,
-                metadata={"category": "global_narrative", "room_id": room_id, "scenario": scenario},
+                metadata={
+                    "category": "global_narrative",
+                    "room_id": room_id,
+                    "scenario": scenario,
+                    "quarter_number": getattr(ws, "turn_number", 0),
+                },
             )
             return result.strip()
         except Exception:
@@ -454,7 +459,12 @@ class NarrativeEngine:
                 [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
                 temperature=0.7,
                 max_tokens=3072,
-                metadata={"category": "global_narrative", "room_id": room_id, "scenario": scenario},
+                metadata={
+                    "category": "global_narrative",
+                    "room_id": room_id,
+                    "scenario": scenario,
+                    "quarter_number": getattr(ws, "turn_number", 0),
+                },
             ):
                 chunk_count += 1
                 yield chunk

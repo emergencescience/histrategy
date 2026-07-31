@@ -81,7 +81,7 @@ class StrategicAdvisor:
                 if hasattr(local_state.get("season"), "value")
                 else str(local_state.get("season", "spring"))
             ),
-            "category": "advisor",
+            "category": "npc_decision",
             "reason": "advise_player",
             "faction_id": local_state.get("faction_id", ""),
         }
@@ -118,7 +118,7 @@ class StrategicAdvisor:
                 if hasattr(local_state.get("season"), "value")
                 else str(local_state.get("season", "spring"))
             ),
-            "category": "advisor",
+            "category": "npc_decision",
             "reason": "advise_player_stream",
             "faction_id": local_state.get("faction_id", ""),
         }
@@ -175,7 +175,7 @@ class StrategicAdvisor:
                 if hasattr(local_state.get("season"), "value")
                 else str(local_state.get("season", "spring"))
             ),
-            "category": "advisor",
+            "category": "npc_decision",
             "reason": "evaluate_strategy",
             "faction_id": local_state.get("faction_id", ""),
         }
