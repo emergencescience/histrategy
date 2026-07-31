@@ -396,6 +396,9 @@ class TurnController:
         # ── Periodic reconciliation: sync faction.strength_actual with deployed troops ──
         # Over multiple turns, recruitment/attrition/battles can cause drift between
         # the faction-level strength counter and actual army unit counts.
+        # CRITICAL: Only sync when armies are actually deployed. Without this guard,
+        # a new game's first quarter (or any turn with no armies) zeroes ALL faction
+        # strength_actual to 0, which the post-resolve guardrail then clamps to -35%.
         for fid, faction in world_state.factions.items():
             if not faction.is_active:
                 continue
@@ -403,7 +406,8 @@ class TurnController:
                 a.total_troops for a in world_state.armies.values()
                 if a.faction_id == fid
             )
-            faction.strength_actual = max(deployed, 0)
+            if deployed > 0:
+                faction.strength_actual = deployed
 
         # ── Step 10: Return TurnResult ──
         # Build faction snapshots
