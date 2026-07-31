@@ -49,6 +49,21 @@ _FACTION_ZH = {
     "qing": "大清",
     "nongminjun": "农民军",
     "zheng": "郑氏",
+    # Three Kingdoms
+    "cao": "曹操",
+    "shu": "刘备",
+    "wu": "孙权",
+    "liubiao": "刘表",
+    "zhanglu": "张鲁",
+    "liuzhang": "刘璋",
+    "machao": "马超",
+    # Rome Triumvirate
+    "octavian": "屋大维",
+    "antony": "安东尼",
+    "cleopatra": "克利奥帕特拉",
+    "senate": "元老院",
+    "sextus_pompey": "塞克斯图斯·庞培",
+    "lepidus": "雷必达",
 }
 
 _FACTION_EN = {
