@@ -430,6 +430,7 @@ class QuarterlyResolver:
                 turn_memory=room.turn_summaries[-8:] if room.turn_summaries else [],
                 epoch_memory=epoch_memory,
                 room_id=room.id,
+                quarter_number=room.quarter_number,
             )
 
     def _generate_narratives(
