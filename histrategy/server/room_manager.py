@@ -61,6 +61,27 @@ def detect_device_type(user_agent: str) -> str:
     return "desktop"
 
 
+def detect_browser(user_agent: str) -> str:
+    """Parse User-Agent to identify the browser brand.
+
+    Returns one of: 'chrome', 'safari', 'firefox', 'edge', 'wechat', 'unknown'
+    """
+    ua = user_agent.lower() if user_agent else ""
+    if not ua:
+        return "unknown"
+    if "micromessenger" in ua:
+        return "wechat"
+    if "edg/" in ua or "edge/" in ua:
+        return "edge"
+    if "chrome/" in ua and "safari/" in ua:
+        return "chrome"
+    if "safari/" in ua and "chrome/" not in ua:
+        return "safari"
+    if "firefox/" in ua:
+        return "firefox"
+    return "unknown"
+
+
 def _try_save(room: GameRoom, ws_dict: dict | None = None):
     """Persist room to DB. Auto-extracts world_state dict if not provided."""
     import time as _t

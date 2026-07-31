@@ -243,7 +243,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         Orchestrator proxy injects X-User-Id header (real user UUID).
         """
-        from histrategy.server.room_manager import create_room, detect_device_type
+        from histrategy.server.room_manager import create_room, detect_browser, detect_device_type
 
         # Prefer X-User-Id (injected by orchestrator proxy) over body user_id
         pre_assigned = body.get("pre_assigned")
@@ -255,6 +255,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         metadata = dict(body.get("metadata") or {})
         metadata["device_type"] = detect_device_type(user_agent)
+        metadata["browser"] = detect_browser(user_agent)
 
         result = create_room(
             scenario=body.get("scenario_id") or body.get("scenario", "three-kingdoms"),

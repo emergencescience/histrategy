@@ -19,6 +19,14 @@ from .prompt_loader import KNOWN_PROMPTS
 # Provider configurations in priority order
 PROVIDER_CONFIGS = [
     {
+        "name": "doubao",
+        "env_key": "DOUBAO_API_KEY",
+        "env_base": "DOUBAO_API_BASE",
+        "default_base": "https://ark.cn-beijing.volces.com/api/v3",
+        "default_model": "doubao-pro-32k",
+        "supports_json_mode": True,
+    },
+    {
         "name": "deepseek",
         "env_key": "DEEPSEEK_API_KEY",
         "env_base": "DEEPSEEK_API_BASE",
