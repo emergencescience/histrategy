@@ -254,16 +254,19 @@ class GameEngineCore:
             from ..engine.state_applier import StateApplier, TurnMemory
             from ..llm.world_simulator import WorldSimulator
 
-            # WorldSimulator uses a fast model (no reasoning overhead)
-            v3_fast_model = os.environ.get("HISTRATEGY_FAST_MODEL", "deepseek-chat")
+            # WorldSimulator uses a fast model (no reasoning overhead).
+            # If user explicitly set HISTRATEGY_FAST_MODEL, use it; otherwise
+            # let the adapter detect from the provider (e.g., Doubao endpoint).
+            v3_fast_model_specified = os.environ.get("HISTRATEGY_FAST_MODEL")
             try:
                 from ..llm.adapter import LLMAdapter as _LLM
 
-                self._v3_llm = _LLM(
-                    model=v3_fast_model,
-                    api_key=llm.api_key if llm.api_key else None,
-                    api_base=llm.api_base if llm.api_base else None,
-                )
+                _v3_kwargs = {}
+                _v3_kwargs["api_key"] = llm.api_key if llm.api_key else None
+                _v3_kwargs["api_base"] = llm.api_base if llm.api_base else None
+                if v3_fast_model_specified:
+                    _v3_kwargs["model"] = v3_fast_model_specified
+                self._v3_llm = _LLM(**_v3_kwargs)
             except Exception:
                 self._v3_llm = llm  # fallback to default
 
@@ -288,19 +291,22 @@ class GameEngineCore:
             self._quarterly_engine = QuarterlyEngine(scenario=self.scenario)
             self._black_swan = BlackSwanInjector()
 
-            # MacroPolicyEngine uses chat model for creative simulation
-            macro_model = os.environ.get("HISTRATEGY_MACRO_MODEL", "deepseek-chat")
+            # MacroPolicyEngine uses chat model for creative simulation.
+            # If user explicitly set HISTRATEGY_MACRO_MODEL, use it; otherwise
+            # let the adapter detect from the provider (e.g., Doubao endpoint).
+            macro_model_specified = os.environ.get("HISTRATEGY_MACRO_MODEL")
             try:
                 from ..llm.adapter import LLMAdapter as _LLM
                 from ..state.world_state import get_data_dir as _get_data_dir
 
                 _room_dir = str(_get_data_dir())
-                self._macro_llm = _LLM(
-                    model=macro_model,
-                    api_key=llm.api_key if llm and llm.api_key else None,
-                    api_base=llm.api_base if llm and llm.api_base else None,
-                    data_dir=_room_dir,
-                )
+                _macro_kwargs = {}
+                _macro_kwargs["api_key"] = llm.api_key if llm and llm.api_key else None
+                _macro_kwargs["api_base"] = llm.api_base if llm and llm.api_base else None
+                _macro_kwargs["data_dir"] = _room_dir
+                if macro_model_specified:
+                    _macro_kwargs["model"] = macro_model_specified
+                self._macro_llm = _LLM(**_macro_kwargs)
             except Exception:
                 self._macro_llm = llm
             self._macro_sim = MacroPolicyEngine(self._macro_llm, scenario=self.scenario, lang=self._scenario_language)

@@ -1957,13 +1957,19 @@ def _territories_to_list(ws, faction) -> list[dict]:
 
 
 def _clamp_extreme_changes(ws, old_state: dict):
-    """Clamp per-turn faction state changes to ±30%.
+    """Clamp per-turn faction state changes.
 
     V3 QuarterlyResolver has no built-in guardrail for troop/food changes.
     This prevents LLM-hallucinated extreme swings (e.g. +200% troops from
-    alliance events) that cause instant famine or invincibility.
+    alliance events, or -80% from a single siege) that cause instant famine
+    or invincibility.
+
+    CRITICAL: This is a safety net, NOT a game mechanic. If every faction
+    hits this guardrail every turn, the LLM prompt needs fixing.
     """
-    _MAX = 0.30
+    _MAX_TROOP_LOSS = 0.35   # Max 35% per-quarter troop loss
+    _MAX_TROOP_GAIN = 0.50   # Max 50% per-quarter troop gain (recruitment + alliances)
+
     for fid, faction in ws.factions.items():
         if not faction.is_active:
             continue
@@ -1971,20 +1977,24 @@ def _clamp_extreme_changes(ws, old_state: dict):
         old_troops = old.get("troops", 0)
         new_troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
         if old_troops > 0 and new_troops != old_troops:
-            ratio = abs(new_troops - old_troops) / old_troops
-            if ratio > _MAX:
-                clamped = int(old_troops * (1 + _MAX)) if new_troops > old_troops else int(old_troops * (1 - _MAX))
+            change_pct = (new_troops - old_troops) / old_troops
+            threshold = _MAX_TROOP_LOSS if change_pct < 0 else _MAX_TROOP_GAIN
+            if abs(change_pct) > threshold:
+                clamped = int(old_troops * (1 + threshold)) if change_pct > 0 else int(old_troops * (1 - threshold))
+                direction = "gain" if change_pct > 0 else "loss"
                 logger.warning(
                     f"V3 guardrail: {faction.name} ({fid}) troops "
-                    f"{old_troops}->{new_troops} ({ratio:.0%}) clamped to {clamped}"
+                    f"{old_troops}->{new_troops} ({change_pct:+.0%}) clamped to {clamped} "
+                    f"(threshold: {threshold:.0%} {direction})"
                 )
                 if hasattr(faction, "strength_actual"):
                     faction.strength_actual = clamped
                 elif hasattr(faction, "strength"):
                     faction.strength = clamped
+                # Scale food proportionally for large swings
                 old_food = old.get("food", 0) or getattr(faction, "food", 0) or 0
-                if old_food > 0 and ratio > 1.0:
-                    faction.food = int(old_food * min(1 + _MAX, 2.0))
+                if old_food > 0 and abs(change_pct) > 1.0:
+                    faction.food = int(old_food * min(1 + threshold, 2.0))
                     logger.warning(
                         f"V3 guardrail: {faction.name} ({fid}) food auto-scaled "
                         f"{old_food}->{faction.food}"
