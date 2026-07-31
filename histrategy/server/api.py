@@ -260,6 +260,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             scenario=body.get("scenario_id") or body.get("scenario", "three-kingdoms"),
             pre_assigned=pre_assigned,
             metadata=metadata,
+            host_user_id=x_user_id,
         )
         return result
 

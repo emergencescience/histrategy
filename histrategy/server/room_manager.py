@@ -2,7 +2,7 @@
 RoomManager — 多人游戏房间管理（v3: 纯势力模型）。
 
 核心简化：
-  - histrategy 不追踪 user_id / host_user_id —— 身份由 orchestrator 代理层处理。
+  - histrategy 通过 host_user_id 追踪房间创建者（由 orchestrator 代理层 X-User-Id 注入）。
   - 房间创建时通过 pre_assigned 指定势力分配，之后不可变。
   - 没有 enter_room / kick_player / pick_faction —— 势力在创建时固定。
   - 玩家通过 faction_id 识别（/mp?room=xxx&faction=cao）。
@@ -85,12 +85,14 @@ def create_room(
     scenario: str = "three-kingdoms",
     pre_assigned: dict[str, str] | None = None,
     metadata: dict | None = None,
+    host_user_id: str = "",
 ) -> dict:
     """创建房间并立即开始游戏。
 
     Host 预分配势力：pre_assigned = {"cao": "张三", "shu": "李四"}
     → 每个玩家获得专属链接 /mp?room=xxx&faction=cao
     → 未分配的势力自动变 AI NPC
+    host_user_id 由 orchestrator 代理层的 X-User-Id 注入。
 
     Returns:
         {"ok": True, "room_id": str, "player_links": [{faction, url}], ...}
@@ -144,6 +146,8 @@ def create_room(
     room = GameRoom(
         scenario=scenario,
     )
+    if host_user_id:
+        room.host_user_id = host_user_id
     if metadata:
         room.metadata = metadata
 

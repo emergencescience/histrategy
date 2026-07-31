@@ -224,6 +224,7 @@ CREATE TABLE IF NOT EXISTS game_room (
     metadata        TEXT DEFAULT '{}',
     engine_version  TEXT DEFAULT '',
     is_public       INTEGER DEFAULT 0,
+    host_user_id    TEXT DEFAULT '',
     created_at      TEXT DEFAULT '',
     updated_at      TEXT DEFAULT ''
 );

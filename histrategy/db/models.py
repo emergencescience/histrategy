@@ -68,8 +68,8 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
             """INSERT INTO game_room
                 (id, scenario, year, season, quarter_number,
                  phase, world_state, slots, decision_timeout,
-                 turn_summaries, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                 turn_summaries, created_at, updated_at, host_user_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 room.id,
                 room.scenario,
@@ -83,6 +83,7 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
                 summaries_json,
                 now,
                 now,
+                getattr(room, "host_user_id", ""),
             ),
         )
         # If metadata column exists, set it
@@ -126,6 +127,7 @@ def load_room(room_id: str) -> GameRoom | None:
         decision_timeout=row.get("decision_timeout", 300),
         turn_summaries=turn_summaries,
         is_public=bool(row.get("is_public", 0)),
+        host_user_id=row.get("host_user_id", ""),
     )
     room.slots = slots
 

@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS game_room (
     metadata        TEXT DEFAULT '{}',         -- JSON: 房间元数据 (lang, etc.)
     engine_version  TEXT DEFAULT '',            -- 'v1' | 'v2' | 'v3' — 哪套引擎产生此房间
     is_public       INTEGER DEFAULT 0,          -- shared/published game page
+    host_user_id    TEXT DEFAULT '',             -- room creator (injected by orchestrator X-User-Id)
     created_at      TEXT DEFAULT '',
     updated_at      TEXT DEFAULT ''
 );

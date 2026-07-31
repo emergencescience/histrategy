@@ -10,8 +10,7 @@ RoomPhase:
     RESOLVING — 正在执行季度引擎（拒绝新提交）
     FINISHED  — 游戏结束
 
-histrategy 不追踪 user_id —— 身份由 orchestrator 代理层处理。
-房间创建时通过 pre_assigned 指定势力分配，之后不可变。
+histrategy 通过 host_user_id 记录房间创建者（由 orchestrator 代理层 X-User-Id 注入）。\n房间创建时通过 pre_assigned 指定势力分配，之后不可变。
 """
 
 from __future__ import annotations
@@ -46,8 +45,8 @@ class GameRoom:
     与旧版 GameSession 的核心区别：
     - 没有 player_faction_id —— 所有势力对称
     - 没有单一「玩家」概念 —— 每个 FactionSlot 独立提交决策
+    - 通过 host_user_id 记录房间创建者（由 orchestrator 代理层 X-User-Id 注入）
     - 通过 RoomPhase 状态机驱动多 faction 季度循环
-    - 不追踪 user_id / host_user_id —— 身份由 orchestrator 处理
     """
 
     id: str = field(default_factory=lambda: uuid.uuid4().hex)  # full UUID v4 (32-char hex)
@@ -70,6 +69,9 @@ class GameRoom:
 
     # 公开房间（发布后所有人可通过 shared URL 观战）
     is_public: bool = False
+
+    # 房间创建者 user_id（由 orchestrator 代理层的 X-User-Id 注入）
+    host_user_id: str = ""
 
     def __post_init__(self):
         if isinstance(self.phase, str):
@@ -240,13 +242,15 @@ def create_single_player_room(
 def create_multi_player_room(
     faction_ids: list[str],
     scenario: str = "three-kingdoms",
+    host_user_id: str = "",
 ) -> GameRoom:
     """创建多人模式的 GameRoom。
 
     指定势力设为 OPEN 等待玩家加入，其余设为 AI NPC。
-    histrategy 不追踪 host_user_id。
+    host_user_id 由 orchestrator 代理层的 X-User-Id 注入。
     """
     room = GameRoom(scenario=scenario)
+    room.host_user_id = host_user_id
 
     # 指定势力 → OPEN（等待玩家加入）
     for fid in faction_ids:
