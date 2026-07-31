@@ -457,36 +457,79 @@ class NarrativeEngine:
             yield self._offline_global_narrative(ws, faction_decisions)
 
     def _offline_global_narrative(self, ws, faction_decisions: dict[str, str]) -> str:
-        """Deterministic fallback when LLM is unavailable."""
+        """Deterministic fallback when LLM is unavailable.
+
+        Produces a readable chronicle summary instead of dumping raw decision text.
+        Raw player commands are never suitable as public-facing narrative —
+        they contain typos, informal language, and private tactical intent.
+        """
         is_en = self._language == "en"
         year = ws.year
         season = getattr(ws.season, "cn", str(ws.season)) if hasattr(ws, "season") else "?"
         season_label = f"{season} {year}" if is_en else f"{year}年{season}"
 
+        # Era line for immersion
+        era_info = self._ERA_MAP.get(self._scenario)
+        if era_info and not is_en:
+            reign_name, base_year = era_info
+            era_year = year - base_year + 1
+            if era_year < 1:
+                era_str = f"{reign_name}前{abs(era_year - 1)}年"
+            elif era_year == 1:
+                era_str = f"{reign_name}元年"
+            else:
+                era_str = f"{reign_name}{self._number_to_chinese(era_year)}年"
+            era_line = f"{era_str}{season}，天下纷争未休。"
+        else:
+            era_line = f"Year {year}, {season} — the realm remains in turmoil." if is_en else f"{year}年{season}，天下纷争未休。"
+
         lines = []
         header = f"### {season_label} · {'Annals' if is_en else '大事纪'}"
         lines.append(header)
         lines.append("")
+        lines.append(era_line)
+        lines.append("")
 
-        for fid, decision in faction_decisions.items():
+        # Per-faction status summaries (decision content replaced with intent summary)
+        for fid in faction_decisions:
             faction = ws.factions.get(fid)
-            if faction:
-                fname = getattr(faction, "name_en", "") if (is_en and getattr(faction, "name_en", "")) else faction.name
-            else:
-                fname = fid
-            troops = getattr(faction, "strength_actual", 0) if faction else 0
-            treasury = f"{faction.treasury:,.0f}" if faction else "?"
-            food = f"{faction.food:,.0f}" if faction else "?"
+            if not faction:
+                continue
+            fname = (
+                getattr(faction, "name_en", "")
+                if (is_en and getattr(faction, "name_en", ""))
+                else faction.name
+            )
+            troops = getattr(faction, "strength_actual", 0) or 0
+            treasury = int(getattr(faction, "treasury", 0) or 0)
+            food = int(getattr(faction, "food", 0) or 0)
+            morale = getattr(faction, "morale_actual", 50) or 50
+            territories = list(getattr(faction, "territories", []) or [])
+            terr_count = len(territories)
+
+            # Summarize faction status without exposing raw decision text
             if is_en:
                 lines.append(
-                    f"{fname}: {decision[:120]}. Troops: {troops:,}, "
-                    f"Treasury: {treasury}, Food: {food}."
+                    f"**{fname}**: {troops:,} troops, {treasury:,} gold, "
+                    f"{food:,} grain, morale {morale}, {terr_count} cities."
                 )
             else:
                 lines.append(
-                    f"{fname}：{decision[:120]}。兵力{troops:,}，"
-                    f"府库{treasury}，存粮{food}。"
+                    f"**{fname}**：兵力{troops:,}，府库{treasury:,}，"
+                    f"存粮{food:,}，民心{morale}，城池{terr_count}座。"
                 )
+
+        lines.append("")
+        if is_en:
+            lines.append(
+                "_The court chronicler records this quarter's events. "
+                "Detailed narratives will be generated in the next turn._"
+            )
+        else:
+            lines.append(
+                "_史官如实记录本季度各势力概况。"
+                "详细的战报叙事将在下一回合中生成。_"
+            )
 
         return "\n".join(lines)
 

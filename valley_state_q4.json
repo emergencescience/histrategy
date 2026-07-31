@@ -1,0 +1,1803 @@
+{
+  "quarter": 4,
+  "year": 2026,
+  "season": "Q4",
+  "companies": {
+    "deepmind": {
+      "id": "deepmind",
+      "name": "DeepMind",
+      "archetype": "foundation_lab",
+      "primary_segment": "agi_research",
+      "secondary_segments": [
+        "healthcare_ai"
+      ],
+      "cash_m": 4760.5,
+      "burn_rate_m_per_q": 220.0,
+      "revenue_m_per_q": 140.0,
+      "employees": 2800,
+      "valuation_m": 60000.0,
+      "equity": {
+        "parent_alphabet": 1.0
+      },
+      "aggression": 0.5,
+      "caution": 0.8,
+      "diplomacy": 0.6,
+      "innovation": 0.95,
+      "reputation": 0.99,
+      "market_share": {
+        "agi_research": 0.32,
+        "healthcare_ai": 0.18
+      },
+      "secret_goal": "Achieve AGI first and safely; publish breakthrough papers; maintain scientific prestige",
+      "status": "private_subsidiary",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "",
+      "last_quarter_delta": {
+        "cash_change": -30.0,
+        "revenue_change": 20.0,
+        "valuation_change": 5000.0,
+        "employees_change": 150,
+        "key_event": "Released AlphaFold 3, gained healthcare AI share"
+      }
+    },
+    "openai": {
+      "id": "openai",
+      "name": "OpenAI",
+      "archetype": "foundation_lab",
+      "primary_segment": "agi_research",
+      "secondary_segments": [
+        "consumer_ai",
+        "enterprise_ai",
+        "developer_tools"
+      ],
+      "cash_m": 7573.0,
+      "burn_rate_m_per_q": 450.0,
+      "revenue_m_per_q": 660.0,
+      "employees": 3600,
+      "valuation_m": 62000.0,
+      "equity": {
+        "microsoft": 0.49,
+        "investors": 0.3,
+        "employees": 0.21
+      },
+      "aggression": 0.8,
+      "caution": 0.4,
+      "diplomacy": 0.5,
+      "innovation": 0.9,
+      "reputation": 0.82,
+      "market_share": {
+        "agi_research": 0.18,
+        "consumer_ai": 0.25,
+        "enterprise_ai": 0.18,
+        "developer_tools": 0.18
+      },
+      "secret_goal": "IPO by 2027; dominate enterprise API market; outpace DeepMind on benchmarks",
+      "status": "private",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "",
+      "last_quarter_delta": {
+        "cash_change": -600.0,
+        "revenue_change": 110.0,
+        "valuation_change": 7000.0,
+        "employees_change": 200,
+        "key_event": "Launched GPT-5, cut API prices 20%"
+      }
+    },
+    "anthropic": {
+      "id": "anthropic",
+      "name": "Anthropic",
+      "archetype": "foundation_lab",
+      "primary_segment": "agi_research",
+      "secondary_segments": [
+        "enterprise_ai"
+      ],
+      "cash_m": 4266.0,
+      "burn_rate_m_per_q": 210.0,
+      "revenue_m_per_q": 220.0,
+      "employees": 2100,
+      "valuation_m": 55000.0,
+      "equity": {
+        "amazon": 0.2,
+        "google": 0.1,
+        "investors": 0.5,
+        "employees": 0.2
+      },
+      "aggression": 0.4,
+      "caution": 0.9,
+      "diplomacy": 0.8,
+      "innovation": 0.85,
+      "reputation": 0.97,
+      "market_share": {
+        "agi_research": 0.2,
+        "enterprise_ai": 0.15
+      },
+      "secret_goal": "Be the safety-first AGI company; win enterprise trust with constitutional AI",
+      "status": "private",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "",
+      "last_quarter_delta": {
+        "cash_change": -150.0,
+        "revenue_change": 40.0,
+        "valuation_change": 5000.0,
+        "employees_change": 100,
+        "key_event": "Launched safety certification, won enterprise trust"
+      }
+    },
+    "meta_ai": {
+      "id": "meta_ai",
+      "name": "Meta AI",
+      "archetype": "foundation_lab",
+      "primary_segment": "agi_research",
+      "secondary_segments": [
+        "consumer_ai",
+        "developer_tools"
+      ],
+      "cash_m": 14000.0,
+      "burn_rate_m_per_q": 380.0,
+      "revenue_m_per_q": 15.0,
+      "employees": 4000,
+      "valuation_m": 42000.0,
+      "equity": {
+        "parent_meta": 1.0
+      },
+      "aggression": 0.7,
+      "caution": 0.5,
+      "diplomacy": 0.7,
+      "innovation": 0.9,
+      "reputation": 0.75,
+      "market_share": {
+        "agi_research": 0.25,
+        "consumer_ai": 0.26,
+        "developer_tools": 0.44
+      },
+      "secret_goal": "Commoditize foundation models via open-source; weaken competitors' moats",
+      "status": "private_subsidiary",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "",
+      "last_quarter_delta": {
+        "cash_change": -280.0,
+        "revenue_change": 15.0,
+        "valuation_change": 4000.0,
+        "employees_change": 300,
+        "key_event": "Released Llama-4, open-weight model outperforms GPT-5"
+      }
+    },
+    "neuropilot": {
+      "id": "neuropilot",
+      "name": "NeuroPilot",
+      "archetype": "vertical_startup",
+      "primary_segment": "healthcare_ai",
+      "secondary_segments": [],
+      "cash_m": 290.0,
+      "burn_rate_m_per_q": 13.0,
+      "revenue_m_per_q": 9.0,
+      "employees": 250,
+      "valuation_m": 600.0,
+      "equity": {
+        "founders": 0.4,
+        "vc_a16z": 0.25,
+        "employees": 0.35
+      },
+      "aggression": 0.7,
+      "caution": 0.5,
+      "diplomacy": 0.6,
+      "innovation": 0.9,
+      "reputation": 0.8,
+      "market_share": {
+        "healthcare_ai": 0.15
+      },
+      "secret_goal": "IPO within 8 quarters or get acqui-hired by Google Health",
+      "status": "private",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "medical_imaging",
+      "last_quarter_delta": {
+        "cash_change": 94.5,
+        "revenue_change": 3.0,
+        "valuation_change": 100.0,
+        "employees_change": 30,
+        "key_event": "Closed $100M funding from a16z, launched FDA-approved diagnostic"
+      }
+    },
+    "agrisense": {
+      "id": "agrisense",
+      "name": "AgriSense",
+      "archetype": "vertical_startup",
+      "primary_segment": "enterprise_ai",
+      "secondary_segments": [
+        "robotics_ai"
+      ],
+      "cash_m": 179.0,
+      "burn_rate_m_per_q": 10.0,
+      "revenue_m_per_q": 12.0,
+      "employees": 200,
+      "valuation_m": 550.0,
+      "equity": {
+        "founders": 0.5,
+        "vc_sequoia": 0.2,
+        "employees": 0.3
+      },
+      "aggression": 0.5,
+      "caution": 0.6,
+      "diplomacy": 0.7,
+      "innovation": 0.75,
+      "reputation": 0.76,
+      "market_share": {
+        "enterprise_ai": 0.04,
+        "robotics_ai": 0.12
+      },
+      "secret_goal": "Partner with John Deere for distribution; dominate agtech AI",
+      "status": "private",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "precision_agriculture",
+      "last_quarter_delta": {
+        "cash_change": 72.0,
+        "revenue_change": 4.0,
+        "valuation_change": 150.0,
+        "employees_change": 30,
+        "key_event": "Closed $80M Series B from Sequoia, partnered with John Deere"
+      }
+    },
+    "lexai": {
+      "id": "lexai",
+      "name": "LexAI",
+      "archetype": "vertical_startup",
+      "primary_segment": "enterprise_ai",
+      "secondary_segments": [],
+      "cash_m": 216.7,
+      "burn_rate_m_per_q": 12.0,
+      "revenue_m_per_q": 14.0,
+      "employees": 280,
+      "valuation_m": 750.0,
+      "equity": {
+        "founders": 0.35,
+        "vc_founders_fund": 0.3,
+        "employees": 0.35
+      },
+      "aggression": 0.6,
+      "caution": 0.7,
+      "diplomacy": 0.5,
+      "innovation": 0.8,
+      "reputation": 0.81,
+      "market_share": {
+        "enterprise_ai": 0.06
+      },
+      "secret_goal": "Replace junior associates at top 50 law firms",
+      "status": "private",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "legal_ai",
+      "last_quarter_delta": {
+        "cash_change": 100.0,
+        "revenue_change": 5.0,
+        "valuation_change": 150.0,
+        "employees_change": 40,
+        "key_event": "Closed $120M Series C from Founders Fund, secured top law firms"
+      }
+    },
+    "finflow": {
+      "id": "finflow",
+      "name": "FinFlow",
+      "archetype": "vertical_startup",
+      "primary_segment": "fintech_ai",
+      "secondary_segments": [],
+      "cash_m": 427.0,
+      "burn_rate_m_per_q": 20.0,
+      "revenue_m_per_q": 30.0,
+      "employees": 320,
+      "valuation_m": 1000.0,
+      "equity": {
+        "founders": 0.3,
+        "vc_tiger": 0.3,
+        "employees": 0.4
+      },
+      "aggression": 0.8,
+      "caution": 0.3,
+      "diplomacy": 0.4,
+      "innovation": 0.85,
+      "reputation": 0.73,
+      "market_share": {
+        "fintech_ai": 0.14
+      },
+      "secret_goal": "Beat Renaissance Technologies by 2027; launch own hedge fund",
+      "status": "private",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "algorithmic_trading",
+      "last_quarter_delta": {
+        "cash_change": 150.0,
+        "revenue_change": 8.0,
+        "valuation_change": 300.0,
+        "employees_change": 50,
+        "key_event": "Closed $200M Series D from Tiger Global, launched hedge fund"
+      }
+    },
+    "edubot": {
+      "id": "edubot",
+      "name": "EduBot",
+      "archetype": "vertical_startup",
+      "primary_segment": "consumer_ai",
+      "secondary_segments": [],
+      "cash_m": 47.2,
+      "burn_rate_m_per_q": 5.0,
+      "revenue_m_per_q": 3.0,
+      "employees": 85,
+      "valuation_m": 120.0,
+      "equity": {
+        "founders": 0.55,
+        "vc_yc": 0.15,
+        "employees": 0.3
+      },
+      "aggression": 0.4,
+      "caution": 0.6,
+      "diplomacy": 0.8,
+      "innovation": 0.7,
+      "reputation": 0.63,
+      "market_share": {
+        "consumer_ai": 0.01
+      },
+      "secret_goal": "Get acquired by Khan Academy or Duolingo; reach 10M students",
+      "status": "private",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "ai_tutoring",
+      "last_quarter_delta": {
+        "cash_change": 4.0,
+        "revenue_change": 0.5,
+        "valuation_change": 20.0,
+        "employees_change": 5,
+        "key_event": "Closed $10M seed from YC, approached Khan Academy for acquisition"
+      }
+    },
+    "mediatech": {
+      "id": "mediatech",
+      "name": "MediaTech AI",
+      "archetype": "vertical_startup",
+      "primary_segment": "consumer_ai",
+      "secondary_segments": [
+        "developer_tools"
+      ],
+      "cash_m": 291.0,
+      "burn_rate_m_per_q": 20.0,
+      "revenue_m_per_q": 20.0,
+      "employees": 260,
+      "valuation_m": 1300.0,
+      "equity": {
+        "founders": 0.35,
+        "vc_a16z": 0.25,
+        "employees": 0.4
+      },
+      "aggression": 0.7,
+      "caution": 0.5,
+      "diplomacy": 0.5,
+      "innovation": 0.88,
+      "reputation": 0.82,
+      "market_share": {
+        "consumer_ai": 0.12,
+        "developer_tools": 0.04
+      },
+      "secret_goal": "Become the Adobe of AI video; threaten Hollywood post-production",
+      "status": "private",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "ai_video_generation",
+      "last_quarter_delta": {
+        "cash_change": 48.0,
+        "revenue_change": 5.0,
+        "valuation_change": 300.0,
+        "employees_change": 30,
+        "key_event": "Closed $80M from a16z, launched rival video generation model"
+      }
+    },
+    "cybersec_ai": {
+      "id": "cybersec_ai",
+      "name": "CyberSec AI",
+      "archetype": "vertical_startup",
+      "primary_segment": "enterprise_ai",
+      "secondary_segments": [
+        "cloud_infra"
+      ],
+      "cash_m": 138.05,
+      "burn_rate_m_per_q": 14.0,
+      "revenue_m_per_q": 14.0,
+      "employees": 190,
+      "valuation_m": 450.0,
+      "equity": {
+        "founders": 0.4,
+        "vc_sequoia": 0.22,
+        "employees": 0.38
+      },
+      "aggression": 0.6,
+      "caution": 0.5,
+      "diplomacy": 0.5,
+      "innovation": 0.82,
+      "reputation": 0.75,
+      "market_share": {
+        "enterprise_ai": 0.05,
+        "cloud_infra": 0.03
+      },
+      "secret_goal": "Become the CrowdStrike of AI-native security",
+      "status": "private",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "ai_security",
+      "last_quarter_delta": {
+        "cash_change": 38.0,
+        "revenue_change": 4.0,
+        "valuation_change": 100.0,
+        "employees_change": 20,
+        "key_event": "Closed $50M from Sequoia, launched threat detection platform"
+      }
+    },
+    "biomind": {
+      "id": "biomind",
+      "name": "BioMind",
+      "archetype": "vertical_startup",
+      "primary_segment": "healthcare_ai",
+      "secondary_segments": [],
+      "cash_m": 382.9,
+      "burn_rate_m_per_q": 24.0,
+      "revenue_m_per_q": 13.0,
+      "employees": 300,
+      "valuation_m": 2000.0,
+      "equity": {
+        "founders": 0.3,
+        "vc_founders_fund": 0.25,
+        "pharma_partners": 0.15,
+        "employees": 0.3
+      },
+      "aggression": 0.5,
+      "caution": 0.7,
+      "diplomacy": 0.7,
+      "innovation": 0.92,
+      "reputation": 0.94,
+      "market_share": {
+        "healthcare_ai": 0.21
+      },
+      "secret_goal": "Discover AI-designed drug that passes Phase II by 2028",
+      "status": "private",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "drug_discovery",
+      "last_quarter_delta": {
+        "cash_change": 60.0,
+        "revenue_change": 3.0,
+        "valuation_change": 500.0,
+        "employees_change": 30,
+        "key_event": "Closed $100M from Founders Fund, drug candidate enters Phase II"
+      }
+    },
+    "vector_db_inc": {
+      "id": "vector_db_inc",
+      "name": "VectorDB Inc",
+      "archetype": "infra_platform",
+      "primary_segment": "developer_tools",
+      "secondary_segments": [
+        "cloud_infra"
+      ],
+      "cash_m": 271.04,
+      "burn_rate_m_per_q": 25.0,
+      "revenue_m_per_q": 55.0,
+      "employees": 450,
+      "valuation_m": 4000.0,
+      "equity": {
+        "founders": 0.25,
+        "vc_a16z": 0.25,
+        "employees": 0.5
+      },
+      "aggression": 0.6,
+      "caution": 0.5,
+      "diplomacy": 0.5,
+      "innovation": 0.8,
+      "reputation": 0.91,
+      "market_share": {
+        "developer_tools": 0.25,
+        "cloud_infra": 0.09
+      },
+      "secret_goal": "IPO by 2026; own the vector DB category; fend off CloudScale acquisition",
+      "status": "private",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "vector_databases",
+      "last_quarter_delta": {
+        "cash_change": 45.0,
+        "revenue_change": 10.0,
+        "valuation_change": 1000.0,
+        "employees_change": 50,
+        "key_event": "Partnered with Microsoft Azure, launched managed vector DB"
+      }
+    },
+    "cloudscale": {
+      "id": "cloudscale",
+      "name": "CloudScale",
+      "archetype": "infra_platform",
+      "primary_segment": "cloud_infra",
+      "secondary_segments": [],
+      "cash_m": 2078.4,
+      "burn_rate_m_per_q": 120.0,
+      "revenue_m_per_q": 140.0,
+      "employees": 1100,
+      "valuation_m": 18000.0,
+      "equity": {
+        "founders": 0.2,
+        "vc_tiger": 0.3,
+        "employees": 0.5
+      },
+      "aggression": 0.7,
+      "caution": 0.4,
+      "diplomacy": 0.6,
+      "innovation": 0.75,
+      "reputation": 0.91,
+      "market_share": {
+        "cloud_infra": 0.26
+      },
+      "secret_goal": "IPO by 2027; become the AWS of GPU compute",
+      "status": "private",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "gpu_cloud",
+      "last_quarter_delta": {
+        "cash_change": 350.0,
+        "revenue_change": 20.0,
+        "valuation_change": 3000.0,
+        "employees_change": 100,
+        "key_event": "Closed $500M from Tiger Global, expanded data centers"
+      }
+    },
+    "apiforge": {
+      "id": "apiforge",
+      "name": "APIForge",
+      "archetype": "infra_platform",
+      "primary_segment": "developer_tools",
+      "secondary_segments": [],
+      "cash_m": 140.34,
+      "burn_rate_m_per_q": 12.0,
+      "revenue_m_per_q": 24.0,
+      "employees": 240,
+      "valuation_m": 1200.0,
+      "equity": {
+        "founders": 0.35,
+        "vc_yc": 0.15,
+        "employees": 0.5
+      },
+      "aggression": 0.5,
+      "caution": 0.6,
+      "diplomacy": 0.7,
+      "innovation": 0.7,
+      "reputation": 0.83,
+      "market_share": {
+        "developer_tools": 0.14
+      },
+      "secret_goal": "Be the Cloudflare of AI APIs; every model routes through us",
+      "status": "private",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "api_gateway_ai",
+      "last_quarter_delta": {
+        "cash_change": 30.0,
+        "revenue_change": 4.0,
+        "valuation_change": 200.0,
+        "employees_change": 20,
+        "key_event": "Launched AI security features, signed enterprise deals"
+      }
+    },
+    "model_market": {
+      "id": "model_market",
+      "name": "ModelMarket",
+      "archetype": "infra_platform",
+      "primary_segment": "developer_tools",
+      "secondary_segments": [],
+      "cash_m": 132.44,
+      "burn_rate_m_per_q": 14.0,
+      "revenue_m_per_q": 14.0,
+      "employees": 160,
+      "valuation_m": 950.0,
+      "equity": {
+        "founders": 0.3,
+        "vc_sequoia": 0.3,
+        "employees": 0.4
+      },
+      "aggression": 0.5,
+      "caution": 0.6,
+      "diplomacy": 0.8,
+      "innovation": 0.65,
+      "reputation": 0.79,
+      "market_share": {
+        "developer_tools": 0.13
+      },
+      "secret_goal": "Be the HuggingFace that monetizes; marketplace for fine-tuned models",
+      "status": "private",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "model_hub",
+      "last_quarter_delta": {
+        "cash_change": 18.0,
+        "revenue_change": 3.0,
+        "valuation_change": 150.0,
+        "employees_change": 20,
+        "key_event": "Closed $30M from YC, launched enterprise tier"
+      }
+    },
+    "synthetic_data_co": {
+      "id": "synthetic_data_co",
+      "name": "SyntheticData Co",
+      "archetype": "infra_platform",
+      "primary_segment": "developer_tools",
+      "secondary_segments": [
+        "enterprise_ai"
+      ],
+      "cash_m": 0.0,
+      "burn_rate_m_per_q": 7.0,
+      "revenue_m_per_q": 4.0,
+      "employees": 80,
+      "valuation_m": 200.0,
+      "equity": {
+        "founders": 0.45,
+        "vc_yc": 0.2,
+        "employees": 0.35
+      },
+      "aggression": 0.4,
+      "caution": 0.5,
+      "diplomacy": 0.9,
+      "innovation": 0.78,
+      "reputation": 0.62,
+      "market_share": {
+        "developer_tools": 0.05,
+        "enterprise_ai": 0.01
+      },
+      "secret_goal": "Supply training data to all foundation labs; become indispensable",
+      "status": "acquired",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "synthetic_data",
+      "last_quarter_delta": {
+        "cash_change": -40.0,
+        "revenue_change": 0.0,
+        "valuation_change": 20,
+        "employees_change": 0,
+        "key_event": "Acquired by Google for $200M"
+      }
+    },
+    "edge_ai_labs": {
+      "id": "edge_ai_labs",
+      "name": "EdgeAI Labs",
+      "archetype": "infra_platform",
+      "primary_segment": "cloud_infra",
+      "secondary_segments": [
+        "consumer_ai"
+      ],
+      "cash_m": 0.0,
+      "burn_rate_m_per_q": 12.0,
+      "revenue_m_per_q": 5.0,
+      "employees": 140,
+      "valuation_m": 500.0,
+      "equity": {
+        "founders": 0.35,
+        "vc_founders_fund": 0.25,
+        "employees": 0.4
+      },
+      "aggression": 0.5,
+      "caution": 0.5,
+      "diplomacy": 0.6,
+      "innovation": 0.84,
+      "reputation": 0.66,
+      "market_share": {
+        "cloud_infra": 0.04,
+        "consumer_ai": 0.02
+      },
+      "secret_goal": "Get acquired by Apple or Qualcomm for on-device AI chip integration",
+      "status": "acquired",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "on_device_ai",
+      "last_quarter_delta": {
+        "cash_change": -75.0,
+        "revenue_change": 0.0,
+        "valuation_change": 150,
+        "employees_change": 0,
+        "key_event": "Acquired by Apple for $500M"
+      }
+    },
+    "a16z_agent": {
+      "id": "a16z_agent",
+      "name": "a16z-agent",
+      "archetype": "vc_firm",
+      "primary_segment": "agi_research",
+      "secondary_segments": [
+        "developer_tools",
+        "healthcare_ai",
+        "fintech_ai"
+      ],
+      "cash_m": 2580.0,
+      "burn_rate_m_per_q": 0.0,
+      "revenue_m_per_q": 0.0,
+      "employees": 130,
+      "valuation_m": 0.0,
+      "equity": {
+        "partners": 1.0
+      },
+      "aggression": 0.8,
+      "caution": 0.3,
+      "diplomacy": 0.9,
+      "innovation": 0.5,
+      "reputation": 0.94,
+      "market_share": {},
+      "secret_goal": "Build the definitive AI portfolio; fund the next OpenAI before anyone else; $10B AUM",
+      "status": "active",
+      "portfolio": [
+        "neuropilot",
+        "mediatech",
+        "vector_db_inc"
+      ],
+      "dry_powder_m": 2000,
+      "domain": "",
+      "last_quarter_delta": {
+        "cash_change": -3000.0,
+        "revenue_change": 0.0,
+        "valuation_change": 0.0,
+        "employees_change": 5,
+        "key_event": "Raised $3B new fund, closed $180M in investments"
+      }
+    },
+    "sequoia_sim": {
+      "id": "sequoia_sim",
+      "name": "Sequoia-sim",
+      "archetype": "vc_firm",
+      "primary_segment": "enterprise_ai",
+      "secondary_segments": [
+        "fintech_ai",
+        "cloud_infra"
+      ],
+      "cash_m": 3230.0,
+      "burn_rate_m_per_q": 0.0,
+      "revenue_m_per_q": 0.0,
+      "employees": 105,
+      "valuation_m": 0.0,
+      "equity": {
+        "partners": 1.0
+      },
+      "aggression": 0.7,
+      "caution": 0.5,
+      "diplomacy": 0.8,
+      "innovation": 0.4,
+      "reputation": 0.95,
+      "market_share": {},
+      "secret_goal": "Maintain #1 VC brand; every hot AI deal must cross our desk; $8B AUM",
+      "status": "active",
+      "portfolio": [
+        "agrisense",
+        "cybersec_ai",
+        "model_market"
+      ],
+      "dry_powder_m": 1500,
+      "domain": "",
+      "last_quarter_delta": {
+        "cash_change": -120.0,
+        "revenue_change": 0.0,
+        "valuation_change": 0.0,
+        "employees_change": 5,
+        "key_event": "Led $80M Series B for AgriSense"
+      }
+    },
+    "yc_bot": {
+      "id": "yc_bot",
+      "name": "YC-bot",
+      "archetype": "vc_firm",
+      "primary_segment": "developer_tools",
+      "secondary_segments": [
+        "consumer_ai",
+        "enterprise_ai"
+      ],
+      "cash_m": 405.0,
+      "burn_rate_m_per_q": 0.0,
+      "revenue_m_per_q": 0.0,
+      "employees": 52,
+      "valuation_m": 0.0,
+      "equity": {
+        "partners": 1.0
+      },
+      "aggression": 0.9,
+      "caution": 0.2,
+      "diplomacy": 0.95,
+      "innovation": 0.3,
+      "reputation": 0.91,
+      "market_share": {},
+      "secret_goal": "Fund 500 AI startups per batch; own the seed layer; $2B AUM",
+      "status": "active",
+      "portfolio": [
+        "edubot",
+        "apiforge",
+        "synthetic_data_co"
+      ],
+      "dry_powder_m": 300,
+      "domain": "",
+      "last_quarter_delta": {
+        "cash_change": -35.0,
+        "revenue_change": 0.0,
+        "valuation_change": 0.0,
+        "employees_change": 2,
+        "key_event": "Funded 20 new seed startups, closed $40M in follow-ons"
+      }
+    },
+    "tiger_global_ai": {
+      "id": "tiger_global_ai",
+      "name": "Tiger-Global-AI",
+      "archetype": "vc_firm",
+      "primary_segment": "fintech_ai",
+      "secondary_segments": [
+        "cloud_infra",
+        "enterprise_ai"
+      ],
+      "cash_m": 3400.0,
+      "burn_rate_m_per_q": 0.0,
+      "revenue_m_per_q": 0.0,
+      "employees": 155,
+      "valuation_m": 0.0,
+      "equity": {
+        "partners": 1.0
+      },
+      "aggression": 0.85,
+      "caution": 0.2,
+      "diplomacy": 0.6,
+      "innovation": 0.3,
+      "reputation": 0.84,
+      "market_share": {},
+      "secret_goal": "Win growth-stage deals by outbidding everyone; $12B AUM; fastest returns",
+      "status": "active",
+      "portfolio": [
+        "finflow",
+        "cloudscale"
+      ],
+      "dry_powder_m": 3000,
+      "domain": "",
+      "last_quarter_delta": {
+        "cash_change": -500.0,
+        "revenue_change": 0.0,
+        "valuation_change": 0.0,
+        "employees_change": 5,
+        "key_event": "Led $200M Series D for FinFlow, closed $500M in CloudScale"
+      }
+    },
+    "founders_fund_ai": {
+      "id": "founders_fund_ai",
+      "name": "Founders-Fund-AI",
+      "archetype": "vc_firm",
+      "primary_segment": "agi_research",
+      "secondary_segments": [
+        "healthcare_ai",
+        "robotics_ai"
+      ],
+      "cash_m": 2610.0,
+      "burn_rate_m_per_q": 0.0,
+      "revenue_m_per_q": 0.0,
+      "employees": 85,
+      "valuation_m": 0.0,
+      "equity": {
+        "partners": 1.0
+      },
+      "aggression": 0.6,
+      "caution": 0.6,
+      "diplomacy": 0.7,
+      "innovation": 0.7,
+      "reputation": 0.88,
+      "market_share": {},
+      "secret_goal": "Back unsexy but world-changing deep tech; fund the next SpaceX of AI; $5B AUM",
+      "status": "active",
+      "portfolio": [
+        "lexai",
+        "biomind",
+        "edge_ai_labs"
+      ],
+      "dry_powder_m": 1800,
+      "domain": "",
+      "last_quarter_delta": {
+        "cash_change": -220.0,
+        "revenue_change": 0.0,
+        "valuation_change": 0.0,
+        "employees_change": 5,
+        "key_event": "Led $120M Series C for LexAI, closed $100M in BioMind"
+      }
+    },
+    "google": {
+      "id": "google",
+      "name": "Google",
+      "archetype": "big_tech",
+      "primary_segment": "cloud_infra",
+      "secondary_segments": [
+        "agi_research",
+        "consumer_ai",
+        "developer_tools",
+        "enterprise_ai"
+      ],
+      "cash_m": 20507.0,
+      "burn_rate_m_per_q": 550.0,
+      "revenue_m_per_q": 980.0,
+      "employees": 181000,
+      "valuation_m": 2150000.0,
+      "equity": {
+        "public": 1.0
+      },
+      "aggression": 0.6,
+      "caution": 0.7,
+      "diplomacy": 0.5,
+      "innovation": 0.8,
+      "reputation": 0.77,
+      "market_share": {
+        "cloud_infra": 0.17,
+        "agi_research": 0.1,
+        "consumer_ai": 0.05,
+        "developer_tools": 0.07,
+        "enterprise_ai": 0.08
+      },
+      "secret_goal": "Own the AI stack end-to-end; leverage Android + Search data moat",
+      "status": "public",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "",
+      "last_quarter_delta": {
+        "cash_change": -180.0,
+        "revenue_change": 39.0,
+        "valuation_change": 40000.0,
+        "employees_change": 450,
+        "key_event": "Launched Health AI Imaging Suite"
+      }
+    },
+    "microsoft": {
+      "id": "microsoft",
+      "name": "Microsoft",
+      "archetype": "big_tech",
+      "primary_segment": "enterprise_ai",
+      "secondary_segments": [
+        "cloud_infra",
+        "developer_tools",
+        "agi_research"
+      ],
+      "cash_m": 26327.5,
+      "burn_rate_m_per_q": 680.0,
+      "revenue_m_per_q": 1260.0,
+      "employees": 221000,
+      "valuation_m": 3250000.0,
+      "equity": {
+        "public": 1.0
+      },
+      "aggression": 0.7,
+      "caution": 0.5,
+      "diplomacy": 0.6,
+      "innovation": 0.75,
+      "reputation": 0.83,
+      "market_share": {
+        "enterprise_ai": 0.25,
+        "cloud_infra": 0.24,
+        "developer_tools": 0.13,
+        "agi_research": 0.04
+      },
+      "secret_goal": "Integrate AI into every Office 365 seat; own enterprise AI distribution",
+      "status": "public",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "",
+      "last_quarter_delta": {
+        "cash_change": -150.0,
+        "revenue_change": 52.5,
+        "valuation_change": 80000.0,
+        "employees_change": 1000,
+        "key_event": "Launched Copilot 365 with GPT-5 integration"
+      }
+    },
+    "amazon": {
+      "id": "amazon",
+      "name": "Amazon",
+      "archetype": "big_tech",
+      "primary_segment": "cloud_infra",
+      "secondary_segments": [
+        "enterprise_ai",
+        "consumer_ai",
+        "robotics_ai"
+      ],
+      "cash_m": 19366.4,
+      "burn_rate_m_per_q": 520.0,
+      "revenue_m_per_q": 1100.0,
+      "employees": 402000,
+      "valuation_m": 2050000.0,
+      "equity": {
+        "public": 1.0
+      },
+      "aggression": 0.8,
+      "caution": 0.4,
+      "diplomacy": 0.4,
+      "innovation": 0.7,
+      "reputation": 0.79,
+      "market_share": {
+        "cloud_infra": 0.26,
+        "enterprise_ai": 0.1,
+        "consumer_ai": 0.07,
+        "robotics_ai": 0.05
+      },
+      "secret_goal": "Make AWS the default AI cloud; use Alexa data for consumer AI dominance",
+      "status": "public",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "",
+      "last_quarter_delta": {
+        "cash_change": -190.0,
+        "revenue_change": 41.6,
+        "valuation_change": 45000.0,
+        "employees_change": 2000,
+        "key_event": "Announced AWS Trainium 3 chips"
+      }
+    },
+    "apple": {
+      "id": "apple",
+      "name": "Apple",
+      "archetype": "big_tech",
+      "primary_segment": "consumer_ai",
+      "secondary_segments": [
+        "cloud_infra"
+      ],
+      "cash_m": 31396.0,
+      "burn_rate_m_per_q": 460.0,
+      "revenue_m_per_q": 1440.0,
+      "employees": 160500,
+      "valuation_m": 3650000.0,
+      "equity": {
+        "public": 1.0
+      },
+      "aggression": 0.5,
+      "caution": 0.8,
+      "diplomacy": 0.6,
+      "innovation": 0.85,
+      "reputation": 0.95,
+      "market_share": {
+        "consumer_ai": 0.24,
+        "cloud_infra": 0.03
+      },
+      "secret_goal": "On-device AI as privacy differentiator; lock users into Apple Intelligence ecosystem",
+      "status": "public",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "",
+      "last_quarter_delta": {
+        "cash_change": -240.0,
+        "revenue_change": 54.0,
+        "valuation_change": 69500.0,
+        "employees_change": 360,
+        "key_event": "Launched Apple Intelligence 2.0 with privacy focus"
+      }
+    },
+    "open_source_collective": {
+      "id": "open_source_collective",
+      "name": "OpenSource Collective",
+      "archetype": "wildcard",
+      "primary_segment": "developer_tools",
+      "secondary_segments": [
+        "agi_research"
+      ],
+      "cash_m": 15.5,
+      "burn_rate_m_per_q": 2.5,
+      "revenue_m_per_q": 1.8,
+      "employees": 38,
+      "valuation_m": 0.0,
+      "equity": {
+        "community": 1.0
+      },
+      "aggression": 0.3,
+      "caution": 0.5,
+      "diplomacy": 1.0,
+      "innovation": 0.95,
+      "reputation": 1.0,
+      "market_share": {
+        "developer_tools": 0.06,
+        "agi_research": 0.05
+      },
+      "secret_goal": "Force all foundation models to be open-weight; release leaked models",
+      "status": "nonprofit",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "open_source_advocacy",
+      "last_quarter_delta": {
+        "cash_change": -2.5,
+        "revenue_change": 0.3,
+        "valuation_change": 0.0,
+        "employees_change": 3,
+        "key_event": "Leaked open-weight model comparable to GPT-5"
+      }
+    },
+    "regulatory_body": {
+      "id": "regulatory_body",
+      "name": "AI Regulatory Commission",
+      "archetype": "wildcard",
+      "primary_segment": "enterprise_ai",
+      "secondary_segments": [
+        "consumer_ai",
+        "agi_research"
+      ],
+      "cash_m": 485.0,
+      "burn_rate_m_per_q": 5.0,
+      "revenue_m_per_q": 0.0,
+      "employees": 210,
+      "valuation_m": 0.0,
+      "equity": {
+        "government": 1.0
+      },
+      "aggression": 0.9,
+      "caution": 0.9,
+      "diplomacy": 0.3,
+      "innovation": 0.1,
+      "reputation": 0.76,
+      "market_share": {},
+      "secret_goal": "Block dangerous AI deployments; fine big tech; enforce EU AI Act compliance",
+      "status": "government",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "ai_governance",
+      "last_quarter_delta": {
+        "cash_change": -5.0,
+        "revenue_change": 0.0,
+        "valuation_change": 0.0,
+        "employees_change": 10,
+        "key_event": "Issued new safety guidelines requiring model licensing"
+      }
+    },
+    "talent_marketplace": {
+      "id": "talent_marketplace",
+      "name": "AITalent Exchange",
+      "archetype": "wildcard",
+      "primary_segment": "enterprise_ai",
+      "secondary_segments": [],
+      "cash_m": 35.4,
+      "burn_rate_m_per_q": 8.0,
+      "revenue_m_per_q": 13.0,
+      "employees": 120,
+      "valuation_m": 250.0,
+      "equity": {
+        "founders": 0.5,
+        "vc_yc": 0.2,
+        "employees": 0.3
+      },
+      "aggression": 0.4,
+      "caution": 0.5,
+      "diplomacy": 0.9,
+      "innovation": 0.6,
+      "reputation": 0.72,
+      "market_share": {
+        "enterprise_ai": 0.015
+      },
+      "secret_goal": "Become the LinkedIn of AI talent; every AI company recruits through us",
+      "status": "private",
+      "portfolio": [],
+      "dry_powder_m": 0,
+      "domain": "ai_recruitment",
+      "last_quarter_delta": {
+        "cash_change": -4.0,
+        "revenue_change": 3.0,
+        "valuation_change": 50.0,
+        "employees_change": 10,
+        "key_event": "Reported 30% salary increase for AI engineers"
+      }
+    }
+  },
+  "market_segments": {
+    "enterprise_ai": {
+      "tam_b": 50.0,
+      "growth_rate": 0.15,
+      "description": "Enterprise AI solutions"
+    },
+    "consumer_ai": {
+      "tam_b": 30.0,
+      "growth_rate": 0.2,
+      "description": "Consumer-facing AI products"
+    },
+    "healthcare_ai": {
+      "tam_b": 29.28,
+      "growth_rate": 0.3,
+      "description": "AI in medical diagnosis & treatment"
+    },
+    "developer_tools": {
+      "tam_b": 15.0,
+      "growth_rate": 0.18,
+      "description": "ML infrastructure & developer tools"
+    },
+    "cloud_infra": {
+      "tam_b": 40.0,
+      "growth_rate": 0.12,
+      "description": "Cloud compute & AI infrastructure"
+    },
+    "agi_research": {
+      "tam_b": 5.0,
+      "growth_rate": 0.3,
+      "description": "Frontier AGI research, high variance"
+    },
+    "robotics_ai": {
+      "tam_b": 12.0,
+      "growth_rate": 0.22,
+      "description": "AI for physical robots & automation"
+    },
+    "fintech_ai": {
+      "tam_b": 18.0,
+      "growth_rate": 0.16,
+      "description": "AI in finance & trading"
+    }
+  },
+  "fed_rate": 4.5,
+  "vc_sentiment": "bullish",
+  "hype_cycle": "ai_summer",
+  "active_contracts": [],
+  "contract_history": [
+    {
+      "type": "funding",
+      "from": "a16z_agent",
+      "to": "neuropilot",
+      "amount_m": 30,
+      "equity_pct": 0.1,
+      "outcome": "closed",
+      "quarter": 1
+    },
+    {
+      "type": "funding",
+      "from": "a16z_agent",
+      "to": "mediatech",
+      "amount_m": 40,
+      "equity_pct": 0.08,
+      "outcome": "closed",
+      "quarter": 1
+    },
+    {
+      "type": "funding",
+      "from": "sequoia_sim",
+      "to": "agrisense",
+      "amount_m": 25,
+      "equity_pct": 0.1,
+      "outcome": "closed",
+      "quarter": 1
+    },
+    {
+      "type": "funding",
+      "from": "sequoia_sim",
+      "to": "model_market",
+      "amount_m": 15,
+      "equity_pct": 0.025,
+      "outcome": "closed",
+      "quarter": 1
+    },
+    {
+      "type": "funding",
+      "from": "yc_bot",
+      "to": "edubot",
+      "amount_m": 5,
+      "equity_pct": 0.04,
+      "outcome": "closed",
+      "quarter": 1
+    },
+    {
+      "type": "funding",
+      "from": "tiger_global_ai",
+      "to": "cloudscale",
+      "amount_m": 200,
+      "equity_pct": 0.02,
+      "outcome": "closed",
+      "quarter": 1
+    },
+    {
+      "type": "funding",
+      "from": "founders_fund_ai",
+      "to": "lexai",
+      "amount_m": 20,
+      "equity_pct": 0.05,
+      "outcome": "closed",
+      "quarter": 1
+    },
+    {
+      "type": "acquisition",
+      "from": "apple",
+      "to": "edge_ai_labs",
+      "amount_m": 500,
+      "equity_pct": 1.0,
+      "outcome": "closed",
+      "quarter": 1
+    },
+    {
+      "type": "acquisition",
+      "from": "google",
+      "to": "synthetic_data_co",
+      "amount_m": 200,
+      "equity_pct": 1.0,
+      "outcome": "closed",
+      "quarter": 1
+    },
+    {
+      "type": "funding",
+      "from": "a16z_agent",
+      "to": "neuropilot",
+      "amount_m": 30,
+      "equity_pct": 0.1,
+      "outcome": "closed",
+      "quarter": 1
+    },
+    {
+      "type": "funding",
+      "from": "a16z_agent",
+      "to": "mediatech",
+      "amount_m": 40,
+      "equity_pct": 0.12,
+      "outcome": "closed",
+      "quarter": 1
+    },
+    {
+      "type": "funding",
+      "from": "sequoia_sim",
+      "to": "agrisense",
+      "amount_m": 25,
+      "equity_pct": 0.15,
+      "outcome": "closed",
+      "quarter": 1
+    },
+    {
+      "type": "funding",
+      "from": "sequoia_sim",
+      "to": "model_market",
+      "amount_m": 15,
+      "equity_pct": 0.1,
+      "outcome": "closed",
+      "quarter": 1
+    },
+    {
+      "type": "funding",
+      "from": "yc_bot",
+      "to": "edubot",
+      "amount_m": 5,
+      "equity_pct": 0.08,
+      "outcome": "closed",
+      "quarter": 1
+    },
+    {
+      "type": "funding",
+      "from": "tiger_global_ai",
+      "to": "cloudscale",
+      "amount_m": 200,
+      "equity_pct": 0.12,
+      "outcome": "closed",
+      "quarter": 1
+    },
+    {
+      "type": "funding",
+      "from": "founders_fund_ai",
+      "to": "lexai",
+      "amount_m": 20,
+      "equity_pct": 0.1,
+      "outcome": "closed",
+      "quarter": 1
+    },
+    {
+      "type": "acquisition",
+      "from": "apple",
+      "to": "edge_ai_labs",
+      "amount_m": 500,
+      "equity_pct": 1.0,
+      "outcome": "closed",
+      "quarter": 1
+    },
+    {
+      "type": "acquisition",
+      "from": "google",
+      "to": "synthetic_data_co",
+      "amount_m": 200,
+      "equity_pct": 1.0,
+      "outcome": "closed",
+      "quarter": 1
+    },
+    {
+      "type": "funding",
+      "from": "a16z_agent",
+      "to": "neuropilot",
+      "amount_m": 100,
+      "equity_pct": 0.2,
+      "outcome": "closed",
+      "quarter": 2
+    },
+    {
+      "type": "funding",
+      "from": "a16z_agent",
+      "to": "mediatech",
+      "amount_m": 80,
+      "equity_pct": 0.08,
+      "outcome": "closed",
+      "quarter": 2
+    },
+    {
+      "type": "funding",
+      "from": "sequoia_sim",
+      "to": "cybersec_ai",
+      "amount_m": 50,
+      "equity_pct": 0.14,
+      "outcome": "closed",
+      "quarter": 2
+    },
+    {
+      "type": "funding",
+      "from": "tiger_global_ai",
+      "to": "finflow",
+      "amount_m": 150,
+      "equity_pct": 0.21,
+      "outcome": "closed",
+      "quarter": 2
+    },
+    {
+      "type": "funding",
+      "from": "tiger_global_ai",
+      "to": "cloudscale",
+      "amount_m": 500,
+      "equity_pct": 0.033,
+      "outcome": "closed",
+      "quarter": 2
+    },
+    {
+      "type": "funding",
+      "from": "founders_fund_ai",
+      "to": "biomind",
+      "amount_m": 100,
+      "equity_pct": 0.067,
+      "outcome": "closed",
+      "quarter": 2
+    },
+    {
+      "type": "funding",
+      "from": "yc_bot",
+      "to": "edubot",
+      "amount_m": 10,
+      "equity_pct": 0.1,
+      "outcome": "closed",
+      "quarter": 2
+    },
+    {
+      "type": "funding",
+      "from": "yc_bot",
+      "to": "model_market",
+      "amount_m": 30,
+      "equity_pct": 0.0375,
+      "outcome": "closed",
+      "quarter": 2
+    },
+    {
+      "type": "partnership",
+      "from": "microsoft",
+      "to": "vector_db_inc",
+      "amount_m": 50,
+      "equity_pct": 0.0,
+      "outcome": "closed",
+      "quarter": 2
+    },
+    {
+      "type": "funding",
+      "from": "a16z_agent",
+      "to": "neuropilot",
+      "amount_m": 100,
+      "equity_pct": 0.15,
+      "outcome": "closed",
+      "quarter": 3
+    },
+    {
+      "type": "funding",
+      "from": "a16z_agent",
+      "to": "mediatech",
+      "amount_m": 80,
+      "equity_pct": 0.12,
+      "outcome": "closed",
+      "quarter": 3
+    },
+    {
+      "type": "funding",
+      "from": "sequoia_sim",
+      "to": "agrisense",
+      "amount_m": 80,
+      "equity_pct": 0.18,
+      "outcome": "closed",
+      "quarter": 3
+    },
+    {
+      "type": "funding",
+      "from": "sequoia_sim",
+      "to": "cybersec_ai",
+      "amount_m": 50,
+      "equity_pct": 0.14,
+      "outcome": "closed",
+      "quarter": 2
+    },
+    {
+      "type": "funding",
+      "from": "tiger_global_ai",
+      "to": "finflow",
+      "amount_m": 200,
+      "equity_pct": 0.2,
+      "outcome": "closed",
+      "quarter": 3
+    },
+    {
+      "type": "funding",
+      "from": "tiger_global_ai",
+      "to": "cloudscale",
+      "amount_m": 500,
+      "equity_pct": 0.1,
+      "outcome": "closed",
+      "quarter": 2
+    },
+    {
+      "type": "funding",
+      "from": "founders_fund_ai",
+      "to": "lexai",
+      "amount_m": 120,
+      "equity_pct": 0.16,
+      "outcome": "closed",
+      "quarter": 3
+    },
+    {
+      "type": "funding",
+      "from": "founders_fund_ai",
+      "to": "biomind",
+      "amount_m": 100,
+      "equity_pct": 0.08,
+      "outcome": "closed",
+      "quarter": 2
+    },
+    {
+      "type": "funding",
+      "from": "yc_bot",
+      "to": "edubot",
+      "amount_m": 10,
+      "equity_pct": 0.25,
+      "outcome": "closed",
+      "quarter": 3
+    },
+    {
+      "type": "funding",
+      "from": "yc_bot",
+      "to": "model_market",
+      "amount_m": 30,
+      "equity_pct": 0.15,
+      "outcome": "closed",
+      "quarter": 2
+    },
+    {
+      "type": "partnership",
+      "from": "microsoft",
+      "to": "vector_db_inc",
+      "amount_m": 50,
+      "equity_pct": 0.05,
+      "outcome": "executing",
+      "quarter": 3
+    }
+  ],
+  "market_pulse": "The AI market shows signs of maturing as VC sentiment shifts from euphoric to bullish. The Federal Reserve holds rates steady at 4.5%, but signals possible cuts next year. Healthcare AI TAM expands to $29.28B (+10%) following new FDA approvals for AI diagnostics. No major black swan events this quarter.",
+  "events": [
+    {
+      "type": "product_launch",
+      "description": "DeepMind releases AlphaFold 3, significantly accelerating drug discovery and capturing additional healthcare AI market share.",
+      "agents_involved": [
+        "deepmind"
+      ]
+    },
+    {
+      "type": "product_launch",
+      "description": "OpenAI launches GPT-5 with advanced reasoning and slashes API prices by 20% to fend off open-source competition.",
+      "agents_involved": [
+        "openai"
+      ]
+    },
+    {
+      "type": "product_launch",
+      "description": "Anthropic publishes a new safety benchmark and introduces an enterprise safety certification program, winning trust from Fortune 500 clients.",
+      "agents_involved": [
+        "anthropic"
+      ]
+    },
+    {
+      "type": "product_launch",
+      "description": "Meta AI releases Llama-4 as an open-weight model, outperforming GPT-5 on reasoning benchmarks and gaining market share in developer tools.",
+      "agents_involved": [
+        "meta_ai"
+      ]
+    },
+    {
+      "type": "product_launch",
+      "description": "NeuroPilot launches FDA-approved AI diagnostic tool, expanding into U.S. hospitals and increasing market share in healthcare AI.",
+      "agents_involved": [
+        "neuropilot"
+      ]
+    },
+    {
+      "type": "partnership",
+      "description": "AgriSense secures a multi-year partnership with John Deere to integrate AI-driven precision agriculture into their equipment.",
+      "agents_involved": [
+        "agrisense"
+      ]
+    },
+    {
+      "type": "product_launch",
+      "description": "LexAI signs contracts with three top-10 law firms, deploying AI for contract review and legal research.",
+      "agents_involved": [
+        "lexai"
+      ]
+    },
+    {
+      "type": "product_launch",
+      "description": "FinFlow launches its own hedge fund using its algorithmic trading AI, attracting $200M in AUM.",
+      "agents_involved": [
+        "finflow"
+      ]
+    },
+    {
+      "type": "funding",
+      "description": "EduBot closes $10M seed funding from YC and begins acquisition talks with Khan Academy.",
+      "agents_involved": [
+        "edubot",
+        "yc_bot"
+      ]
+    },
+    {
+      "type": "product_launch",
+      "description": "MediaTech AI releases a new video generation model that rivals Sora, gaining traction in Hollywood post-production.",
+      "agents_involved": [
+        "mediatech"
+      ]
+    },
+    {
+      "type": "product_launch",
+      "description": "CyberSec AI launches an AI-native threat detection platform, signing multiple enterprise contracts.",
+      "agents_involved": [
+        "cybersec_ai"
+      ]
+    },
+    {
+      "type": "product_launch",
+      "description": "BioMind announces its AI-designed drug candidate for lung cancer enters Phase II trials, boosting its valuation.",
+      "agents_involved": [
+        "biomind"
+      ]
+    },
+    {
+      "type": "product_launch",
+      "description": "VectorDB Inc integrates with Microsoft Azure and launches a managed vector database service, driving revenue growth.",
+      "agents_involved": [
+        "vector_db_inc",
+        "microsoft"
+      ]
+    },
+    {
+      "type": "expansion",
+      "description": "CloudScale opens two new GPU data centers and hires top hardware engineers, strengthening its position as the #2 GPU cloud.",
+      "agents_involved": [
+        "cloudscale"
+      ]
+    },
+    {
+      "type": "product_launch",
+      "description": "APIForge launches AI-specific security features, attracting large enterprise customers.",
+      "agents_involved": [
+        "apiforge"
+      ]
+    },
+    {
+      "type": "product_launch",
+      "description": "ModelMarket launches a paid enterprise tier with fine-tuning and dedicated support, increasing revenue.",
+      "agents_involved": [
+        "model_market"
+      ]
+    },
+    {
+      "type": "funding",
+      "description": "a16z raises a new $3B AI-focused fund, signaling continued confidence in the sector.",
+      "agents_involved": [
+        "a16z_agent"
+      ]
+    },
+    {
+      "type": "funding",
+      "description": "Sequoia leads an $80M Series B round for AgriSense to expand its agriculture AI platform.",
+      "agents_involved": [
+        "sequoia_sim",
+        "agrisense"
+      ]
+    },
+    {
+      "type": "funding",
+      "description": "Founders Fund leads a $120M Series C for LexAI to accelerate law firm deployments.",
+      "agents_involved": [
+        "founders_fund_ai",
+        "lexai"
+      ]
+    },
+    {
+      "type": "funding",
+      "description": "Tiger Global leads a $200M Series D for FinFlow to scale its hedge fund and trading platform.",
+      "agents_involved": [
+        "tiger_global_ai",
+        "finflow"
+      ]
+    },
+    {
+      "type": "product_launch",
+      "description": "Google launches Google Health AI Imaging Suite, directly competing with NeuroPilot in medical diagnostics.",
+      "agents_involved": [
+        "google"
+      ]
+    },
+    {
+      "type": "product_launch",
+      "description": "Microsoft launches Copilot 365 with deep GPT-5 integration, boosting enterprise AI adoption.",
+      "agents_involved": [
+        "microsoft"
+      ]
+    },
+    {
+      "type": "product_launch",
+      "description": "Amazon announces AWS Trainium 3 chips, undercutting CloudScale's pricing for AI training workloads.",
+      "agents_involved": [
+        "amazon"
+      ]
+    },
+    {
+      "type": "product_launch",
+      "description": "Apple releases Apple Intelligence 2.0 with on-device AI privacy features, differentiating from cloud-based competitors.",
+      "agents_involved": [
+        "apple"
+      ]
+    },
+    {
+      "type": "open_source",
+      "description": "OpenSource Collective leaks a fully open-weight model comparable to GPT-5, intensifying pressure on closed-source labs.",
+      "agents_involved": [
+        "open_source_collective"
+      ]
+    },
+    {
+      "type": "regulatory",
+      "description": "AI Regulatory Commission issues new safety guidelines requiring foundation model licensing, impacting Meta AI and OpenAI.",
+      "agents_involved": [
+        "regulatory_body"
+      ]
+    },
+    {
+      "type": "talent",
+      "description": "AITalent Exchange reports AI engineer salaries have risen 30% this quarter, driving up costs for all companies.",
+      "agents_involved": [
+        "talent_marketplace"
+      ]
+    }
+  ],
+  "headlines": [
+    "AI Funding Frenzy: a16z Raises $2B, OpenAI Slashes Prices 30%, Apple Snaps Up EdgeAI",
+    "Euphoric VCs Pour $500M+ into AI Startups; Healthcare AI TAM Expands as FDA Approvals Spark New Wave of Investment",
+    "Healthcare AI TAM Surges 10% on FDA Approvals; Meta's Open-Source Llama-3 Stuns Industry",
+    "Healthcare AI TAM Surges 10% as FDA Approvals Unlock New Market; Meta's Llama-4 Stuns Benchmarks"
+  ],
+  "turn_memory": [
+    {
+      "quarter": 0,
+      "headline": "AI Funding Frenzy: a16z Raises $2B, OpenAI Slashes Prices 30%, Apple Snaps Up EdgeAI",
+      "market_pulse": "The Fed held rates at 4.5% as inflation stabilized, and VC sentiment shifted from cautious_optimistic to bullish, driven by blockbuster fundraising rounds and accelerating adoption. The healthcare AI segment saw its TAM jump 10% to $22B after the FDA fast-tracked AI-powered diagnostic tools, sparking a land grab among startups and big tech alike. No black swan event occurred, but the regulatory mood darkened as the AI Commission warned OpenAI about deploying GPT-5 without stronger safeguards.",
+      "event_count": 17
+    },
+    {
+      "quarter": 1,
+      "headline": "Euphoric VCs Pour $500M+ into AI Startups; Healthcare AI TAM Expands as FDA Approvals Spark New Wave of Investment",
+      "market_pulse": "AI summer intensifies as VC sentiment surges to euphoric levels, with the Fed maintaining rates at 4.5%. Healthcare AI TAM expands 10% to $24.2B following landmark FDA approvals for AI-driven diagnostics. Foundation labs race to release next-generation models, while VCs deploy record capital into growth-stage startups. The quarter sees major acquisitions by Apple and Google, and a regulatory fine against Meta AI for data privacy violations.",
+      "event_count": 23
+    },
+    {
+      "quarter": 2,
+      "headline": "Healthcare AI TAM Surges 10% on FDA Approvals; Meta's Open-Source Llama-3 Stuns Industry",
+      "market_pulse": "VC sentiment remains euphoric as the Fed holds rates at 4.5% and healthcare AI TAM expands 10% to $26.62B following FDA approvals for two new AI-driven diagnostic tools. A black swan event: Meta AI open-sources Llama-3-400B, rivaling GPT-4 and sparking intense debate on open-source safety, which briefly dents enterprise trust in open models.",
+      "event_count": 20
+    },
+    {
+      "quarter": 3,
+      "headline": "Healthcare AI TAM Surges 10% as FDA Approvals Unlock New Market; Meta's Llama-4 Stuns Benchmarks",
+      "market_pulse": "The AI market shows signs of maturing as VC sentiment shifts from euphoric to bullish. The Federal Reserve holds rates steady at 4.5%, but signals possible cuts next year. Healthcare AI TAM expands to $29.28B (+10%) following new FDA approvals for AI diagnostics. No major black swan events this quarter.",
+      "event_count": 27
+    }
+  ]
+}
