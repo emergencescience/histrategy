@@ -186,7 +186,7 @@ class PolicyParser:
 
         if self.llm_available and self.llm:
             try:
-                return self._llm_parse(resolved)
+                return self._llm_parse(resolved, faction_id)
             except Exception:
                 pass
 
@@ -230,7 +230,7 @@ class PolicyParser:
 
     # ── LLM parsing ────────────────────────────────────────
 
-    def _llm_parse(self, text: str) -> list[PolicyCommand]:
+    def _llm_parse(self, text: str, faction_id: str = "") -> list[PolicyCommand]:
         messages = [
             {"role": "system", "content": POLICY_PARSE_SYSTEM},
             {"role": "user", "content": f"## 玩家指令\n{text}\n\n请解析为结构化策令。"},
@@ -245,6 +245,7 @@ class PolicyParser:
             metadata={
                 "category": "policy_parse",
                 "reason": "parse_policy",
+                "faction_id": faction_id,
             },
         )
 

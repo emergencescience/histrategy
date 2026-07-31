@@ -383,9 +383,9 @@ def submit_decision(room_id: str, faction_id: str, decision: str, skip_narrative
                 call_type="policy_parse",
                 provider="keyword_parser",
                 model="keyword",
-                prompt_tokens=len(decision),
+                prompt_tokens=0,
                 completion_tokens=len(_json.dumps(parsed, ensure_ascii=False)) if parsed else 0,
-                total_tokens=len(decision) + (len(_json.dumps(parsed, ensure_ascii=False)) if parsed else 0),
+                total_tokens=len(_json.dumps(parsed, ensure_ascii=False)) if parsed else 0,
                 latency_ms=0,
                 user_prompt=decision,
                 response=_json.dumps([c.to_dict() if hasattr(c, 'to_dict') else c for c in parsed], ensure_ascii=False) if parsed else "[]",
@@ -1323,6 +1323,15 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
     # TurnController.execute_turn() already advances the season internally.
     # Do NOT call _advance_season(ws) here — it would double-advance.
     room.advance_quarter()
+
+    # ── Pre-bake NPC decisions for the new quarter ──
+    # Without this, NPC decisions for the next turn are generated on-the-fly
+    # by collect_all_decisions() during resolution — wasting LLM tokens and
+    # bypassing pre-baked scenario files.
+    try:
+        _trigger_npc_decisions(room)
+    except Exception:
+        pass  # non-critical; fallback to on-the-fly generation
 
     # ── Auto-expire stale policies ──
     try:

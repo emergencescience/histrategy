@@ -356,7 +356,6 @@ class NarrativeEngine:
                     "category": "global_narrative",
                     "room_id": room_id,
                     "scenario": scenario,
-                    "quarter_number": getattr(ws, "turn_number", 0),
                 },
             )
             return result.strip()
@@ -463,7 +462,6 @@ class NarrativeEngine:
                     "category": "global_narrative",
                     "room_id": room_id,
                     "scenario": scenario,
-                    "quarter_number": getattr(ws, "turn_number", 0),
                 },
             ):
                 chunk_count += 1
