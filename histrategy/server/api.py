@@ -752,6 +752,13 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         return status(game_id)
 
+    @app.get("/api/single-player/{game_id}/command-progress")
+    def api_command_progress(game_id: str):
+        """Return the current phase of command execution (for frontend polling)."""
+        from histrategy.server.single_player import get_command_progress
+
+        return get_command_progress(game_id)
+
     @app.post("/api/single-player/{game_id}/command")
     def api_sp_command(game_id: str, body: dict = Body(...)):  # noqa: B008
         """Single-player — submit command (blocks until LLM resolution completes).

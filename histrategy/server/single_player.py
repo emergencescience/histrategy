@@ -148,6 +148,30 @@ FACTION_KEY_TO_DISPLAY = FACTION_ID_TO_DISPLAY
 RESOLVE_POLL_INTERVAL = 2.0  # seconds
 RESOLVE_TIMEOUT = 180.0  # seconds (max LLM wait)
 
+# ── Command progress tracking (for frontend phase display) ──
+# Keyed by game_id, stores {"phase": str, "elapsed": float, "detail": str}
+# Phases: loading → parsing → simulating → narrating → done
+_command_progress: dict[str, dict] = {}
+
+
+def _set_progress(game_id: str, phase: str, detail: str = "") -> None:
+    """Update command progress for frontend polling."""
+    import time as _ptime
+    _command_progress[game_id] = {
+        "phase": phase,
+        "elapsed": round(_ptime.time() - _command_progress.get(game_id, {}).get("_start", _ptime.time()), 1),
+        "detail": detail,
+        "_start": _command_progress.get(game_id, {}).get("_start", _ptime.time()),
+    }
+
+
+def get_command_progress(game_id: str) -> dict:
+    """Return current command progress (for GET endpoint)."""
+    if game_id not in _command_progress:
+        return {"phase": "unknown", "elapsed": 0, "detail": ""}
+    p = _command_progress[game_id]
+    return {"phase": p["phase"], "elapsed": p["elapsed"], "detail": p["detail"]}
+
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
@@ -237,6 +261,7 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
         submit_decision,
     )
     _dbgt0 = _dbgt.time()
+    _set_progress(game_id, "loading", "正在载入局势…" if lang == "zh" else "Loading world state…")
     room = _get_room(game_id)
     _dbgt_load = _dbgt.time()
     if not room:
@@ -413,6 +438,8 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
     streaming = _streaming_enabled()
 
     # 1. Submit decision → synchronous resolve (submit_decision calls _resolve_and_advance internally)
+    _set_progress(game_id, "parsing",
+        "正在理解你的指令…" if lang == "zh" else "Interpreting your command…")
     submit_result = submit_decision(game_id, human_fid, decision, skip_narrative=streaming)
     if not submit_result.get("ok"):
         return {"ok": False, "error": submit_result.get("error", "Decision submission failed")}
@@ -510,6 +537,9 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
     from histrategy.server.room_manager import _peek_narrative_context
 
     narrative_pending = bool(streaming and _peek_narrative_context(game_id))
+
+    _set_progress(game_id, "narrating",
+        "正在撰写战报…" if lang == "zh" else "Writing the chronicle…")
 
     return {
         "game_id": game_id,
