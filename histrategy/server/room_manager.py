@@ -432,9 +432,10 @@ def stream_and_persist_narrative(room):
         room.id, "AVAILABLE" if ctx else "MISSING", quarter, "AVAILABLE" if ws else "MISSING",
     )
 
-    # ── No stashed context: replay cached DB narrative or offline fallback ──
+    # ── No stashed context: try to generate narrative from DB data ──
     if not ctx or not ws:
         cached = ""
+        faction_decisions = {}
         try:
             from histrategy.db.models import get_quarter_turns as _gqt
 
@@ -443,13 +444,85 @@ def stream_and_persist_narrative(room):
                 nr = db_turns[-1].get("narratives")
                 loaded = _json.loads(nr) if isinstance(nr, str) else (nr or {})
                 cached = loaded.get("global", "") if isinstance(loaded, dict) else ""
+                # Try to extract faction decisions from quarter_turn for fresh generation
+                fd_raw = db_turns[-1].get("faction_decisions")
+                if fd_raw:
+                    fd_loaded = _json.loads(fd_raw) if isinstance(fd_raw, str) else (fd_raw or {})
+                    if isinstance(fd_loaded, dict):
+                        for fid, data in fd_loaded.items():
+                            if isinstance(data, dict):
+                                faction_decisions[fid] = data.get("decision", "")
+                            elif isinstance(data, str):
+                                faction_decisions[fid] = data
         except Exception:
             cached = ""
+
+        # If we have cached narrative, replay it (backward compat)
         if cached and cached.strip():
             for para in cached.split("\n"):
                 if para.strip():
                     yield para
             return
+
+        # If we have world_state + faction decisions, try to generate fresh
+        if ws and faction_decisions:
+            logger.info(
+                "[room=%s] narrative-live-stream: stash MISSING, generating from DB data",
+                room.id,
+            )
+            # Build a narrative engine and generate fresh
+            llm = _get_llm()
+            narrative_engine = None
+            try:
+                from histrategy.llm.narrative import NarrativeEngine
+                narrative_engine = NarrativeEngine(
+                    llm_adapter=llm, language=lang, scenario=getattr(room, "scenario", "")
+                )
+            except Exception as e:
+                logger.warning("[room=%s] NarrativeEngine init failed: %s", room.id, e)
+
+            chunks: list[str] = []
+            if narrative_engine:
+                try:
+                    for chunk in narrative_engine.generate_global_narrative_stream(
+                        ws=ws,
+                        faction_decisions=faction_decisions,
+                        baseline=None,
+                        macro_delta=None,
+                        history_events=None,
+                        room_id=room.id,
+                        scenario=getattr(room, "scenario", ""),
+                    ):
+                        if chunk:
+                            chunks.append(chunk)
+                            yield chunk
+                except Exception as e:
+                    logger.error(
+                        "[room=%s] Fallback narrative stream failed: %s",
+                        room.id, str(e)[:200],
+                    )
+
+            full = "".join(chunks).strip()
+            if not full and narrative_engine:
+                try:
+                    full = narrative_engine._offline_global_narrative(ws, faction_decisions)
+                except Exception:
+                    full = ""
+                if full:
+                    yield full
+
+            # Persist the generated narrative
+            if full:
+                try:
+                    from histrategy.db.models import update_quarter_turn_narratives
+
+                    narratives = {fid: full for fid in faction_decisions}
+                    narratives["global"] = full
+                    update_quarter_turn_narratives(room.id, quarter, narratives)
+                except Exception as e:
+                    logger.warning("[room=%s] Narrative DB persist failed: %s", room.id, e)
+            return
+
         yield "叙事生成中，请稍候…" if lang == "zh" else "Generating chronicle..."
         return
 
