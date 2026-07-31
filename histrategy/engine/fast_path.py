@@ -22,8 +22,12 @@ logger = logging.getLogger("histrategy.fast_path")
 
 
 def extract_suggestion_id(decision: str) -> str | None:
-    """Extract [suggestion_id] prefix from a decision string."""
-    m = re.match(r'^\[([a-z_]+_t\d_\w+)\]', decision)
+    """Extract [suggestion_id] prefix from a decision string.
+
+    Supports both EARLY_TURNS format (e.g. [faction_t1_action])
+    and advisor-card format (e.g. [sug_1719000000_0]).
+    """
+    m = re.match(r'^\[([a-z0-9_]+)\]', decision)
     return m.group(1) if m else None
 
 

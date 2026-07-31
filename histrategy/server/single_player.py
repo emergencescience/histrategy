@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 import re as _re_strip
+import re  # for suggestion_id format matching
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -254,10 +255,14 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
     human_fid = human_slots[0].faction_id
 
     # ── Fast Path: detect suggestion_id prefix → deterministic simulation ──
-    # Only active for turns 1-4 (quarter_number 0-3). Beyond turn 4,
-    # let LLM handle free-text input for richer, context-aware narratives.
+    # Only active for turns 1-4 (quarter_number 0-3) AND ONLY for
+    # EARLY_TURNS format IDs (e.g. [shu_t1_drill]). Advisor-card IDs
+    # (e.g. [sug_1719000000_0]) bypass fast path and go through V3
+    # with intent cache — they're LLM-generated strategies that need
+    # full simulation, not deterministic resolution.
     sid = extract_suggestion_id(decision)
-    if sid and room.quarter_number < 4:
+    _is_early_turns_sid = bool(sid and re.match(r'^[a-z]+_t\d_', sid))
+    if sid and _is_early_turns_sid and room.quarter_number < 4:
         try:
             _dbgt1 = _dbgt.time()
             # Track player's suggestion choice for Q1/Q2 NPC pre-baking
