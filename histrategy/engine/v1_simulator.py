@@ -453,8 +453,9 @@ class V1Simulator:
                 }
 
             # ── Log simulation events to DB (H14b) ──
-            if room_id:
-                self._log_sim_events_to_db(room_id, quarter_number, result)
+            # REMOVED: simulation_event_log table dropped (replaced by turn_delta + quarter_turn)
+            # if room_id:
+            #     self._log_sim_events_to_db(room_id, quarter_number, result)
 
             return result
         except Exception as e:

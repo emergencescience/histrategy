@@ -266,15 +266,6 @@ CREATE TABLE IF NOT EXISTS llm_call_log (
     created_at      TEXT DEFAULT ''
 );
 
-CREATE TABLE IF NOT EXISTS simulation_event_log (
-    id              TEXT PRIMARY KEY,
-    room_id         TEXT NOT NULL REFERENCES game_room(id),
-    quarter_number  INTEGER DEFAULT 0,
-    event_type      TEXT NOT NULL,
-    event_data      TEXT,
-    created_at      TEXT DEFAULT ''
-);
-
 -- 世界状态快照表：每个势力在当前季度的完整状态
 -- 一张表存储所有数值+非数值状态（城池/人口/兵力/粮草/政策/科技树）
 CREATE TABLE IF NOT EXISTS game_state (
@@ -333,7 +324,6 @@ CREATE TABLE IF NOT EXISTS policy_state (
 -- idx_faction_slot_room removed in H20
 CREATE INDEX IF NOT EXISTS idx_quarter_turn_room ON quarter_turn(room_id, quarter_number);
 CREATE INDEX IF NOT EXISTS idx_llm_call_log_room ON llm_call_log(room_id, quarter_number);
-CREATE INDEX IF NOT EXISTS idx_sim_event_room ON simulation_event_log(room_id, quarter_number);
 CREATE INDEX IF NOT EXISTS idx_game_state_room ON game_state(room_id, quarter_number);
 CREATE INDEX IF NOT EXISTS idx_turn_delta_room ON turn_delta(room_id, quarter_number, faction_id);
 CREATE INDEX IF NOT EXISTS idx_policy_state_room ON policy_state(room_id, faction_id);

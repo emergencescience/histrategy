@@ -3,7 +3,7 @@
 Usage:
     from histrategy.db import init_db, save_room, load_room, save_quarter_turn
     from histrategy.db.connection import get_connection, execute
-    from histrategy.db.models import log_llm_call, log_sim_event
+    from histrategy.db.models import log_llm_call
 """
 
 from .connection import execute, execute_many, execute_one, execute_write, init_db
@@ -12,7 +12,6 @@ from .models import (
     load_room,
     load_world_state_dict,
     log_llm_call,
-    log_sim_event,
     save_quarter_turn,
     save_room,
 )
@@ -27,7 +26,6 @@ __all__ = [
     "load_room",
     "load_world_state_dict",
     "log_llm_call",
-    "log_sim_event",
     "save_quarter_turn",
     "save_room",
 ]

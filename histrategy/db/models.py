@@ -293,34 +293,6 @@ def log_llm_call(
     return log_id
 
 
-# ── Simulation Event Log ─────────────────────────────────
-
-
-def log_sim_event(
-    room_id: str,
-    quarter_number: int,
-    event_type: str,
-    event_data: dict | None = None,
-) -> str:
-    """Log a simulation event. Returns the event ID."""
-    event_id = str(uuid.uuid4())
-
-    execute_write(
-        """INSERT INTO simulation_event_log
-            (id, room_id, quarter_number, event_type, event_data, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)""",
-        (
-            event_id,
-            room_id,
-            quarter_number,
-            event_type,
-            json_dumps(event_data) if event_data else None,
-            datetime.now(timezone.utc).isoformat(),
-        ),
-    )
-    return event_id
-
-
 # ── Game State (world state snapshot) ────────────────────
 
 
