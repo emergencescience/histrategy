@@ -1220,9 +1220,22 @@ class TurnProcessorMixin:
 
         aftermath = "; ".join(npc_actions[:3]) if npc_actions else "天下平静。"
 
+        # Serialize parsed commands for the frontend
+        player_commands = []
+        raw_commands = getattr(quarterly, "all_commands", {}).get(faction_id, [])
+        for cmd in raw_commands:
+            if hasattr(cmd, "type"):
+                player_commands.append({
+                    "type": cmd.type,
+                    "params": getattr(cmd, "params", {}),
+                    "notes": getattr(cmd, "notes", ""),
+                    "source_text": getattr(cmd, "source_text", ""),
+                })
+
         result = {
             "narrative": narrative,
             "aftermath": aftermath,
+            "commands": player_commands,
             "bureaucracy": [
                 {
                     "department": "尚书台",
