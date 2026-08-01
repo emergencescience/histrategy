@@ -2,146 +2,126 @@
   "decisions": {
     "cao": {
       "zh": {
-        "decision_text": "【南征筹备】曹操坐镇许昌，挟天子以令诸侯。新野刘备虽兵微将寡，然有诸葛亮为辅，不可不除。命夏侯惇率五万精兵进驻宛城，为南征做准备。同时遣使至襄阳，探刘表病况及荆州虚实。许昌屯田增粮以充军资。",
+        "decision_text": "【北方已定】捷报：公孙康斩袁熙袁尚，函送首级至许都。曹操北方彻底无忧。传令夏侯惇加紧宛城练兵，调配粮草辎重。另遣细作南下，刺探刘表病情及荆州虚实。同时大兴屯田于许都、邺城，充积军资——南征大计，粮草为先。",
         "commands": [
           {
-            "type": "move",
+            "type": "conscript",
             "params": {
-              "from_territory": "xuchang",
-              "to_territory": "wancheng",
-              "amount": 50000
+              "territory": "xuchang",
+              "amount": 10000,
+              "unit_type": "步兵"
             },
-            "reasoning": "调兵宛城，剑指新野"
-          },
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "liubiao",
-              "action": "threaten"
-            },
-            "reasoning": "刘表病重，威压荆州"
+            "reasoning": "北方平定，扩充南征兵员"
           },
           {
             "type": "develop",
             "params": {
               "territory": "xuchang"
             },
-            "reasoning": "屯田许昌保障南征粮道"
+            "reasoning": "大兴屯田充实军粮"
+          },
+          {
+            "type": "develop",
+            "params": {
+              "territory": "ye"
+            },
+            "reasoning": "邺城为河北粮仓，屯田备南征"
           }
         ]
       },
       "en": {
-        "decision_text": "Cao Cao consolidates power in Xuchang. Liu Bei at Xinye is weak but has Zhuge Liang — he must be crushed before growing strong. Xiahou Dun leads 50,000 troops to Wancheng as the vanguard. Envoys probe Liu Biao's illness and Jingzhou's defenses.",
+        "decision_text": "The north is pacified. Gongsun Kang has executed Yuan Xi and Yuan Shang, sending their heads to Xuchang. Cao Cao's rear is secure. Xiahou Dun accelerates troop training at Wancheng while supplies are stockpiled. Agents probe Liu Biao's illness and Jingzhou's defenses. Agricultural colonies expand at Xuchang and Ye to fill the granaries.",
         "commands": [
           {
-            "type": "move",
+            "type": "conscript",
             "params": {
-              "from_territory": "xuchang",
-              "to_territory": "wancheng",
-              "amount": 50000
+              "territory": "xuchang",
+              "amount": 10000,
+              "unit_type": "infantry"
             },
-            "reasoning": "Move troops to Wancheng for southern campaign"
-          },
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "liubiao",
-              "action": "threaten"
-            },
-            "reasoning": "Pressure ailing Liu Biao"
+            "reasoning": "Expand army for southern campaign"
           },
           {
             "type": "develop",
             "params": {
               "territory": "xuchang"
             },
-            "reasoning": "Develop agriculture for campaign logistics"
+            "reasoning": "Expand military farms"
+          },
+          {
+            "type": "develop",
+            "params": {
+              "territory": "ye"
+            },
+            "reasoning": "Ye is the northern granary, fill it for the campaign"
           }
         ]
       }
     },
     "shu": {
       "zh": {
-        "decision_text": "【三顾茅庐】刘备驻守新野，深感兵微将寡。闻诸葛亮有经天纬地之才，亲赴隆中草庐三请。同时命关羽张飞加紧练兵，赵云巡视新野防务。遣孙乾为使赴襄阳，与刘表修好，共商抗曹大计。",
+        "decision_text": "【卧龙出山】诸葛亮已出山辅佐刘备。在隆中草庐之中，孔明为刘备剖析天下大势：「曹操拥百万之众，挟天子以令诸侯，此诚不可与争锋。孙权据有江东，已历三世，国险而民附，此可与为援而不可图也。将军若跨有荆益，保其岩阻，西和诸戎，南抚夷越，外结好孙权，内修政理——则霸业可成，汉室可兴矣。」",
         "commands": [
-          {
-            "type": "recruit",
-            "params": {
-              "territory": "xinye",
-              "amount": 3000,
-              "unit_type": "步兵"
-            },
-            "reasoning": "新野兵少，急需扩充"
-          },
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "liubiao",
-              "action": "ally"
-            },
-            "reasoning": "联刘表共抗曹操"
-          },
           {
             "type": "develop",
             "params": {
               "territory": "xinye"
             },
-            "reasoning": "屯田养民积蓄实力"
+            "reasoning": "孔明治新野，兴修水利开垦荒地"
+          },
+          {
+            "type": "recruit",
+            "params": {
+              "territory": "xinye",
+              "amount": 2000,
+              "unit_type": "步兵"
+            },
+            "reasoning": "扩充兵力以备不测"
+          },
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "wu",
+              "action": "ally"
+            },
+            "reasoning": "遣诸葛亮赴江东探孙权之意"
           }
         ]
       },
       "en": {
-        "decision_text": "Liu Bei at Xinye knows his forces are too weak. He personally visits Zhuge Liang's thatched cottage three times to win his service. Guan Yu and Zhang Fei drill the troops while Zhao Yun patrols the borders. Sun Qian is sent to Xiangyang to strengthen ties with Liu Biao.",
+        "decision_text": "The Sleeping Dragon has emerged. Zhuge Liang lays out his Longzhong Plan: Cao Cao commands a million men and holds the Emperor — he cannot be directly challenged. Sun Quan holds Jiangdong through three generations — he can be an ally but not a target. Liu Bei must seize Jing and Yi provinces, ally with Sun Quan, pacify the southern tribes, and reform governance. Then the Han may be restored.",
         "commands": [
-          {
-            "type": "recruit",
-            "params": {
-              "territory": "xinye",
-              "amount": 3000,
-              "unit_type": "infantry"
-            },
-            "reasoning": "Urgently expand the small army"
-          },
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "liubiao",
-              "action": "ally"
-            },
-            "reasoning": "Ally with Liu Biao against Cao Cao"
-          },
           {
             "type": "develop",
             "params": {
               "territory": "xinye"
             },
-            "reasoning": "Develop agriculture to support the people"
+            "reasoning": "Zhuge Liang reforms Xinye's agriculture"
+          },
+          {
+            "type": "recruit",
+            "params": {
+              "territory": "xinye",
+              "amount": 2000,
+              "unit_type": "infantry"
+            },
+            "reasoning": "Expand forces for contingencies"
+          },
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "wu",
+              "action": "ally"
+            },
+            "reasoning": "Send Zhuge Liang to probe Sun Quan's intentions"
           }
         ]
       }
     },
     "wu": {
       "zh": {
-        "decision_text": "【攻打江夏】孙权继承父兄基业，坐领江东。黄祖据江夏，乃杀父仇人，不可不除。命周瑜为大都督，率水师五万溯江而上，攻打江夏。同时鲁肃出使荆州探刘表虚实，张昭坐镇建业稳固后方。",
+        "decision_text": "【江夏既平】周瑜水师已破江夏，黄祖授首。孙权大宴群臣，庆父仇得报。然鲁肃进言：「江夏虽得，曹操在北，不可不备。刘备在新野，虽是弱邻，然得诸葛亮辅佐，日后或可为抗曹助力。」孙权从之——命周瑜整编江夏降军，扩建水师。遣鲁肃以吊刘表病为名赴襄阳，实则探查荆州虚实。",
         "commands": [
-          {
-            "type": "attack",
-            "params": {
-              "target_territory": "jiangxia",
-              "from_territory": "chaisang",
-              "amount": 50000,
-              "unit_type": "水军"
-            },
-            "reasoning": "周瑜率水师攻江夏，为孙坚报仇"
-          },
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "liubiao",
-              "action": "threaten"
-            },
-            "reasoning": "以攻为胁，探荆州虚实"
-          },
           {
             "type": "recruit",
             "params": {
@@ -149,31 +129,28 @@
               "amount": 5000,
               "unit_type": "水军"
             },
-            "reasoning": "扩建水师巩固江防"
+            "reasoning": "扩建水师应对北方威胁"
+          },
+          {
+            "type": "develop",
+            "params": {
+              "territory": "jiangxia"
+            },
+            "reasoning": "安抚江夏百姓，巩固新占"
+          },
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "liubiao",
+              "action": "non_aggression"
+            },
+            "reasoning": "鲁肃赴襄阳吊丧探虚实"
           }
         ]
       },
       "en": {
-        "decision_text": "Sun Quan rules Jiangdong. Huang Zu at Jiangxia killed his father — this blood debt must be repaid. Zhou Yu leads 50,000 naval troops up the Yangtze to attack Jiangxia. Lu Su probes Jingzhou while Zhang Zhao secures the home front at Jianye.",
+        "decision_text": "Jiangxia has fallen. Huang Zu is dead. Sun Quan celebrates the avenging of his father. But Lu Su counsels: though Jiangxia is won, Cao Cao looms in the north. Liu Bei at Xinye, though weak, has gained Zhuge Liang — he may prove a valuable ally against Cao. Sun Quan agrees — Zhou Yu reorganizes the Jiangxia captives into the fleet. Lu Su travels to Xiangyang, ostensibly to inquire after Liu Biao's health, truly to gauge Jingzhou's condition.",
         "commands": [
-          {
-            "type": "attack",
-            "params": {
-              "target_territory": "jiangxia",
-              "from_territory": "chaisang",
-              "amount": 50000,
-              "unit_type": "navy"
-            },
-            "reasoning": "Zhou Yu's navy attacks Jiangxia to avenge Sun Jian"
-          },
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "liubiao",
-              "action": "threaten"
-            },
-            "reasoning": "Probe Liu Biao's weakness"
-          },
           {
             "type": "recruit",
             "params": {
@@ -181,7 +158,22 @@
               "amount": 5000,
               "unit_type": "navy"
             },
-            "reasoning": "Expand the fleet"
+            "reasoning": "Expand navy for northern threat"
+          },
+          {
+            "type": "develop",
+            "params": {
+              "territory": "jiangxia"
+            },
+            "reasoning": "Pacify Jiangxia, consolidate new territory"
+          },
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "liubiao",
+              "action": "non_aggression"
+            },
+            "reasoning": "Lu Su probes Jingzhou under guise of condolence"
           }
         ]
       }
