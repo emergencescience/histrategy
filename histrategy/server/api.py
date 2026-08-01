@@ -58,16 +58,10 @@ def create_app(llm_provider: str | None = None) -> Any:
     elif not _llm_provider:
         import os as _os
 
-        if _os.environ.get("DEEPSEEK_API_KEY"):
-            _llm_provider = "deepseek"
-        elif _os.environ.get("OPENAI_API_KEY"):
-            _llm_provider = "openai"
-        elif _os.environ.get("TONGYI_API_KEY"):
-            _llm_provider = "tongyi"
-        elif _os.environ.get("OPENROUTER_API_KEY"):
-            _llm_provider = "openrouter"
-        elif _os.environ.get("LLM_API_KEY") or _os.environ.get("LLM_API_BASE"):
-            _llm_provider = "custom"
+        from histrategy.llm.adapter import detect_provider as _detect_provider
+
+        _detected = _detect_provider()
+        _llm_provider = _detected.get("name") or None
 
     from fastapi import FastAPI
 
@@ -1107,22 +1101,23 @@ def run_server(host: str = "127.0.0.1", port: int = 8080, api_key: str | None = 
 
     import uvicorn
 
-    # Set API key from parameter or environment
-    provider = None
+    # Set API key from parameter or environment (provider-agnostic)
     if api_key:
-        os.environ["DEEPSEEK_API_KEY"] = api_key
-        provider = "deepseek"
-    elif os.environ.get("DEEPSEEK_API_KEY"):
-        provider = "deepseek"
-    elif os.environ.get("OPENAI_API_KEY"):
-        provider = "openai"
+        os.environ["LLM_API_KEY"] = api_key
+
+    # Auto-detect provider — delegate to adapter, don't hardcode
+    from histrategy.llm.adapter import detect_provider as _detect_provider
+
+    _detected = _detect_provider()
+    provider = _detected.get("name") or None
 
     app = create_app(llm_provider=provider)
 
     if provider:
-        print(f"🤖 LLM: {provider} API 已配置 — 智能叙事引擎已启用")
+        model = _detected.get("model", "unknown")
+        print(f"🤖 LLM: {provider} ({model}) — 智能叙事引擎已启用")
     else:
         print("📴 LLM: 未检测到 API Key — 使用离线模式（关键字规则引擎）")
-        print("   💡 设置: export DEEPSEEK_API_KEY='sk-...' 或 histrategy --serve --api-key sk-...")
+        print("   💡 设置: export DOUBAO_API_KEY='ark-...' 或 DEEPSEEK_API_KEY='sk-...'")
 
     uvicorn.run(app, host=host, port=port, log_level="info")

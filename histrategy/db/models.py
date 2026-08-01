@@ -433,13 +433,30 @@ def get_latest_game_states(room_id: str, quarter_number: int) -> list[dict]:
     recent created_at row when duplicates exist (defense against race
     conditions or multi-path saves producing stale records).
     """
-    return execute(
-        """SELECT DISTINCT ON (faction_id) *
-        FROM game_state
-        WHERE room_id = ? AND quarter_number = ?
-        ORDER BY faction_id, created_at DESC""",
-        (room_id, quarter_number),
-    )
+    from histrategy.db.connection import _IS_SQLITE as _IS_SQLITE
+
+    if _IS_SQLITE:
+        # SQLite: use subquery (no DISTINCT ON support)
+        return execute(
+            """SELECT gs.* FROM game_state gs
+            INNER JOIN (
+                SELECT faction_id, MAX(created_at) as max_created
+                FROM game_state
+                WHERE room_id = ? AND quarter_number = ?
+                GROUP BY faction_id
+            ) latest ON gs.faction_id = latest.faction_id AND gs.created_at = latest.max_created
+            WHERE gs.room_id = ? AND gs.quarter_number = ?""",
+            (room_id, quarter_number, room_id, quarter_number),
+        )
+    else:
+        # PostgreSQL: use DISTINCT ON
+        return execute(
+            """SELECT DISTINCT ON (faction_id) *
+            FROM game_state
+            WHERE room_id = ? AND quarter_number = ?
+            ORDER BY faction_id, created_at DESC""",
+            (room_id, quarter_number),
+        )
 
 
 # ── Turn Delta (per-turn incremental changes) ──────────

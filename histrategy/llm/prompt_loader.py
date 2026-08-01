@@ -42,11 +42,11 @@ NPC_DECISION_SYSTEM = load_prompt("npc_decision.md")
 NPC_DECISION_SYSTEM_EN = load_prompt("npc_decision_en.md")
 INTENT_PARSE_SYSTEM = load_prompt("intent_parse.md")
 WORLD_SIMULATOR_SYSTEM = load_prompt("world_simulator.md")
-MACRO_SIM_SYSTEM = load_prompt("macro_simulator.md")
-try:
-    MACRO_SIM_SYSTEM_EN = load_prompt("macro_simulator_en.md")
-except FileNotFoundError:
-    MACRO_SIM_SYSTEM_EN = None
+# MACRO_SIM_SYSTEM: deleted — use scenario-specific prompts only
+# (e.g. scenarios/three-kingdoms/prompts/macro_simulator_zh.md)
+# The macro_policy_engine loads from scenario dirs directly.
+MACRO_SIM_SYSTEM = None
+MACRO_SIM_SYSTEM_EN = None
 
 # Dictionary of system prompt contents mapping to prompt names to detect in LLMAdapter and suppress verbose logs.
 KNOWN_PROMPTS = {

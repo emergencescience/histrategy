@@ -1350,14 +1350,12 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
     # Do NOT call _advance_season(ws) here — it would double-advance.
     room.advance_quarter()
 
-    # ── Pre-bake NPC decisions for the new quarter ──
-    # Without this, NPC decisions for the next turn are generated on-the-fly
-    # by collect_all_decisions() during resolution — wasting LLM tokens and
-    # bypassing pre-baked scenario files.
-    try:
-        _trigger_npc_decisions(room)
-    except Exception as e:
-        logger.warning("[room=%s] NPC decision trigger failed (non-critical): %s", room.id, e)
+    # ── NPC decisions for the new quarter are pre-generated in the
+    #     BACKGROUND thread below (H31a-B2). Do NOT add a synchronous
+    #     _trigger_npc_decisions() call here — it blocks the /command
+    #     response and the background thread handles it correctly.
+    #     collect_all_decisions() during resolution serves as a safety
+    #     net if the background thread hasn't finished yet.
 
     # ── Auto-expire stale policies ──
     try:
