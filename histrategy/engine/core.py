@@ -292,8 +292,10 @@ class GameEngineCore:
             self._black_swan = BlackSwanInjector()
 
             # MacroPolicyEngine uses chat model for creative simulation.
-            # If user explicitly set HISTRATEGY_MACRO_MODEL, use it; otherwise
-            # let the adapter detect from the provider (e.g., Doubao endpoint).
+            # Uses HISTRATEGY_MACRO_MODEL if set; otherwise inherits from parent LLM.
+            # NOTE: Doubao integration was rolled back (2026-08-01) due to 429 rate
+            # limits + 180s timeouts. Will be re-added on a feature branch with
+            # proper E2E testing before merge. See histrategy-deploy-checklist skill.
             macro_model_specified = os.environ.get("HISTRATEGY_MACRO_MODEL")
             try:
                 from ..llm.adapter import LLMAdapter as _LLM
