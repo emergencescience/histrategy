@@ -484,15 +484,6 @@ class LLMAdapter:
         # ── Attempt 1: with JSON mode ──
         response = None
         try:
-            # Debug: log exact request params for troubleshooting
-            self._logger.info(
-                "chat_structured: provider=%s base=%s model=%s key_prefix=%s json_mode=%s",
-                self.provider_name,
-                self.client.base_url if self.client else "NONE",
-                payload.get("model", "?"),
-                self.api_key[:8] + "..." if self.api_key else "NONE",
-                use_json_mode,
-            )
             response = self.client.post(
                 "/chat/completions",
                 json=payload,
@@ -516,15 +507,6 @@ class LLMAdapter:
             return self._extract_json(content)
         except Exception as e:
             latency = time.perf_counter() - start_time
-            # Log response body for debugging
-            if response is not None:
-                try:
-                    resp_body = response.text[:500]
-                    self._logger.error(
-                        "chat_structured HTTP %s body: %s", response.status_code, resp_body
-                    )
-                except Exception:
-                    pass
             # ── Fallback: retry without JSON mode if it failed ──
             if use_json_mode and response is not None and 400 <= response.status_code < 500:
                 self._logger.warning(
