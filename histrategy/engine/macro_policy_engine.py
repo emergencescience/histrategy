@@ -180,20 +180,33 @@ class MacroPolicyEngine:
                     filtered_actions.append(nfa)
                 validated["npc_faction_actions"] = filtered_actions
 
-                # Strip battle_results that target human player's starting territory
+                # Strip battle_results that target human player's territory
+                # NOTE: LLM may omit 'defender' field — _settle_battle auto-detects
+                # defender from territory.owner_id. So we also check location ownership.
                 HUMAN_FACTION_IDS = {"shu", "wu", "liuzhang"}
                 CAPTURE_RESULTS = {"attack_win", "rout"}
                 filtered_battles = []
                 for br in validated.get("battle_results", []):
                     loc = br.get("location", "")
                     defender = br.get("defender", "")
+                    attacker = br.get("attacker", "")
+                    # Determine actual defender: prefer explicit field, fall back to territory owner
+                    actual_defender = defender
+                    if not defender and loc:
+                        # We don't have world_state here, but we know human starting territories:
+                        # shu → xinye, wu → jianye/wu/chaisang, liuzhang → chengdu
+                        HUMAN_STARTING_TERRITORIES = {
+                            "xinye": "shu", "jianye": "wu", "wu": "wu",
+                            "chaisang": "wu", "chengdu": "liuzhang",
+                        }
+                        actual_defender = HUMAN_STARTING_TERRITORIES.get(loc, "")
                     wants_capture = bool(br.get("territory_captured")) or br.get("result") in CAPTURE_RESULTS
-                    if defender in HUMAN_FACTION_IDS and wants_capture:
+                    if actual_defender in HUMAN_FACTION_IDS and wants_capture:
                         import logging
                         _log = logging.getLogger("histrategy.macro")
                         _log.warning(
                             "[room=%s Q%d] STRIPPED battle_result capturing %s from %s (Q1-Q2 territory capture blocked)",
-                            room_id, quarter_number, loc, defender,
+                            room_id, quarter_number, loc, actual_defender,
                         )
                         continue  # drop the battle result entirely
                     filtered_battles.append(br)
