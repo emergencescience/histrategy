@@ -24,8 +24,8 @@ food_consumption:
   # Gunpowder units consume extra supplies (ammunition, powder)
   gunpowder_supply_multiplier: 1.3
   constants:
-    civilian_per_capita: 0.02
-    troop_per_capita: 0.5
+    civilian_per_capita: 0.01     # 1% of population consumed per quarter (halved)
+    troop_per_capita: 0.05         # 0.05 per troop (10x reduction — was 0.5)
 
 population_growth:
   surplus_threshold_high: 1.2

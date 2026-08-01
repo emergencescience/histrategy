@@ -129,25 +129,25 @@ class TurnController:
                     faction.food = 0
 
                 # Starvation attrition: troops desert or die when food runs out.
-                # Each quarter at food=0: lose 8% of deployed troops.
+                # Each quarter at food=0: lose 15% of deployed troops.
                 deployed = sum(
                     a.total_troops for a in world_state.armies.values()
                     if a.faction_id == fid
                 )
                 if deployed > 0:
-                    starve_loss = max(100, int(deployed * 0.08))
+                    starve_loss = max(200, int(deployed * 0.15))
                     # Apply to armies proportionally
                     for a in world_state.armies.values():
                         if a.faction_id == fid and a.total_troops > 0:
                             for unit_type in list(a.units.keys()):
                                 if a.units[unit_type] > 0:
-                                    loss = max(1, int(a.units[unit_type] * 0.08))
+                                    loss = max(1, int(a.units[unit_type] * 0.15))
                                     a.units[unit_type] = max(0, a.units[unit_type] - loss)
                     faction.strength_actual = max(0, faction.strength_actual - starve_loss)
 
                 # Famine effects
-                faction.morale_actual = max(0, faction.morale_actual - 5)
-                faction.legitimacy = max(0, faction.legitimacy - 10)
+                faction.morale_actual = max(0, faction.morale_actual - 8)
+                faction.legitimacy = max(0, faction.legitimacy - 12)
                 # Population in all territories of this faction drops by 5%
                 for tid in list(faction.territories):
                     t = world_state.territories.get(tid)
