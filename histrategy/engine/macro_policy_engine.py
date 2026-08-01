@@ -135,6 +135,7 @@ class MacroPolicyEngine:
             history_events or [],
             turn_memory or [],
             epoch_memory or [],
+            quarter_number=quarter_number,
         )
 
         system_prompt = _load_macro_prompt(self.scenario, self.lang)
@@ -180,12 +181,24 @@ class MacroPolicyEngine:
         history_events,
         turn_memory,
         epoch_memory,
+        quarter_number: int = 0,
     ) -> str:
         lines = []
 
         season = getattr(baseline, "season_name", None) or "?"
         year = getattr(baseline, "year", ws.year) if baseline else ws.year
-        lines.append(f"## 当前时间\n{year}年{season} | 第{ws.turn_number}季度\n")
+        lines.append(f"## 当前时间\n{year}年{season} | 第{quarter_number}季度\n")
+
+        # ── Per-quarter historical constraint (injected directly for reliability) ──
+        if quarter_number <= 2:
+            lines.append("## ⚠️ 历史约束（本季度必须遵守）")
+            if quarter_number == 1:
+                lines.append("- 曹操刚统一河北，主力在辽东剿灭袁绍残部。**不可南下进攻。** 应内政发展或调兵布防。")
+                lines.append("- 孙权应攻打江夏黄祖。若江夏已下，巩固新领。")
+            elif quarter_number == 2:
+                lines.append("- 曹操北方肃清，但**仍需备战而非进攻**。应征兵、屯田、积粮。")
+                lines.append("- 孙权巩固江夏新占。刘备练兵新野。")
+            lines.append("")
 
         lines.append("## 玩家策令")
         lines.append(decision)
