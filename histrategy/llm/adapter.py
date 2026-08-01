@@ -32,7 +32,7 @@ PROVIDER_CONFIGS = [
         "env_key": "DEEPSEEK_API_KEY",
         "env_base": "DEEPSEEK_API_BASE",
         "default_base": "https://api.deepseek.com",
-        "default_model": "deepseek-v4-pro",
+        "default_model": "deepseek-chat",
         "supports_json_mode": True,
     },
     {
