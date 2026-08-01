@@ -182,16 +182,18 @@ class MacroPolicyEngine:
 
                 # Strip battle_results that target human player's starting territory
                 HUMAN_FACTION_IDS = {"shu", "wu", "liuzhang"}
+                CAPTURE_RESULTS = {"attack_win", "rout"}
                 filtered_battles = []
                 for br in validated.get("battle_results", []):
                     loc = br.get("location", "")
                     defender = br.get("defender", "")
-                    if defender in HUMAN_FACTION_IDS and br.get("territory_captured"):
+                    wants_capture = bool(br.get("territory_captured")) or br.get("result") in CAPTURE_RESULTS
+                    if defender in HUMAN_FACTION_IDS and wants_capture:
                         import logging
                         _log = logging.getLogger("histrategy.macro")
                         _log.warning(
-                            "[room=%s Q%d] STRIPPED battle_result capturing %s (Q1-Q2 territory capture blocked)",
-                            room_id, quarter_number, loc,
+                            "[room=%s Q%d] STRIPPED battle_result capturing %s from %s (Q1-Q2 territory capture blocked)",
+                            room_id, quarter_number, loc, defender,
                         )
                         continue  # drop the battle result entirely
                     filtered_battles.append(br)
