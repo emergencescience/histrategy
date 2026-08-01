@@ -160,7 +160,13 @@ class MacroPolicyEngine:
             if isinstance(result, str):
                 result = self._extract_json(result)
             return self._validate_output(result)
-        except Exception:
+        except Exception as e:
+            import logging
+            _log = logging.getLogger("histrategy.macro")
+            _log.error(
+                "[room=%s Q%d] macro_sim LLM call failed: %s",
+                room_id, quarter_number, e, exc_info=True,
+            )
             return {}
 
     # ── Context Builder ────────────────────────────────────

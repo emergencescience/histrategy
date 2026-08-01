@@ -8,6 +8,7 @@ JSON fields are serialized/deserialized via json.dumps/loads.
 from __future__ import annotations
 
 import contextlib
+import os
 import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
@@ -42,7 +43,7 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
             """UPDATE game_room SET
                 year = ?, season = ?, quarter_number = ?, phase = ?,
                 world_state = ?, slots = ?, turn_summaries = ?,
-                is_public = ?, updated_at = ?
+                is_public = ?, engine_version = ?, updated_at = ?
             WHERE id = ?""",
             (
                 room.year,
@@ -53,6 +54,7 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
                 slots_json,
                 summaries_json,
                 1 if room.is_public else 0,
+                os.environ.get("HISTRATEGY_ENGINE", ""),
                 now,
                 room.id,
             ),
@@ -68,8 +70,8 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
             """INSERT INTO game_room
                 (id, scenario, year, season, quarter_number,
                  phase, world_state, slots, decision_timeout,
-                 turn_summaries, created_at, updated_at, host_user_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                 turn_summaries, engine_version, created_at, updated_at, host_user_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 room.id,
                 room.scenario,
@@ -81,6 +83,7 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
                 slots_json,
                 room.decision_timeout,
                 summaries_json,
+                os.environ.get("HISTRATEGY_ENGINE", ""),
                 now,
                 now,
                 getattr(room, "host_user_id", ""),

@@ -301,11 +301,24 @@ class GameEngineCore:
 
                 _room_dir = str(_get_data_dir())
                 _macro_kwargs = {}
-                _macro_kwargs["api_key"] = llm.api_key if llm and llm.api_key else None
-                _macro_kwargs["api_base"] = llm.api_base if llm and llm.api_base else None
                 _macro_kwargs["data_dir"] = _room_dir
                 if macro_model_specified:
                     _macro_kwargs["model"] = macro_model_specified
+                    # When macro model is explicitly overridden, also switch
+                    # the API endpoint to match. Otherwise we inherit the parent
+                    # LLM's api_base (which may be Doubao's volces endpoint that
+                    # doesn't serve deepseek models → 404).
+                    _macro_kwargs["api_base"] = os.environ.get(
+                        "HISTRATEGY_MACRO_API_BASE",
+                        "https://api.deepseek.com",
+                    )
+                    _macro_kwargs["api_key"] = os.environ.get(
+                        "HISTRATEGY_MACRO_API_KEY",
+                        os.environ.get("DEEPSEEK_API_KEY", ""),
+                    )
+                else:
+                    _macro_kwargs["api_key"] = llm.api_key if llm and llm.api_key else None
+                    _macro_kwargs["api_base"] = llm.api_base if llm and llm.api_base else None
                 self._macro_llm = _LLM(**_macro_kwargs)
             except Exception:
                 self._macro_llm = llm

@@ -433,7 +433,7 @@ def submit_decision(room_id: str, faction_id: str, decision: str, skip_narrative
             logger.warning("Room %s blocked: rate limit", room.id)
             return {"ok": False, "error": str(exc), "code": "rate_limited"}
         except Exception as exc:
-            logger.error("[room=%s] resolve failed: %s", room.id, exc)
+            logger.exception("[room=%s] resolve failed: %s", room.id, exc)
             room.phase = type(room.phase).WAITING  # reset on error
 
     status = "resolving" if not pending else "waiting"
