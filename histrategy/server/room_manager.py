@@ -1071,6 +1071,90 @@ def _pop_narrative_context(room_id: str) -> dict | None:
     return _NARRATIVE_CONTEXT_STASH.pop(room_id, None)
 
 
+def _bg_generate_narrative(room_id: str, quarter: int, scenario: str, lang: str = "zh") -> None:
+    """Background: generate and persist narrative from stashed context.
+
+    Streaming mode defers narrative generation via _stash_narrative_context.
+    This function consumes the stash in a daemon thread so the narrative is
+    persisted to DB even if the SSE endpoint (narrative-live-stream) is never
+    called or the client disconnects mid-stream.
+
+    After generation the stash is popped so the SSE endpoint doesn't double-
+    generate — it will find the persisted narrative in DB and replay it.
+    """
+    import time as _t
+    _t0 = _t.time()
+
+    stashed = _peek_narrative_context(room_id)
+    if not stashed:
+        logger.warning("[room=%s] bg_narrative: no stashed context, skipping", room_id)
+        return
+
+    ctx = stashed.get("ctx")
+    if not ctx:
+        logger.warning("[room=%s] bg_narrative: empty context, skipping", room_id)
+        return
+
+    # Build a narrative engine
+    llm = _get_llm()
+    narrative_engine = None
+    try:
+        from histrategy.llm.narrative import NarrativeEngine
+        narrative_engine = NarrativeEngine(
+            llm_adapter=llm, language=lang, scenario=scenario
+        )
+    except Exception as e:
+        logger.warning("[room=%s] bg_narrative: NarrativeEngine init failed: %s", room_id, e)
+        return
+
+    if not narrative_engine:
+        return
+
+    # Generate narrative from stashed context
+    try:
+        all_decisions = ctx.get("all_decisions", {})
+        baseline = ctx.get("baseline")
+        macro_delta = ctx.get("macro_delta")
+        history_events = ctx.get("history_events")
+
+        # Reload room to get WorldState (persisted by _save_v3_state_to_db before this thread runs)
+        room = _get_room(room_id)
+        ws = room.world_state if room else None
+
+        full_text = narrative_engine.generate_global_narrative(
+            ws=ws,
+            faction_decisions=all_decisions,
+            baseline=baseline,
+            macro_delta=macro_delta,
+            history_events=history_events,
+            room_id=room_id,
+            scenario=scenario,
+        )
+    except Exception as e:
+        logger.warning("[room=%s] bg_narrative: generation failed: %s", room_id, e)
+        return
+
+    if not full_text or not full_text.strip():
+        logger.warning("[room=%s] bg_narrative: empty output, skipping persist", room_id)
+        return
+
+    # Persist to DB
+    try:
+        from histrategy.db.models import update_quarter_turn_narratives
+        narratives = {fid: full_text for fid in all_decisions}
+        narratives["global"] = full_text
+        update_quarter_turn_narratives(room_id, quarter, narratives)
+        logger.info(
+            "[room=%s] bg_narrative: persisted %d chars in %.1fs",
+            room_id, len(full_text), _t.time() - _t0,
+        )
+    except Exception as e:
+        logger.warning("[room=%s] bg_narrative: DB persist failed: %s", room_id, e)
+
+    # Pop the stash so SSE endpoint doesn't double-generate
+    _pop_narrative_context(room_id)
+
+
 def _init_world_state(room: GameRoom):
     from histrategy.engine.game import create_initial_world
 
@@ -1393,6 +1477,20 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
     #    just-produced quarter so narrative-live-stream updates the right row. ──
     if skip_narrative and getattr(result, "narrative_context", None):
         _stash_narrative_context(room.id, result.narrative_context, room.quarter_number)
+        # ── Background: generate + persist narrative so shared page has it ──
+        # Without this, narrative only gets persisted if the SSE endpoint
+        # (narrative-live-stream) is called AND completes without disconnection.
+        try:
+            import threading
+            _lang = lang or "zh"
+            _scenario = getattr(room, "scenario", "three-kingdoms")
+            threading.Thread(
+                target=_bg_generate_narrative,
+                args=(room.id, room.quarter_number, _scenario, _lang),
+                daemon=True,
+            ).start()
+        except Exception as e:
+            logger.warning("[room=%s] bg narrative thread spawn failed: %s", room.id, e)
 
     # ── H31a-B2: pre-generate NEXT quarter's NPC decisions in the BACKGROUND ──
     # This is ~30-40s of LLM latency that used to block the /command response.
