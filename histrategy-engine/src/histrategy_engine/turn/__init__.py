@@ -247,22 +247,29 @@ class TurnController:
             if defender_id == cmd.faction_id:
                 continue
 
-            # Check for common enemy
+            # Check for common enemy OR explicit alliance
             atk_rels = getattr(attacker, "relations", {})
             def_faction = world_state.factions.get(defender_id)
             if not def_faction:
                 continue
             def_rels = getattr(def_faction, "relations", {})
 
-            # Find factions both hate more than each other
+            # Explicit allies should never fight each other — always redirect
+            are_allies = (
+                defender_id in getattr(attacker, "allies", [])
+                or cmd.faction_id in getattr(def_faction, "allies", [])
+            )
+
+            # Find factions both hate more than each other (or any common enemy if allied)
             for common_enemy_id in world_state.factions:
                 if common_enemy_id in (cmd.faction_id, defender_id):
                     continue
                 atk_hate = atk_rels.get(common_enemy_id, 0)
                 def_hate = def_rels.get(common_enemy_id, 0)
                 atk_mutual = atk_rels.get(defender_id, 0)
-                # Both hate the common enemy more than they hate each other
-                if atk_hate < -70 and def_hate < -70 and atk_mutual > atk_hate:
+                # Both hate the common enemy more than they hate each other,
+                # OR they are explicit allies (always redirect)
+                if (are_allies and (atk_hate < -30 or def_hate < -30)) or (atk_hate < -70 and def_hate < -70 and atk_mutual > atk_hate):
                     # Redirect attack to common enemy's nearest territory
                     common_f = world_state.factions.get(common_enemy_id)
                     if common_f and common_f.territories:
@@ -283,7 +290,11 @@ class TurnController:
 
         # Separate commands by type
         move_commands = [c for c in valid_commands if c.type in ("move", "attack", "defend")]
-        domestic_commands = [c for c in valid_commands if c.type in ("recruit", "develop", "tax")]
+        domestic_commands = [c for c in valid_commands if c.type in ("recruit", "develop", "tax", "trade", "negotiate")]
+
+        # ── Step 4.5: Alliance Processing ──
+        # Negotiate commands form/break alliances; alliance state grants bonuses
+        alliance_events: list[dict] = self._process_alliances(valid_commands, world_state)
 
         # ── Step 5: Move resolution ──
         move_results = []
@@ -432,6 +443,98 @@ class TurnController:
         )
 
     # ── Helpers ──
+
+    def _process_alliances(self, commands: list[Command], world_state: WorldState) -> list[dict]:
+        """Process negotiate commands to form/break alliances and apply alliance bonuses.
+
+        When faction A sends negotiate to faction B:
+        - If B has relations >= 0 with A → alliance forms (mutual allies)
+        - If B has relations < 0 but > -30 and B.diplomacy > 0.6 → alliance forms
+        - Otherwise, relations improve slightly (the proposal was heard)
+
+        Alliance bonuses applied immediately:
+        - Morale: +2 per active ally
+        - Defense/Attack coordination: handled by existing common-enemy mechanic
+        """
+        events: list[dict] = []
+
+        for cmd in commands:
+            if cmd.type != "negotiate":
+                continue
+
+            source_id = cmd.faction_id
+            target_id = cmd.params.get("target_faction", "")
+            proposal = cmd.params.get("proposal", "")
+
+            if not target_id or source_id == target_id:
+                continue
+
+            source = world_state.factions.get(source_id)
+            target = world_state.factions.get(target_id)
+            if not source or not target or not target.is_active:
+                continue
+
+            # Check if it's a break-alliance proposal
+            break_keywords = ("断交", "决裂", "破盟", "毁约", "break")
+            is_break = any(kw in proposal for kw in break_keywords)
+
+            if is_break:
+                # Remove from mutual allies
+                if target_id in source.allies:
+                    source.allies.remove(target_id)
+                    events.append({
+                        "type": "alliance_broken",
+                        "source": source_id,
+                        "target": target_id,
+                        "reason": proposal or "单方面断交",
+                    })
+                if source_id in target.allies:
+                    target.allies.remove(source_id)
+                continue
+
+            # Alliance formation: check if target would accept
+            rel = target.relations.get(source_id, 0)
+            will_accept = bool(
+                rel >= 0
+                or (rel > -30 and getattr(target, "diplomacy", 0.5) > 0.6)
+            )
+
+            if will_accept:
+                # Form mutual alliance
+                if target_id not in source.allies:
+                    source.allies.append(target_id)
+                if source_id not in target.allies:
+                    target.allies.append(source_id)
+                # Boost relations
+                target.relations[source_id] = min(100, rel + 20)
+                source.relations[target_id] = min(100, source.relations.get(target_id, 0) + 20)
+                events.append({
+                    "type": "alliance_formed",
+                    "source": source_id,
+                    "target": target_id,
+                    "proposal": proposal,
+                })
+            else:
+                # Proposal heard but rejected — slight relations improvement
+                target.relations[source_id] = max(-100, rel + 5)
+                events.append({
+                    "type": "alliance_rejected",
+                    "source": source_id,
+                    "target": target_id,
+                    "proposal": proposal,
+                    "relations_after": target.relations[source_id],
+                })
+
+        # ── Apply alliance morale bonus ──
+        for fid, faction in world_state.factions.items():
+            if not faction.is_active:
+                continue
+            ally_count = len([a for a in faction.allies if a in world_state.factions and world_state.factions[a].is_active])
+            if ally_count > 0:
+                morale_bonus = min(6, ally_count * 2)  # cap at +6
+                faction.morale_actual = min(100, faction.morale_actual + morale_bonus)
+
+        return events
 
     def _validate_commands(self, commands: list[Command], world_state: WorldState) -> list[Command]:
         valid: list[Command] = []
