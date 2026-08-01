@@ -218,13 +218,18 @@ class GameEngineCore:
             lang = getattr(self, "_scenario_language", "zh")
             self.narrative_engine = NarrativeEngine(llm, language=lang, scenario=self.scenario)
 
-            # IntentParser: use fast model in v3 mode for speed
+            # IntentParser: share main LLM unless explicitly overridden
             if self._use_v3:
-                intent_model = os.environ.get("HISTRATEGY_INTENT_MODEL", "deepseek-v4-flash")
+                intent_model = os.environ.get("HISTRATEGY_INTENT_MODEL", "")
                 try:
                     from ..llm.adapter import LLMAdapter as _LLM
 
-                    self._intent_llm = _LLM(model=intent_model)
+                    if intent_model:
+                        # Explicit override: create separate LLM with specified model
+                        self._intent_llm = _LLM(model=intent_model)
+                    else:
+                        # Default: reuse main LLM (respects active provider)
+                        self._intent_llm = llm
                 except Exception:
                     self._intent_llm = llm
                 from ..parser.intent import IntentParser
@@ -293,9 +298,6 @@ class GameEngineCore:
 
             # MacroPolicyEngine uses chat model for creative simulation.
             # Uses HISTRATEGY_MACRO_MODEL if set; otherwise inherits from parent LLM.
-            # NOTE: Doubao integration was rolled back (2026-08-01) due to 429 rate
-            # limits + 180s timeouts. Will be re-added on a feature branch with
-            # proper E2E testing before merge. See histrategy-deploy-checklist skill.
             macro_model_specified = os.environ.get("HISTRATEGY_MACRO_MODEL")
             try:
                 from ..llm.adapter import LLMAdapter as _LLM
@@ -306,18 +308,18 @@ class GameEngineCore:
                 _macro_kwargs["data_dir"] = _room_dir
                 if macro_model_specified:
                     _macro_kwargs["model"] = macro_model_specified
-                    # When macro model is explicitly overridden, also switch
-                    # the API endpoint to match. Otherwise we inherit the parent
-                    # LLM's api_base (which may be Doubao's volces endpoint that
-                    # doesn't serve deepseek models → 404).
-                    _macro_kwargs["api_base"] = os.environ.get(
-                        "HISTRATEGY_MACRO_API_BASE",
-                        "https://api.deepseek.com",
-                    )
-                    _macro_kwargs["api_key"] = os.environ.get(
-                        "HISTRATEGY_MACRO_API_KEY",
-                        os.environ.get("DEEPSEEK_API_KEY", ""),
-                    )
+                    # Inherit api_base/api_key from parent LLM by default.
+                    # Only override if HISTRATEGY_MACRO_API_BASE/KEY are explicitly set.
+                    _macro_api_base = os.environ.get("HISTRATEGY_MACRO_API_BASE", "")
+                    _macro_api_key = os.environ.get("HISTRATEGY_MACRO_API_KEY", "")
+                    if _macro_api_base:
+                        _macro_kwargs["api_base"] = _macro_api_base
+                    else:
+                        _macro_kwargs["api_base"] = llm.api_base if llm and llm.api_base else None
+                    if _macro_api_key:
+                        _macro_kwargs["api_key"] = _macro_api_key
+                    else:
+                        _macro_kwargs["api_key"] = llm.api_key if llm and llm.api_key else None
                 else:
                     _macro_kwargs["api_key"] = llm.api_key if llm and llm.api_key else None
                     _macro_kwargs["api_base"] = llm.api_base if llm and llm.api_base else None

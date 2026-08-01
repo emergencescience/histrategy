@@ -465,6 +465,10 @@ class LLMAdapter:
             "max_tokens": max_tokens,
         }
 
+        # Doubao Seed: disable reasoning tokens for faster responses
+        if self.provider_name == "doubao":
+            payload["thinking"] = {"type": "disabled"}
+
         # JSON mode for supported providers
         use_json_mode = response_format and self.supports_json
         # OpenAI/DeepSeek use response_format, others may not
@@ -681,7 +685,7 @@ class LLMAdapter:
                     stripped_content = msg_content.strip()
                     matched_prompt = None
                     for name, content_template in KNOWN_PROMPTS.items():
-                        if stripped_content == content_template.strip():
+                        if content_template is not None and stripped_content == content_template.strip():
                             matched_prompt = name
                             break
                     if matched_prompt:
@@ -738,7 +742,7 @@ class LLMAdapter:
                         system_content = msg.get("content", "")
                         # Check known prompts
                         for name, template in KNOWN_PROMPTS.items():
-                            if system_content.strip() == template.strip():
+                            if template is not None and system_content.strip() == template.strip():
                                 system_prompt_type = name
                                 break
                         if not system_prompt_type:
@@ -890,7 +894,7 @@ class LLMAdapter:
                     stripped_content = msg_content.strip()
                     matched_prompt = None
                     for name, content_template in KNOWN_PROMPTS.items():
-                        if stripped_content == content_template.strip():
+                        if content_template is not None and stripped_content == content_template.strip():
                             matched_prompt = name
                             break
                     if matched_prompt:

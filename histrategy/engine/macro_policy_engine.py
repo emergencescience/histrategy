@@ -55,46 +55,21 @@ def _load_macro_prompt(scenario: str | None, lang: str = "zh") -> str:
     return MACRO_SIM_SYSTEM
 
 
-OUTPUT_SCHEMA_HINT = """
-仅输出以下四个字段，其余字段（knowledge_cards / black_swan_events / butterfly_effects /
-narrative_seeds / diplomatic_reactions / npc_actions）一律不要生成——它们不被引擎消费，
-只会拖慢推演。黑天鹅事件由确定性历史引擎单独处理。
-
-## battle_results
-[{
-  "location": "yangzhou",
-  "attacker": "qing", "defender": "nanming",
-  "result": "attack_win|defend_win|stalemate|rout",
-  "casualties": {"attacker": {"infantry": 3000}, "defender": {"infantry": 8000}},
-  "territory_captured": true,
-  "narrative": "多铎率八旗主力围扬州，史可法血书求援，城中粮尽..."
-}]
+OUTPUT_SCHEMA_HINT = """\
+仅输出{battle_results,npc_faction_actions,morale_events,political_events}四个字段。
+禁止输出knowledge_cards/black_swan/narrative_seeds/diplomatic_reactions等额外字段。
 
 ## npc_faction_actions
-[{
-  "faction": "qing",
-  "action_type": "declare_war|conscript|develop|diplomacy|tax|naval_blockade|none",
-  "target": "nanming",
-  "reason": "多尔衮见南明内讧，决意趁势南下",
-  "params": {"amount": 50000},
-  "narrative": "多尔衮命多铎为定国大将军，率八旗精锐南下，直指扬州"
-}]
+[{"faction":"cao","action_type":"conscript|develop|diplomacy|tax|declare_war|none","target":"shu","reason":"...","params":{"amount":5000},"narrative":"曹操命..."}]
+
+## battle_results
+[{"location":"xinye","attacker":"cao","defender":"shu","result":"attack_win|defend_win|stalemate|rout","territory_captured":true,"narrative":"..."}]
 
 ## morale_events
-[{
-  "faction": "nanming",
-  "change": -8,
-  "reason": "扬州失守，江南震动",
-  "territories_affected": ["nanjing"]
-}]
+[{"faction":"shu","change":5,"reason":"...","territories_affected":["xinye"]}]
 
 ## political_events
-[{
-  "faction": "nanming",
-  "type": "court_intrigue|reform_feedback|succession|factionalism",
-  "description": "马士英构陷史可法，弘光帝下旨掣肘江北四镇粮饷...",
-  "effects": {"character_loyalty": {"shikefa": -10}}
-}]
+[{"faction":"cao","type":"court_intrigue|reform_feedback|succession|factionalism","description":"...","effects":{"character_loyalty":{"xunyu":-5}}}]
 """
 
 
@@ -138,7 +113,7 @@ class MacroPolicyEngine:
             quarter_number=quarter_number,
         )
 
-        system_prompt = _load_macro_prompt(self.scenario, self.lang)
+        system_prompt = _load_macro_prompt(self.scenario, self.lang) or ""
         messages = [
             {"role": "system", "content": system_prompt + "\n" + OUTPUT_SCHEMA_HINT},
             {"role": "user", "content": context},
@@ -149,7 +124,7 @@ class MacroPolicyEngine:
                 messages,
                 response_format={"type": "json_object"},
                 temperature=0.3,
-                max_tokens=4096,
+                max_tokens=3500,
                 metadata={
                     "category": "macro_sim",
                     "reason": "quarterly_simulation",
