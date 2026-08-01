@@ -160,7 +160,44 @@ class MacroPolicyEngine:
             # chat_structured may return raw string if json.loads fails
             if isinstance(result, str):
                 result = self._extract_json(result)
-            return self._validate_output(result)
+            validated = self._validate_output(result)
+
+            # ── Hard enforcement: no war in Q1-Q2 ──
+            if quarter_number <= 2 and isinstance(validated, dict):
+                # Strip declare_war from NPC actions
+                filtered_actions = []
+                for nfa in validated.get("npc_faction_actions", []):
+                    if nfa.get("action_type") == "declare_war":
+                        import logging
+                        _log = logging.getLogger("histrategy.macro")
+                        _log.warning(
+                            "[room=%s Q%d] STRIPPED declare_war from %s (Q1-Q2 no-war constraint)",
+                            room_id, quarter_number, nfa.get("faction", "?"),
+                        )
+                        # Replace with develop as a safe fallback
+                        nfa["action_type"] = "develop"
+                        nfa["reason"] = "曹操在北方巩固统治，暂且休整备战"
+                    filtered_actions.append(nfa)
+                validated["npc_faction_actions"] = filtered_actions
+
+                # Strip battle_results that target human player's starting territory
+                HUMAN_FACTION_IDS = {"shu", "wu", "liuzhang"}
+                filtered_battles = []
+                for br in validated.get("battle_results", []):
+                    loc = br.get("location", "")
+                    defender = br.get("defender", "")
+                    if defender in HUMAN_FACTION_IDS and br.get("territory_captured"):
+                        import logging
+                        _log = logging.getLogger("histrategy.macro")
+                        _log.warning(
+                            "[room=%s Q%d] STRIPPED battle_result capturing %s (Q1-Q2 territory capture blocked)",
+                            room_id, quarter_number, loc,
+                        )
+                        continue  # drop the battle result entirely
+                    filtered_battles.append(br)
+                validated["battle_results"] = filtered_battles
+
+            return validated
         except Exception as e:
             import logging
             _log = logging.getLogger("histrategy.macro")
@@ -191,13 +228,16 @@ class MacroPolicyEngine:
 
         # ── Per-quarter historical constraint (injected directly for reliability) ──
         if quarter_number <= 2:
-            lines.append("## ⚠️ 历史约束（本季度必须遵守）")
+            lines.append("## ⚠️ 硬性约束 — 必须严格遵守，违者引擎拒绝")
             if quarter_number == 1:
-                lines.append("- 曹操刚统一河北，主力在辽东剿灭袁绍残部。**不可南下进攻。** 应内政发展或调兵布防。")
-                lines.append("- 孙权应攻打江夏黄祖。若江夏已下，巩固新领。")
+                lines.append("- **禁止宣战**：所有NPC的 action_type 必须是 conscript/develop/diplomacy/tax/none 之一。")
+                lines.append("  **declare_war 是禁止的。** 曹操刚定河北，袁绍残部未灭，此时南下在军事上不可行。")
+                lines.append("- battle_results 数组必须为空 []。本季度无战役。")
+                lines.append("- 曹操应征兵和发展。孙权应继续巩固江夏。")
             elif quarter_number == 2:
-                lines.append("- 曹操北方肃清，但**仍需备战而非进攻**。应征兵、屯田、积粮。")
-                lines.append("- 孙权巩固江夏新占。刘备练兵新野。")
+                lines.append("- **禁止宣战**：NPC不可对玩家势力宣战。曹操在备战而非进攻。")
+                lines.append("- 曹操应征兵、屯田、积粮。可对刘表施压（diplomacy threaten）")
+                lines.append("- battle_results 最多1场（如孙权vs山越、曹操vs乌桓残部等边缘战斗），不可涉及刘备领地。")
             lines.append("")
 
         lines.append("## 玩家策令")
