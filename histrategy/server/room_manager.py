@@ -391,11 +391,12 @@ def submit_decision(room_id: str, faction_id: str, decision: str, skip_narrative
     # API and stored in the quarter_turn record.
     try:
         from histrategy.parser.intent import IntentParser
-        parser = IntentParser(llm_adapter=None, scenario=room.scenario)  # keyword-based, no LLM latency
+        llm = _get_llm()  # V3: use LLM for intent parsing; falls back to keyword if unavailable
+        parser = IntentParser(llm_adapter=llm, scenario=room.scenario)
         parsed = parser.parse(decision, faction_id)
         if parsed:
             slot.pending_commands = [c.to_dict() if hasattr(c, 'to_dict') else c for c in parsed]
-        # ── Log keyword-based parse for debug traceability (H31c fix) ──
+        # ── Log intent parse for debug traceability ──
         try:
             import json as _json
             from histrategy.db.models import log_llm_call
