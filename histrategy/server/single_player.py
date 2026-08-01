@@ -542,6 +542,7 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
         "正在撰写战报…" if lang == "zh" else "Writing the chronicle…")
 
     return {
+        "ok": True,
         "game_id": game_id,
         "narrative": narrative or ("" if narrative_pending else "The realm is at peace."),
         "narrative_pending": narrative_pending,
