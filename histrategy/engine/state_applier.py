@@ -442,10 +442,14 @@ def _apply_npc_faction_action(nfa: dict, ws, fmap: dict, summary: dict) -> None:
     if action_type == "conscript":
         amount = int(params.get("amount", 5000) or 5000)
         # ── Grounded recruitment: cap by population, treasury, food, and streak ──
-        total_pop = sum(
+        # Use faction.population as primary source (territories may have stale/zero pop).
+        # Fall back to territory sum if faction.population is not set.
+        faction_pop = getattr(faction, "population", 0)
+        territory_pop = sum(
             getattr(ws.territories.get(tid, None), "population", 0)
             for tid in getattr(faction, "territories", [])
         )
+        total_pop = faction_pop if faction_pop > 0 else territory_pop
         # Snapshot initial population on first call (for labor floor check)
         if fid not in _initial_faction_population:
             _initial_faction_population[fid] = max(total_pop, 1)
