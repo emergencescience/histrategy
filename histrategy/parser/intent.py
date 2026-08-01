@@ -62,6 +62,42 @@ def _ensure_scenario_territories(scenario: str | None = None):
         )
 
 
+def _ensure_scenario_factions(scenario: str | None = None):
+    """Lazily populate FACTION_NAME_MAP with scenario-specific faction names.
+
+    The base FACTION_NAME_MAP only has Three Kingdoms factions (曹操→cao, etc.).
+    Nanming/Rome etc. factions are loaded from scenarios/<id>/knowledge/factions.json.
+    """
+    if not scenario or getattr(_ensure_scenario_factions, "_loaded", None) == scenario:
+        return
+    _ensure_scenario_factions._loaded = scenario  # type: ignore[attr-defined]
+    try:
+        import json
+        import logging
+        from pathlib import Path
+
+        repo_root = Path(__file__).resolve().parents[2]  # histrategy/ repo root
+        ffile = repo_root / 'scenarios' / scenario / 'knowledge' / 'factions.json'
+        if not ffile.exists():
+            return
+        with open(ffile) as f:
+            factions = json.load(f)
+        # factions.json can be a list or dict
+        items = factions if isinstance(factions, list) else list(factions.values())
+        for fac in items:
+            fid = fac.get("id", "")
+            name = fac.get("name", "")
+            # Map both Chinese name and internal ID for keyword matching
+            if name and name not in FACTION_NAME_MAP:
+                FACTION_NAME_MAP[name] = fid
+            if fid and fid not in FACTION_NAME_MAP:
+                FACTION_NAME_MAP[fid] = fid
+    except Exception as e:
+        logging.getLogger("histrategy.parser").warning(
+            "Failed to load scenario factions for %s: %s", scenario, e
+        )
+
+
 class IntentParser:
     """Parses player free-text into structured Command objects via LLM or keyword fallback."""
 
@@ -69,8 +105,9 @@ class IntentParser:
         self.llm = llm_adapter
         self.llm_available = llm_adapter is not None and llm_adapter.is_available
         self.scenario = scenario
-        # Ensure scenario territory names are loaded for keyword matching
+        # Ensure scenario territory and faction names are loaded for keyword matching
         _ensure_scenario_territories(scenario)
+        _ensure_scenario_factions(scenario)
 
     def parse(self, raw_text: str, faction_id: str) -> list:
         """Parse natural language text into a list of Command objects.
@@ -241,7 +278,7 @@ class IntentParser:
 
         # Detect command types via keywords
         # Recruit
-        if any(kw in text_lower for kw in ("招兵", "募兵", "征兵", "招募", "扩军")):
+        if any(kw in text_lower for kw in ("招兵", "募兵", "征兵", "招募", "扩军", "征募")):
             tid = self._extract_territory(text) or ""
             amount = self._extract_number(text) or 500
             unit_type = self._extract_unit_type(text)
@@ -255,19 +292,20 @@ class IntentParser:
                 )
 
         # Develop
-        if any(kw in text_lower for kw in ("发展", "开发", "建设", "屯田", "修城", "农")):
+        if any(kw in text_lower for kw in ("发展", "开发", "建设", "屯田", "修城", "务农", "农耕", "重农", "兴农")):
             tid = self._extract_territory(text) or ""
-            if tid:
-                commands.append(
-                    Command(
-                        type="develop",
-                        params={"territory": tid},
-                        faction_id=faction_id,
-                    )
+            # Allow faction-wide develop (no territory needed — e.g. "推行屯田制")
+            commands.append(
+                Command(
+                    type="develop",
+                    params={"territory": tid} if tid else {},
+                    faction_id=faction_id,
+                    notes="全域发展" if not tid else "",
                 )
+            )
 
         # Attack
-        if any(kw in text_lower for kw in ("攻击", "进攻", "攻打", "讨伐", "出兵", "讨")):
+        if any(kw in text_lower for kw in ("攻击", "进攻", "攻打", "讨伐", "出兵", "取", "夺取", "夺", "袭取", "袭", "征伐", "伐", "攻克", "攻取")):
             target = self._extract_territory(text) or self._extract_target_faction(text) or ""
             if target:
                 params = {"target_territory": target}
@@ -298,7 +336,9 @@ class IntentParser:
                 )
 
         # Move (includes 北上, 南下, 东进, 西征, 回师)
-        if any(kw in text_lower for kw in ("移动", "行军", "调兵", "移师", "北上", "南下", "东进", "西征", "回师", "进发", "开赴", "支援", "增援", "驰援")):
+        # Guard: skip move if text also contains attack keywords (北上取X = attack, not move)
+        _has_attack_kw = any(kw in text_lower for kw in ("攻击", "进攻", "攻打", "讨伐", "出兵", "取", "夺取", "夺", "袭取", "袭", "征伐", "伐", "攻克", "攻取"))
+        if not _has_attack_kw and any(kw in text_lower for kw in ("移动", "行军", "调兵", "移师", "北上", "南下", "东进", "西征", "回师", "进发", "开赴", "支援", "增援", "驰援")):
             dest = self._extract_territory(text) or ""
             if dest:
                 params = {"destination": dest}
@@ -352,7 +392,7 @@ class IntentParser:
                 )
 
         # Defend
-        if any(kw in text_lower for kw in ("防守", "布防", "防御", "戒备", "镇守", "驻防", "保卫", "设防")):
+        if any(kw in text_lower for kw in ("防守", "布防", "防御", "戒备", "镇守", "驻防", "保卫", "设防", "加固")):
             tid = self._extract_territory(text) or ""
             if tid:
                 params = {"territory": tid}
