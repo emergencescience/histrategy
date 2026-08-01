@@ -46,6 +46,10 @@ FACTION_DISPLAY_TO_ID: dict[str, str] = {
     "caocao": "cao",
     "liubei": "shu",
     "sunquan": "wu",
+    # Underscore variants (API sends "liu_bei" not "liubei")
+    "cao_cao": "cao",
+    "liu_bei": "shu",
+    "sun_quan": "wu",
     # Alternate / legacy names
     "wei": "cao",
     "sunjian": "wu",

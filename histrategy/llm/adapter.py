@@ -481,6 +481,7 @@ class LLMAdapter:
         import time
 
         start_time = time.perf_counter()
+        # ── Attempt 1: with JSON mode ──
         response = None
         try:
             response = self.client.post(
@@ -506,6 +507,31 @@ class LLMAdapter:
             return self._extract_json(content)
         except Exception as e:
             latency = time.perf_counter() - start_time
+            # ── Fallback: retry without JSON mode if it failed ──
+            if use_json_mode and response is not None and 400 <= response.status_code < 500:
+                self._logger.warning(
+                    "chat_structured JSON mode failed (HTTP %s), retrying without response_format",
+                    response.status_code,
+                )
+                payload.pop("response_format", None)
+                try:
+                    retry_start = time.perf_counter()
+                    response2 = self.client.post(
+                        "/chat/completions",
+                        json=payload,
+                    )
+                    retry_latency = time.perf_counter() - retry_start
+                    response2.raise_for_status()
+                    data2 = response2.json()
+                    self._record_stats_and_log(
+                        messages, data2, retry_latency, metadata=metadata
+                    )
+                    content2 = data2["choices"][0]["message"]["content"]
+                    return self._extract_json(content2)
+                except Exception as retry_e:
+                    self._logger.error(
+                        "chat_structured fallback also failed: %s", retry_e
+                    )
             self._record_error_and_log(messages, e, latency, response, metadata=metadata)
             raise
 
