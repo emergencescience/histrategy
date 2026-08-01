@@ -324,9 +324,9 @@ def create_app(llm_provider: str | None = None) -> Any:
                 },
             )
 
-        # No narrative yet — stream a fallback message
+        # No narrative yet — stream a graceful fallback (not the misleading "叙事生成中")
         async def _serve_fallback():
-            yield "data: 叙事生成中，请稍候...\n\n"
+            yield "data: 天下大势，分久必合，合久必分。\n\n"
             yield "data: [DONE]\n\n"
 
         return StreamingResponse(

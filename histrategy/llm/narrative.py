@@ -458,6 +458,7 @@ class NarrativeEngine:
                 [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
                 temperature=0.7,
                 max_tokens=3072,
+                stream_timeout=45.0,  # Fall back to offline after 45s instead of hanging
                 metadata={
                     "category": "global_narrative",
                     "room_id": room_id,

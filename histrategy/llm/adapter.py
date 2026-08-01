@@ -304,11 +304,16 @@ class LLMAdapter:
         temperature: float = 0.7,
         max_tokens: int = 16384,
         metadata: dict | None = None,
+        stream_timeout: float | None = None,
     ):
         """Stream a chat completion, yielding text chunks as they arrive.
 
         Uses Server-Sent Events (SSE) via the OpenAI-compatible streaming API.
         Yields each content delta chunk as a string.
+
+        stream_timeout: per-call read timeout in seconds. Defaults to 120s.
+            Use a lower value (e.g. 45s) for time-sensitive streams like narrative
+            generation where falling back to offline is preferred over waiting.
         """
         if not self.is_available:
             raise RuntimeError(
@@ -336,12 +341,15 @@ class LLMAdapter:
 
         start_time = time.perf_counter()
         self._logger.info(
-            "LLM chat_stream: provider=%s model=%s prompt_chars=%d max_tokens=%d",
+            "LLM chat_stream: provider=%s model=%s prompt_chars=%d max_tokens=%d timeout=%s",
             self.provider_name,
             self.model,
             len(str(messages)),
             max_tokens,
+            stream_timeout or "default",
         )
+
+        _timeout = stream_timeout if stream_timeout is not None else 120.0
 
         try:
             stream_body = {
@@ -358,7 +366,7 @@ class LLMAdapter:
                 "POST",
                 "/chat/completions",
                 json=stream_body,
-                timeout=120.0,
+                timeout=_timeout,
             ) as response:
                 response.raise_for_status()
                 full_content = []

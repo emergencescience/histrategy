@@ -565,7 +565,11 @@ def stream_and_persist_narrative(room):
                     logger.warning("[room=%s] Narrative DB persist failed: %s", room.id, e)
             return
 
-        yield "叙事生成中，请稍候…" if lang == "zh" else "Generating chronicle..."
+        # No stashed context, no cached narrative, no world_state to generate from.
+        # Yield a graceful fallback instead of the misleading "叙事生成中" (which
+        # implies generation IS happening when it's not).
+        fallback = "天下大势，分久必合，合久必分。" if lang == "zh" else "The empire, long divided, must unite; long united, must divide."
+        yield fallback
         return
 
     # ── Build a narrative engine (transient — not stored on room) ──
