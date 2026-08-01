@@ -28,6 +28,27 @@ from histrategy.engine.faction_slot import (
 from histrategy.llm.prompt_loader import INTENT_PARSE_SYSTEM
 
 
+def _load_intent_prompt(scenario: str | None = None) -> str:
+    """Load scenario-specific intent parse prompt, falling back to default.
+
+    Priority:
+    1. scenarios/{scenario}/prompts/intent_parse.md
+    2. Default INTENT_PARSE_SYSTEM
+    """
+    base = INTENT_PARSE_SYSTEM or ""
+    if scenario and base:
+        from pathlib import Path
+        # Resolve relative to package root (3 dirs up from this file)
+        repo_root = Path(__file__).resolve().parents[2]
+        spath = repo_root / "scenarios" / scenario / "prompts" / "intent_parse.md"
+        if spath.exists():
+            with open(spath, encoding="utf-8") as f:
+                scenario_prompt = f.read().strip()
+            if scenario_prompt:
+                return base + "\n\n---\n\n" + scenario_prompt
+    return base
+
+
 def _ensure_scenario_territories(scenario: str | None = None):
     """Lazily populate TERRITORY_NAME_MAP with scenario-specific territory names.
 
@@ -171,7 +192,7 @@ class IntentParser:
         user_msg = f"## 玩家势力\nfaction_id: {faction_id}\n\n## 玩家指令\n{text}\n\n请解析以上文本为结构化命令。"
 
         # Build scenario-aware system prompt with territory/faction IDs
-        system_prompt = INTENT_PARSE_SYSTEM
+        system_prompt = _load_intent_prompt(self.scenario)
 
         # Inject current scenario's territory map so LLM knows valid IDs
         territory_refs = []
