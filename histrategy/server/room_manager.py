@@ -2241,6 +2241,17 @@ def _resolve_npc_territory_combat(room, ws, decisions):
     if not factions:
         return
 
+    # ── Q1-Q2: block territory combat (historical timeline constraint) ──
+    # In Three Kingdoms 208 AD, Q1=spring (Cao Cao consolidating north),
+    # Q2=summer (still preparing). Real military action begins in Q3.
+    quarter = getattr(room, "quarter_number", 0)
+    if quarter <= 1:
+        logger.info(
+            "[room=%s Q%d] _resolve_npc_territory_combat: SKIPPED (Q1-Q2 no combat)",
+            room.id, quarter + 1,
+        )
+        return
+
     # Build a mutable snapshot of factions for combat resolution
     fstate = {}
     for fid, f in factions.items():
