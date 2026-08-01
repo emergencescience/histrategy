@@ -90,6 +90,127 @@ class StrategicAdvisor:
         except Exception:
             return self._offline_advice(local_state, query)
 
+    def advise_player_structured(
+        self,
+        local_state: dict,
+        personality: dict | None = None,
+    ) -> dict:
+        """Return structured strategic advice as JSON.
+
+        Returns a dict with:
+          - analysis: 2-3 sentence strategic assessment
+          - suggestions: list of 3 {title, description, command}
+            where 'command' is a ready-to-execute decree the player
+            can send directly (bypasses keyword parse).
+
+        Used by the /advisor API endpoint for the manual "军师" button.
+        """
+        if not self.is_available:
+            return self._offline_structured(local_state, personality)
+
+        context = self._build_context(local_state, personality, "")
+        system = ADVISOR_SYSTEM_EN if self._is_en else ADVISOR_SYSTEM
+
+        # Structured output instruction
+        if self._is_en:
+            output_instruction = (
+                "\n\nOutput a JSON object with exactly this structure:\n"
+                '{"analysis": "2-3 sentence strategic assessment", '
+                '"suggestions": ['
+                '{"title": "≤8 word title", "description": "why this strategy", '
+                '"command": "exact decree the player can copy-paste and send"}, ...]}\n'
+                "Provide exactly 3 suggestions ranked from best to riskiest.\n"
+                "The 'command' field must be a complete, self-contained decree "
+                "that a player can send without modification."
+            )
+        else:
+            output_instruction = (
+                "\n\n请输出严格的JSON格式（不要markdown代码块），结构如下：\n"
+                '{"analysis": "2-3句战略分析（文言文）", '
+                '"suggestions": ['
+                '{"title": "≤8字标题", "description": "此策为何可行", '
+                '"command": "玩家可直接照抄发送的完整政令"}, ...]}\n'
+                "必须提供恰好3条建议（上策、中策、下策），按优劣排序。\n"
+                "command字段必须是玩家可不加修改直接发送的完整政令。"
+            )
+
+        messages = [
+            {"role": "system", "content": system + output_instruction},
+            {"role": "user", "content": context},
+        ]
+        metadata = {
+            "turn": local_state.get("turn", 0),
+            "year": local_state.get("year", 207),
+            "season": (
+                local_state.get("season").value
+                if hasattr(local_state.get("season"), "value")
+                else str(local_state.get("season", "spring"))
+            ),
+            "category": "advisor",
+            "reason": "advise_player_structured",
+            "faction_id": local_state.get("faction_id", ""),
+        }
+        try:
+            result = self._llm.chat_structured(
+                messages,
+                response_format={"type": "json_object"},
+                temperature=0.5,
+                max_tokens=800,
+                metadata=metadata,
+            )
+            return self._validate_structured(result)
+        except Exception:
+            return self._offline_structured(local_state, personality)
+
+    def _validate_structured(self, raw: dict) -> dict:
+        """Validate and normalize structured advisor output."""
+        analysis = str(raw.get("analysis", ""))
+        suggestions = raw.get("suggestions", [])
+        if not isinstance(suggestions, list) or len(suggestions) == 0:
+            suggestions = [{"title": "谨慎行事", "description": "暂无明确策略", "command": "固守待变"}]
+        normalized = []
+        for s in suggestions[:3]:
+            normalized.append({
+                "title": str(s.get("title", ""))[:20],
+                "description": str(s.get("description", ""))[:80],
+                "command": str(s.get("command", "")),
+            })
+        while len(normalized) < 3:
+            normalized.append({"title": "", "description": "", "command": ""})
+        return {"analysis": analysis, "suggestions": normalized}
+
+    def _offline_structured(self, local_state: dict, personality: dict | None = None) -> dict:
+        """Offline fallback structured advice."""
+        my = local_state.get("my", {})
+        perceived = local_state.get("perceived", {})
+        border_enemies = [
+            pf for pf in perceived.values()
+            if pf.get("is_border") and not pf.get("is_allied")
+        ]
+
+        if self._is_en:
+            analysis = "No AI advisor available. Basic heuristic analysis follows."
+            suggestions = [
+                {"title": "Consolidate", "description": "Strengthen economy and defenses",
+                 "command": f"Develop agriculture and recruit troops in {', '.join(my.get('territories', ['capital']))}"},
+                {"title": "Scout", "description": "Gather intelligence on neighbors",
+                 "command": "Send scouts to assess neighboring forces"},
+                {"title": "Diplomacy", "description": "Seek alliances for security",
+                 "command": "Send envoys to potential allies"},
+            ]
+        else:
+            analysis = "离线模式：基于规则的战略建议（无LLM）"
+            suggestions = [
+                {"title": "固本培元", "description": "发展经济，巩固防线",
+                 "command": f"在{', '.join(my.get('territories', ['主城']))}发展农业，招募民兵"},
+                {"title": "刺探军情", "description": "探查邻国虚实",
+                 "command": "派遣斥候探查周边势力动向"},
+                {"title": "合纵连横", "description": "寻求外交同盟",
+                 "command": "派遣使节出访邻国，寻求盟约"},
+            ]
+
+        return {"analysis": analysis, "suggestions": suggestions}
+
     def advise_player_stream(
         self,
         local_state: dict,

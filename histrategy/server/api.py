@@ -376,6 +376,114 @@ def create_app(llm_provider: str | None = None) -> Any:
             },
         )
 
+    @app.get("/api/rooms/{room_id}/advisor")
+    def api_advisor(room_id: str, faction_id: str = ""):
+        """Return structured strategic advice as JSON.
+
+        Manual trigger via 军师 button. Returns:
+          {ok, analysis, suggestions: [{title, description, command}]}
+
+        The 'command' field in each suggestion is a ready-to-execute
+        decree that bypasses keyword parsing — the player can send it
+        directly as their /decide input.
+        """
+        from histrategy.llm.adapter import LLMAdapter
+        from histrategy.server.room_manager import _get_room
+
+        try:
+            room = _get_room(room_id)
+        except Exception:
+            return {"ok": False, "error": "Room not found"}
+
+        if not room:
+            return {"ok": False, "error": "Room not found"}
+
+        fid = faction_id
+        if not fid:
+            human_slots = list(room.human_slots())
+            fid = human_slots[0].faction_id if human_slots else ""
+
+        if not fid:
+            return {"ok": False, "error": "No faction found"}
+
+        ws = room.world_state
+        if not ws:
+            return {"ok": False, "error": "Failed to load game state"}
+
+        faction = ws.factions.get(fid)
+        if not faction:
+            return {"ok": False, "error": f"Faction {fid} not found"}
+
+        # Build context (same as advisor-stream)
+        turn_summaries = getattr(room, "turn_summaries", [])[-4:]
+        chronicle = []
+        for ts in turn_summaries:
+            year = ts.get("year", "?")
+            season = ts.get("season", "?")
+            outcome = ts.get("outcome_summary", "")
+            decision = ts.get("decision", "")
+            chronicle.append(f"{year}年{season}: {decision[:60]} → {outcome}"[:180])
+
+        perceived = {}
+        for ofid, of in ws.factions.items():
+            if ofid == fid or not getattr(of, "is_active", True):
+                continue
+            perceived[ofid] = {
+                "name": of.name,
+                "strength": getattr(of, "strength_actual", 0),
+                "territories": len(list(getattr(of, "territories", []))),
+                "is_border": False,
+                "is_allied": getattr(of, "relations", {}).get(fid, 0) >= 50,
+            }
+
+        terr_names = []
+        for tid in list(getattr(faction, "territories", [])):
+            t = ws.territories.get(tid) if hasattr(ws, "territories") else None
+            terr_names.append(getattr(t, "name", tid) if t else tid)
+
+        local_state = {
+            "turn": ws.turn_number,
+            "year": ws.year,
+            "season": getattr(ws.season, "cn", str(ws.season)),
+            "faction_id": fid,
+            "scenario": getattr(room, "scenario", ""),
+            "my": {
+                "strength": getattr(faction, "strength_actual", 0),
+                "treasury": faction.treasury,
+                "food": faction.food,
+                "morale": getattr(faction, "morale_actual", 50),
+                "territories": terr_names,
+            },
+            "perceived": perceived,
+            "chronicle": chronicle,
+        }
+        personality = {
+            "name": faction.name,
+            "aggression": getattr(faction, "aggression", 0.5),
+            "caution": getattr(faction, "caution", 0.5),
+        }
+
+        try:
+            llm = LLMAdapter()
+        except Exception:
+            llm = None
+
+        if not llm or not llm.is_available:
+            from histrategy.llm.advisor import StrategicAdvisor
+            lang_meta = getattr(room, "metadata", {}).get("lang", "zh")
+            advisor = StrategicAdvisor(llm, language=lang_meta)
+            result = advisor._offline_structured(local_state, personality)
+            result["ok"] = True
+            return result
+
+        from histrategy.llm.advisor import StrategicAdvisor
+
+        lang_meta = getattr(room, "metadata", {}).get("lang", "zh")
+        advisor = StrategicAdvisor(llm, language=lang_meta)
+        result = advisor.advise_player_structured(local_state, personality=personality)
+        result["ok"] = True
+        return result
+
     @app.get("/api/rooms/{room_id}/advisor-stream")
     def api_advisor_stream(room_id: str, faction_id: str = ""):
         """Stream AI advisor advice (军师进言) via SSE.

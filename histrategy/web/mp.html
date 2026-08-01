@@ -94,6 +94,19 @@ select { cursor:pointer; }
 .timeline-item:last-child { border-bottom: none; }
 .timeline-divergence { margin-top: 10px; padding: 8px; background: rgba(92, 184, 92, 0.1); border-radius: 4px; font-size: 0.9em; color: #5cb85c; }
 
+/* ── Advisor Panel ── */
+#advisor-panel { margin: 12px 0; transition: all 0.3s ease; }
+.advisor-analysis { padding: 8px 12px; background: rgba(212,167,116,0.08); border-left: 2px solid var(--gold); border-radius: 4px; margin-bottom: 10px; font-size: 0.9em; line-height: 1.6; }
+.advisor-suggestions { display: flex; flex-direction: column; gap: 8px; }
+.suggestion-card { padding: 10px 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+.suggestion-card:hover { background: rgba(212,167,116,0.1); border-color: var(--gold); }
+.suggestion-card .sug-title { font-weight: bold; color: var(--gold); margin-bottom: 4px; }
+.suggestion-card .sug-desc { font-size: 0.85em; color: var(--muted); margin-bottom: 6px; }
+.suggestion-card .sug-cmd { font-size: 0.82em; color: var(--text); padding: 4px 8px; background: rgba(0,0,0,0.3); border-radius: 4px; white-space: pre-wrap; word-break: break-all; }
+.suggestion-card .sug-hint { font-size: 0.75em; color: var(--muted); margin-top: 4px; font-style: italic; }
+#advisor-btn { background: #2d6a4f; }
+#advisor-btn.loading { opacity: 0.6; cursor: wait; }
+
 </style>
 </head>
 <body>
@@ -159,9 +172,18 @@ select { cursor:pointer; }
   <h2>📜 局势推演</h2>
   <div id="narrative" class="narrative-box"></div>
   <div id="npc-actions" style="margin-top:8px"></div>
+  <!-- Advisor Panel (hidden until triggered) -->
+  <div id="advisor-panel" class="hidden">
+    <h3 style="margin:0 0 8px; font-size:1em">🎓 军师进言</h3>
+    <div id="advisor-analysis" class="advisor-analysis"></div>
+    <div id="advisor-suggestions" class="advisor-suggestions"></div>
+  </div>
   <div style="margin-top:12px">
     <textarea id="decision-input" rows="3" placeholder="输入你的决策..."></textarea>
-    <button class="btn primary" id="submit-btn" onclick="doDecide()">传令</button>
+    <div style="display:flex; gap:8px">
+      <button class="btn primary" id="submit-btn" onclick="doDecide()">传令</button>
+      <button class="btn" id="advisor-btn" onclick="doAdvise()">🎓 军师</button>
+    </div>
   </div>
 </div>
 </div>
@@ -560,6 +582,68 @@ async function renderTimeline(year, season) {
     // Silently ignore — timeline is optional
     target.innerHTML = '';
   }
+}
+
+// ── Advisor (军师进言) ──────────
+async function doAdvise() {
+  if (!myFaction || !roomId) return;
+  const btn = el('advisor-btn');
+  const panel = el('advisor-panel');
+  const analysisEl = el('advisor-analysis');
+  const suggestionsEl = el('advisor-suggestions');
+
+  // Toggle off if already visible
+  if (!panel.classList.contains('hidden')) {
+    panel.classList.add('hidden');
+    btn.textContent = '🎓 军师';
+    return;
+  }
+
+  btn.textContent = '⏳ 运筹中...';
+  btn.classList.add('loading');
+
+  try {
+    const r = await api('GET', `/api/rooms/${roomId}/advisor?faction_id=${myFaction}`);
+    if (!r.ok) { alert(r.error || '军师暂时无法进言'); return; }
+
+    // Analysis
+    analysisEl.textContent = r.analysis || '';
+
+    // Suggestions
+    const labels = ['🥇 上策', '🥈 中策', '🥉 下策'];
+    suggestionsEl.innerHTML = '';
+    (r.suggestions || []).forEach((s, i) => {
+      if (!s.command) return;
+      const card = document.createElement('div');
+      card.className = 'suggestion-card';
+      card.addEventListener('click', () => fillDecision(s.command));
+      card.innerHTML = `<div class="sug-title">${labels[i] || '📌'}: ${escHtml(s.title)}</div>`
+        + (s.description ? `<div class="sug-desc">${escHtml(s.description)}</div>` : '')
+        + `<div class="sug-cmd">${escHtml(s.command)}</div>`
+        + `<div class="sug-hint">👆 点击填入决策框</div>`;
+      suggestionsEl.appendChild(card);
+    });
+    if (!suggestionsEl.children.length) {
+      suggestionsEl.innerHTML = '<p style="color:var(--muted)">军师暂无良策...</p>';
+    }
+    panel.classList.remove('hidden');
+    btn.textContent = '🎓 收起';
+  } catch (e) {
+    alert('军师进言失败: ' + (e.message || '网络错误'));
+  } finally {
+    btn.classList.remove('loading');
+  }
+}
+
+function fillDecision(text) {
+  el('decision-input').value = text;
+  el('decision-input').focus();
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
 }
 
 // ── Submit Decision ─────────────
