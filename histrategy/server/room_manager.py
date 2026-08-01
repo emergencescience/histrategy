@@ -2288,10 +2288,34 @@ def _save_quarter(room, decisions, result):
     try:
         from histrategy.db.models import save_quarter_turn
 
-        fd = {
-            fid: {"decision": dr.decision_text, "commands": dr.commands, "source": dr.source}
-            for fid, dr in decisions.items()
-        }
+        fd = {}
+        for fid, dr in decisions.items():
+            # Serialize commands to plain dicts — PolicyCommand / Command objects
+            # must be converted before JSON storage, otherwise they become
+            # Python repr strings like "Command(type=...)".
+            raw_cmds = dr.commands if dr.commands else []
+            serialized_cmds = []
+            for c in raw_cmds:
+                if hasattr(c, 'to_dict'):
+                    serialized_cmds.append(c.to_dict())
+                elif hasattr(c, '__dataclass_fields__'):
+                    # dataclasses.asdict fallback
+                    import dataclasses
+                    serialized_cmds.append(dataclasses.asdict(c))
+                elif isinstance(c, dict):
+                    serialized_cmds.append(c)
+                else:
+                    # Last resort: try dict() constructor
+                    try:
+                        serialized_cmds.append(dict(c))
+                    except (TypeError, ValueError):
+                        serialized_cmds.append(str(c))
+            
+            fd[fid] = {
+                "decision": dr.decision_text,
+                "commands": serialized_cmds,
+                "source": dr.source,
+            }
         # Fallback: if _resolve_v1 attached faction_decisions to result,
         # use it to backfill any empty human decisions (V1 pass-through fix)
         v1_fd = getattr(result, "faction_decisions", None)
