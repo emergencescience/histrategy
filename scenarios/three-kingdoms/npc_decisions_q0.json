@@ -1,130 +1,87 @@
 {
   "scenario": "three-kingdoms",
   "quarter": 0,
-  "generated_at": "2026-06-16T14:15:55.650478+00:00",
-  "generated_by": "deepseek-v4-pro",
+  "generated_at": "2026-08-01T00:00:00.000000+00:00",
+  "generated_by": "manual-fix",
+  "note": "208年春：曹操刚定河北，袁绍残部（袁熙、袁尚）逃往辽东，曹操主力在北方追剿。此时不可南下攻荆——北方未定，南下是军事大忌。曹操应巩固北方、清除残余、屯田积粮。孙权应准备攻打江夏黄祖（报父仇）。本文件覆盖了 LLM 生成的错误版本（2026-06-16 deepseek-v4-pro 生成，含 attack xinye 的错误命令）。",
   "decisions": {
     "cao": {
-      "en": {
-        "decision_text": "Having pacified Hebei, I now hold the Emperor and command the nobles in his name. Liu Bei, entrenched at Xinye with fewer than five thousand troops, has gained Zhuge Liang as his strategist — left unchecked, he will become a grave threat. I must strike before his wings fully spread, dispatching a superior force to crush him. Meanwhile, Liu Biao lies gravely ill, and the hearts of Jing Province waver; I shall send envoys to pressure the Xiangyang gentry into surrender, aiming to take Jingzhou without a battle.",
+      "zh": {
+        "decision_text": "【平定河北】曹操坐镇邺城，北征袁绍残部。袁熙、袁尚逃往辽东，公孙康尚未表态。此时北方未定，不可贸然南下。传令夏侯惇领兵三万进驻许都，整训兵马以固中原。另遣细作南下刺探刘表病况及荆州虚实。大兴屯田于许都、邺城，充实军资——南征可以缓，粮草不可缺。",
         "commands": [
           {
-            "type": "attack",
+            "type": "conscript",
             "params": {
-              "target_territory": "xinye",
-              "from_territory": "wancheng",
-              "amount": 50000,
-              "unit_type": "infantry, cavalry"
+              "territory": "xuchang",
+              "amount": 5000,
+              "unit_type": "步兵"
             },
-            "reasoning": "Liu Bei's forces are weak — a ten-to-one advantage ensures a swift capture of Xinye. Wancheng is the nearest staging point.",
-            "faction_id": "cao"
-          },
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "liubiao",
-              "action": "threaten"
-            },
-            "reasoning": "With Liu Biao gravely ill, diplomatic pressure may force Jingzhou's surrender without bloodshed.",
-            "faction_id": "cao"
+            "reasoning": "北方初定，扩充中原驻军以安人心"
           },
           {
             "type": "develop",
             "params": {
               "territory": "xuchang"
             },
-            "reasoning": "Develop the capital Xuchang's agricultural colonies to secure grain supplies for the southern campaign.",
-            "faction_id": "cao"
+            "reasoning": "许都屯田，为日后南征积谷"
+          },
+          {
+            "type": "develop",
+            "params": {
+              "territory": "ye"
+            },
+            "reasoning": "邺城为河北粮仓，大兴水利屯田"
           }
         ]
       },
-      "zh": {
-        "decision_text": "孤已定河北，挟天子以令诸侯。刘备屯新野，虽兵微将寡，然得诸葛亮为辅，必为后患。今当趁其羽翼未丰，遣上将率雄师讨之，一举荡平。刘表病重，荆州人心动摇，可遣使恫吓，迫其归降。另命许昌屯田积谷，以备南征大军粮草之需。",
+      "en": {
+        "decision_text": "Cao Cao consolidates power in Ye after pacifying Hebei. Yuan Xi and Yuan Shang have fled to Liaodong — Gongsun Kang has not yet declared allegiance. The north is not fully secured; a southern campaign now would be strategically reckless. Xiahou Dun is ordered to Xuchang with 30,000 troops to drill the central army. Agents are dispatched south to probe Liu Biao's illness and Jingzhou's defenses. Agricultural colonies are expanded at Xuchang and Ye to stockpile grain — the campaign can wait; supplies cannot.",
         "commands": [
           {
-            "type": "attack",
+            "type": "conscript",
             "params": {
-              "target_territory": "xinye",
-              "from_territory": "wancheng",
-              "amount": 50000,
-              "unit_type": "infantry, cavalry"
+              "territory": "xuchang",
+              "amount": 5000,
+              "unit_type": "infantry"
             },
-            "reasoning": "刘备兵力仅五千，以十倍之师自宛城南下，可确保一役而克，铲除心腹之患。",
-            "faction_id": "cao"
-          },
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "liubiao",
-              "action": "threaten"
-            },
-            "reasoning": "刘表病笃，荆州内惧外患，施以兵威可使其不战而降，或至少震慑其勿援刘备。",
-            "faction_id": "cao"
+            "reasoning": "Expand the central garrison to stabilize the newly pacified north"
           },
           {
             "type": "develop",
             "params": {
               "territory": "xuchang"
             },
-            "reasoning": "许昌为根本之地，屯田发展可充实府库，为后续南征提供持续补给。",
-            "faction_id": "cao"
+            "reasoning": "Expand military farms at Xuchang for future southern campaign"
+          },
+          {
+            "type": "develop",
+            "params": {
+              "territory": "ye"
+            },
+            "reasoning": "Ye is the northern granary — irrigation and farms are expanded"
           }
         ]
       }
     },
     "shu": {
-      "en": {
-        "decision_text": "With meager resources, I hold Xinye for now. Cao Cao's power looms like a tiger watching its prey — we cannot face him directly. I must ally with Sun Quan to the east, striking Cao from two fronts like a pair of horns; internally, I will develop agriculture, stockpile grain, and pacify the people. Spring planting approaches — it is time to encourage farming and let the people recover. I will also send envoys to Jiangdong to seal an alliance against external threats, and recruit able-bodied men to strengthen our garrison. Thus, we can seize opportunity when the moment comes, or hold firm and wait for the right season.",
-        "commands": [
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "wu",
-              "action": "ally"
-            },
-            "reasoning": "Cao Cao's strength is overwhelming — allying with Sun Quan in the east creates a north-south pincer and relieves pressure on Xinye.",
-            "faction_id": "shu"
-          },
-          {
-            "type": "develop",
-            "params": {
-              "territory": "xinye"
-            },
-            "reasoning": "Develop agriculture and economy in Xinye to stockpile grain for a long defensive campaign and future recruitment.",
-            "faction_id": "shu"
-          },
-          {
-            "type": "recruit",
-            "params": {
-              "territory": "xinye",
-              "amount": 1000,
-              "unit_type": "infantry"
-            },
-            "reasoning": "Xinye faces Cao's army directly with only five thousand troops — recruiting a thousand more bolsters the garrison without overtaxing our grain supplies.",
-            "faction_id": "shu"
-          }
-        ]
-      },
       "zh": {
-        "decision_text": "玄德公屯兵新野，兵微将寡，然心存仁义，不忍劳民。曹操势大，虎视荆襄，新野首当其冲。今当内修政理，外结盟友。闻卧龙凤雏，天下奇才，可使人寻访，延揽经纶济世之士。同时，宜练兵屯田，充实军资，更遣使荆州，固好于刘荆州，缓图联吴抗曹之策。",
+        "decision_text": "【三顾茅庐】刘备屯兵新野，深感兵微将寡。闻卧龙诸葛亮有经天纬地之才，亲赴隆中草庐三请。同时命关羽张飞加紧练兵，赵云巡视新野防务。遣孙乾为使赴襄阳，与刘表修好以固后方。",
         "commands": [
           {
             "type": "recruit",
             "params": {
               "territory": "xinye",
-              "amount": 1500,
-              "unit_type": "infantry"
+              "amount": 2000,
+              "unit_type": "步兵"
             },
-            "reasoning": "兵力单薄，需招募新兵以加强新野防守，但仁慈为本，量力而行，征募千五，不扰民生。",
-            "faction_id": "shu"
+            "reasoning": "新野兵少，急需扩充守军"
           },
           {
             "type": "develop",
             "params": {
               "territory": "xinye"
             },
-            "reasoning": "发展新野农桑，安辑百姓，充实粮草，为持久之计。",
-            "faction_id": "shu"
+            "reasoning": "屯田养民，积蓄实力"
           },
           {
             "type": "diplomacy",
@@ -132,96 +89,96 @@
               "target_faction": "liubiao",
               "action": "ally"
             },
-            "reasoning": "刘表为汉室宗亲，现居襄阳，与备友善。结盟可互为犄角，共御曹操，亦可得荆州之援。",
-            "faction_id": "shu"
+            "reasoning": "联刘表共为犄角，稳固后方"
+          }
+        ]
+      },
+      "en": {
+        "decision_text": "Liu Bei at Xinye knows his forces are too weak. Hearing of the genius Zhuge Liang, he personally visits his thatched cottage three times to win his service. Guan Yu and Zhang Fei drill the troops while Zhao Yun patrols the borders. Sun Qian is sent to Xiangyang to strengthen ties with Liu Biao.",
+        "commands": [
+          {
+            "type": "recruit",
+            "params": {
+              "territory": "xinye",
+              "amount": 2000,
+              "unit_type": "infantry"
+            },
+            "reasoning": "Urgently expand the small garrison at Xinye"
+          },
+          {
+            "type": "develop",
+            "params": {
+              "territory": "xinye"
+            },
+            "reasoning": "Develop agriculture to support the people"
+          },
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "liubiao",
+              "action": "ally"
+            },
+            "reasoning": "Strengthen ties with Liu Biao for mutual defense"
           }
         ]
       }
     },
     "wu": {
-      "en": {
-        "decision_text": "Cao Cao's might is vast, but with Hebei still unsettled, he dares not lightly cross the Yangtze. Liu Biao is on his deathbed, and chaos will soon engulf Jing Province — a heaven-sent opportunity. I shall govern wisely at home and forge alliances abroad. First, I will fortify Chaisang as the springboard for our westward advance. I will send Lu Su to Liu Bei to bind us as close as lips and teeth; Zhou Yu shall drill the navy at Chaisang. When the autumn harvest fills our granaries, we shall seize Changsha and secure control over the entire Yangtze.",
+      "zh": {
+        "decision_text": "【蓄势江东】孙权继承父兄基业，坐领江东。黄祖据江夏，乃杀父仇人，不可不除。然此时曹操在北虎视眈眈，江东不可二面树敌。命周瑜为大都督，在柴桑整训水师。鲁肃巡江防务，张昭坐镇建业稳固后方。先练水军，待时机成熟再图江夏。",
         "commands": [
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "shu",
-              "action": "ally"
-            },
-            "reasoning": "Ally with Liu Bei to tie down Cao Cao's forces, creating a strategic opening for our westward expansion.",
-            "faction_id": "wu"
-          },
-          {
-            "type": "develop",
-            "params": {
-              "territory": "chaisang"
-            },
-            "reasoning": "Chaisang is the forward base for our western campaign — developing its economy will fund the coming operations.",
-            "faction_id": "wu"
-          },
           {
             "type": "recruit",
             "params": {
               "territory": "chaisang",
-              "amount": 8000,
-              "unit_type": "navy"
+              "amount": 5000,
+              "unit_type": "水军"
             },
-            "reasoning": "The Jiangdong navy is our greatest strength — expanding the fleet secures command of the river for our assault on Jing Province.",
-            "faction_id": "wu"
-          },
-          {
-            "type": "move",
-            "params": {
-              "from_territory": "jianye",
-              "to_territory": "chaisang",
-              "amount": 20000,
-              "unit_type": "infantry, navy"
-            },
-            "reasoning": "Transfer forces from Jianye to Chaisang, assembling thirty thousand naval and land troops for next quarter's attack on Changsha.",
-            "faction_id": "wu"
-          }
-        ]
-      },
-      "zh": {
-        "decision_text": "孤承父兄基业，雄踞江东六郡。今曹操势大，早晚必图江南，不可不备。刘表老迈，荆州内乱，江夏黄祖乃吾仇雠，当先除此獠，夺其地以为北进之跳板。刘备暂居新野，虽弱然有英雄之志，可遣使结好，共抗曹操。内事则委张昭，外事托周瑜，练兵屯粮，静待天时。",
-        "commands": [
-          {
-            "type": "attack",
-            "params": {
-              "target_territory": "jiangkou",
-              "from_territory": "chaisang",
-              "amount": 20000,
-              "unit_type": "navy, infantry"
-            },
-            "reasoning": "江夏为荆州东大门，黄祖与我血仇，且曹操南下必先取荆州，先发制人可抢得战略要地。柴桑屯兵充足，水陆并进可一举破敌。",
-            "faction_id": "wu"
-          },
-          {
-            "type": "diplomacy",
-            "params": {
-              "target_faction": "shu",
-              "action": "ally"
-            },
-            "reasoning": "刘备虽暂居新野，然有关张之勇，且据荆州之侧，联之可互为犄角，牵制曹操。",
-            "faction_id": "wu"
+            "reasoning": "扩建柴桑水师基地，备战江夏"
           },
           {
             "type": "develop",
             "params": {
               "territory": "jianye"
             },
-            "reasoning": "建业乃都城，广积粮草，兴修水利，充实府库，为后续战事提供保障。",
-            "faction_id": "wu"
+            "reasoning": "建业为都城，广积粮草充实府库"
           },
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "shu",
+              "action": "non_aggression"
+            },
+            "reasoning": "遣使至新野，示好刘备以共抗曹操"
+          }
+        ]
+      },
+      "en": {
+        "decision_text": "Sun Quan rules Jiangdong. Huang Zu at Jiangxia killed his father — this blood debt must be repaid. But Cao Cao's shadow looms in the north; Jiangdong cannot afford enemies on two fronts. Zhou Yu drills the navy at Chaisang. Lu Su inspects the river defenses while Zhang Zhao secures the home front at Jianye. First, train the fleet — Jiangxia can wait for the right moment.",
+        "commands": [
           {
             "type": "recruit",
             "params": {
               "territory": "chaisang",
-              "amount": 8000,
+              "amount": 5000,
               "unit_type": "navy"
             },
-            "reasoning": "江东以水师称雄，攻取江夏后需巩固水防，备曹操南下。柴桑为水军基地，就近征募得习水之卒。",
-            "faction_id": "wu"
+            "reasoning": "Expand the Chaisang naval base for the Jiangxia campaign"
+          },
+          {
+            "type": "develop",
+            "params": {
+              "territory": "jianye"
+            },
+            "reasoning": "Fill the capital's granaries"
+          },
+          {
+            "type": "diplomacy",
+            "params": {
+              "target_faction": "shu",
+              "action": "non_aggression"
+            },
+            "reasoning": "Send envoys to Xinye, befriend Liu Bei against Cao Cao"
           }
         ]
       }
