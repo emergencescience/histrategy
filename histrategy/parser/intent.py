@@ -306,7 +306,7 @@ class IntentParser:
 
         # Attack
         if any(kw in text_lower for kw in ("攻击", "进攻", "攻打", "讨伐", "出兵", "取", "夺取", "夺", "袭取", "袭", "征伐", "伐", "攻克", "攻取")):
-            target = self._extract_territory(text) or self._extract_target_faction(text) or ""
+            target = self._extract_territory(text) or self._extract_target_faction(text, exclude_fid=faction_id) or ""
             if target:
                 params = {"target_territory": target}
 
@@ -414,7 +414,7 @@ class IntentParser:
 
         # Negotiate
         if any(kw in text_lower for kw in ("联盟", "结盟", "外交", "谈判", "同盟", "遣使", "修好")):
-            target = self._extract_target_faction(text) or ""
+            target = self._extract_target_faction(text, exclude_fid=faction_id) or ""
             if target:
                 commands.append(
                     Command(
@@ -426,7 +426,7 @@ class IntentParser:
 
         # Spy (includes "策反", "密探", "探虚实")
         if any(kw in text_lower for kw in ("细作", "间谍", "侦查", "情报", "策反", "探虚实", "探", "密探", "窥")):
-            target = self._extract_target_faction(text) or ""
+            target = self._extract_target_faction(text, exclude_fid=faction_id) or ""
             if target:
                 commands.append(
                     Command(
@@ -582,10 +582,10 @@ class IntentParser:
                 return tid
         return None
 
-    def _extract_target_faction(self, text: str) -> str | None:
-        """Extract faction ID from text."""
+    def _extract_target_faction(self, text: str, exclude_fid: str = "") -> str | None:
+        """Extract faction ID from text, excluding the given faction_id (self)."""
         for name, fid in FACTION_NAME_MAP.items():
-            if name in text:
+            if name in text and fid != exclude_fid:
                 return fid
         return None
 
