@@ -782,6 +782,7 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
                     "troops": row.get("troops", 0),
                     "population": row.get("population", 0),
                     "treasury": row.get("treasury", 0),
+                    "food": row.get("food", 0),
                     "territories": len(
                         _json.loads(row.get("territories", "[]"))
                         if isinstance(row.get("territories"), str)
