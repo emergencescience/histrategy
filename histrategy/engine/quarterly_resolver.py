@@ -310,6 +310,7 @@ class QuarterlyResolver:
 
         # ── Step 7: 状态收集 ──
         results.state_changes = _extract_state_changes(world_state, decisions)
+        results.all_commands = all_commands
         results.total_latency_ms = (time.time() - t_start) * 1000
 
         # ── Step 7.5: 季节推进安全网（条件触发，防双重推进）──
@@ -487,6 +488,7 @@ class QuarterlyResult:
         "turn_summary",
         "game_over",
         "narrative_context",
+        "all_commands",
     )
 
     def __init__(self):

@@ -90,7 +90,17 @@ def detect_provider() -> dict:
         key = os.environ.get(cfg["env_key"], "")
         if key and not key.startswith("your-") and len(key) > 10:
             base_override = os.environ.get(cfg.get("env_base", ""), "")
-            if not base_override and cfg["name"] != "openai":
+            # Only fall back to OPENAI_API_BASE when:
+            # (a) no provider-specific base is set, AND
+            # (b) the current provider is NOT doubao (Volcengine Ark keys
+            #     don't work on third-party endpoints), AND
+            # (c) OPENAI itself is NOT configured (OPENAI_API_BASE + OPENAI_API_KEY
+            #     would mean a separate provider, not a shared proxy).
+            if (
+                not base_override
+                and cfg["name"] not in ("openai", "doubao")
+                and not os.environ.get("OPENAI_API_KEY", "")
+            ):
                 base_override = os.environ.get("OPENAI_API_BASE", "")
             return {
                 "name": cfg["name"],
