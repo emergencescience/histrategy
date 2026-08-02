@@ -434,13 +434,16 @@ class IntentParser:
                 )
 
         # Negotiate
-        if any(kw in text_lower for kw in ("联盟", "结盟", "外交", "谈判", "同盟", "遣使", "修好")):
+        if any(kw in text_lower for kw in ("联盟", "结盟", "外交", "谈判", "同盟", "遣使", "修好", "归顺", "招安", "诏安", "断交", "决裂", "破盟", "毁约")):
             target = self._extract_target_faction(text, exclude_fid=faction_id) or ""
             if target:
+                # Detect action: break vs form alliance
+                break_kw = ("断交", "决裂", "破盟", "毁约")
+                action = "break_alliance" if any(kw in text_lower for kw in break_kw) else "form_alliance"
                 commands.append(
                     Command(
                         type="negotiate",
-                        params={"target_faction": target},
+                        params={"target_faction": target, "action": action, "proposal": text[:200]},
                         faction_id=faction_id,
                     )
                 )
