@@ -23,7 +23,7 @@
   "commands": [
     {
       "type": "negotiate",
-      "params": {"target_faction": "nanming", "proposal": "归顺南明，率大军出川与江北诸镇合兵抗清"},
+      "params": {"target_faction": "nanming", "proposal": "归顺南明，率大军出川与江北诸镇合兵抗清", "action": "form_alliance"},
       "notes": "联明抗清战略：先与南明达成归顺协议，获取合法性"
     },
     {
@@ -112,7 +112,7 @@
     },
     {
       "type": "negotiate",
-      "params": {"target_faction": "zheng", "proposal": "约水师北上夹击清军多铎部"},
+      "params": {"target_faction": "zheng", "proposal": "约水师北上夹击清军多铎部", "action": "form_alliance"},
       "notes": "湖广会战配套外交：联络郑成功水师从海上牵制清军"
     }
   ]

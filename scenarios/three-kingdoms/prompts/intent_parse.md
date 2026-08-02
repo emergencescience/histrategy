@@ -98,7 +98,7 @@
   "commands": [
     {
       "type": "negotiate",
-      "params": {"target_faction": "wu", "proposal": "结盟"},
+      "params": {"target_faction": "wu", "proposal": "结盟", "action": "form_alliance"},
       "notes": "联吴抗蜀战略：先稳住东线，避免两线作战"
     },
     {

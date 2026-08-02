@@ -474,9 +474,9 @@ class TurnController:
             if not source or not target or not target.is_active:
                 continue
 
-            # Check if it's a break-alliance proposal
-            break_keywords = ("断交", "决裂", "破盟", "毁约", "break")
-            is_break = any(kw in proposal for kw in break_keywords)
+            # Check action param (set by intent parser, not keyword matching)
+            action = cmd.params.get("action", "form_alliance")
+            is_break = action == "break_alliance"
 
             if is_break:
                 # Remove from mutual allies

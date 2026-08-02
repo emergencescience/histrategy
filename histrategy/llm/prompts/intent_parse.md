@@ -21,7 +21,7 @@
 - **rest**: 休整。无params
 - **appoint**: 任命官员。params: character(人物ID), role(governor/commander)
 - **dismiss**: 解任官员。params: character(人物ID)
-- **negotiate**: 外交谈判。params: target_faction(目标势力ID), proposal(提案内容)
+- **negotiate**: 外交谈判。params: target_faction(目标势力ID), proposal(提案内容), action(可选: "form_alliance"结盟 / "break_alliance"断交 / 默认结盟)
 - **research**: 研究科技。params: tech(科技名)
 
 ## 关键区分
