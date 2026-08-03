@@ -2201,7 +2201,7 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
                         (
                             "population",
                             _safe_int(old.get("population", 0)),
-                            _safe_int(getattr(faction, "population", 0)),
+                            _safe_int(_capture_faction_population(ws, faction)),
                         ),
                         ("troops", _safe_int(old.get("troops", 0)), _safe_int(getattr(faction, "strength_actual", 0))),
                         ("food", _safe_float(old.get("food", 0)), _safe_float(faction.food)),
