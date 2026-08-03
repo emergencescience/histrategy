@@ -484,13 +484,13 @@ class NPCDecisionEngine:
 
         # ── Priority 3: Attack weak hostile neighbor ──
         # ⚠️ Food gate: no attacking when starving — develop/trade instead
+        # Threshold: 1.2x strength advantage (lowered from 1.5x to prevent stagnation)
         attack_made = False
         if hostile_neighbors and aggression > 0.3 and food > 0:
             # Sort by strength ascending — target the weakest hostile neighbor
             hostile_neighbors.sort(key=lambda x: x[2])
             for nid, nf, n_strength in hostile_neighbors:
-                # Only attack if we have 1.5x troops or more
-                if strength > n_strength * 1.5 and strength > 5000:
+                if strength > n_strength * 1.2 and strength > 3000:
                     n_territories = list(getattr(nf, "territories", []))
                     target = n_territories[0] if n_territories else None
                     if target:
@@ -502,6 +502,31 @@ class NPCDecisionEngine:
                             )
                         )
                         decision_parts.append(f"出兵攻打{nid}" if not is_en else f"Attack {nid}")
+                        attack_made = True
+                        break
+
+        # ── Priority 3.5: Desperation attack — when outnumbered but must fight ──
+        # If we couldn't attack through Priority 3 (no 1.2x advantage) but have
+        # hostile neighbors and enough troops, gamble on a surprise attack.
+        # This prevents the infinite "defend → defend → defend" stagnation loop.
+        if not attack_made and hostile_neighbors and food > 5000 and strength > 10000:
+            # Target the weakest hostile, even if stronger than us
+            hostile_neighbors.sort(key=lambda x: x[2])
+            for nid, nf, n_strength in hostile_neighbors:
+                if strength > n_strength * 0.6:  # Don't suicide against 2x stronger
+                    n_territories = list(getattr(nf, "territories", []))
+                    target = n_territories[0] if n_territories else None
+                    if target:
+                        commands.append(
+                            _cmd(
+                                "attack",
+                                {"target": target, "target_faction": nid},
+                                f"背水一战，奇袭{nid}" if not is_en else f"Desperate gamble — surprise attack on {nid}",
+                            )
+                        )
+                        decision_parts.append(
+                            f"孤注一掷奇袭{nid}" if not is_en else f"Desperate attack on {nid}"
+                        )
                         attack_made = True
                         break
 
