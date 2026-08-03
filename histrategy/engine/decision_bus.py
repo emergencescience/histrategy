@@ -357,11 +357,12 @@ def _generate_heuristic_decision(
         parts.append(f"征兵{amount}")
 
     # ── Priority 3: Attack weak hostile neighbor ──
+    # Threshold: 1.2x strength advantage (lowered from 1.5x to prevent stagnation)
     attack_made = False
     if hostile_neighbors:
         hostile_neighbors.sort(key=lambda x: x[2])
         for nid, nf, n_strength in hostile_neighbors:
-            if strength > n_strength * 1.5 and strength > 5000:
+            if strength > n_strength * 1.2 and strength > 3000:
                 n_territories = list(getattr(nf, "territories", []))
                 target = n_territories[0] if n_territories else None
                 if target:
@@ -369,6 +370,21 @@ def _generate_heuristic_decision(
                         _cmd("attack", {"target": target, "target_faction": nid}, f"趁敌弱，先发制人进攻{nid}")
                     )
                     parts.append(f"出兵攻打{nid}")
+                    attack_made = True
+                    break
+
+    # ── Priority 3.5: Desperation attack — when outnumbered but must fight ──
+    if not attack_made and hostile_neighbors and food > 5000 and strength > 10000:
+        hostile_neighbors.sort(key=lambda x: x[2])
+        for nid, nf, n_strength in hostile_neighbors:
+            if strength > n_strength * 0.6:
+                n_territories = list(getattr(nf, "territories", []))
+                target = n_territories[0] if n_territories else None
+                if target:
+                    commands.append(
+                        _cmd("attack", {"target": target, "target_faction": nid}, f"背水一战，奇袭{nid}")
+                    )
+                    parts.append(f"孤注一掷奇袭{nid}")
                     attack_made = True
                     break
 

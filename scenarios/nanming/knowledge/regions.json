@@ -6,8 +6,16 @@
     "description": "北方政治中心，清军入关后定都于此",
     "owner_1645": "qing",
     "strategic_value": 95,
-    "resources": ["人口", "政治"],
-    "neighbors": ["shengjing", "shandong", "shanxi", "henan"]
+    "resources": [
+      "人口",
+      "政治"
+    ],
+    "neighbors": [
+      "shengjing",
+      "shandong",
+      "shanxi",
+      "henan"
+    ]
   },
   {
     "id": "shengjing",
@@ -16,8 +24,14 @@
     "description": "满清龙兴之地，八旗兵源根本",
     "owner_1645": "qing",
     "strategic_value": 85,
-    "resources": ["马", "铁", "兵源"],
-    "neighbors": ["beijing"]
+    "resources": [
+      "马",
+      "铁",
+      "兵源"
+    ],
+    "neighbors": [
+      "beijing"
+    ]
   },
   {
     "id": "shandong",
@@ -26,8 +40,16 @@
     "description": "齐鲁故地，连接南北的战略要道",
     "owner_1645": "nanming",
     "strategic_value": 70,
-    "resources": ["粮食", "盐"],
-    "neighbors": ["beijing", "henan", "nanjing"]
+    "resources": [
+      "粮食",
+      "盐"
+    ],
+    "neighbors": [
+      "beijing",
+      "henan",
+      "nanjing",
+      "fujian"
+    ]
   },
   {
     "id": "shanxi",
@@ -36,8 +58,16 @@
     "description": "表里山河，晋商票号之利",
     "owner_1645": "qing",
     "strategic_value": 75,
-    "resources": ["煤", "铁", "商路"],
-    "neighbors": ["beijing", "henan", "shaanxi"]
+    "resources": [
+      "煤",
+      "铁",
+      "商路"
+    ],
+    "neighbors": [
+      "beijing",
+      "henan",
+      "shaanxi"
+    ]
   },
   {
     "id": "henan",
@@ -46,8 +76,18 @@
     "description": "中原腹地，四战之区",
     "owner_1645": "nanming",
     "strategic_value": 80,
-    "resources": ["粮食", "人口"],
-    "neighbors": ["beijing", "shandong", "nanjing", "huguang", "shanxi", "shaanxi"]
+    "resources": [
+      "粮食",
+      "人口"
+    ],
+    "neighbors": [
+      "beijing",
+      "shandong",
+      "nanjing",
+      "huguang",
+      "shanxi",
+      "shaanxi"
+    ]
   },
   {
     "id": "shaanxi",
@@ -56,8 +96,16 @@
     "description": "秦地根本，关中平原。李自成故乡",
     "owner_1645": "qing",
     "strategic_value": 80,
-    "resources": ["粮食", "马"],
-    "neighbors": ["shanxi", "henan", "gansu", "sichuan"]
+    "resources": [
+      "粮食",
+      "马"
+    ],
+    "neighbors": [
+      "shanxi",
+      "henan",
+      "gansu",
+      "sichuan"
+    ]
   },
   {
     "id": "gansu",
@@ -66,8 +114,14 @@
     "description": "河西走廊门户，西域商路",
     "owner_1645": "qing",
     "strategic_value": 55,
-    "resources": ["马", "商路"],
-    "neighbors": ["shaanxi", "sichuan"]
+    "resources": [
+      "马",
+      "商路"
+    ],
+    "neighbors": [
+      "shaanxi",
+      "sichuan"
+    ]
   },
   {
     "id": "nanjing",
@@ -76,8 +130,18 @@
     "description": "南明都城，江南赋税重地。长江天险",
     "owner_1645": "nanming",
     "strategic_value": 95,
-    "resources": ["粮食", "丝绸", "人口"],
-    "neighbors": ["shandong", "henan", "huguang", "zhejiang"]
+    "resources": [
+      "粮食",
+      "丝绸",
+      "人口"
+    ],
+    "neighbors": [
+      "shandong",
+      "henan",
+      "huguang",
+      "zhejiang",
+      "fujian"
+    ]
   },
   {
     "id": "zhejiang",
@@ -86,8 +150,17 @@
     "description": "江南富庶，丝绸茶叶之利",
     "owner_1645": "nanming",
     "strategic_value": 75,
-    "resources": ["丝绸", "茶", "粮食"],
-    "neighbors": ["nanjing", "jiangxi", "fujian"]
+    "resources": [
+      "丝绸",
+      "茶",
+      "粮食"
+    ],
+    "neighbors": [
+      "nanjing",
+      "jiangxi",
+      "fujian",
+      "guangdong"
+    ]
   },
   {
     "id": "jiangxi",
@@ -96,8 +169,17 @@
     "description": "赣江流域，连接湖广与江南的要道",
     "owner_1645": "nanming",
     "strategic_value": 70,
-    "resources": ["粮食", "瓷器"],
-    "neighbors": ["nanjing", "zhejiang", "fujian", "guangdong", "huguang"]
+    "resources": [
+      "粮食",
+      "瓷器"
+    ],
+    "neighbors": [
+      "nanjing",
+      "zhejiang",
+      "fujian",
+      "guangdong",
+      "huguang"
+    ]
   },
   {
     "id": "huguang",
@@ -106,8 +188,18 @@
     "description": "天下粮仓，九省通衢。荆州故地",
     "owner_1645": "nanming",
     "strategic_value": 85,
-    "resources": ["粮食", "人口", "水运"],
-    "neighbors": ["henan", "nanjing", "jiangxi", "xiangyang", "sichuan"]
+    "resources": [
+      "粮食",
+      "人口",
+      "水运"
+    ],
+    "neighbors": [
+      "henan",
+      "nanjing",
+      "jiangxi",
+      "xiangyang",
+      "sichuan"
+    ]
   },
   {
     "id": "xiangyang",
@@ -116,8 +208,15 @@
     "description": "南北咽喉，兵家必争。农民军根据地",
     "owner_1645": "nongminjun",
     "strategic_value": 85,
-    "resources": ["粮食", "人口"],
-    "neighbors": ["henan", "huguang", "sichuan"]
+    "resources": [
+      "粮食",
+      "人口"
+    ],
+    "neighbors": [
+      "henan",
+      "huguang",
+      "sichuan"
+    ]
   },
   {
     "id": "sichuan",
@@ -126,8 +225,18 @@
     "description": "天府之国，蜀道天险。张献忠大西政权",
     "owner_1645": "nongminjun",
     "strategic_value": 85,
-    "resources": ["粮食", "丝绸", "盐"],
-    "neighbors": ["shaanxi", "gansu", "xiangyang", "huguang", "yunnan"]
+    "resources": [
+      "粮食",
+      "丝绸",
+      "盐"
+    ],
+    "neighbors": [
+      "shaanxi",
+      "gansu",
+      "xiangyang",
+      "huguang",
+      "yunnan"
+    ]
   },
   {
     "id": "fujian",
@@ -136,8 +245,18 @@
     "description": "郑氏大本营，海上贸易基地",
     "owner_1645": "zheng",
     "strategic_value": 70,
-    "resources": ["茶", "海上贸易", "造船"],
-    "neighbors": ["zhejiang", "jiangxi", "guangdong"]
+    "resources": [
+      "茶",
+      "海上贸易",
+      "造船"
+    ],
+    "neighbors": [
+      "zhejiang",
+      "jiangxi",
+      "guangdong",
+      "shandong",
+      "nanjing"
+    ]
   },
   {
     "id": "guangdong",
@@ -146,8 +265,17 @@
     "description": "岭南富庶，对外贸易门户",
     "owner_1645": "zheng",
     "strategic_value": 75,
-    "resources": ["海上贸易", "香料", "粮食"],
-    "neighbors": ["jiangxi", "fujian", "guangxi"]
+    "resources": [
+      "海上贸易",
+      "香料",
+      "粮食"
+    ],
+    "neighbors": [
+      "jiangxi",
+      "fujian",
+      "guangxi",
+      "nanjing"
+    ]
   },
   {
     "id": "guangxi",
@@ -156,8 +284,15 @@
     "description": "西南边陲，土司之地",
     "owner_1645": "other",
     "strategic_value": 40,
-    "resources": ["矿产", "木材"],
-    "neighbors": ["guangdong", "huguang", "yunnan"]
+    "resources": [
+      "矿产",
+      "木材"
+    ],
+    "neighbors": [
+      "guangdong",
+      "huguang",
+      "yunnan"
+    ]
   },
   {
     "id": "yunnan",
@@ -166,8 +301,15 @@
     "description": "滇地边疆，沐氏世镇",
     "owner_1645": "other",
     "strategic_value": 45,
-    "resources": ["矿产", "茶", "马"],
-    "neighbors": ["sichuan", "guangxi"]
+    "resources": [
+      "矿产",
+      "茶",
+      "马"
+    ],
+    "neighbors": [
+      "sichuan",
+      "guangxi"
+    ]
   },
   {
     "id": "taiwan",
@@ -176,7 +318,14 @@
     "description": "海上明珠，郑氏退路。当时为荷兰人占据",
     "owner_1645": "other",
     "strategic_value": 60,
-    "resources": ["糖", "鹿皮", "海上据点"],
-    "neighbors": ["fujian"]
+    "resources": [
+      "糖",
+      "鹿皮",
+      "海上据点"
+    ],
+    "neighbors": [
+      "fujian",
+      "guangdong"
+    ]
   }
 ]
