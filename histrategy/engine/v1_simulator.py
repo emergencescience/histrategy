@@ -765,6 +765,8 @@ def _build_territory_name_map(scenario: str) -> tuple[set[str], dict[str, str]]:
         "aegypt": "aegyptus",
         "illyricum": "illyria",
         "italy": "italia",
+        "campania": "italia",          # 坎帕尼亚 → 意大利
+        "naples": "italia",            # 那不勒斯 → 意大利
         "greece": "graecia",
         "macedon": "macedonia",
         "mesopotamia": "mesopotamia",
