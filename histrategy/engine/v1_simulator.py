@@ -795,6 +795,10 @@ def _build_territory_name_map(scenario: str) -> tuple[set[str], dict[str, str]]:
         "anhui_south": "nanjing",      # 皖南 → 南京
         "皖南": "nanjing",
         "wannan": "nanjing",           # 皖南（拼音）
+        "anhui": "nanjing",            # 安徽 → 南京
+        "安徽": "nanjing",
+        "songjiang": "zhejiang",       # 松江 → 浙江/杭州
+        "松江": "zhejiang",
         # 湖北/江西地区
         "xinyang": "xiangyang",        # 信阳 → 襄阳（豫南入鄂门户）
         "信阳": "xiangyang",
