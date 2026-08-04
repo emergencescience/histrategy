@@ -782,6 +782,96 @@ def _build_territory_name_map(scenario: str) -> tuple[set[str], dict[str, str]]:
         elif variant not in name_map and canonical in available_ids:
             name_map[variant] = canonical
 
+    # 南明场景专用：LLM 常用历史地名 → 规范领土 ID
+    # LLM 在叙事中会使用真实历史城市名（扬州、徐州等），
+    # 但我们的地图只有省份/区域级别的领土。此映射将细粒度城市
+    # 聚合到最近的领土。
+    _nanming_variants = {
+        # 江苏/安徽地区 → 南京（江南核心）
+        "xuzhou": "henan_east",        # 徐州 → 河南东部（连接山东与淮河）
+        "徐州": "henan_east",
+        "yangzhou": "nanjing",         # 扬州 → 南京（南京门户，一江之隔）
+        "扬州": "nanjing",
+        "anhui_south": "nanjing",      # 皖南 → 南京
+        "皖南": "nanjing",
+        "wannan": "nanjing",           # 皖南（拼音）
+        # 湖北/江西地区
+        "xinyang": "xiangyang",        # 信阳 → 襄阳（豫南入鄂门户）
+        "信阳": "xiangyang",
+        "suizhou": "wuchang",          # 随州 → 武昌（湖北腹地）
+        "随州": "wuchang",
+        "jiujiang": "jiangxi",         # 九江 → 江西（南昌）
+        "九江": "jiangxi",
+        "jingzhou": "wuchang",         # 荆州 → 武昌
+        "荆州": "wuchang",
+        # 陕西/河南地区
+        "tongguan": "luoyang",         # 潼关 → 洛阳（关中-中原咽喉）
+        "潼关": "luoyang",
+        "hangu_pass": "luoyang",       # 函谷关 → 洛阳
+        "函谷关": "luoyang",
+        # 山东地区
+        "qingzhou": "jinan",           # 青州 → 济南
+        "青州": "jinan",
+        "yizhou": "jinan",             # 沂州 → 济南
+        "沂州": "jinan",
+        # 四川/云南地区
+        "chongqing": "sichuan",        # 重庆 → 成都/四川
+        "重庆": "sichuan",
+        "guiyang": "yunnan",           # 贵阳 → 云南（西南）
+        "贵阳": "yunnan",
+        "kunming": "yunnan",           # 昆明 → 云南
+        "昆明": "yunnan",
+        # 浙江/福建地区
+        "shaoxing": "zhejiang",        # 绍兴 → 浙江/杭州
+        "绍兴": "zhejiang",
+        "ningbo": "zhejiang",          # 宁波 → 浙江
+        "宁波": "zhejiang",
+        "quanzhou": "fujian",          # 泉州 → 福建/福州
+        "泉州": "fujian",
+        "xiamen": "fujian",            # 厦门 → 福建
+        "厦门": "fujian",
+        # 湖南/广西地区
+        "changsha": "huguang_south",   # 长沙 → 湖广南部
+        "长沙": "huguang_south",
+        "hengzhou": "huguang_south",   # 衡州 → 湖广南部
+        "衡州": "huguang_south",
+        "guilin": "guangxi",           # 桂林 → 广西
+        "桂林": "guangxi",
+        # 额外：LLM 常用中文名/省名
+        "山东": "jinan",
+        "山西": "shanxi",
+        "陕西": "shaanxi",
+        "甘肃": "gansu",
+        "盛京": "shengjing",
+        "辽东": "shengjing",
+        "直隶": "beijing",
+        "京师": "beijing",
+        "江南": "nanjing",
+        "浙江": "zhejiang",
+        "江西": "jiangxi",
+        "湖广": "wuchang",
+        "湖北": "wuchang",
+        "湖南": "huguang_south",
+        "福建": "fujian",
+        "广东": "guangdong",
+        "广西": "guangxi",
+        "云南": "yunnan",
+        "四川": "sichuan",
+        "台湾": "taiwan",
+        "河南": "henan_east",
+        "开封": "kaifeng",
+        "洛阳": "luoyang",
+        "济南": "jinan",
+        "登州": "dengzhou",
+        "汉中": "hanzhong",
+        "襄阳": "xiangyang",
+    }
+    for variant, canonical in _nanming_variants.items():
+        if canonical is None:
+            name_map.pop(variant, None)
+        elif variant not in name_map and canonical in available_ids:
+            name_map[variant] = canonical
+
     return available_ids, name_map
 
 
