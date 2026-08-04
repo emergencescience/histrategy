@@ -883,8 +883,10 @@ def _apply_v1_state_to_world(ws: WorldState, v1_factions: dict) -> WorldState:
 
     边界守卫: 兵力单季度变化不超过 ±30%（与 v1_simulator.md 提示词一致）。
     超过边界时 clamp 并记录警告。
+    对小势力（<5000 兵）放宽限制：允许一次增长到至少 5000。
     """
     _MAX_TROOP_CHANGE_RATIO = 0.30
+    _MIN_ABSOLUTE_GROWTH = 5000  # 小势力一回合可成长至此下限
 
     # ── 领地名称标准化准备 ──
     available_territory_ids = set(ws.territories.keys()) if hasattr(ws, "territories") else set()
@@ -907,12 +909,15 @@ def _apply_v1_state_to_world(ws: WorldState, v1_factions: dict) -> WorldState:
         old_troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
         if "troops" in data:
             new_troops = int(data["troops"])
-            # ── 边界守卫: clamp ±30% except for the very first turn (Q0→Q1) ──
+            # ── 边界守卫: clamp ±30%，小势力放宽至至少 _MIN_ABSOLUTE_GROWTH ──
             if old_troops > 0 and new_troops != old_troops:
                 ratio = abs(new_troops - old_troops) / old_troops
                 if ratio > _MAX_TROOP_CHANGE_RATIO:
                     if new_troops > old_troops:
                         clamped = int(old_troops * (1 + _MAX_TROOP_CHANGE_RATIO))
+                        # 小势力放宽：允许一次增长到至少 _MIN_ABSOLUTE_GROWTH
+                        if old_troops < _MIN_ABSOLUTE_GROWTH and clamped < _MIN_ABSOLUTE_GROWTH:
+                            clamped = max(clamped, min(new_troops, _MIN_ABSOLUTE_GROWTH))
                     else:
                         clamped = int(old_troops * (1 - _MAX_TROOP_CHANGE_RATIO))
                     logger.warning(

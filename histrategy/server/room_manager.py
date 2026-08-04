@@ -1634,6 +1634,44 @@ def _capture_faction_population(ws, faction) -> int:
     return pop_val
 
 
+def _resolve_territories_from_delta(faction, delta: dict, ws) -> list[dict]:
+    """Apply territory changes from a state_changes delta to the current faction.
+
+    Supports three delta formats:
+      - ``territories``: absolute list of territory dicts (overwrites current)
+      - ``territories_gained`` + ``territories_lost``: incremental lists
+      - absent: keep current territories (fallback)
+    """
+    current_ids = list(getattr(faction, "territories", []) or [])
+
+    # Format 1: absolute territory list in delta
+    if "territories" in delta and isinstance(delta["territories"], list):
+        raw = delta["territories"]
+        if raw and isinstance(raw[0], dict):
+            current_ids = [t.get("id", t.get("name", "")) for t in raw if isinstance(t, dict)]
+        else:
+            current_ids = [str(t) for t in raw]
+
+    # Format 2: incremental gained/lost
+    gained = delta.get("territories_gained", [])
+    lost = delta.get("territories_lost", [])
+    if gained:
+        for t in gained:
+            tid = t.get("id", t) if isinstance(t, dict) else str(t)
+            if tid and tid not in current_ids:
+                current_ids.append(tid)
+    if lost:
+        for t in lost:
+            tid = t.get("id", t) if isinstance(t, dict) else str(t)
+            if tid in current_ids:
+                current_ids.remove(tid)
+
+    return [
+        {"id": t, "name": ws.territories[t].name if t in ws.territories else t}
+        for t in current_ids
+    ]
+
+
 def _resolve_v1(room, ws, decisions, llm):
     """V1 引擎：纯 LLM 仿真。"""
     import concurrent.futures
@@ -1721,9 +1759,7 @@ def _resolve_v1(room, ws, decisions, llm):
                 "food": faction.food,
                 "treasury": faction.treasury + delta.get("treasury_delta", 0),
                 "morale": morale + delta.get("morale_delta", 0),
-                "territories": [
-                    {"id": t, "name": ws.territories[t].name if t in ws.territories else t} for t in faction.territories
-                ],
+                "territories": _resolve_territories_from_delta(faction, delta, ws),
                 "policies": getattr(faction, "policies", {}),
                 "is_active": True,
             }
