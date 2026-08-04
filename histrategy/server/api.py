@@ -264,10 +264,18 @@ def create_app(llm_provider: str | None = None) -> Any:
         """Submit this quarter's decision."""
         from histrategy.server.room_manager import submit_decision
 
+        decision = body.get("decision", "").strip()
+        if not decision:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=400,
+                content={"ok": False, "error": "decision is required (cannot be empty)"},
+            )
+
         return submit_decision(
             room_id,
             body.get("faction_id", ""),
-            body.get("decision", ""),
+            decision,
         )
 
     @app.get("/api/rooms/{room_id}/narrative-stream")
