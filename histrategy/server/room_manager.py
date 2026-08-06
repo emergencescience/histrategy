@@ -567,9 +567,12 @@ def stream_and_persist_narrative(room):
             return
 
         # No stashed context, no cached narrative, no world_state to generate from.
-        # Yield a graceful fallback instead of the misleading "叙事生成中" (which
-        # implies generation IS happening when it's not).
-        fallback = "天下大势，分久必合，合久必分。" if lang == "zh" else "The empire, long divided, must unite; long united, must divide."
+        # The room has no resolved turns — the command either failed or was never submitted.
+        fallback = (
+            "本回合尚未推演完成，请刷新页面查看最新状态。若问题持续，请重新下达政令。"
+            if lang == "zh"
+            else "This turn has not been resolved yet. Please refresh the page. If the problem persists, please re-issue your command."
+        )
         yield fallback
         return
 
