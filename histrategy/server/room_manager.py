@@ -1370,15 +1370,6 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
         llm.set_room_context(room.id, room.quarter_number + 1, room.scenario, lang=lang)
     decisions = collect_all_decisions(room, ws, llm=llm, turn_memory=room.turn_summaries, lang=lang)
 
-    # ── Progress tracking for frontend ──
-    try:
-        from histrategy.server.single_player import _set_progress
-        _progress_lang = getattr(room, "metadata", {}).get("lang", "zh")
-        _set_progress(room.id, "simulating",
-            "正在推演天下大势…" if _progress_lang == "zh" else "Simulating the realm…")
-    except Exception as e:
-        logger.debug("Progress update failed (non-critical): %s", e)
-
     # 根据引擎模式选择仿真器
     # skip_narrative 仅对 V3 有意义（V1/V2 无 LLM 叙事引擎）。
     if engine_mode == EngineMode.V1:

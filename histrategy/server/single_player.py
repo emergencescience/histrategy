@@ -261,7 +261,6 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
         submit_decision,
     )
     _dbgt0 = _dbgt.time()
-    _set_progress(game_id, "loading", "正在载入局势…" if lang == "zh" else "Loading world state…")
     room = _get_room(game_id)
     _dbgt_load = _dbgt.time()
     if not room:
@@ -438,8 +437,6 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
     streaming = _streaming_enabled()
 
     # 1. Submit decision → synchronous resolve (submit_decision calls _resolve_and_advance internally)
-    _set_progress(game_id, "parsing",
-        "正在理解你的指令…" if lang == "zh" else "Interpreting your command…")
     submit_result = submit_decision(game_id, human_fid, decision, skip_narrative=streaming)
     if not submit_result.get("ok"):
         return {"ok": False, "error": submit_result.get("error", "Decision submission failed")}
@@ -537,9 +534,6 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
     from histrategy.server.room_manager import _peek_narrative_context
 
     narrative_pending = bool(streaming and _peek_narrative_context(game_id))
-
-    _set_progress(game_id, "narrating",
-        "正在撰写战报…" if lang == "zh" else "Writing the chronicle…")
 
     return {
         "ok": True,
