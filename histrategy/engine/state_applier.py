@@ -365,6 +365,10 @@ def _attacker_borders_territory(attacker_id: str, target_id: str, ws) -> bool:
     A faction "borders" a territory if it owns at least one territory that
     is a neighbor of the target territory. Uses MapEngine adjacency when
     available; falls back to territory neighbor lists.
+
+    Naval adjacency: if both attacker-owned territory and target territory
+    have ports (has_coast=True), they are considered adjacent across the sea.
+    This enables cross-sea invasions (e.g. Italy → Greece, Egypt → Greece).
     """
     target = ws.territories.get(target_id)
     if not target:
@@ -381,6 +385,13 @@ def _attacker_borders_territory(attacker_id: str, target_id: str, ws) -> bool:
     # Also accept if attacker already owns the target (shouldn't happen normally)
     if getattr(target, "owner_id", "") == attacker_id:
         return True
+    # ── Naval adjacency: port-to-port sea crossing ──
+    target_has_port = getattr(target, "has_coast", False)
+    if target_has_port:
+        for tid in atk_territories:
+            t = ws.territories.get(tid)
+            if t and getattr(t, "has_coast", False):
+                return True
     return False
 
 
