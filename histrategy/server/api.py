@@ -328,7 +328,12 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         # No narrative yet — stream a graceful fallback (not the misleading "叙事生成中")
         async def _serve_fallback():
-            yield "data: 天下大势，分久必合，合久必分。\n\n"
+            lang = "zh"  # Default; room_id-based lang detection would require extra DB call
+            yield (
+                "data: 本回合尚未推演完成，请刷新页面查看最新状态。若问题持续，请重新下达政令。\n\n"
+                if lang == "zh"
+                else "data: This turn has not been resolved yet. Please refresh the page. If the problem persists, please re-issue your command.\n\n"
+            )
             yield "data: [DONE]\n\n"
 
         return StreamingResponse(

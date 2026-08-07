@@ -1091,11 +1091,13 @@ def _bg_generate_narrative(room_id: str, quarter: int, scenario: str, lang: str 
     stashed = _peek_narrative_context(room_id)
     if not stashed:
         logger.warning("[room=%s] bg_narrative: no stashed context, skipping", room_id)
+        print(f"⏱ [room={room_id}] bg_narrative NO_STASH", flush=True)
         return
 
     ctx = stashed.get("ctx")
     if not ctx:
         logger.warning("[room=%s] bg_narrative: empty context, skipping", room_id)
+        print(f"⏱ [room={room_id}] bg_narrative EMPTY_CTX", flush=True)
         return
 
     # Build a narrative engine
@@ -1108,6 +1110,7 @@ def _bg_generate_narrative(room_id: str, quarter: int, scenario: str, lang: str 
         )
     except Exception as e:
         logger.warning("[room=%s] bg_narrative: NarrativeEngine init failed: %s", room_id, e)
+        print(f"⏱ [room={room_id}] bg_narrative INIT_FAIL {_t.time()-_t0:.1f}s: {e}", flush=True)
         return
 
     if not narrative_engine:
@@ -1135,26 +1138,35 @@ def _bg_generate_narrative(room_id: str, quarter: int, scenario: str, lang: str 
         )
     except Exception as e:
         logger.warning("[room=%s] bg_narrative: generation failed: %s", room_id, e)
+        print(f"⏱ [room={room_id}] bg_narrative GEN_FAIL {_t.time()-_t0:.1f}s: {e}", flush=True)
         return
 
     if not full_text or not full_text.strip():
         logger.warning("[room=%s] bg_narrative: empty output, skipping persist", room_id)
+        # Don't pop stash — SSE can still regenerate
+        print(f"⏱ [room={room_id}] bg_narrative EMPTY {_t.time()-_t0:.1f}s", flush=True)
         return
 
     # Persist to DB
+    persist_ok = False
     try:
         from histrategy.db.models import update_quarter_turn_narratives
         narratives = {fid: full_text for fid in all_decisions}
         narratives["global"] = full_text
         update_quarter_turn_narratives(room_id, quarter, narratives)
+        persist_ok = True
         logger.info(
             "[room=%s] bg_narrative: persisted %d chars in %.1fs",
             room_id, len(full_text), _t.time() - _t0,
         )
+        print(f"⏱ [room={room_id}] bg_narrative PERSISTED {len(full_text)} chars {_t.time()-_t0:.1f}s", flush=True)
     except Exception as e:
         logger.warning("[room=%s] bg_narrative: DB persist failed: %s", room_id, e)
+        print(f"⏱ [room={room_id}] bg_narrative PERSIST_FAILED {_t.time()-_t0:.1f}s: {e}", flush=True)
+        # Don't pop stash — let SSE regenerate and persist
+        return
 
-    # Pop the stash so SSE endpoint doesn't double-generate
+    # Only pop the stash if persist succeeded (so SSE finds cached narrative)
     _pop_narrative_context(room_id)
 
 
@@ -1471,6 +1483,10 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
     #    just-produced quarter so narrative-live-stream updates the right row. ──
     if skip_narrative and getattr(result, "narrative_context", None):
         _stash_narrative_context(room.id, result.narrative_context, room.quarter_number)
+        print(
+            f"⏱ [room={room.id}] STASHED narrative: quarter={room.quarter_number} keys={list(result.narrative_context.keys())}",
+            flush=True,
+        )
         # ── Background: generate + persist narrative so shared page has it ──
         # Without this, narrative only gets persisted if the SSE endpoint
         # (narrative-live-stream) is called AND completes without disconnection.
