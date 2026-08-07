@@ -1515,20 +1515,10 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
             f"⏱ [room={room.id}] STASHED narrative: quarter={room.quarter_number} keys={list(result.narrative_context.keys())}",
             flush=True,
         )
-        # ── Background: generate + persist narrative so shared page has it ──
-        # Without this, narrative only gets persisted if the SSE endpoint
-        # (narrative-live-stream) is called AND completes without disconnection.
-        try:
-            import threading
-            _lang = lang or "zh"
-            _scenario = getattr(room, "scenario", "three-kingdoms")
-            threading.Thread(
-                target=_bg_generate_narrative,
-                args=(room.id, room.quarter_number, _scenario, _lang),
-                daemon=True,
-            ).start()
-        except Exception as e:
-            logger.warning("[room=%s] bg narrative thread spawn failed: %s", room.id, e)
+        # ── Narrative generation is handled by the SSE endpoint ──
+        # (narrative-live-stream). It pops the stash, generates the chronicle
+        # via LLM streaming, and persists the full text to DB on completion.
+        # No background thread — avoids race condition with SSE stash popping.
 
     # ── H31a-B2: pre-generate NEXT quarter's NPC decisions in the BACKGROUND ──
     # This is ~30-40s of LLM latency that used to block the /command response.
