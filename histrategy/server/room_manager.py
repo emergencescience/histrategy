@@ -567,7 +567,35 @@ def stream_and_persist_narrative(room):
             return
 
         # No stashed context, no cached narrative, no world_state to generate from.
-        # The room has no resolved turns — the command either failed or was never submitted.
+        # ── Poll DB: the background thread (_bg_generate_narrative) may still be
+        #     generating the narrative. Instead of immediately returning a fallback
+        #     that makes the user think the command failed, poll every 2s for up to
+        #     30s until the narrative appears in the DB. ──
+        poll_attempts = 0
+        max_poll_attempts = 15  # 15 × 2s = 30s max
+        while poll_attempts < max_poll_attempts:
+            poll_attempts += 1
+            import time as _poll_t
+            _poll_t.sleep(2)
+            try:
+                from histrategy.db.models import get_quarter_turns as _gqt_poll
+                db_turns_poll = _gqt_poll(room.id, limit=1)
+                if db_turns_poll:
+                    nr_poll = db_turns_poll[-1].get("narratives")
+                    loaded_poll = _json.loads(nr_poll) if isinstance(nr_poll, str) else (nr_poll or {})
+                    cached_poll = loaded_poll.get("global", "") if isinstance(loaded_poll, dict) else ""
+                    if cached_poll and cached_poll.strip():
+                        logger.info(
+                            "[room=%s] narrative-live-stream: narrative appeared in DB after %d polls (%.1fs)",
+                            room.id, poll_attempts, poll_attempts * 2.0,
+                        )
+                        for para in cached_poll.split("\n"):
+                            if para.strip():
+                                yield para
+                        return
+            except Exception:
+                pass
+        # Exhausted all polls — genuinely no narrative available.
         fallback = (
             "本回合尚未推演完成，请刷新页面查看最新状态。若问题持续，请重新下达政令。"
             if lang == "zh"

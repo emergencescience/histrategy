@@ -534,6 +534,10 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
     from histrategy.server.room_manager import _peek_narrative_context
 
     narrative_pending = bool(streaming and _peek_narrative_context(game_id))
+    logger.info(
+        "[room=%s] command() returning: streaming=%s narrative_pending=%s stash_exists=%s",
+        game_id, streaming, narrative_pending, bool(_peek_narrative_context(game_id)),
+    )
 
     return {
         "ok": True,
