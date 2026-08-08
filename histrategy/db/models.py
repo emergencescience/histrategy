@@ -151,13 +151,96 @@ def load_room(room_id: str) -> GameRoom | None:
     if ws_data:
         try:
             from histrategy_engine.world import WorldState as WS
+            from histrategy_engine.world import (
+                Army,
+                Character,
+                FactionState,
+                Season,
+                StrategicPoint,
+                Territory,
+            )
 
-            ws = WS()
             # Map season string → season_index (to_dict uses "spring", from_dict expects int)
             _SEASON_MAP = {"spring": 0, "summer": 1, "autumn": 2, "winter": 3}
+            _SEASON_NAMES = ["spring", "summer", "autumn", "winter"]
             if "season" in ws_data and "season_index" not in ws_data:
                 ws_data["season_index"] = _SEASON_MAP.get(ws_data["season"], 0)
-            ws.from_dict(ws_data)
+
+            ws = WS()
+            # NOTE: engine WS.from_dict() only restores factions + basic fields —
+            # it DROPS territories/armies/characters. Rebuild them manually so
+            # Rome V3 rooms keep their land/armies across reloads (else
+            # resolve degrades to empty world state).
+            from histrategy.engine.scenario_loader import _coerce_factions_to_dict as _cfd
+
+            ws.year = ws_data.get("year", 207)
+            ws.turn_number = ws_data.get("turn_number", ws_data.get("turn", 1))
+            si = ws_data.get("season_index", 0)
+            try:
+                ws.season = Season(_SEASON_NAMES[si % 4])
+            except Exception:
+                try:
+                    ws.season = Season(ws_data.get("season", "spring"))
+                except Exception:
+                    ws.season = Season.SPRING
+            ws.scenario = ws_data.get("scenario", "three-kingdoms")
+            ws.player_faction_id = ws_data.get("player_faction_id", "")
+            ws.player_deviation = ws_data.get("player_deviation", 0.0)
+            ws.completed_events = list(ws_data.get("completed_events", []) or [])
+            ws.event_history = list(ws_data.get("event_history", ws_data.get("event_log", [])) or [])
+
+            # Rebuild factions
+            for fid, fd in (ws_data.get("factions") or {}).items():
+                try:
+                    ws.factions[fid] = FactionState(**{k: v for k, v in fd.items() if k in FactionState.__dataclass_fields__})
+                except Exception:
+                    ws.factions[fid] = FactionState(id=fid, name=fd.get("name", fid))
+
+            # Rebuild territories (with enum terrain_type)
+            from enum import Enum as _Enum
+            from histrategy_engine.world import TerrainType
+
+            def _enum(cls, val):
+                if val is None:
+                    return None
+                if isinstance(val, cls):
+                    return val
+                try:
+                    return cls(val)
+                except Exception:
+                    return None
+
+            for tid, td in (ws_data.get("territories") or {}).items():
+                try:
+                    td2 = dict(td)
+                    td2["terrain_type"] = _enum(TerrainType, td.get("terrain_type"))
+                    sps = td.get("strategic_points") or []
+                    td2["strategic_points"] = [
+                        StrategicPoint(**sp) if isinstance(sp, dict) else sp for sp in sps
+                    ]
+                    ws.territories[tid] = Territory(**{k: v for k, v in td2.items() if k in Territory.__dataclass_fields__})
+                except Exception:
+                    pass  # skip corrupt territory
+
+            # Rebuild characters
+            for cid, cd in (ws_data.get("characters") or {}).items():
+                try:
+                    ws.characters[cid] = Character(**{k: v for k, v in cd.items() if k in Character.__dataclass_fields__})
+                except Exception:
+                    pass
+
+            # Rebuild armies (units dict keyed by UnitType enum)
+            from histrategy_engine.world import UnitType
+
+            for aid, ad in (ws_data.get("armies") or {}).items():
+                try:
+                    ad2 = dict(ad)
+                    units = ad.get("units") or {}
+                    ad2["units"] = {_enum(UnitType, k): v for k, v in units.items()}
+                    ws.armies[aid] = Army(**{k: v for k, v in ad2.items() if k in Army.__dataclass_fields__})
+                except Exception:
+                    pass
+
             room.world_state = ws
         except Exception:
             pass  # Graceful degradation — room loads without world state if corrupt

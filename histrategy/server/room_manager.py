@@ -82,12 +82,44 @@ def detect_browser(user_agent: str) -> str:
     return "unknown"
 
 
+def _serialize_world_state(ws) -> dict | None:
+    """Serialize a WorldState to a JSON-safe dict for DB persistence.
+
+    Two WorldState flavors exist:
+    - local `histrategy.state.world_state.WorldState` — has `to_dict()`
+    - engine `histrategy_engine.world.WorldState` (dataclass) — has NO
+      `to_dict()`, contains enum fields (Season, TerrainType, UnitType,
+      HistoricalMode) that json.dumps cannot handle directly.
+    This helper handles both, recursively converting enums to `.value`.
+    """
+    if ws is None:
+        return None
+    if hasattr(ws, "to_dict"):
+        return ws.to_dict()
+    # Engine dataclass flavor — serialize via dataclasses.asdict + enum unwrap
+    from dataclasses import asdict, is_dataclass
+    from enum import Enum
+
+    def _unwrap(obj):
+        if isinstance(obj, Enum):
+            return obj.value
+        if is_dataclass(obj):
+            return {k: _unwrap(v) for k, v in asdict(obj).items()}
+        if isinstance(obj, dict):
+            return {str(k): _unwrap(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple)):
+            return [_unwrap(v) for v in obj]
+        return obj
+
+    return {k: _unwrap(v) for k, v in asdict(ws).items()}
+
+
 def _try_save(room: GameRoom, ws_dict: dict | None = None):
     """Persist room to DB. Auto-extracts world_state dict if not provided."""
     import time as _t
     _t0 = _t.time()
-    if ws_dict is None and room.world_state is not None and hasattr(room.world_state, "to_dict"):
-        ws_dict = room.world_state.to_dict()
+    if ws_dict is None and room.world_state is not None:
+        ws_dict = _serialize_world_state(room.world_state)
     try:
         from histrategy.db.models import save_room
 
@@ -236,7 +268,7 @@ def create_room(
     _cr_timings["init_world"] = _cr_time.time() - _cr_t1
     room.phase = RoomPhase.WAITING
     # NPC decisions are deferred to the first turn cycle — no blocking LLM calls during room creation
-    ws_dict = room.world_state.to_dict() if hasattr(room.world_state, "to_dict") else None
+    ws_dict = _serialize_world_state(room.world_state)
     _cr_t2 = _cr_time.time()
     _try_save(room, ws_dict)  # 传入 ws_dict 防止 DB 中 world_state 被写为 NULL
     _cr_timings["try_save"] = _cr_time.time() - _cr_t2
@@ -1501,7 +1533,7 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
     room.world_state = ws
 
     # ── Persist the CURRENT turn's results synchronously (no LLM here) ──
-    ws_dict = ws.to_dict() if hasattr(ws, "to_dict") else None
+    ws_dict = _serialize_world_state(ws)
     _try_save(room, ws_dict)
     _save_quarter(room, decisions, result)
     _write_backup(room, ws_dict)
