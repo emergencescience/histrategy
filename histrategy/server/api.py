@@ -836,10 +836,15 @@ def create_app(llm_provider: str | None = None) -> Any:
     # Publish / Unpublish
     @app.patch("/api/rooms/{room_id}/publish")
     def api_publish_room(room_id: str, body: dict = Body(...)):  # noqa: B008
-        """Toggle room public/private. { public: true | false }"""
+        """Toggle room public/private. { public: true | false }
+
+        Reads back from DB after write to ensure persistence.
+        Also updates the in-memory room so subsequent save_room()
+        calls (NPC pre-gen, etc.) don't overwrite is_public.
+        """
         from fastapi.responses import JSONResponse
 
-        from histrategy.db.connection import execute_write
+        from histrategy.db.connection import execute_one, execute_write
         from histrategy.server.room_manager import _get_room
 
         room = _get_room(room_id)
@@ -847,12 +852,44 @@ def create_app(llm_provider: str | None = None) -> Any:
             return JSONResponse(status_code=404, content={"error": "Room not found"})
 
         is_public = bool(body.get("public", False))
+
+        # 1. Update in-memory room (survives until next _get_room() reload)
         room.is_public = is_public
-        execute_write(
+
+        # 2. Write to DB
+        rows = execute_write(
             "UPDATE game_room SET is_public = ? WHERE id = ?",
             (1 if is_public else 0, room_id),
         )
-        return {"ok": True, "room_id": room_id, "is_public": is_public}
+
+        # 3. Read back from DB to verify (catches race conditions)
+        verify = execute_one(
+            "SELECT is_public FROM game_room WHERE id = ?", (room_id,)
+        )
+        if verify is None:
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Room vanished during publish"},
+            )
+        db_is_public = bool(verify.get("is_public", 0))
+
+        if db_is_public != is_public:
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "error": "Publish write didn't persist",
+                    "expected": is_public,
+                    "actual": db_is_public,
+                },
+            )
+
+        return {
+            "ok": True,
+            "room_id": room_id,
+            "is_public": is_public,
+            "verified": True,
+            "rows_affected": rows,
+        }
 
     # ═══════════════════════════════════════════════════════════
     # Single-Player API (/api/single-player)
