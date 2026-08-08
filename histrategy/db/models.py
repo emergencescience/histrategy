@@ -198,7 +198,7 @@ def deserialize_world_state(ws_data: dict) -> "WorldState":
         try:
             ws.factions[fid] = FactionState(**{k: v for k, v in fd.items() if k in FactionState.__dataclass_fields__})
         except Exception:
-            ws.factions[fid] = FactionState(id=fid, name=fd.get("name", fid))
+            ws.factions[fid] = FactionState(id=fid, name=fd.get("name", fid), ruler_id=fd.get("ruler_id", fid))
 
     # Rebuild territories (with enum terrain_type)
     from enum import Enum as _Enum
