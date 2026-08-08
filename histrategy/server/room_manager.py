@@ -2401,9 +2401,11 @@ def _save_quarter(room, decisions, result):
         baseline_dict = None
         baseline = getattr(result, "baseline", None)
         if baseline is not None:
-            import dataclasses
+            from histrategy.db.models import _json_safe_deep_convert
             try:
-                baseline_dict = dataclasses.asdict(baseline)
+                import dataclasses
+                raw = dataclasses.asdict(baseline)
+                baseline_dict = _json_safe_deep_convert(raw)
             except (TypeError, Exception):
                 baseline_dict = {"_serialization_error": str(type(baseline))}
 

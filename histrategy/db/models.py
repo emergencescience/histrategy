@@ -37,21 +37,29 @@ def _serialize_world_state(ws) -> dict | None:
     if hasattr(ws, "to_dict"):
         return ws.to_dict()
     # Engine dataclass flavor — serialize via dataclasses.asdict + enum unwrap
+    from dataclasses import asdict
+
+    return _json_safe_deep_convert(asdict(ws))
+
+
+def _json_safe_deep_convert(obj):
+    """Recursively convert Enum keys/values to strings for JSON serialization.
+
+    Handles dataclass objects, dicts with Enum keys (e.g. UnitType in army
+    units), lists, tuples, and individual Enum values.
+    """
     from dataclasses import asdict, is_dataclass
     from enum import Enum
 
-    def _unwrap(obj):
-        if isinstance(obj, Enum):
-            return obj.value
-        if is_dataclass(obj):
-            return {k: _unwrap(v) for k, v in asdict(obj).items()}
-        if isinstance(obj, dict):
-            return {str(k): _unwrap(v) for k, v in obj.items()}
-        if isinstance(obj, (list, tuple)):
-            return [_unwrap(v) for v in obj]
-        return obj
-
-    return {k: _unwrap(v) for k, v in asdict(ws).items()}
+    if isinstance(obj, Enum):
+        return obj.value
+    if is_dataclass(obj):
+        return {k: _json_safe_deep_convert(v) for k, v in asdict(obj).items()}
+    if isinstance(obj, dict):
+        return {str(k): _json_safe_deep_convert(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe_deep_convert(v) for v in obj]
+    return obj
 
 
 def save_room(room: GameRoom, world_state_dict: dict | None = None):
