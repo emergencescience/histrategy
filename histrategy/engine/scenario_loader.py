@@ -453,6 +453,21 @@ class ScenarioLoader:
                 development_focus=personality.get("development", fd.get("development_focus", 0.5)),
                 mercy=personality.get("mercy", fd.get("mercy", 0.5)),
             )
+
+        # ── Build allies list from mutual positive relations ──
+        # Relations >= ALLIANCE_THRESHOLD are considered allies.
+        # Alliance is mutual: if nanming→zheng >= 30 AND zheng→nanming >= 30,
+        # both get each other in their allies list.
+        ALLIANCE_THRESHOLD = 20
+        for fid, fs in factions.items():
+            for other_fid, rel in fs.relations.items():
+                other = factions.get(other_fid)
+                if other and rel >= ALLIANCE_THRESHOLD:
+                    other_rel = other.relations.get(fid, 0)
+                    if other_rel >= ALLIANCE_THRESHOLD:
+                        if other_fid not in fs.allies:
+                            fs.allies.append(other_fid)
+
         return factions
 
     def _create_armies(self, factions: dict[str, FactionState]) -> dict[str, Army]:

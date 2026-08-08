@@ -511,6 +511,23 @@ class IntentParser:
                 )
             )
 
+        # Purchasing / importing weapons (东洋买火器, 采购洋枪, etc.)
+        if any(kw in text_lower for kw in ("火器", "洋枪", "洋炮", "燧发枪", "红衣大炮",
+                                             "采购", "购买", "进口", "买", "购置")):
+            tid = self._extract_territory(text) or ""
+            weapon_type = "arquebus"
+            if "炮" in text:
+                weapon_type = "cannon"
+            commands.append(
+                Command(
+                    type="trade",
+                    params={"resource": weapon_type, "action": "import",
+                            "territory": tid} if tid else {"resource": weapon_type, "action": "import"},
+                    faction_id=faction_id,
+                    notes="武器进口指令",
+                )
+            )
+
         return commands
 
     # ── Helpers ──────────────────────────────────────────────────

@@ -607,6 +607,18 @@ def _extract_policies_from_delta(macro_delta: dict, world_state, room_id: str) -
         elif action_type == "declare_war" and target:
             policy_name = f"征伐_{target}"
             policy_type = "military"
+        elif action_type == "trade" and target:
+            # Import weapons / technology trade
+            goods = action.get("goods", "")
+            if "炮" in goods or "cannon" in goods:
+                policy_name = "进口火炮"
+                policy_type = "military"
+            elif "枪" in goods or "火器" in goods or "arquebus" in goods:
+                policy_name = "进口火器"
+                policy_type = "military"
+            else:
+                policy_name = f"贸易_{target}"
+                policy_type = "economic"
 
         if policy_name and (fid, policy_type, policy_name) not in seen:
             seen[(fid, policy_type, policy_name)] = True
