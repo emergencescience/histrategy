@@ -82,36 +82,9 @@ def detect_browser(user_agent: str) -> str:
     return "unknown"
 
 
-def _serialize_world_state(ws) -> dict | None:
-    """Serialize a WorldState to a JSON-safe dict for DB persistence.
-
-    Two WorldState flavors exist:
-    - local `histrategy.state.world_state.WorldState` — has `to_dict()`
-    - engine `histrategy_engine.world.WorldState` (dataclass) — has NO
-      `to_dict()`, contains enum fields (Season, TerrainType, UnitType,
-      HistoricalMode) that json.dumps cannot handle directly.
-    This helper handles both, recursively converting enums to `.value`.
-    """
-    if ws is None:
-        return None
-    if hasattr(ws, "to_dict"):
-        return ws.to_dict()
-    # Engine dataclass flavor — serialize via dataclasses.asdict + enum unwrap
-    from dataclasses import asdict, is_dataclass
-    from enum import Enum
-
-    def _unwrap(obj):
-        if isinstance(obj, Enum):
-            return obj.value
-        if is_dataclass(obj):
-            return {k: _unwrap(v) for k, v in asdict(obj).items()}
-        if isinstance(obj, dict):
-            return {str(k): _unwrap(v) for k, v in obj.items()}
-        if isinstance(obj, (list, tuple)):
-            return [_unwrap(v) for v in obj]
-        return obj
-
-    return {k: _unwrap(v) for k, v in asdict(ws).items()}
+# Re-export from db.models — single canonical implementation shared by
+# save_room/_try_save/create_room/_resolve_and_advance.
+from histrategy.db.models import _serialize_world_state  # noqa: F401
 
 
 def _try_save(room: GameRoom, ws_dict: dict | None = None):
