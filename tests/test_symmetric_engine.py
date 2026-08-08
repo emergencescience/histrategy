@@ -295,6 +295,66 @@ class TestDBPersistence:
         assert tid is not None
         assert len(tid) > 0
 
+    def test_save_quarter_turn_with_baseline_and_macro(self):
+        """Regression test: baseline_result and macro_delta MUST be persisted.
+
+        Bug: _save_quarter() in room_manager.py was discarding both fields,
+        causing all V3 turns to have NULL baseline_result/macro_delta.
+        The LLM then generated narratives unconstrained by the deterministic
+        baseline, inventing battles that contradicted player orders.
+        """
+        from histrategy.db.models import get_quarter_turns
+
+        room = create_single_player_room("cao", "test-user")
+        save_room(room)
+
+        baseline = {
+            "year": 208,
+            "season": "summer",
+            "battles": [
+                {"attacker": "cao", "defender": "wu", "location": "chibi", "result": "defender_win"}
+            ],
+            "resource_changes": {"cao": {"food_delta": -5000}},
+        }
+        macro = {
+            "battle_results": [
+                {"attacker": "cao", "location": "chibi", "narrative": "赤壁大火，曹军大败"}
+            ],
+            "morale_events": [{"faction": "cao", "change": -10, "reason": "赤壁惨败"}],
+        }
+
+        tid = save_quarter_turn(
+            room.id,
+            quarter_number=1,
+            year=208,
+            season="夏",
+            faction_decisions={"cao": {"decision": "南征孙权", "commands": []}},
+            baseline_result=baseline,
+            macro_delta=macro,
+            token_usage={"npc_cao": 500},
+        )
+        assert tid is not None
+
+        # Read back and verify both fields are present
+        turns = get_quarter_turns(room.id, limit=1)
+        assert len(turns) == 1
+        turn = turns[0]
+
+        assert turn.get("baseline_result") is not None, \
+            "BUG REGRESSION: baseline_result is NULL — baseline was discarded!"
+        assert turn.get("macro_delta") is not None, \
+            "BUG REGRESSION: macro_delta is NULL — LLM delta was discarded!"
+
+        # Verify content integrity
+        import json as _json
+        saved_baseline = _json.loads(turn["baseline_result"]) if isinstance(turn["baseline_result"], str) else turn["baseline_result"]
+        assert saved_baseline["year"] == 208
+        assert len(saved_baseline["battles"]) == 1
+
+        saved_macro = _json.loads(turn["macro_delta"]) if isinstance(turn["macro_delta"], str) else turn["macro_delta"]
+        assert len(saved_macro["battle_results"]) == 1
+        assert saved_macro["battle_results"][0]["location"] == "chibi"
+
     def test_save_room_with_world_state(self):
         room = create_single_player_room("wu", "test-user")
         ws_dict = {"year": 207, "season": "春", "factions": {}}

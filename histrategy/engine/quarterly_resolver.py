@@ -171,9 +171,11 @@ class QuarterlyResolver:
                     all_commands,
                     room,
                 )
+                results.baseline = baseline  # Expose for DB storage
             except Exception as e:
                 logger.error("[room=%s] TurnController failed: %s", room.id, e)
                 baseline = _empty_baseline(world_state)
+                results.baseline = baseline
 
         # ── Step 3: 黑天鹅事件 ──
         bs_proposals = []
@@ -231,6 +233,7 @@ class QuarterlyResolver:
                     bs_proposals,
                     room,
                 )
+                results.macro_delta = macro_delta  # Expose for DB storage
                 print(f"⏱ [room={room.id}] macro_sim {time.time() - _t_macro:.1f}s", flush=True)
             except Exception as e:
                 logger.error("[room=%s] MacroPolicyEngine failed: %s", room.id, e)
@@ -489,6 +492,8 @@ class QuarterlyResult:
         "game_over",
         "narrative_context",
         "all_commands",
+        "baseline",
+        "macro_delta",
     )
 
     def __init__(self):
@@ -501,6 +506,8 @@ class QuarterlyResult:
         # Set only in streaming mode (skip_narrative=True): stashed inputs for
         # deferred narrative generation by narrative-live-stream.
         self.narrative_context: dict | None = None
+        self.baseline = None  # TurnResult from deterministic simulation
+        self.macro_delta: dict = {}  # LLM macro simulation delta
 
 
 # ── Helpers ────────────────────────────────────────

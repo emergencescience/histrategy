@@ -2391,12 +2391,28 @@ def _save_quarter(room, decisions, result):
                         entry["commands"] = v1_fd[fid].get("commands", [])
         # Collect per-turn token usage from llm_call_log
         token_usage = _collect_quarter_tokens(room.id, room.quarter_number)
+
+        # Serialize baseline TurnResult to dict for DB storage
+        baseline_dict = None
+        baseline = getattr(result, "baseline", None)
+        if baseline is not None:
+            import dataclasses
+            try:
+                baseline_dict = dataclasses.asdict(baseline)
+            except (TypeError, Exception):
+                baseline_dict = {"_serialization_error": str(type(baseline))}
+
+        # Serialize macro_delta (already a dict)
+        macro_dict = getattr(result, "macro_delta", None) or None
+
         save_quarter_turn(
             room.id,
             room.quarter_number,
             room.year,
             room.season,
             faction_decisions=fd,
+            baseline_result=baseline_dict,
+            macro_delta=macro_dict,
             narratives=result.narratives,
             state_changes=result.state_changes,
             token_usage=token_usage,
