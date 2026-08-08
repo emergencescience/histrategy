@@ -1420,6 +1420,31 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
         # V3 (merged V3+Macro)
         result = _resolve_v2_or_v3(room, ws, decisions, llm, mode="v3", skip_narrative=skip_narrative)
 
+    # ── SILENT DROP audit: log QuarterlyResult fields computed by resolve()
+    #    but not consumed through to _save_quarter / API response.
+    _latency = getattr(result, "total_latency_ms", None)
+    if _latency:
+        logger.warning(
+            "[room=%s] [SILENT_DROP] total_latency_ms=%.0f computed in resolve() "
+            "but not consumed/persisted by _resolve_and_advance",
+            room.id, _latency,
+        )
+    _go = getattr(result, "game_over", None)
+    if _go is not None:
+        logger.warning(
+            "[room=%s] [SILENT_DROP] game_over=%s set in QuarterlyResult "
+            "but not consumed/persisted by _resolve_and_advance",
+            room.id, _go,
+        )
+    _cmds = getattr(result, "all_commands", None)
+    if _cmds:
+        logger.debug(
+            "[room=%s] [SILENT_DROP] all_commands (%d factions) set on "
+            "QuarterlyResult but not consumed/persisted by _resolve_and_advance "
+            "— commands are used internally in resolve() only",
+            room.id, len(_cmds),
+        )
+
     room._last_narratives = result.narratives
     room._last_state_changes = getattr(result, "state_changes", {}) or {}
     npc_actions = []
@@ -1895,6 +1920,15 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
         resolver = QuarterlyResolver()
         result = resolver.resolve(room, ws, decisions, llm=llm, skip_narrative=skip_narrative)
         _clamp_extreme_changes(ws, old_state)
+
+        # ── SILENT DROP audit (error path) ──
+        if getattr(result, "total_latency_ms", None):
+            logger.debug(
+                "[room=%s] [SILENT_DROP] total_latency_ms=%.0f (error path) "
+                "computed but not consumed",
+                room.id, result.total_latency_ms,
+            )
+
         _save_v3_state_to_db(room, ws, decisions, result, old_state)
         return result
 
@@ -1926,6 +1960,28 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
 
     # ── Post-resolve guardrail ──
     _clamp_extreme_changes(ws, old_state)
+
+    # ── SILENT DROP audit: log any QuarterlyResult fields that are computed
+    #    by resolve() but never consumed downstream by room_manager.
+    if getattr(result, "total_latency_ms", None):
+        logger.debug(
+            "[room=%s] [SILENT_DROP] total_latency_ms=%.0f computed in resolve() "
+            "but not consumed downstream by room_manager",
+            room.id, result.total_latency_ms,
+        )
+    if getattr(result, "game_over", None) is not None:
+        logger.warning(
+            "[room=%s] [SILENT_DROP] game_over=%s set in resolve() "
+            "but not consumed downstream by room_manager",
+            room.id, result.game_over,
+        )
+    if getattr(result, "all_commands", None):
+        logger.debug(
+            "[room=%s] [SILENT_DROP] all_commands (%d factions) on result "
+            "not consumed by _resolve_and_advance — data used internally by "
+            "resolve() but dropped at pipeline boundary",
+            room.id, len(result.all_commands),
+        )
 
     _save_v3_state_to_db(room, ws, decisions, result, old_state)
     return result
@@ -2171,8 +2227,22 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
     """将 V3 仿真结果写入 game_state + policy_state + turn_delta 表。
 
     使用逐势力 try/except 保障：单个势力故障不影响其他势力持久化。
+
+    NOTE: 'result' parameter is currently unused — all state data is read from
+    ws (mutated in-place by state_applier). If result.all_commands or other
+    result-only fields need DB storage, they must be persisted here.
     """
     from histrategy.db.models import save_game_state, save_policy_state, save_turn_delta
+
+    # ── SILENT DROP: result parameter is not consumed by this function.
+    #    Any data stored ONLY on the QuarterlyResult object (all_commands,
+    #    total_latency_ms, game_over) will be lost unless explicitly saved here.
+    if hasattr(result, 'all_commands') and result.all_commands:
+        logger.debug(
+            "[room=%s] [SILENT_DROP] _save_v3_state_to_db received result "
+            "with %d factions in all_commands but does not persist it",
+            room.id, len(result.all_commands),
+        )
 
     success_count = 0
     error_count = 0

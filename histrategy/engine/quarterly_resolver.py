@@ -316,6 +316,17 @@ class QuarterlyResolver:
         results.all_commands = all_commands
         results.total_latency_ms = (time.time() - t_start) * 1000
 
+        # ── SILENT DROP: all_commands is stored on result but not consumed
+        #    by _resolve_and_advance or _save_quarter. The struct is used
+        #    internally during resolve() (Steps 2/4/6) but the field on the
+        #    result object is never passed to the next pipeline stage.
+        if results.all_commands:
+            logger.debug(
+                "[room=%s] [SILENT_DROP] all_commands (%d factions) computed in resolve() "
+                "but not consumed downstream by room_manager",
+                getattr(room, "id", "?"), len(results.all_commands),
+            )
+
         # ── Step 7.5: 季节推进安全网（条件触发，防双重推进）──
         # TurnController.execute_turn() 正常时已推进一季；若它静默失败回退到
         # _empty_baseline()，季节不变。仅当季节仍等于回合开始时的值（说明 baseline

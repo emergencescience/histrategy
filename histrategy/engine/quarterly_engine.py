@@ -7,8 +7,11 @@ The LLM MacroPolicyEngine then layers nonlinear historical events on top.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, ClassVar
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from histrategy_engine.world import WorldState
@@ -336,5 +339,22 @@ class QuarterlyEngine:
                 "food_delta": int(food_delta),
                 "tax_revenue": int(revenue),
             }
+
+        # ── SILENT DROP: notable_events and development_changes are computed
+        #    and serialized into the DB baseline_result blob, but are NEVER
+        #    consumed by any downstream pipeline stage (macro engine, narrative
+        #    engine, state_applier, or API). They exist only in the DB blob.
+        if result.notable_events:
+            logger.debug(
+                "[SILENT_DROP] notable_events (%d items) computed in "
+                "QuarterlyEngine.execute_quarter() but never consumed downstream",
+                len(result.notable_events),
+            )
+        if result.development_changes:
+            logger.debug(
+                "[SILENT_DROP] development_changes (%d factions) computed in "
+                "QuarterlyEngine.execute_quarter() but never consumed downstream",
+                len(result.development_changes),
+            )
 
         return result
