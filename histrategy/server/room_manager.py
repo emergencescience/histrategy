@@ -2240,11 +2240,12 @@ def _safe_float(val, default=0.0):
 
 
 def _territories_to_list(ws, faction) -> list[dict]:
-    """Serialize faction territories to [{id, name}] list."""
+    """Serialize faction territories to [{id, name, population}] list."""
     result = []
     for tid in faction.territories:
         t = ws.territories.get(tid)
-        result.append({"id": tid, "name": t.name if t else tid})
+        pop = getattr(t, "population", 0) if t else 0
+        result.append({"id": tid, "name": t.name if t else tid, "population": pop})
     return result
 
 

@@ -740,6 +740,11 @@ def _extract_state_changes(
     which excluded NPC factions that didn't submit explicit decisions. Now
     iterates over ALL active factions in the WorldState so NPCs always show
     their actual strength/morale/food/treasury in the API response.
+
+    Bug H35f fix: territory population is computed from faction.territories
+    → ws.territories[id].population rather than relying on territory.owner_id
+    (which is frequently empty after deserialization). Falls back to
+    faction.population or a per-territory estimate (50000).
     """
     changes = {}
     # Build territory ownership map: {faction_id: [territory_ids]}
@@ -757,9 +762,19 @@ def _extract_state_changes(
         # Also check faction.territories as fallback
         if not owned:
             owned = list(faction.territories) if getattr(faction, "territories", None) else []
+        # Compute population: use owner_id-based map first, then sum from
+        # faction.territories → ws.territories[].population, then faction.population,
+        # then 50000 per territory estimate.
         pop = faction_populations.get(faction_id, 0)
+        if not pop and owned:
+            pop = sum(
+                getattr(ws.territories.get(tid), "population", 0) or 0
+                for tid in owned
+            )
         if not pop:
-            pop = getattr(faction, "population", 0) or 100
+            pop = getattr(faction, "population", 0) or 0
+        if not pop:
+            pop = max(100, len(owned) * 50000)
         changes[faction_id] = {
             "strength": getattr(faction, "strength_actual", 0),
             "treasury": faction.treasury,
@@ -778,8 +793,15 @@ def _extract_state_changes(
         if not owned:
             owned = list(faction.territories) if getattr(faction, "territories", None) else []
         pop = faction_populations.get(faction_id, 0)
+        if not pop and owned:
+            pop = sum(
+                getattr(ws.territories.get(tid), "population", 0) or 0
+                for tid in owned
+            )
         if not pop:
-            pop = getattr(faction, "population", 0) or 100
+            pop = getattr(faction, "population", 0) or 0
+        if not pop:
+            pop = max(100, len(owned) * 50000)
         faction_stats[faction_id] = {
             "population": pop,
             "troops": getattr(faction, "strength_actual", 0),
