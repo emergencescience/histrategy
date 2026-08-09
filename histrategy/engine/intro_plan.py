@@ -26,6 +26,82 @@ def _resolve_early_suggestions(scenario: str, faction_id: str, turn: int, lang: 
 class IntroPlanMixin:
     """Mixin providing intro scene and plan data methods for GameEngine."""
 
+    # ── Scenario-aware intro narrative builders ──────────────────
+
+    _ERA_FALLBACKS = {
+        "nanming": (
+            "崇祯十七年（公元{year}年），李自成破北京，崇祯帝殉国。\n"
+            "吴三桂开关引清军入主中原，天下板荡。\n"
+            "弘光帝朱由崧在南京匆匆即位，江北四镇各自为政。\n"
+            "大清摄政王多尔衮坐镇北京，虎视江南。\n\n"
+        ),
+        "rome-triumvirate": (
+            "罗马建城{auc}年（公元前{year}年），凯撒遇刺，共和国分崩离析。\n"
+            "屋大维、安东尼、雷必达三雄并立，各怀异志。\n"
+            "地中海世界的命运悬于一线。\n\n"
+        ),
+    }
+    _ERA_FALLBACKS_EN = {
+        "nanming": (
+            "Year AD {year}. Li Zicheng's rebels have taken Beijing; the Chongzhen Emperor is dead.\n"
+            "Wu Sangui has opened the Shanhai Pass — Qing banners now flood the Central Plains.\n"
+            "The Hongguang court scrambles to hold Nanjing; Dorgon watches from Beijing.\n\n"
+        ),
+        "rome-triumvirate": (
+            "{year} BC (AUC {auc}). Caesar lies dead; the Republic fractures.\n"
+            "Octavian, Antony, and Lepidus — the Second Triumvirate — divide the Roman world.\n"
+            "The fate of the Mediterranean hangs by a thread.\n\n"
+        ),
+    }
+
+    def _build_intro_narrative(self, player, capital_name: str, ws) -> str:
+        """Build scenario-aware intro narrative (zh)."""
+        scenario = getattr(self, "scenario", "three-kingdoms")
+        era = self._ERA_FALLBACKS.get(scenario)
+        if era:
+            auc = ws.year + 753 if scenario == "rome-triumvirate" else 0
+            era_text = era.format(year=ws.year, auc=auc) if "{auc}" in era else era.format(year=ws.year)
+        else:
+            # Default Three Kingdoms
+            era_text = (
+                f"建安{ws.year - 196}年（公元{ws.year}年），汉室倾颓，诸侯并起。\n"
+                f"曹操迎天子于许昌，挟天子以令诸侯，已据中原大半。\n"
+                f"孙权继父兄之业，稳坐江东。\n\n"
+            )
+        return (
+            f"### 天下大势\n{era_text}"
+            f"### 主公处境\n"
+            f"你，{player.name}，以{capital_name}为根基，"
+            f"麾下兵卒{player.strength_actual}，粮草{player.food}，资金{player.treasury}。\n"
+            f"当审时度势，谋定而后动。"
+        )
+
+    def _build_intro_narrative_en(self, player, capital_name: str, ws) -> str:
+        """Build scenario-aware intro narrative (en)."""
+        scenario = getattr(self, "scenario", "three-kingdoms")
+        era = self._ERA_FALLBACKS_EN.get(scenario)
+        if era:
+            auc = ws.year + 753 if scenario == "rome-triumvirate" else 0
+            era_text = era.format(year=ws.year, auc=auc) if "{auc}" in era else era.format(year=ws.year)
+        else:
+            era_text = (
+                f"Year {ws.year - 196} of Jian'an (AD {ws.year}). "
+                f"The Han dynasty crumbles; warlords rise across the land.\n"
+                f"Cao Cao holds the Emperor at Xuchang, commanding the realm in name, "
+                f"and controls most of the Central Plains.\n"
+                f"Sun Quan, heir to his father and brother's legacy, rules firmly over Jiangdong.\n\n"
+            )
+        return (
+            f"### The Realm\n{era_text}"
+            f"### Your Position\n"
+            f"You are {player.name}, ruling from {capital_name}. "
+            f"You command {player.strength_actual} troops, with {player.food} bushels of grain "
+            f"and {player.treasury} gold in the treasury.\n"
+            f"Survey the realm and plan your next move."
+        )
+
+    # ── Public API ────────────────────────────────────────────────
+
     def get_intro_scene(self) -> dict:
         """Get the introductory scene for a new game."""
         if not self.game_started:
@@ -68,25 +144,11 @@ class IntroPlanMixin:
 
         narrative = (
             (
-                f"### 天下大势\\n"
-                f"建安{ws.year - 196}年（公元{ws.year}年），汉室倾颓，诸侯并起。\\n"
-                f"曹操迎天子于许昌，挟天子以令诸侯，已据中原大半。\\n"
-                f"孙权继父兄之业，稳坐江东。\\n\\n"
-                f"### 主公处境\\n"
-                f"你，{player.name}，以{capital_name}为根基，"
-                f"麾下兵卒{player.strength_actual}，粮草{player.food}，资金{player.treasury}。\\n"
-                f"当审时度势，谋定而后动。"
+                self._build_intro_narrative(player, capital_name, ws)
             )
             if getattr(self, "_scenario_language", "zh") != "en"
             else (
-                f"### The Realm\\n"
-                f"Year {ws.year - 196} of Jian'an (AD {ws.year}). The Han dynasty crumbles; warlords rise across the land.\\n"
-                f"Cao Cao holds the Emperor at Xuchang, commanding the realm in name, and controls most of the Central Plains.\\n"
-                f"Sun Quan, heir to his father and brother's legacy, rules firmly over Jiangdong.\\n\\n"
-                f"### Your Position\\n"
-                f"You are {player.name}, ruling from {capital_name}. "
-                f"You command {player.strength_actual} troops, with {player.food} bushels of grain and {player.treasury} gold in the treasury.\\n"
-                f"Survey the realm and plan your next move."
+                self._build_intro_narrative_en(player, capital_name, ws)
             )
         )
 
@@ -243,6 +305,15 @@ class IntroPlanMixin:
                 "events_occurred": [],
                 "new_choices": ["1. Develop economy", "2. Prepare for war", "3. Seek allies", "4. Gather intelligence"],
             }
+        scenario = getattr(self, "scenario", "three-kingdoms")
+        if scenario in self._ERA_FALLBACKS:
+            return {
+                "narrative": self._ERA_FALLBACKS[scenario].format(year=207),
+                "npc_actions": [],
+                "state_changes": {"strength": 0, "economy": 0, "morale": 0, "treasury": 0, "food": 0},
+                "events_occurred": [],
+                "new_choices": ["1. 发展经济", "2. 整军备战", "3. 结交盟友", "4. 搜集情报"],
+            }
         return {
             "narrative": "建安十二年（公元207年），汉室倾颓，群雄逐鹿。",
             "npc_actions": ["曹操平定北方，虎视江南", "孙权坐断江东，周瑜操练水军"],
@@ -307,14 +378,23 @@ class IntroPlanMixin:
             },
         }
 
-        info = intros.get(faction_key, intros["cao"])
-        intro = (
-            f"建安十二年（公元207年），天下三分之势初成。\n\n"
-            f"曹操已平河北，虎视荆襄；孙权坐断江东，兵精粮足。\n\n"
-            f"你，{info['name']}，字{info['alias']}，{info['desc']}。\n\n"
-            f"帐下：{info['advisors']}。\n"
-            f"武将：{info['generals']}听候调遣。\n"
-        )
+        scenario = getattr(self, "scenario", "three-kingdoms")
+        if scenario in self._ERA_FALLBACKS:
+            # Generic fallback for non-three-kingdoms scenarios
+            intro = (
+                self._ERA_FALLBACKS[scenario].format(year=207)
+                + f"\n你，执掌一方势力。\n\n"
+                + "当审时度势，谋定而后动。\n"
+            )
+        else:
+            info = intros.get(faction_key, intros["cao"])
+            intro = (
+                f"建安十二年（公元207年），天下三分之势初成。\n\n"
+                f"曹操已平河北，虎视荆襄；孙权坐断江东，兵精粮足。\n\n"
+                f"你，{info['name']}，字{info['alias']}，{info['desc']}。\n\n"
+                f"帐下：{info['advisors']}。\n"
+                f"武将：{info['generals']}听候调遣。\n"
+            )
 
         choices = {
             "shu": [

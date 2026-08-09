@@ -5,6 +5,21 @@ import contextlib
 import os
 
 from ..state.world_state import save_world
+
+# ── Scenario-aware era intro line ────────────────────────────
+
+_ERA_INTRO_MAP = {
+    "nanming": lambda year, season: f"崇祯十七年（公元{year}年）{season}，天下板荡，清军虎视江南。",
+    "rome-triumvirate": lambda year, season: f"罗马建城{year+753}年（公元前{year}年）{season}，三雄并立，地中海战云密布。",
+}
+_DEFAULT_ERA_INTRO = lambda year, season: f"建安{year - 196}年{season}，天下纷争未休。"
+
+
+def _era_intro_line(scenario: str, year: int, season: str) -> str:
+    """Return a scenario-aware era intro line for narrative headers."""
+    fn = _ERA_INTRO_MAP.get(scenario, _DEFAULT_ERA_INTRO)
+    return fn(year, season)
+
 from .helpers import (
     FIRST_TURN_SUGGESTIONS,
     _auto_mobilize_for_attack,
@@ -530,10 +545,12 @@ class TurnProcessorMixin:
 
         # Build v3-style narrative from seeds if available, otherwise fall back to v2
         if narrative_seeds:
-            # Build narrative header
+            # Build narrative header — scenario-aware era
+            scenario = getattr(self, "scenario", "three-kingdoms")
+            era_intro = _era_intro_line(scenario, current_year, season_cn)
             header_lines = [
                 f"### {current_year}年{season_cn} · 大事纪",
-                f"建安{current_year - 196}年{season_cn}，天下纷争未休。",
+                era_intro,
                 "",
             ]
             # Resource summary
