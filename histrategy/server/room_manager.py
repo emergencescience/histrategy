@@ -1628,17 +1628,32 @@ def _apply_deterministic_economy(ws) -> None:
             faction.treasury = max(0, faction.treasury - gold_upkeep)
 
 
-def _capture_faction_state(ws) -> dict:
+def _capture_faction_state(ws, room=None) -> dict:
     """Capture pre-resolution state for turn_delta calculation.
 
     Returns {faction_id: {population, troops, food, treasury, morale, territories}}.
+    Falls back to game_state DB for troops when world_state serialization rounds
+    trip resets strength_actual to the dataclass default (5000).
     """
+    # Read authoritative troops from game_state DB if available
+    db_troops = {}
+    if room:
+        try:
+            from histrategy.db.models import get_latest_game_states
+            rows = get_latest_game_states(room.id, room.quarter_number)
+            for gs in rows:
+                db_troops[gs["faction_id"]] = gs.get("troops", 0)
+        except Exception:
+            pass
+
     old_state = {}
     for fid in ws.factions:
         faction = ws.factions[fid]
-        troops = getattr(faction, "strength_actual", 0)
-        logger.info("[room=%s] _capture_faction_state: %s troops=%s food=%s treasury=%s",
-                     getattr(ws, "room_id", "?"), fid, troops, faction.food, faction.treasury)
+        ws_troops = getattr(faction, "strength_actual", 0)
+        # Use DB value if ws value is dataclass default and DB has a real value
+        troops = ws_troops
+        if ws_troops == 5000 and fid in db_troops and db_troops[fid] != 5000:
+            troops = db_troops[fid]
         # Bug H35a: compute population from territory sum
         pop_val = getattr(faction, "population", 0)
         if not pop_val:
@@ -1649,7 +1664,7 @@ def _capture_faction_state(ws) -> dict:
             )
         old_state[fid] = {
             "population": pop_val,
-            "troops": getattr(faction, "strength_actual", 0),
+            "troops": troops,
             "food": faction.food,
             "treasury": faction.treasury,
             "morale": getattr(faction, "morale_actual", 50),
@@ -1768,7 +1783,7 @@ def _resolve_v1(room, ws, decisions, llm):
             break
 
     # ── 先捕获旧状态（用于 turn_delta 计算）──
-    old_state = _capture_faction_state(ws)
+    old_state = _capture_faction_state(ws, room=room)
     v1_factions = v1_result.get("factions", {})
     state_changes = v1_result.get("state_changes", {})
     if not v1_factions and state_changes:
@@ -1881,7 +1896,7 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
     from histrategy.engine.quarterly_resolver import QuarterlyResolver, _extract_state_changes
 
     # ── Capture pre-resolution state ──
-    old_state = _capture_faction_state(ws)
+    old_state = _capture_faction_state(ws, room=room)
 
     # ── Create temporary GameEngine to access sub-engines ──
     try:
