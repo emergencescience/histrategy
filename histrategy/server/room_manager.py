@@ -2539,7 +2539,7 @@ def _ensure_narrative_fallback(room, decisions, result):
         npc_summaries: list[str] = []
         for fid, dr in decisions.items():
             if room.slots.get(fid) and room.slots[fid].is_ai():
-                fname = room.slots[fid].faction_name or fid
+                fname = room.slots[fid].display_name or fid
                 text = dr.decision_text[:120].strip()
                 if text:
                     npc_summaries.append(f"**{fname}**：{text}")
