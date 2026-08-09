@@ -2245,6 +2245,21 @@ def _clamp_extreme_changes(ws, old_state: dict):
                     f"{effective_old}->{faction.food}"
                 )
 
+    # ── Dedicated food guardrail (always runs, not gated by troop ratio) ──
+    # The LLM macro sim can hallucinate extreme food deductions across ALL
+    # factions regardless of troop changes. This floor prevents food=0.
+    _FOOD_FLOOR = 3000
+    for fid, faction in ws.factions.items():
+        if not faction.is_active:
+            continue
+        if getattr(faction, "food", 0) < _FOOD_FLOOR:
+            was = faction.food
+            faction.food = _FOOD_FLOOR
+            logger.warning(
+                f"V3 guardrail: {getattr(faction, 'name', fid)} ({fid}) food "
+                f"below floor ({was} < {_FOOD_FLOOR}), clamped to {_FOOD_FLOOR}"
+            )
+
 
 def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
     """将 V3 仿真结果写入 game_state + policy_state + turn_delta 表。
@@ -2579,16 +2594,23 @@ def _ensure_narrative_fallback(room, decisions, result):
                 lines.append(f"- {s}")
             lines.append("")
 
-        # Add faction resource snapshot
+        # Add faction resource snapshot from ws.territories (authoritative ownership)
         lines.append("**各方态势：**")
         lines.append("")
+        # Build territory ownership from ws.territories (not faction.territories,
+        # which goes out of sync after territory combat transfers)
+        faction_terr_counts: dict[str, int] = {}
+        for tid, terr in ws.territories.items():
+            owner = getattr(terr, "owner_id", "") or ""
+            if owner:
+                faction_terr_counts[owner] = faction_terr_counts.get(owner, 0) + 1
         for fid, faction in ws.factions.items():
             if not faction.is_active:
                 continue
             fname = getattr(faction, "name", fid)
             troops = getattr(faction, "strength_actual", 0) or 0
             morale = getattr(faction, "morale_actual", 50) or 50
-            terr_count = len(list(getattr(faction, "territories", []) or []))
+            terr_count = faction_terr_counts.get(fid, 0)
             lines.append(
                 f"**{fname}**：兵力{troops:,}，民心{morale}，城池{terr_count}座。"
             )
