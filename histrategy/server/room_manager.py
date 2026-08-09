@@ -1875,7 +1875,7 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
     skip_narrative: V3 streaming mode — settle state but defer narrative (see
     QuarterlyResolver.resolve). Ignored for V2 (no narrative engine).
     """
-    from histrategy.engine.quarterly_resolver import QuarterlyResolver
+    from histrategy.engine.quarterly_resolver import QuarterlyResolver, _extract_state_changes
 
     # ── Capture pre-resolution state ──
     old_state = _capture_faction_state(ws)
@@ -1931,6 +1931,8 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
 
     # ── Post-resolve guardrail ──
     _clamp_extreme_changes(ws, old_state)
+    # Re-extract state_changes after guardrail mutates faction.food
+    result.state_changes = _extract_state_changes(ws, decisions)
 
     _save_v3_state_to_db(room, ws, decisions, result, old_state)
     return result
