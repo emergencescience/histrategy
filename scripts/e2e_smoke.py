@@ -146,6 +146,65 @@ def test_second_turn(room_id: str):
     return True
 
 
+def test_shared_room_narrative(room_id: str):
+    """Test 6: Publish room and verify shared page narrative is clean markdown.
+
+    Regression: _npc_actions stored as JSON strings by histrategy DB
+    were being rendered as raw JSON on the shared page. Orchestrator
+    must JSON-parse the string and return clean markdown.
+    """
+    print(f"📋 Test 6: Shared room narrative for {room_id}...")
+
+    # Step A: Publish the room
+    status, pub_data = api(
+        f"/api/rooms/{room_id}/publish",
+        method="PATCH",
+        body={"public": True},
+    )
+    if status != 200:
+        print(f"  ❌ Publish failed: {status} {pub_data}")
+        return False
+    verified = pub_data.get("verified", False)
+    print(f"  {'✅' if verified else '⚠️'} Publish {'verified' if verified else 'accepted'}: is_public={pub_data.get('is_public')}")
+
+    # Step B: Fetch shared page
+    shared_url = f"{ORCH_BASE}/games/histrategy/shared/{room_id}"
+    req = urllib.request.Request(shared_url, headers={"Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            shared = json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()[:500]
+        print(f"  ❌ Shared fetch failed: {e.code} {body}")
+        return False
+
+    # Step C: Verify narrative is NOT a JSON array string
+    narrative = shared.get("narrative", "")
+    if not narrative:
+        print(f"  ❌ narrative is empty")
+        return False
+    if narrative.strip().startswith("["):
+        print(f"  ❌ narrative is raw JSON array — not parsed!")
+        print(f"     First 150: {narrative[:150]}")
+        return False
+
+    chinese_chars = sum(1 for c in narrative if '\u4e00' <= c <= '\u9fff')
+    print(f"  ✅ narrative: {len(narrative)} chars, {chinese_chars} Chinese chars, starts with: {narrative[:60].strip()}")
+
+    # Step D: Verify narratives.global exists
+    narratives = shared.get("narratives", {})
+    global_n = narratives.get("global", "")
+    if not global_n:
+        print(f"  ❌ narratives.global is missing or empty")
+        return False
+    if global_n.strip().startswith("["):
+        print(f"  ❌ narratives.global is raw JSON array")
+        return False
+    print(f"  ✅ narratives.global: {len(global_n)} chars")
+
+    return True
+
+
 def main():
     print("=" * 60)
     print("Histrategy E2E Smoke Test")
@@ -177,6 +236,9 @@ def main():
 
     # Test 5
     results["second_turn"] = test_second_turn(room_id)
+
+    # Test 6 — shared room narrative (regression check for _npc_actions JSON parsing)
+    results["shared_narrative"] = test_shared_room_narrative(room_id)
 
     print("\n" + "=" * 60)
     passed = sum(1 for v in results.values() if v)
