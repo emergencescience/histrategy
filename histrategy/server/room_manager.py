@@ -1527,10 +1527,77 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
             f"⏱ [room={room.id}] STASHED narrative: quarter={room.quarter_number} keys={list(result.narrative_context.keys())}",
             flush=True,
         )
-        # ── Narrative generation is handled by the SSE endpoint ──
-        # (narrative-live-stream). It pops the stash, generates the chronicle
-        # via LLM streaming, and persists the full text to DB on completion.
-        # No background thread — avoids race condition with SSE stash popping.
+        # ── Background: generate real LLM narrative and persist to DB ──
+        # The SSE endpoint (narrative-live-stream) remains the interactive path,
+        # but shared pages and page reloads need the real narrative regardless
+        # of whether the client called SSE. This background thread guarantees
+        # the DB gets a real LLM chronicle within ~30s.
+        import threading as _thr
+
+        def _bg_generate_narrative(r, stashed_ctx, stashed_quarter, stashed_lang, stashed_scenario):
+            import time as _t
+            _t0 = _t.time()
+            try:
+                llm2 = _get_llm()
+                from histrategy.llm.narrative import NarrativeEngine
+                eng = NarrativeEngine(
+                    llm_adapter=llm2, language=stashed_lang,
+                    scenario=stashed_scenario,
+                )
+                ws_current = r.world_state
+                if not ws_current:
+                    return
+                faction_decisions = stashed_ctx.get("all_decisions", {}) or {}
+                if isinstance(faction_decisions, dict):
+                    # Convert DecisionResult objects to plain decision text
+                    fd_plain = {}
+                    for fid, val in faction_decisions.items():
+                        if hasattr(val, "decision_text"):
+                            fd_plain[fid] = val.decision_text
+                        elif isinstance(val, dict):
+                            fd_plain[fid] = val.get("decision", str(val))
+                        else:
+                            fd_plain[fid] = str(val)
+                    faction_decisions = fd_plain
+
+                chunks = []
+                for chunk in eng.generate_global_narrative_stream(
+                    ws=ws_current,
+                    faction_decisions=faction_decisions,
+                    baseline=stashed_ctx.get("baseline"),
+                    macro_delta=stashed_ctx.get("macro_delta"),
+                    history_events=stashed_ctx.get("history_events"),
+                    room_id=r.id,
+                    scenario=stashed_scenario,
+                ):
+                    if chunk:
+                        chunks.append(chunk)
+                full = "".join(chunks).strip()
+                if full:
+                    from histrategy.db.models import update_quarter_turn_narratives
+                    narratives = {"global": full}
+                    update_quarter_turn_narratives(r.id, stashed_quarter, narratives)
+                    logger.info(
+                        "[room=%s] bg narrative persisted: %d chars in %.1fs",
+                        r.id, len(full), _t.time() - _t0,
+                    )
+            except Exception as e:
+                logger.warning(
+                    "[room=%s] bg narrative generation failed: %s",
+                    r.id, str(e)[:200],
+                )
+
+        _thr.Thread(
+            target=_bg_generate_narrative,
+            args=(room, result.narrative_context, room.quarter_number,
+                  getattr(room, "metadata", {}).get("lang", "zh") if getattr(room, "metadata", None) else "zh",
+                  getattr(room, "scenario", "") or ""),
+            daemon=True,
+        ).start()
+        print(
+            f"⏱ [room={room.id}] BG narrative thread started: quarter={room.quarter_number}",
+            flush=True,
+        )
 
     # ── H31a-B2: pre-generate NEXT quarter's NPC decisions in the BACKGROUND ──
     # This is ~30-40s of LLM latency that used to block the /command response.
@@ -2171,7 +2238,9 @@ def _clamp_extreme_changes(ws, old_state: dict):
     With proportional scaling → 14117, 20000, 11384, 7892 (differentiated)
     """
     _MAX_TROOP_LOSS = 0.35   # Max 35% per-quarter troop loss
-    _MAX_TROOP_GAIN = 3.00   # Max 300% per-quarter troop gain
+    _MAX_TROOP_GAIN = 0.50   # Max 50% per-quarter troop gain (was 300%)
+    _MAX_FOOD_LOSS = 0.40    # Max 40% per-quarter food loss (preserve 60%)
+    _MAX_FOOD_GAIN = 1.00    # Max 100% per-quarter food gain (double at most)
 
     # ── First pass: collect raw changes ──
     faction_changes: dict[str, dict] = {}
@@ -2245,20 +2314,42 @@ def _clamp_extreme_changes(ws, old_state: dict):
                     f"{effective_old}->{faction.food}"
                 )
 
-    # ── Dedicated food guardrail (always runs, not gated by troop ratio) ──
-    # The LLM macro sim can hallucinate extreme food deductions across ALL
-    # factions regardless of troop changes. This floor prevents food=0.
-    _FOOD_FLOOR = 3000
+    # ── Dedicated food guardrail (always runs, proportional) ──
+    # The old guardrail used a crude absolute floor (3000) that ignored
+    # the faction's previous food level. Now we preserve at least 60% of
+    # the previous turn's food per faction, with a minimum absolute floor.
+    _FOOD_FLOOR_ABSOLUTE = 3000         # Absolute minimum for any faction
+    _FOOD_PRESERVATION_RATIO = 1 - _MAX_FOOD_LOSS  # Preserve at least 60%
     for fid, faction in ws.factions.items():
         if not faction.is_active:
             continue
-        if getattr(faction, "food", 0) < _FOOD_FLOOR:
-            was = faction.food
-            faction.food = _FOOD_FLOOR
-            logger.warning(
-                f"V3 guardrail: {getattr(faction, 'name', fid)} ({fid}) food "
-                f"below floor ({was} < {_FOOD_FLOOR}), clamped to {_FOOD_FLOOR}"
-            )
+        old_data = old_state.get(fid, {})
+        old_food = old_data.get("food", 0) or 0
+        current = getattr(faction, "food", 0) or 0
+        if old_food > 0:
+            # Proportional floor: keep at least 60% of previous turn's food
+            proportional_floor = max(int(old_food * _FOOD_PRESERVATION_RATIO), _FOOD_FLOOR_ABSOLUTE)
+            if current < proportional_floor:
+                was = current
+                faction.food = proportional_floor
+                logger.warning(
+                    f"V3 food guardrail: {getattr(faction, 'name', fid)} ({fid}) "
+                    f"food below proportional floor ({was} < {proportional_floor}), "
+                    f"clamped (prev={old_food}, preserve={_FOOD_PRESERVATION_RATIO:.0%})"
+                )
+            # Cap food gain at _MAX_FOOD_GAIN (100%)
+            elif current > old_food * (1 + _MAX_FOOD_GAIN):
+                capped = int(old_food * (1 + _MAX_FOOD_GAIN))
+                logger.warning(
+                    f"V3 food guardrail: {getattr(faction, 'name', fid)} ({fid}) "
+                    f"food gain capped {current} -> {capped} "
+                    f"(max {_MAX_FOOD_GAIN:.0%} gain from {old_food})"
+                )
+                faction.food = capped
+        else:
+            # No previous food data — use absolute floor
+            if current < _FOOD_FLOOR_ABSOLUTE:
+                faction.food = _FOOD_FLOOR_ABSOLUTE
 
 
 def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
@@ -2586,34 +2677,9 @@ def _ensure_narrative_fallback(room, decisions, result):
 
         lines = [f"### {year}年{season_cn} · 大事纪", "", era_line, ""]
 
-        # Build narrative from NPC actions
-        if npc_summaries:
-            lines.append("是季，诸方势力运筹帷幄：")
-            lines.append("")
-            for s in npc_summaries:
-                lines.append(f"- {s}")
-            lines.append("")
-
-        # Add faction resource snapshot from ws.territories (authoritative ownership)
-        lines.append("**各方态势：**")
-        lines.append("")
-        # Build territory ownership from ws.territories (not faction.territories,
-        # which goes out of sync after territory combat transfers)
-        faction_terr_counts: dict[str, int] = {}
-        for tid, terr in ws.territories.items():
-            owner = getattr(terr, "owner_id", "") or ""
-            if owner:
-                faction_terr_counts[owner] = faction_terr_counts.get(owner, 0) + 1
-        for fid, faction in ws.factions.items():
-            if not faction.is_active:
-                continue
-            fname = getattr(faction, "name", fid)
-            troops = getattr(faction, "strength_actual", 0) or 0
-            morale = getattr(faction, "morale_actual", 50) or 50
-            terr_count = faction_terr_counts.get(fid, 0)
-            lines.append(
-                f"**{fname}**：兵力{troops:,}，民心{morale}，城池{terr_count}座。"
-            )
+        # Note: NPC decisions are shown in "天下八方动向" section via npc_reactions.
+        # Faction stats are shown in "🏰 势力资源" table via state_changes.
+        # The narrative should be a chronicle, not a data dump — keep it clean.
 
         lines.append("")
         lines.append("_史官记录本季大事。实时战报将在后续回合中由AI生成。_")
