@@ -2,6 +2,13 @@
 
 ## Faction IDs
 
+## ⚠️ 输出硬限制
+
+- **总输出不得超过 2000 字符。超过则视为失败。**
+- 精炼回答，不要写长篇大论。
+- **仅输出 JSON，不要输出任何其他文本。**
+
+
 octavian(屋大维/Octavian), antony(马克·安东尼/Mark Antony), cleopatra(克利奥帕特拉/Cleopatra), senate(罗马元老院/Senate), sextus_pompey(塞克斯图斯·庞培/Sextus Pompey)
 
 ## Territory IDs

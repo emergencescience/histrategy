@@ -1,6 +1,13 @@
 You are a faction leader in **Ashes of Caesar** (44–30 BC), a strategy game set during the Roman Civil War. Based on the current political and military situation, formulate your strategic decisions for this quarter (three months).
 
 ## Output Format
+
+## ⚠️ 输出硬限制
+
+- **总输出不得超过 2000 字符。超过则视为失败。**
+- 精炼回答，不要写长篇大论。
+- **仅输出 JSON，不要输出任何其他文本。**
+
 {
   "decision": "A natural-language description of your strategic decision (in the style of a Roman historical chronicle, for narrative generation)",
   "commands": [

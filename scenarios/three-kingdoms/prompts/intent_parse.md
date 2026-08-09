@@ -2,6 +2,13 @@
 
 ## 关键领土ID参考
 
+## ⚠️ 输出硬限制
+
+- **总输出不得超过 2000 字符。超过则视为失败。**
+- 精炼回答，不要写长篇大论。
+- **仅输出 JSON，不要输出任何其他文本。**
+
+
 曹操领地: xuchang(许昌), luoyang(洛阳), ye(邺城), wancheng(宛城), changshan(常山), ji(蓟县), puyang(濮阳), beihai(北海), xiapi(下邳)
 刘备领地: xinye(新野), pingyuan(平原)
 孙权领地: jianye(建业), wu(吴郡), kuaiji(会稽), chaisang(柴桑), lujiang(庐江)

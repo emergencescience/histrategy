@@ -2,6 +2,13 @@
 
 ## 可用领土ID
 
+## ⚠️ 输出硬限制
+
+- **总输出不得超过 2000 字符。超过则视为失败。**
+- 精炼回答，不要写长篇大论。
+- **仅输出 JSON，不要输出任何其他文本。**
+
+
 大清领地: beijing(北京/京师), shenyang(沈阳/盛京), jinan(济南), luoyang(洛阳), kaifeng(开封), datong(大同), taiyuan(太原)
 南明领地: nanjing(南京/应天), yangzhou(扬州), wuchang(武昌), zhenjiang(镇江), hangzhou(杭州), xuzhou(徐州), nanchang(南昌), fuzhou(福州)
 农民军领地: chengdu(成都), xiangyang(襄阳)
