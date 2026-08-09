@@ -577,7 +577,57 @@ class LLMAdapter:
             except json.JSONDecodeError:
                 pass
 
+        # ── Last resort: salvage truncated JSON ──
+        try:
+            return LLMAdapter._salvage_truncated_json(text)
+        except ValueError:
+            pass
+
         raise ValueError(f"Could not extract JSON from response:\\n{text[:500]}")
+
+    @staticmethod
+    def _salvage_truncated_json(text: str) -> dict:
+        """Try to salvage malformed JSON by removing the last incomplete entry.
+
+        Handles cases where the LLM output gets truncated mid-field, leaving
+        an unterminated key like `\"long_key_name_that_never_e...` with no
+        closing quote, colon, or value. Also handles trailing junk text.
+        """
+        # Strategy 1: find the last valid }, then try to parse everything up to it
+        # Count braces to find the last complete JSON object
+        depth = 0
+        last_good_pos = 0
+        for i, ch in enumerate(text):
+            if ch == '{':
+                depth += 1
+            elif ch == '}':
+                depth -= 1
+                if depth == 0:
+                    last_good_pos = i + 1
+        
+        if last_good_pos > 0 and last_good_pos < len(text):
+            try:
+                return json.loads(text[:last_good_pos])
+            except json.JSONDecodeError:
+                pass
+        
+        # Strategy 2: try to remove the last incomplete key-value pair
+        # Find the last comma before the error point, and parse up to it
+        last_comma = text.rfind(',"', 0, len(text) - 1)
+        if last_comma > 0:
+            # Try closing with }
+            candidate = text[:last_comma] + '}'
+            # Balance braces
+            open_count = candidate.count('{')
+            close_count = candidate.count('}')
+            if open_count > close_count:
+                candidate += '}' * (open_count - close_count)
+            try:
+                return json.loads(candidate)
+            except json.JSONDecodeError:
+                pass
+        
+        raise ValueError(f"Could not salvage truncated JSON")
 
     @staticmethod
     def _clean_json_text(text: str) -> str:
