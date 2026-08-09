@@ -1636,6 +1636,9 @@ def _capture_faction_state(ws) -> dict:
     old_state = {}
     for fid in ws.factions:
         faction = ws.factions[fid]
+        troops = getattr(faction, "strength_actual", 0)
+        logger.info("[room=%s] _capture_faction_state: %s troops=%s food=%s treasury=%s",
+                     getattr(ws, "room_id", "?"), fid, troops, faction.food, faction.treasury)
         # Bug H35a: compute population from territory sum
         pop_val = getattr(faction, "population", 0)
         if not pop_val:
