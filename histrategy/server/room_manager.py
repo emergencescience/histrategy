@@ -1507,6 +1507,13 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
 
     # ── Persist the CURRENT turn's results synchronously (no LLM here) ──
     ws_dict = _serialize_world_state(ws)
+
+    # ── Streaming mode: generate a deterministic offline narrative NOW,
+    #    before saving to DB. Without this, the shared page shows empty
+    #    narratives until (and unless) the SSE endpoint runs.
+    if skip_narrative:
+        _ensure_narrative_fallback(room, decisions, result)
+
     _try_save(room, ws_dict)
     _save_quarter(room, decisions, result)
     _write_backup(room, ws_dict)
@@ -2512,6 +2519,92 @@ def _save_quarter(room, decisions, result):
         logger.warning(f"Quarter save failed: {e}")
 
 
+def _ensure_narrative_fallback(room, decisions, result):
+    """Generate a deterministic offline narrative and attach it to result.narratives.
+
+    Called in streaming mode (skip_narrative=True) BEFORE _save_quarter, so the
+    DB always has a narrative — even if the SSE endpoint never runs.
+
+    Uses NPC decision texts to build a chronicle paragraph, which is far more
+    readable than the old statistics-only fallback.
+    """
+    try:
+        ws = room.world_state
+        if ws is None:
+            return
+        lang = getattr(room, "metadata", {}).get("lang", "zh") if getattr(room, "metadata", None) else "zh"
+        scenario = getattr(room, "scenario", "") or ""
+
+        # Collect NPC decision summaries
+        npc_summaries: list[str] = []
+        for fid, dr in decisions.items():
+            if room.slots.get(fid) and room.slots[fid].is_ai():
+                fname = room.slots[fid].faction_name or fid
+                text = dr.decision_text[:120].strip()
+                if text:
+                    npc_summaries.append(f"**{fname}**：{text}")
+
+        # Build era-aware header
+        year = ws.year
+        season_val = getattr(ws, "season", None)
+        if hasattr(season_val, "cn"):
+            season_cn = season_val.cn
+        elif hasattr(season_val, "value"):
+            season_cn = str(season_val.value)
+        else:
+            season_cn = str(season_val or "?")
+
+        # Era line
+        era_line = f"{year}年{season_cn}，天下纷争未休。"
+        # Try scenario-aware era
+        if scenario == "nanming":
+            # 南明: 1644 winter → 1645 spring
+            # 弘光: 1644 → era_year = year - 1643
+            era_year = year - 1643
+            if era_year < 1:
+                era_str = f"崇祯{18 + year - 1644}年" if year <= 1644 else f"弘光前{1 - era_year}年"
+            elif era_year == 1:
+                era_str = "弘光元年"
+            else:
+                era_str = f"弘光{era_year}年"
+            era_line = f"{era_str}{season_cn}，天下纷争未休。"
+
+        lines = [f"### {year}年{season_cn} · 大事纪", "", era_line, ""]
+
+        # Build narrative from NPC actions
+        if npc_summaries:
+            lines.append("是季，诸方势力运筹帷幄：")
+            lines.append("")
+            for s in npc_summaries:
+                lines.append(f"- {s}")
+            lines.append("")
+
+        # Add faction resource snapshot
+        lines.append("**各方态势：**")
+        lines.append("")
+        for fid, faction in ws.factions.items():
+            if not faction.is_active:
+                continue
+            fname = getattr(faction, "name", fid)
+            troops = getattr(faction, "strength_actual", 0) or 0
+            morale = getattr(faction, "morale_actual", 50) or 50
+            terr_count = len(list(getattr(faction, "territories", []) or []))
+            lines.append(
+                f"**{fname}**：兵力{troops:,}，民心{morale}，城池{terr_count}座。"
+            )
+
+        lines.append("")
+        lines.append("_史官记录本季大事。实时战报将在后续回合中由AI生成。_")
+
+        narrative = "\n".join(lines)
+        if not getattr(result, "narratives", None):
+            result.narratives = {}
+        result.narratives["global"] = narrative
+        logger.info("[room=%s] Offline narrative generated: %d chars", room.id, len(narrative))
+    except Exception as e:
+        logger.warning("[room=%s] _ensure_narrative_fallback failed: %s", room.id, e)
+
+
 def _resolve_npc_territory_combat(room, ws, decisions):
     """After LLM generates NPC decisions, run deterministic combat for any
     military actions that should result in territory transfers.
@@ -2534,13 +2627,15 @@ def _resolve_npc_territory_combat(room, ws, decisions):
     if not factions:
         return
 
-    # ── Q1-Q2: block territory combat (historical timeline constraint) ──
-    # In Three Kingdoms 208 AD, Q1=spring (Cao Cao consolidating north),
-    # Q2=summer (still preparing). Real military action begins in Q3.
+    # ── Q1-Q2 block: only for Three Kingdoms scenario (208 AD timeline
+    #    where Cao Cao consolidates north during spring/summer).
+    #    Other scenarios (nanming, rome) have different timelines and
+    #    should allow combat from Q1 onward.
     quarter = getattr(room, "quarter_number", 0)
-    if quarter <= 1:
+    scenario = getattr(room, "scenario", "") or ""
+    if quarter <= 1 and scenario in ("three-kingdoms", ""):
         logger.info(
-            "[room=%s Q%d] _resolve_npc_territory_combat: SKIPPED (Q1-Q2 no combat)",
+            "[room=%s Q%d] _resolve_npc_territory_combat: SKIPPED (TK Q1-Q2 no combat)",
             room.id, quarter + 1,
         )
         return

@@ -341,6 +341,19 @@ class ScenarioLoader:
         # Create armies
         armies = self._create_armies(factions)
 
+        # Compute faction.population from territory sums.
+        # Without this, faction.population stays at the default (10000) while
+        # _extract_state_changes computes the real sum from ws.territories,
+        # causing the frontend to display a massive fake "growth" at Turn 1.
+        for fid, faction in factions.items():
+            pop_sum = sum(
+                getattr(territories[tid], "population", 0)
+                for tid in faction.territories
+                if tid in territories
+            )
+            if pop_sum > 0:
+                faction.population = pop_sum
+
         return WorldState(
             year=year,
             season=season,
@@ -402,6 +415,16 @@ class ScenarioLoader:
 
         # Create armies
         armies = self._create_armies(factions)
+
+        # Compute faction.population from territory sums (same fix as _build_from_initial_state)
+        for fid, faction in factions.items():
+            pop_sum = sum(
+                getattr(territories[tid], "population", 0)
+                for tid in faction.territories
+                if tid in territories
+            )
+            if pop_sum > 0:
+                faction.population = pop_sum
 
         return WorldState(
             year=scenario.get("year", 207) if scenario else 207,
