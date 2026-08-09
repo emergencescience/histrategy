@@ -1194,7 +1194,13 @@ class TurnProcessorMixin:
         if quarterly.turn_summary:
             if not hasattr(self, "_turn_summaries"):
                 self._turn_summaries = []
-            self._turn_summaries.append(quarterly.turn_summary)
+            # Augment turn summary with per-faction decisions so NPC
+            # decision engine can retrieve last quarter's strategy.
+            summary = dict(quarterly.turn_summary) if isinstance(quarterly.turn_summary, dict) else {"outcome_summary": str(quarterly.turn_summary)}
+            for fid, dr in decisions.items():
+                if dr.decision_text:
+                    summary[f"decision_{fid}"] = dr.decision_text[:300]
+            self._turn_summaries.append(summary)
             if len(self._turn_summaries) > 8:
                 self._turn_summaries = self._turn_summaries[-8:]
 
@@ -1210,6 +1216,38 @@ class TurnProcessorMixin:
                 else:
                     name = fid
                 npc_actions.append(f"{name}: {dr.decision_text[:80]}")
+                # ── Persist NPC policies from parsed commands ──
+                # Extract policy-type entries so _save_v3_state_to_db can persist them.
+                # This ensures NPC strategic continuity across turns.
+                try:
+                    existing = getattr(faction, "policies", None) if faction else None
+                    if not isinstance(existing, dict):
+                        existing = {}
+                    for cmd in (dr.commands or []):
+                        ctype = cmd.get("type", "")
+                        params = cmd.get("params", {})
+                        pname = None
+                        if ctype == "diplomacy":
+                            target = params.get("target_faction", "")
+                            if target:
+                                pname = f"外交_{target}"
+                        elif ctype == "tax":
+                            pname = "税制调整"
+                        elif ctype in ("recruit", "conscript"):
+                            pname = "征兵令"
+                        elif ctype == "develop":
+                            pname = "发展令"
+                        if pname and pname not in existing:
+                            existing[pname] = {
+                                "type": ctype,
+                                "level": 1,
+                                "params": params,
+                                "status": "active",
+                            }
+                    if faction:
+                        faction.policies = existing
+                except Exception:
+                    pass  # Non-critical — best-effort persistence
 
         # ── Advance season/year ──
         _advance_season_and_year(ws)
