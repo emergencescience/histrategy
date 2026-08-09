@@ -769,7 +769,15 @@ def create_app(llm_provider: str | None = None) -> Any:
                 pass  # Non-critical; don't break turns response if game_state query fails
             turns.append(turn)
 
-        # Return in ascending quarter_number order
+        # Deduplicate by quarter_number (keep first occurrence) then sort
+        seen_quarters = set()
+        deduped = []
+        for t in turns:
+            qn = t["quarter_number"]
+            if qn not in seen_quarters:
+                seen_quarters.add(qn)
+                deduped.append(t)
+        turns = deduped
         turns.sort(key=lambda t: t["quarter_number"])
 
         # Build faction_names from room

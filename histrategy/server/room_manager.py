@@ -2398,6 +2398,23 @@ def _advance_season(ws):
             ws.year = getattr(ws, "year", 207) + 1
 
 
+def _enrich_narratives_with_npc(narratives: dict, decisions: dict, room) -> dict:
+    """Add NPC decision text as _npc_actions to narratives for shared page display."""
+    enriched = dict(narratives)
+    npc_actions = []
+    for slot in room.active_slots():
+        fid = slot.faction_id
+        if slot.is_human():
+            continue
+        dr = decisions.get(fid)
+        if dr and dr.decision_text:
+            name = room.factions[fid].name if hasattr(room, "factions") and fid in (room.factions or {}) else fid
+            npc_actions.append(f"{name}: {dr.decision_text[:300]}")
+    if npc_actions:
+        enriched["_npc_actions"] = npc_actions
+    return enriched
+
+
 def _save_quarter(room, decisions, result):
     try:
         from histrategy.db.models import save_quarter_turn
@@ -2465,7 +2482,7 @@ def _save_quarter(room, decisions, result):
             faction_decisions=fd,
             baseline_result=baseline_dict,
             macro_delta=macro_dict,
-            narratives=result.narratives,
+            narratives=_enrich_narratives_with_npc(result.narratives or {}, decisions, room),
             state_changes=result.state_changes,
             token_usage=token_usage,
         )

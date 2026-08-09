@@ -742,17 +742,53 @@ def _extract_state_changes(
     their actual strength/morale/food/treasury in the API response.
     """
     changes = {}
+    # Build territory ownership map: {faction_id: [territory_ids]}
+    faction_territories: dict[str, list[str]] = {}
+    faction_populations: dict[str, int] = {}
+    for tid, territory in ws.territories.items():
+        owner = getattr(territory, "owner_id", "") or ""
+        if owner and owner in ws.factions:
+            faction_territories.setdefault(owner, []).append(tid)
+            faction_populations[owner] = faction_populations.get(owner, 0) + getattr(territory, "population", 0)
     for faction_id, faction in ws.factions.items():
         if not faction.is_active:
             continue
+        owned = faction_territories.get(faction_id, [])
+        # Also check faction.territories as fallback
+        if not owned:
+            owned = list(faction.territories) if getattr(faction, "territories", None) else []
+        pop = faction_populations.get(faction_id, 0)
+        if not pop:
+            pop = getattr(faction, "population", 0) or 100
         changes[faction_id] = {
             "strength": getattr(faction, "strength_actual", 0),
             "treasury": faction.treasury,
             "food": faction.food,
             "morale": getattr(faction, "morale_actual", 50),
-            "territories": list(faction.territories) if faction.territories else [],
+            "territories": owned,
+            "population": pop,
             "is_active": faction.is_active,
         }
+    # Add faction_stats summary
+    faction_stats = {}
+    for faction_id, faction in ws.factions.items():
+        if not faction.is_active:
+            continue
+        owned = faction_territories.get(faction_id, [])
+        if not owned:
+            owned = list(faction.territories) if getattr(faction, "territories", None) else []
+        pop = faction_populations.get(faction_id, 0)
+        if not pop:
+            pop = getattr(faction, "population", 0) or 100
+        faction_stats[faction_id] = {
+            "population": pop,
+            "troops": getattr(faction, "strength_actual", 0),
+            "food": getattr(faction, "food", 0),
+            "treasury": getattr(faction, "treasury", 0),
+            "morale": getattr(faction, "morale_actual", 50),
+            "territories": len(owned),
+        }
+    changes["faction_stats"] = faction_stats
     return changes
 
 
