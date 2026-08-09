@@ -68,23 +68,11 @@ CREATE TABLE IF NOT EXISTS llm_call_log (
     created_at      TEXT DEFAULT ''
 );
 
--- ═══════════════════════════════════════════════════════════
--- simulation_event_log: 确定性引擎事件
--- ═══════════════════════════════════════════════════════════
-CREATE TABLE IF NOT EXISTS simulation_event_log (
-    id              TEXT PRIMARY KEY,
-    room_id         TEXT NOT NULL REFERENCES game_room(id),
-    quarter_number  INTEGER DEFAULT 0,
-    event_type      TEXT NOT NULL,              -- black_swan | baseline | policy_cmd | state_mutation
-    event_data      TEXT,                      -- JSON
-    created_at      TEXT DEFAULT ''
-);
-
 -- Indexes
 -- idx_faction_slot_room REMOVED in H20
+-- simulation_event_log table REMOVED — replaced by turn_delta + quarter_turn
 CREATE INDEX IF NOT EXISTS idx_quarter_turn_room ON quarter_turn(room_id, quarter_number);
 CREATE INDEX IF NOT EXISTS idx_llm_call_log_room ON llm_call_log(room_id, quarter_number);
-CREATE INDEX IF NOT EXISTS idx_sim_event_room ON simulation_event_log(room_id, quarter_number);
 
 -- ═══════════════════════════════════════════════════════════
 -- game_state: 每季度各势力完整状态快照（数值+城池+政策）

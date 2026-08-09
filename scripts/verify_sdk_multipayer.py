@@ -184,7 +184,7 @@ def main():
         "turn_delta": 0,
         "policy_state": 0,
         "llm_call_log": 0,
-        "simulation_event_log": 0,
+        # simulation_event_log REMOVED
     }
     for table, expected_min in tables.items():
         try:
