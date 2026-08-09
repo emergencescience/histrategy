@@ -2207,13 +2207,15 @@ def _clamp_extreme_changes(ws, old_state: dict):
             elif hasattr(faction, "strength"):
                 faction.strength = clamped
 
-            # Scale food proportionally
+            # Scale food proportionally (always, even if old_food=0 — use baseline minimum)
             old_food = data["old_food"]
-            if old_food > 0 and abs(ratio - 1) > 1.0:
-                faction.food = int(old_food * min(1 + _MAX_TROOP_GAIN, 2.0))
+            if abs(ratio - 1) > 1.0:
+                min_food = 3000  # baseline minimum food for all factions
+                effective_old = max(old_food, min_food)
+                faction.food = int(effective_old * min(1 + _MAX_TROOP_GAIN, 2.0))
                 logger.warning(
                     f"V3 guardrail: {faction.name} ({fid}) food auto-scaled "
-                    f"{old_food}->{faction.food}"
+                    f"{effective_old}->{faction.food}"
                 )
 
 
