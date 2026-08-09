@@ -741,30 +741,33 @@ def create_app(llm_provider: str | None = None) -> Any:
                 "policies": policies,
             }
 
-            # Merge faction stats (population, troops, food, etc.) from game_state
+            # Merge faction stats — only if not already present from turn save
+            # (V3 _extract_state_changes now embeds faction_stats directly)
             try:
                 from histrategy.db.models import get_latest_game_states
                 from histrategy.server.room_manager import _get_npc_only_ids
 
-                npc_ids = _get_npc_only_ids(room_id)
-                gs_rows = get_latest_game_states(room_id, qn)
-                faction_stats = {}
-                for gs in gs_rows:
-                    fid = gs["faction_id"]
-                    if fid in npc_ids:
-                        continue  # Skip npc_only factions (e.g. sextus_pompey)
-                    faction_stats[fid] = {
-                        "population": gs.get("population", 0),
-                        "troops": gs.get("troops", 0),
-                        "food": gs.get("food", 0),
-                        "treasury": gs.get("treasury", 0),
-                        "morale": gs.get("morale", 0),
-                        "territories": len(_safe_json_loads(gs.get("territories", "[]")) or []),
-                    }
-                if faction_stats:
-                    if not turn["state_changes"]:
-                        turn["state_changes"] = {}
-                    turn["state_changes"]["faction_stats"] = faction_stats
+                existing_sc = turn.get("state_changes") or {}
+                if not existing_sc.get("faction_stats"):
+                    npc_ids = _get_npc_only_ids(room_id)
+                    gs_rows = get_latest_game_states(room_id, qn)
+                    faction_stats = {}
+                    for gs in gs_rows:
+                        fid = gs["faction_id"]
+                        if fid in npc_ids:
+                            continue  # Skip npc_only factions (e.g. sextus_pompey)
+                        faction_stats[fid] = {
+                            "population": gs.get("population", 0),
+                            "troops": gs.get("troops", 0),
+                            "food": gs.get("food", 0),
+                            "treasury": gs.get("treasury", 0),
+                            "morale": gs.get("morale", 0),
+                            "territories": len(_safe_json_loads(gs.get("territories", "[]")) or []),
+                        }
+                    if faction_stats:
+                        if not turn["state_changes"]:
+                            turn["state_changes"] = {}
+                        turn["state_changes"]["faction_stats"] = faction_stats
             except Exception:
                 pass  # Non-critical; don't break turns response if game_state query fails
             turns.append(turn)
