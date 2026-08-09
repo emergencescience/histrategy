@@ -237,9 +237,12 @@ class MacroPolicyEngine:
         if commands:
             lines.append("## 结构化策令")
             for cmd in commands:
-                n = getattr(cmd, "notes", "")
-                p = json.dumps(getattr(cmd, "params", {}), ensure_ascii=False)
-                lines.append(f"- {cmd.type}: {p}" + (f"  // {n}" if n else ""))
+                if isinstance(cmd, str):
+                    lines.append(f"- {cmd}")
+                else:
+                    n = getattr(cmd, "notes", "")
+                    p = json.dumps(getattr(cmd, "params", {}), ensure_ascii=False)
+                    lines.append(f"- {cmd.type}: {p}" + (f"  // {n}" if n else ""))
             lines.append("")
 
         lines.append("## 势力状态")
