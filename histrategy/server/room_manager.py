@@ -1709,25 +1709,47 @@ def _capture_faction_state(ws, room=None) -> dict:
     Falls back to game_state DB for troops when world_state serialization rounds
     trip resets strength_actual to the dataclass default (5000).
     """
-    # Read authoritative troops from game_state DB if available
-    db_troops = {}
+    # Read authoritative state from game_state DB if available.
+    # The WorldState in-memory objects (faction.food, faction.treasury,
+    # faction.morale_actual) reset to dataclass defaults (3000, 5000, 50)
+    # after every DB round-trip via deserialize_world_state().  We already
+    # had a fallback for troops (default 5000); this extends the same
+    # fallback to food, treasury and morale so turn-to-turn deltas are
+    # computed against the real previous-turn values, not the defaults.
+    _DEFAULT_FOOD = 3000
+    _DEFAULT_TREASURY = 5000
+    _DEFAULT_MORALE = 50
+    db_state = {}
     if room:
         try:
             from histrategy.db.models import get_latest_game_states
             rows = get_latest_game_states(room.id, room.quarter_number)
             for gs in rows:
-                db_troops[gs["faction_id"]] = gs.get("troops", 0)
+                db_state[gs["faction_id"]] = {
+                    "troops": gs.get("troops", 0),
+                    "food": gs.get("food", 0),
+                    "treasury": gs.get("treasury", 0),
+                    "morale": gs.get("morale", _DEFAULT_MORALE),
+                }
         except Exception:
             pass
 
     old_state = {}
     for fid in ws.factions:
         faction = ws.factions[fid]
+        db_vals = db_state.get(fid, {})
         ws_troops = getattr(faction, "strength_actual", 0)
-        # Use DB value if ws value is dataclass default and DB has a real value
-        troops = ws_troops
-        if ws_troops == 5000 and fid in db_troops and db_troops[fid] != 5000:
-            troops = db_troops[fid]
+        ws_food = getattr(faction, "food", 0)
+        ws_treasury = getattr(faction, "treasury", 0)
+        ws_morale = getattr(faction, "morale_actual", _DEFAULT_MORALE)
+
+        # Use DB values when WorldState has reverted to dataclass defaults
+        _DEFAULT_TROOPS = 5000
+        troops = db_vals.get("troops", ws_troops) if ws_troops == _DEFAULT_TROOPS and db_vals.get("troops", _DEFAULT_TROOPS) != _DEFAULT_TROOPS else ws_troops
+        food_val = db_vals.get("food", ws_food) if ws_food == _DEFAULT_FOOD and db_vals.get("food", _DEFAULT_FOOD) != _DEFAULT_FOOD else ws_food
+        treasury_val = db_vals.get("treasury", ws_treasury) if ws_treasury == _DEFAULT_TREASURY and db_vals.get("treasury", _DEFAULT_TREASURY) != _DEFAULT_TREASURY else ws_treasury
+        morale_val = db_vals.get("morale", ws_morale) if ws_morale == _DEFAULT_MORALE and db_vals.get("morale", _DEFAULT_MORALE) != _DEFAULT_MORALE else ws_morale
+
         # Bug H35a: compute population from territory sum
         pop_val = getattr(faction, "population", 0)
         if not pop_val:
@@ -1739,9 +1761,9 @@ def _capture_faction_state(ws, room=None) -> dict:
         old_state[fid] = {
             "population": pop_val,
             "troops": troops,
-            "food": faction.food,
-            "treasury": faction.treasury,
-            "morale": getattr(faction, "morale_actual", 50),
+            "food": food_val,
+            "treasury": treasury_val,
+            "morale": morale_val,
             "territories": list(getattr(faction, "territories", [])),
         }
     return old_state
