@@ -1992,6 +1992,11 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
         resolver = QuarterlyResolver()
         result = resolver.resolve(room, ws, decisions, llm=llm, skip_narrative=skip_narrative)
         _clamp_extreme_changes(ws, old_state)
+        # Re-extract state_changes AFTER clamping so API returns post-guardrail values.
+        # Without this, state_changes in quarter_turn shows PRE-CLAMP values while
+        # game_state and turn_delta show POST-CLAMP — inconsistent and confusing.
+        from histrategy.engine.quarterly_resolver import _extract_state_changes
+        result.state_changes = _extract_state_changes(ws, decisions)
         _save_v3_state_to_db(room, ws, decisions, result, old_state)
         return result
 
