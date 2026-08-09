@@ -466,7 +466,25 @@ def _apply_npc_faction_action(nfa: dict, ws, fmap: dict, summary: dict) -> None:
             _initial_faction_population[fid] = max(total_pop, 1)
         initial_pop = _initial_faction_population[fid]
 
-        # Labor floor: below 25% of original pop, no conscription possible
+        # Labor floor: below 25% of original pop, no conscription possible.
+        # EXCEPTION: if faction has lost all territories (total_pop=0), the
+        # V1 simulation may have killed/reanimated them. Allow conscription
+        # from treasury reserves (costly but keeps the faction alive).
+        if total_pop <= 0:
+            streak = _npc_conscript_streak.get(fid, 0)
+            # Faction has no population but still has treasury — emergency draft
+            # from hidden reserves (deserters, refugees, mercenaries).
+            # Very expensive: 10 gold per soldier, half as many recruits.
+            if faction.treasury >= amount * 10:
+                emergency_amount = min(amount // 2, 2000)
+                faction.strength_actual = getattr(faction, "strength_actual", 0) + emergency_amount
+                faction.treasury -= emergency_amount * 10
+                _npc_conscript_streak[fid] = streak + 1
+                logger.warning(
+                    "NPC %s emergency draft: no population, recruited %d from reserves (cost=%dg)",
+                    fid, emergency_amount, emergency_amount * 10,
+                )
+            return
         if initial_pop > 0 and total_pop < initial_pop * _NPC_CONSCRIPT_LABOR_FLOOR_RATIO:
             logger.warning(
                 "NPC %s conscript blocked: population %d below labor floor (%d)",
