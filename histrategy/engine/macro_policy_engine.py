@@ -137,55 +137,12 @@ class MacroPolicyEngine:
                 result = self._extract_json(result)
             validated = self._validate_output(result)
 
-            # ── Hard enforcement: no war in Q1-Q2 ──
-            if quarter_number <= 2 and isinstance(validated, dict):
-                # Strip declare_war from NPC actions
-                filtered_actions = []
-                for nfa in validated.get("npc_faction_actions", []):
-                    if nfa.get("action_type") == "declare_war":
-                        import logging
-                        _log = logging.getLogger("histrategy.macro")
-                        _log.warning(
-                            "[room=%s Q%d] STRIPPED declare_war from %s (Q1-Q2 no-war constraint)",
-                            room_id, quarter_number, nfa.get("faction", "?"),
-                        )
-                        # Replace with develop as a safe fallback
-                        nfa["action_type"] = "develop"
-                        nfa["reason"] = "曹操在北方巩固统治，暂且休整备战"
-                    filtered_actions.append(nfa)
-                validated["npc_faction_actions"] = filtered_actions
-
-                # Strip battle_results that target human player's territory
-                # NOTE: LLM may omit 'defender' field — _settle_battle auto-detects
-                # defender from territory.owner_id. So we also check location ownership.
-                HUMAN_FACTION_IDS = {"shu", "wu", "liuzhang"}
-                CAPTURE_RESULTS = {"attack_win", "rout"}
-                filtered_battles = []
-                for br in validated.get("battle_results", []):
-                    loc = br.get("location", "")
-                    defender = br.get("defender", "")
-                    attacker = br.get("attacker", "")
-                    # Determine actual defender: prefer explicit field, fall back to territory owner
-                    actual_defender = defender
-                    if not defender and loc:
-                        # We don't have world_state here, but we know human starting territories:
-                        # shu → xinye, wu → jianye/wu/chaisang, liuzhang → chengdu
-                        HUMAN_STARTING_TERRITORIES = {
-                            "xinye": "shu", "jianye": "wu", "wu": "wu",
-                            "chaisang": "wu", "chengdu": "liuzhang",
-                        }
-                        actual_defender = HUMAN_STARTING_TERRITORIES.get(loc, "")
-                    wants_capture = bool(br.get("territory_captured")) or br.get("result") in CAPTURE_RESULTS
-                    if actual_defender in HUMAN_FACTION_IDS and wants_capture:
-                        import logging
-                        _log = logging.getLogger("histrategy.macro")
-                        _log.warning(
-                            "[room=%s Q%d] STRIPPED battle_result capturing %s from %s (Q1-Q2 territory capture blocked)",
-                            room_id, quarter_number, loc, actual_defender,
-                        )
-                        continue  # drop the battle result entirely
-                    filtered_battles.append(br)
-                validated["battle_results"] = filtered_battles
+            # ── No hard enforcement: let narrative constraints guide NPC behavior ──
+            # Previously, Q1-Q2 had hardcoded no-war constraints that also
+            # blocked the PLAYER's commands (e.g. Cao Cao attacking Xinye).
+            # Removed per user directive: use narrative/historical context
+            # (north not yet pacified, attacking alerts Liu Biao) instead of
+            # hard blocks that corrupt world_state serialization.
 
             return validated
         except Exception as e:
@@ -216,18 +173,20 @@ class MacroPolicyEngine:
         year = getattr(baseline, "year", ws.year) if baseline else ws.year
         lines.append(f"## 当前时间\n{year}年{season} | 第{quarter_number}季度\n")
 
-        # ── Per-quarter historical constraint (injected directly for reliability) ──
+        # ── Historical narrative constraints (soft guidance, not hard blocks) ──
         if quarter_number <= 2:
-            lines.append("## ⚠️ 硬性约束 — 必须严格遵守，违者引擎拒绝")
+            lines.append("## ⚠️ 历史背景约束 — 请作为NPC决策的重要参考")
             if quarter_number == 1:
-                lines.append("- **禁止宣战**：所有NPC的 action_type 必须是 conscript/develop/diplomacy/tax/none 之一。")
-                lines.append("  **declare_war 是禁止的。** 曹操刚定河北，袁绍残部未灭，此时南下在军事上不可行。")
-                lines.append("- battle_results 数组必须为空 []。本季度无战役。")
-                lines.append("- 曹操应征兵和发展。孙权应继续巩固江夏。")
+                lines.append("- 曹操刚定河北，袁绍残部（袁尚、袁谭）及乌桓尚未彻底平定，北方根基未固。")
+                lines.append("- 此时若贸然南下攻击刘备，可能激怒刘表、打草惊蛇，促使荆襄各方提前联合。")
+                lines.append("- 且新野距宛城虽近，但刘备有关羽张飞为将，诸葛亮为辅，非轻易可取。")
+                lines.append("- 历史上曹操在彻底平定河北（207年）后才于208年南征。当前时序尚未到此。")
+                lines.append("- 建议NPC势力以征兵、屯田、外交为主，酝酿战略态势而非仓促开战。")
             elif quarter_number == 2:
-                lines.append("- **禁止宣战**：NPC不可对玩家势力宣战。曹操在备战而非进攻。")
-                lines.append("- 曹操应征兵、屯田、积粮。可对刘表施压（diplomacy threaten）")
-                lines.append("- battle_results 最多1场（如孙权vs山越、曹操vs乌桓残部等边缘战斗），不可涉及刘备领地。")
+                lines.append("- 北方局势稍稳但仍需警惕。袁氏残余与乌桓仍有扰动可能。")
+                lines.append("- 曹操可对刘表施加外交压力（diplomacy threaten），试探荆襄态度。")
+                lines.append("- 孙权正巩固江夏新占，不宜两面树敌。可继续整训水师。")
+                lines.append("- 小规模边缘战斗（NPC vs NPC）可以发生，但大规模诸侯之战需审慎。")
             lines.append("")
 
         lines.append("## 玩家策令")
