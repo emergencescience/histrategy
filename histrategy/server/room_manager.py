@@ -547,7 +547,6 @@ def stream_and_persist_narrative(room):
                 except Exception as e:
                     logger.error(
                         "[room=%s] Fallback narrative stream failed: %s",
-                        room.id, str(e)[:200],
                     )
 
             full = "".join(chunks).strip()
@@ -2053,6 +2052,13 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
     # Re-extract state_changes after guardrail mutates faction.food
     result.state_changes = _extract_state_changes(ws, decisions)
 
+    # ── Sync faction.territories from ws.territories[].owner_id ──
+    # The baseline (execute_turn) mutates ws.territories[].owner_id but does
+    # NOT update faction.territories. Without this sync, _territories_to_list
+    # and _serialize_world_state produce empty territory lists, and the next
+    # turn loads a WorldState with all factions reset to defaults (Bug H35g).
+    _sync_faction_territories(ws)
+
     _save_v3_state_to_db(room, ws, decisions, result, old_state)
     return result
 
@@ -2239,6 +2245,26 @@ def _safe_float(val, default=0.0):
         return default
 
 
+def _sync_faction_territories(ws):
+    """Sync faction.territories from ws.territories[].owner_id.
+
+    The V2/V3 baseline (execute_turn) mutates ws.territories[].owner_id for
+    territory ownership but does NOT update faction.territories. Without this
+    sync, _territories_to_list returns [] and _serialize_world_state saves
+    factions with empty territory lists — causing every faction to reset to
+    dataclass defaults (strength=5000, territories=[]) on the next DB round-trip.
+    """
+    # Build {faction_id: [territory_ids]} from territory.owner_id
+    owner_map: dict[str, list[str]] = {}
+    for tid, territory in ws.territories.items():
+        owner = getattr(territory, "owner_id", "") or ""
+        if owner and owner in ws.factions:
+            owner_map.setdefault(owner, []).append(tid)
+    for fid, faction in ws.factions.items():
+        if fid in owner_map:
+            faction.territories = list(owner_map[fid])
+
+
 def _territories_to_list(ws, faction) -> list[dict]:
     """Serialize faction territories to [{id, name, population}] list."""
     result = []
@@ -2246,6 +2272,21 @@ def _territories_to_list(ws, faction) -> list[dict]:
         t = ws.territories.get(tid)
         pop = getattr(t, "population", 0) if t else 0
         result.append({"id": tid, "name": t.name if t else tid, "population": pop})
+    return result
+
+
+def _territories_from_owner(ws, faction_id: str) -> list[dict]:
+    """Build territory list by scanning ws.territories for matching owner_id.
+
+    More robust than _territories_to_list — doesn't depend on faction.territories
+    being synced. Used as fallback when faction.territories is stale/empty (Bug H35i).
+    """
+    result = []
+    for tid, t in ws.territories.items():
+        owner = getattr(t, "owner_id", "") or ""
+        if owner == faction_id:
+            pop = getattr(t, "population", 0)
+            result.append({"id": tid, "name": getattr(t, "name", tid), "population": pop})
     return result
 
 
@@ -2401,7 +2442,12 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
                 continue
 
             # ── 城池列表 ──
+            # Bug H35i: _territories_to_list depends on faction.territories,
+            # which may be stale/empty after simulation. Fall back to scanning
+            # ws.territories by owner_id to ensure territories are never lost.
             territories_list = _territories_to_list(ws, faction)
+            if not territories_list and ws:
+                territories_list = _territories_from_owner(ws, fid)
 
             # ── 政策字典（输入验证） ──
             policies = getattr(faction, "policies", {}) or {}
@@ -2430,10 +2476,19 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
                     for tid in getattr(faction, "territories", [])
                     if tid in ws.territories
                 )
-            # Fallback: if ws is None or territories dict is empty, use 50000 per territory
+            # Fallback 1: compute from territories_list (uses owner fallback)
+            if not computed_population and territories_list:
+                computed_population = sum(
+                    max(100, t.get("population", 50000)) for t in territories_list
+                    if isinstance(t, dict)
+                )
+            # Fallback 2: carry forward previous quarter population (Bug H35j)
+            # Previously defaulted to max(100, 0*50000)=100 when no territories.
+            if not computed_population and fid in old_state:
+                computed_population = _safe_int(old_state[fid].get("population", 0))
+            # Fallback 3: absolute minimum
             if not computed_population:
-                n_territories = len(getattr(faction, "territories", []))
-                computed_population = max(100, n_territories * 50000)
+                computed_population = 50000  # minimum faction population
 
             save_game_state(
                 room_id=room.id,
