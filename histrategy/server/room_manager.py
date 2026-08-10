@@ -1993,6 +1993,22 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
     # ── Capture pre-resolution state ──
     old_state = _capture_faction_state(ws, room=room)
 
+    # ── Snapshot territory ownership BEFORE simulation (Bug H35k) ──
+    # The V3 baseline engine clears ws.territories during execute_turn.
+    # Save the territory→owner mapping now so _save_v3_state_to_db can
+    # restore it even if ws.territories is empty after simulation.
+    pre_territories: dict[str, list[dict]] = {}
+    for tid, t in ws.territories.items():
+        owner = getattr(t, "owner_id", "") or ""
+        if owner and owner in ws.factions:
+            pop = getattr(t, "population", 0)
+            pre_territories.setdefault(owner, []).append(
+                {"id": tid, "name": getattr(t, "name", tid), "population": pop}
+            )
+    # Also deep-copy ws.territories dict itself (Territory objects) so we
+    # can restore it after simulation for world_state serialization.
+    _saved_territories = dict(ws.territories) if ws.territories else {}
+
     # ── Create temporary GameEngine to access sub-engines ──
     try:
         import os
@@ -2018,7 +2034,11 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
         # game_state and turn_delta show POST-CLAMP — inconsistent and confusing.
         from histrategy.engine.quarterly_resolver import _extract_state_changes
         result.state_changes = _extract_state_changes(ws, decisions)
-        _save_v3_state_to_db(room, ws, decisions, result, old_state)
+        _save_v3_state_to_db(room, ws, decisions, result, old_state, pre_territories)
+        # Restore ws.territories for world_state serialization (Bug H35k)
+        if _saved_territories and not ws.territories:
+            ws.territories.clear()
+            ws.territories.update(_saved_territories)
         return result
 
     # ── Build resolver based on mode ──
@@ -2059,7 +2079,16 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
     # turn loads a WorldState with all factions reset to defaults (Bug H35g).
     _sync_faction_territories(ws)
 
-    _save_v3_state_to_db(room, ws, decisions, result, old_state)
+    _save_v3_state_to_db(room, ws, decisions, result, old_state, pre_territories)
+    
+    # ── Restore ws.territories after simulation (Bug H35k) ──
+    # The V3 engine clears ws.territories during execute_turn. Restore from
+    # pre-simulation snapshot so _serialize_world_state (called later in
+    # _try_save) saves correct territory data for the next turn's reload.
+    if _saved_territories and not ws.territories:
+        ws.territories.clear()
+        ws.territories.update(_saved_territories)
+    
     return result
 
 
@@ -2421,10 +2450,13 @@ def _clamp_extreme_changes(ws, old_state: dict):
                 faction.food = _FOOD_FLOOR_ABSOLUTE
 
 
-def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
+def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict, pre_territories: dict | None = None):
     """将 V3 仿真结果写入 game_state + policy_state + turn_delta 表。
 
     使用逐势力 try/except 保障：单个势力故障不影响其他势力持久化。
+    
+    pre_territories: {faction_id: [{id, name, population}]} captured BEFORE
+        simulation. Used as fallback when ws.territories is cleared by engine.
     """
     from histrategy.db.models import save_game_state, save_policy_state, save_turn_delta
 
@@ -2448,6 +2480,10 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict):
             territories_list = _territories_to_list(ws, faction)
             if not territories_list and ws:
                 territories_list = _territories_from_owner(ws, fid)
+            # Bug H35k: ws.territories may be entirely empty after simulation.
+            # Use pre-simulation snapshot as final fallback.
+            if not territories_list and pre_territories and fid in pre_territories:
+                territories_list = list(pre_territories[fid])
 
             # ── 政策字典（输入验证） ──
             policies = getattr(faction, "policies", {}) or {}
