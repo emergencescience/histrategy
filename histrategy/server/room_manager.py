@@ -2086,8 +2086,15 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
     # pre-simulation snapshot so _serialize_world_state (called later in
     # _try_save) saves correct territory data for the next turn's reload.
     if _saved_territories and not ws.territories:
+        logger.warning(
+            "[room=%s] H35k: restoring ws.territories (%d territories) after simulation cleared them",
+            room.id, len(_saved_territories))
         ws.territories.clear()
         ws.territories.update(_saved_territories)
+    elif not _saved_territories:
+        logger.warning(
+            "[room=%s] H35k: _saved_territories was EMPTY at start — world_state already corrupted!",
+            room.id)
     
     return result
 
