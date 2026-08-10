@@ -693,6 +693,14 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         raw_turns = get_quarter_turns(room_id, limit=10000)
 
+        # Pre-fetch npc_only faction IDs for filtering
+        npc_only_ids: set[str] = set()
+        try:
+            from histrategy.server.room_manager import _get_npc_only_ids
+            npc_only_ids = _get_npc_only_ids(room_id)
+        except Exception:
+            pass  # Non-critical; if lookup fails, show all factions
+
         turns = []
         for row in raw_turns:
             qn = row["quarter_number"]
@@ -729,12 +737,24 @@ def create_app(llm_provider: str | None = None) -> Any:
                     "status": p.get("status", "active"),
                 }
 
+            # Filter NPC-only factions from decisions & narratives
+            raw_fd = _safe_json_loads(row.get("faction_decisions")) or {}
+            raw_narr = _safe_json_loads(row.get("narratives")) or {}
+            fd_filtered = (
+                {fid: v for fid, v in raw_fd.items() if fid not in npc_only_ids}
+                if npc_only_ids else raw_fd
+            )
+            narr_filtered = (
+                {fid: v for fid, v in raw_narr.items() if fid not in npc_only_ids}
+                if npc_only_ids else raw_narr
+            )
+
             turn = {
                 "quarter_number": qn,
                 "year": row["year"],
                 "season": row["season"],
-                "faction_decisions": _safe_json_loads(row.get("faction_decisions")),
-                "narratives": _safe_json_loads(row.get("narratives")),
+                "faction_decisions": fd_filtered,
+                "narratives": narr_filtered,
                 "state_changes": _safe_json_loads(row.get("state_changes")),
                 "token_usage": _safe_json_loads(row.get("token_usage")),
                 "turn_deltas": deltas,
@@ -749,12 +769,11 @@ def create_app(llm_provider: str | None = None) -> Any:
 
                 existing_sc = turn.get("state_changes") or {}
                 if not existing_sc.get("faction_stats"):
-                    npc_ids = _get_npc_only_ids(room_id)
                     gs_rows = get_latest_game_states(room_id, qn)
                     faction_stats = {}
                     for gs in gs_rows:
                         fid = gs["faction_id"]
-                        if fid in npc_ids:
+                        if fid in npc_only_ids:
                             continue  # Skip npc_only factions (e.g. sextus_pompey)
                         faction_stats[fid] = {
                             "population": gs.get("population", 0),
@@ -793,6 +812,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             "turns": turns,
             "count": len(turns),
             "faction_names": fnames,
+            "npc_only_factions": sorted(npc_only_ids) if npc_only_ids else [],
         }
 
     @app.get("/api/rooms/{room_id}/state")

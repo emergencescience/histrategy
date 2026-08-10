@@ -31,12 +31,13 @@ def _serialize_world_state(ws) -> dict | None:
       `to_dict()`, contains enum fields (Season, TerrainType, UnitType,
       HistoricalMode) that json.dumps cannot handle directly.
     This helper handles both, recursively converting enums to `.value`.
+
+    IMPORTANT: The local WorldState.to_dict() drops territories, armies, and
+    characters. We ALWAYS use dataclasses.asdict() to preserve all fields.
     """
     if ws is None:
         return None
-    if hasattr(ws, "to_dict"):
-        return ws.to_dict()
-    # Engine dataclass flavor — serialize via dataclasses.asdict + enum unwrap
+    # Always use asdict — local WorldState.to_dict() drops territories (Bug H35l)
     from dataclasses import asdict
 
     return _json_safe_deep_convert(asdict(ws))
