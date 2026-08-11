@@ -426,6 +426,23 @@ class QuarterlyEngine:
             strength = getattr(faction, "strength_actual", 0)
             treasury = getattr(faction, "treasury", 0)
 
+            # ── Apply maintenance FIRST (same progressive rate as execute_quarter) ──
+            # Without this, NPCs recruit before paying their army costs,
+            # leading to infinite growth at high morale.
+            scale_bracket = max(0, (strength - 100000) // 100000)
+            maint_rate = p.military_maintenance_per_soldier * (1.0 + scale_bracket * 0.5)
+            maintenance_cost = int(strength * maint_rate)
+            if maintenance_cost > 0 and treasury > 0:
+                actual_maint = min(treasury, maintenance_cost)
+                faction.treasury = treasury - actual_maint
+                treasury = faction.treasury
+                if actual_maint > 500:
+                    bracket_note = f"（大军{scale_bracket+1}级补给）" if scale_bracket > 0 else ""
+                    if result:
+                        result.notable_events.append(
+                            f"{fid}自动军费{actual_maint}金（兵力{strength}）{bracket_note}"
+                        )
+
             base_rate = p.dynamic_conscript_ratio(total_pop)
 
             if morale < 20:
