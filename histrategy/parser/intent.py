@@ -239,7 +239,68 @@ class IntentParser:
                     len(commands) - len(llm_sigs), faction_id,
                 )
 
+        # ── Post-parse validation: redirect commands targeting non-owned territories ──
+        if ws is not None:
+            commands = self._validate_territory_ownership(commands, ws, faction_id)
+
         return commands
+
+    def _validate_territory_ownership(self, commands: list, ws, faction_id: str) -> list:
+        """Validate that recruit/develop/train commands target player-owned territories.
+
+        If a command targets a territory the player doesn't own, either:
+        - Redirect to the player's capital/primary territory
+        - Drop the command if no valid territory exists
+        """
+        if not commands:
+            return commands
+
+        player_faction = ws.factions.get(faction_id)
+        if not player_faction:
+            return commands
+
+        owned_territories = set(getattr(player_faction, "territories", []) or [])
+        if not owned_territories:
+            return commands  # No territories at all — can't validate
+
+        import logging
+        _log = logging.getLogger("histrategy.parser")
+
+        validated = []
+        for cmd in commands:
+            cmd_type = getattr(cmd, "type", "") if hasattr(cmd, "type") else cmd.get("type", "")
+            tid = None
+            if hasattr(cmd, "params"):
+                tid = cmd.params.get("territory", "") or cmd.params.get("target_territory", "")
+            elif isinstance(cmd, dict):
+                tid = cmd.get("params", {}).get("territory", "") or cmd.get("params", {}).get("target_territory", "")
+
+            # Only validate commands that operate on a specific territory
+            territory_scoped_types = {"recruit", "develop", "train", "defend"}
+            if cmd_type in territory_scoped_types and tid and tid not in owned_territories:
+                # Redirect to first owned territory
+                fallback = next(iter(owned_territories))
+                fallback_name = getattr(ws.territories.get(fallback), "name", fallback) if hasattr(ws, "territories") else fallback
+                _log.info(
+                    "[intent] Redirected %s from %s → %s (not owned by %s)",
+                    cmd_type, tid, fallback, faction_id,
+                )
+                if hasattr(cmd, "params"):
+                    if "territory" in cmd.params:
+                        cmd.params["territory"] = fallback
+                    if "target_territory" in cmd.params:
+                        cmd.params["target_territory"] = fallback
+                    # Append correction note
+                    existing_notes = getattr(cmd, "notes", "") or ""
+                    cmd.notes = f"[已自动纠正: {tid}不属于你, 改为{fallback}({fallback_name})] {existing_notes}"
+                elif isinstance(cmd, dict):
+                    if "territory" in cmd.get("params", {}):
+                        cmd["params"]["territory"] = fallback
+                    if "target_territory" in cmd.get("params", {}):
+                        cmd["params"]["target_territory"] = fallback
+            validated.append(cmd)
+
+        return validated
 
     def _llm_parse(self, text: str, faction_id: str, ws=None) -> list:
         """Use LLM to parse text into commands.
