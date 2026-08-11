@@ -192,9 +192,10 @@ class QuarterlyEngine:
                 law_name = cmd.params.get("name", "")
                 if law_name:
                     laws_to_apply.setdefault(world_state.player_faction_id, []).append(law_name)
-            elif cmd.type == "conscript":
+            elif cmd.type in ("conscript", "recruit"):
                 amount = cmd.params.get("amount", 0)
-                conscriptions[world_state.player_faction_id] = amount
+                fid = getattr(cmd, "faction_id", "") or world_state.player_faction_id
+                conscriptions[fid] = conscriptions.get(fid, 0) + amount
 
         # Process each active faction
         for fid, faction in world_state.factions.items():
