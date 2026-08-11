@@ -407,13 +407,16 @@ class DecisionEngine:
         return commands
 
     def _make_recruit_command(self, faction: FactionState) -> Command:
+        """H35z: NPC recruitment is handled deterministically by
+        QuarterlyEngine.execute_npc_recruitment(). This function is
+        kept for player factions only.
+        
+        Returns a no-op develop command instead of recruit for NPCs."""
         return Command(
-            type="recruit",
+            type="develop",
             params={
                 "territory": faction.capital
                 or (faction.territories[0] if faction.territories else ""),
-                "unit_type": "infantry",
-                "amount": 500,
             },
             faction_id=faction.id,
         )

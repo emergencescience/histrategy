@@ -291,6 +291,16 @@ class TurnController:
         # Separate commands by type
         move_commands = [c for c in valid_commands if c.type in ("move", "attack", "defend")]
         domestic_commands = [c for c in valid_commands if c.type in ("recruit", "develop", "tax", "trade", "negotiate")]
+        # H35z: Block NPC recruit commands in the TurnController baseline.
+        # NPC recruitment is handled deterministically by QuarterlyEngine.
+        # execute_npc_recruitment() (morale × population, cost-aware).
+        # Allowing the TurnController to also recruit leads to double-dipping
+        # and infinite NPC growth: tax revenue arrives BEFORE NPC decisions,
+        # so treasury always looks "OK" and recruit succeeds every quarter.
+        domestic_commands = [
+            c for c in domestic_commands
+            if not (c.type == "recruit" and c.faction_id != world_state.player_faction_id)
+        ]
 
         # ── Step 4.5: Alliance Processing ──
         # Negotiate commands form/break alliances; alliance state grants bonuses
