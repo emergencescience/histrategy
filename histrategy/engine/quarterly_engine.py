@@ -91,6 +91,31 @@ class EconomyParams:
     # ── Conscription limits ──
     max_conscript_ratio: float = 0.04  # max conscripts per quarter as % of total population (reduced from 5%)
 
+    @staticmethod
+    def dynamic_conscript_ratio(population: int) -> float:
+        """Scale conscription rate inversely with faction size.
+
+        Small factions can mobilize a larger share of their population
+        (emergency mobilization). Large empires face diminishing returns
+        (bureaucratic overhead, need to keep farmers in fields).
+
+        Historical precedent: Liu Bei's 30k pop could support 5-10k troops
+        (~15-30%), while Cao Cao's 600k pop supported 150k troops (~25% but
+        built over years, not quarters).
+        """
+        if population <= 0:
+            return 0.04  # fallback
+        if population < 50000:
+            return 0.12  # desperate: up to 12% per quarter
+        elif population < 100000:
+            return 0.08
+        elif population < 300000:
+            return 0.06
+        elif population < 600000:
+            return 0.05
+        else:
+            return 0.04  # large empire: 4%
+
 
 # ─── Result type ───────────────────────────────────────────────
 
@@ -279,8 +304,10 @@ class QuarterlyEngine:
                 # Fatigue: each consecutive draft quarter reduces effective pool
                 fatigue_mult = max(0.3, 1.0 - (streak - 1) * p.conscription_fatigue_factor)
                 adjusted_pool = int(total_pop * fatigue_mult)
-                # Cap: can't conscript more than max_conscript_ratio of adjusted population
-                max_draft = int(adjusted_pool * p.max_conscript_ratio)
+                # Cap: can't conscript more than dynamic max ratio of adjusted population
+                # Small factions get higher rates (emergency mobilization)
+                dyn_ratio = p.dynamic_conscript_ratio(total_pop)
+                max_draft = int(adjusted_pool * dyn_ratio)
                 actual_amount = min(conscript_amount, max_draft)
                 # Cap: can't spend more than available treasury
                 max_affordable = int(treasury / p.conscript_cost) if p.conscript_cost > 0 else actual_amount
