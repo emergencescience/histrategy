@@ -71,12 +71,18 @@ class EconomyParams:
     max_tax_rate: float = 0.70  # maximum allowed tax rate
 
     # ── Military costs ──
-    # Recruitment is cheap (刘备仁德感召, volunteers flock to the banner).
-    # Maintenance is expensive — the real cost of a large army is keeping it fed, paid, and equipped.
-    military_maintenance_per_soldier: float = 0.02  # gold per soldier per quarter (was 0.003, then 0.05 — now 0.02 balances nanming scale)
-    conscript_cost: float = 0.5  # one-time gold cost per conscript (was 3.0 → near-free mobilization)
-    conscript_food_penalty: float = 0.1  # food output loss per conscript (was 0.5)
+    # Recruitment is cheap (volunteers flock to the banner).
+    # Maintenance scales with army size — large standing armies strain logistics.
+    # Progressive: first 100k troops base rate, each additional 100k adds +50%.
+    military_maintenance_per_soldier: float = 0.015  # base gold per soldier per quarter
+    conscript_cost: float = 0.5  # one-time gold cost per conscript
+    conscript_food_penalty: float = 0.1  # food output loss per conscript
     conscription_fatigue_factor: float = 0.3  # each consecutive draft reduces available pool by this %
+
+    # ── Food consumption (progressive for large armies) ──
+    base_food_per_soldier: float = 0.005  # food per soldier per quarter (base)
+    large_army_food_per_soldier: float = 0.008  # food per soldier when troops > 200k
+    large_army_threshold: int = 200000  # troop count above which food cost increases
 
     # ── Occupation / governance costs (scales with territory count) ──
     occupation_cost_per_territory: float = 200.0  # gold per non-core territory per quarter (increased 4x)
@@ -243,7 +249,9 @@ class QuarterlyEngine:
 
             # ── Food ──
             season_idx = quarter % 4
-            food_consumed = strength * p.base_food_per_soldier + total_pop * p.base_food_per_civilian
+            # Progressive food consumption: large armies strain logistics
+            food_per_soldier = p.large_army_food_per_soldier if strength > p.large_army_threshold else p.base_food_per_soldier
+            food_consumed = strength * food_per_soldier + total_pop * p.base_food_per_civilian
             # Winter increases consumption (heating, transport losses)
             if season_idx == 3:  # winter
                 food_consumed *= 1.3
@@ -332,15 +340,19 @@ class QuarterlyEngine:
                 self._draft_streak[fid] = 0
 
             # ── Military Maintenance ──
-            # Every soldier costs gold each quarter (pay, equipment, supplies beyond food)
-            maintenance_cost = int(strength * p.military_maintenance_per_soldier)
+            # Progressive: each 100k troops above 100k adds +50% to base rate.
+            # 50k→750, 150k→3,375, 250k→7,500, 400k→15,000, 500k→22,500
+            scale_bracket = max(0, (strength - 100000) // 100000)  # 0 for <100k, 1 for 100-200k, etc.
+            maint_rate = p.military_maintenance_per_soldier * (1.0 + scale_bracket * 0.5)
+            maintenance_cost = int(strength * maint_rate)
             if maintenance_cost > 0:
                 treasury_after_maint = max(0, treasury - maintenance_cost)
                 actual_cost = treasury - treasury_after_maint
                 faction.treasury = treasury_after_maint
                 treasury = treasury_after_maint
                 if actual_cost > 0:
-                    result.notable_events.append(f"{fid}军费{actual_cost}金（兵力{strength}）")
+                    scale_note = f"（大军{scale_bracket+1}级补给）" if scale_bracket > 0 else ""
+                    result.notable_events.append(f"{fid}军费{actual_cost}金（兵力{strength}）{scale_note}")
 
             # ── Occupation / Governance Costs ──
             # Territories beyond the core count cost gold to administer
