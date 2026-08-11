@@ -71,9 +71,11 @@ class EconomyParams:
     max_tax_rate: float = 0.70  # maximum allowed tax rate
 
     # ── Military costs ──
-    military_maintenance_per_soldier: float = 0.003  # gold per soldier per quarter (increased 3x)
-    conscript_cost: float = 3.0  # one-time gold cost per conscript (increased from 2.0)
-    conscript_food_penalty: float = 0.5  # food output loss per conscript
+    # Recruitment is cheap (刘备仁德感召, volunteers flock to the banner).
+    # Maintenance is expensive — the real cost of a large army is keeping it fed, paid, and equipped.
+    military_maintenance_per_soldier: float = 0.05  # gold per soldier per quarter (16x increase: was 0.003)
+    conscript_cost: float = 0.5  # one-time gold cost per conscript (was 3.0 → near-free mobilization)
+    conscript_food_penalty: float = 0.1  # food output loss per conscript (was 0.5)
     conscription_fatigue_factor: float = 0.3  # each consecutive draft reduces available pool by this %
 
     # ── Occupation / governance costs (scales with territory count) ──

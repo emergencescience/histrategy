@@ -42,8 +42,8 @@ _NPC_CONSCRIPT_MAX_RATE = 0.05  # max 5% of total faction population per quarter
 _NPC_CONSCRIPT_CONSECUTIVE_DECAY = 0.02  # each consecutive quarter reduces rate by 2%
 _NPC_CONSCRIPT_LABOR_FLOOR_RATIO = 0.25  # below 25% of original pop, conscription blocked
 _NPC_CONSCRIPT_MIN_AMOUNT = 100  # minimum conscription even for tiny factions
-_NPC_CONSCRIPT_COST_PER_SOLDIER = 3  # gold per soldier (matches military.yaml infantry cost)
-_NPC_CONSCRIPT_FOOD_PER_SOLDIER = 0.5  # food per soldier upkeep
+_NPC_CONSCRIPT_COST_PER_SOLDIER = 0.5  # gold per soldier (was 3.0 — near-free like player recruitment)
+_NPC_CONSCRIPT_FOOD_PER_SOLDIER = 0.1  # food per soldier (was 0.5)
 
 # ── Territory adjacency check ──
 # Tracks consecutive conscription quarters per faction (module-level, resets per game)
@@ -123,12 +123,23 @@ class StateApplier:
                 summary["morale_changes"] += 1
 
         # 2) Battle results → deterministic casualty + territory settlement.
+        battle_troops_lost: dict[str, int] = {}
         for br in delta.get("battle_results", []):
             _settle_battle(br, ws, fmap, tmap, summary)
+            # Track which factions lost troops for battle-aware NPC recruitment cap
+            for side in ("attacker", "defender"):
+                losses = br.get(f"{side}_casualties", {})
+                if isinstance(losses, dict):
+                    total_loss = sum(int(v) for v in losses.values())
+                else:
+                    total_loss = int(losses) if losses else 0
+                fid = fmap.get(br.get(side, ""), br.get(side, ""))
+                if fid and total_loss > 0:
+                    battle_troops_lost[fid] = battle_troops_lost.get(fid, 0) + total_loss
 
         # 3) NPC autonomous economic/military actions.
         for nfa in delta.get("npc_faction_actions", []):
-            _apply_npc_faction_action(nfa, ws, fmap, summary)
+            _apply_npc_faction_action(nfa, ws, fmap, summary, battle_troops_lost)
 
         # 4) Morale mean-reversion — de-pin extremes from 0/100 (P3).
         for f in ws.factions.values():
@@ -438,7 +449,7 @@ def _absorb_defeated_faction(fid: str, ws, summary: dict) -> None:
             _transfer_territory(last_t, heir, fid, ws, summary)
 
 
-def _apply_npc_faction_action(nfa: dict, ws, fmap: dict, summary: dict) -> None:
+def _apply_npc_faction_action(nfa: dict, ws, fmap: dict, summary: dict, battle_troops_lost: dict | None = None) -> None:
     """Apply an NPC faction's autonomous economic/military action."""
     fid = fmap.get(nfa.get("faction", ""), nfa.get("faction", ""))
     faction = ws.factions.get(fid)
@@ -497,6 +508,26 @@ def _apply_npc_faction_action(nfa: dict, ws, fmap: dict, summary: dict) -> None:
         effective_rate = max(0.01, _NPC_CONSCRIPT_MAX_RATE - streak * _NPC_CONSCRIPT_CONSECUTIVE_DECAY)
         max_amount = max(_NPC_CONSCRIPT_MIN_AMOUNT, int(total_pop * effective_rate))
         amount = min(amount, max_amount)
+
+        # ── Battle-aware cap: NPCs should not massively recruit while losing battles ──
+        # If this NPC lost troops in battle this quarter, allow recruitment up to
+        # replacement level (lost troops + 2% population). Otherwise, cap at
+        # 0.5% population (natural replenishment only).
+        if battle_troops_lost:
+            lost = battle_troops_lost.get(fid, 0)
+            if lost > 0:
+                # Replace battle losses + small buffer
+                battle_cap = lost + int(total_pop * 0.02)
+                amount = min(amount, battle_cap)
+            else:
+                # No battle losses — only natural replenishment
+                peace_cap = max(_NPC_CONSCRIPT_MIN_AMOUNT, int(total_pop * 0.005))
+                amount = min(amount, peace_cap)
+                if amount < int(params.get("amount", 5000) or 5000):
+                    logger.info(
+                        "NPC %s conscript capped at %d (peace-time, no battle losses this quarter)",
+                        fid, amount,
+                    )
 
         if amount <= 0:
             return
