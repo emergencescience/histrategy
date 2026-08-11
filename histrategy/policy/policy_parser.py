@@ -168,7 +168,7 @@ class PolicyParser:
         self.llm = llm_adapter
         self.llm_available = llm_adapter is not None and llm_adapter.is_available
 
-    def parse(self, raw_text: str, faction_id: str) -> list[PolicyCommand]:
+    def parse(self, raw_text: str, faction_id: str, ws=None) -> list[PolicyCommand]:
         """Parse natural language into policy commands.
 
         Args:
@@ -184,13 +184,62 @@ class PolicyParser:
 
         resolved = self._resolve_names(text)
 
+        commands = []
         if self.llm_available and self.llm:
             try:
-                return self._llm_parse(resolved, faction_id)
+                commands = self._llm_parse(resolved, faction_id)
             except Exception:
                 pass
 
-        return self._keyword_parse(resolved)
+        if not commands:
+            commands = self._keyword_parse(resolved)
+
+        # ── Post-parse: redirect commands targeting non-owned territories ──
+        if ws is not None and commands:
+            commands = self._validate_territory_ownership(commands, ws, faction_id)
+
+        return commands
+
+    def _validate_territory_ownership(self, commands: list, ws, faction_id: str) -> list:
+        """Redirect recruit/develop/train targeting non-owned territories."""
+        import logging
+        _log = logging.getLogger("histrategy.policy")
+        
+        player_faction = ws.factions.get(faction_id)
+        if not player_faction:
+            return commands
+        
+        owned = set(getattr(player_faction, "territories", []) or [])
+        if not owned:
+            return commands
+        
+        _log.info("[policy-validate] %d commands for %s (owns: %s)", len(commands), faction_id, sorted(owned))
+        
+        territory_types = {"recruit", "develop", "train", "defend", "policy"}
+        for cmd in commands:
+            ct = getattr(cmd, "type", "") if hasattr(cmd, "type") else cmd.get("type", "")
+            tid = None
+            if hasattr(cmd, "params"):
+                tid = cmd.params.get("territory", "") or cmd.params.get("target_territory", "")
+            elif isinstance(cmd, dict):
+                tid = cmd.get("params", {}).get("territory", "") or cmd.get("params", {}).get("target_territory", "")
+            
+            if ct in territory_types and tid and tid not in owned:
+                fallback = next(iter(owned))
+                fn = getattr(ws.territories.get(fallback), "name", fallback) if hasattr(ws, "territories") else fallback
+                _log.info("[policy-validate] Redirected %s %s→%s for %s", ct, tid, fallback, faction_id)
+                if hasattr(cmd, "params"):
+                    if "territory" in cmd.params:
+                        cmd.params["territory"] = fallback
+                    if "target_territory" in cmd.params:
+                        cmd.params["target_territory"] = fallback
+                    n = getattr(cmd, "notes", "") or ""
+                    cmd.notes = f"[已纠正: {tid}→{fallback}({fn})] {n}"
+                elif isinstance(cmd, dict):
+                    if "territory" in cmd.get("params", {}):
+                        cmd["params"]["territory"] = fallback
+        
+        return commands
 
     # ── Name resolution ────────────────────────────────────
 
