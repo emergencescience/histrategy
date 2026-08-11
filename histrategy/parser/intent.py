@@ -404,7 +404,8 @@ class IntentParser:
         from histrategy_engine.world import Command
 
         # Split on sentence/clause delimiters and parse each segment
-        segments = re.split(r"[；。；,]", text)
+        # Include ， (full-width comma U+FF0C) which is the standard Chinese delimiter
+        segments = re.split(r"[；。；,，]\s*", text)
         segments = [s.strip() for s in segments if s.strip()]
 
         # If no delimiters found, parse the whole text as one segment
@@ -428,18 +429,19 @@ class IntentParser:
 
         # Detect command types via keywords
         # Recruit
-        if any(kw in text_lower for kw in ("招兵", "募兵", "征兵", "招募", "扩军", "征募")):
+        if any(kw in text_lower for kw in ("招兵", "募兵", "征兵", "招募", "扩军", "征募", "练兵", "练水军", "操练", "恢复兵力", "重整旗鼓", "补充兵员", "扩充兵力", "补充兵力", "招兵买马")):
             tid = self._extract_territory(text) or ""
             amount = self._extract_number(text) or 500
             unit_type = self._extract_unit_type(text)
-            if tid:
-                commands.append(
-                    Command(
-                        type="recruit",
-                        params={"territory": tid, "unit_type": unit_type, "amount": amount},
-                        faction_id=faction_id,
-                    )
+            # Allow faction-wide recruit (no territory needed).
+            # Territory ownership validation in parse() will redirect to owned territory.
+            commands.append(
+                Command(
+                    type="recruit",
+                    params={"territory": tid, "unit_type": unit_type, "amount": amount} if tid else {"unit_type": unit_type, "amount": amount},
+                    faction_id=faction_id,
                 )
+            )
 
         # Develop
         if any(kw in text_lower for kw in ("发展", "开发", "建设", "屯田", "修城", "务农", "农耕", "重农", "兴农")):
