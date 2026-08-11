@@ -9,10 +9,10 @@
 - **仅输出 JSON，不要输出任何其他文本。**
 
 
-大清领地: beijing(北京/京师), shenyang(沈阳/盛京), jinan(济南), luoyang(洛阳), kaifeng(开封), datong(大同), taiyuan(太原)
-南明领地: nanjing(南京/应天), yangzhou(扬州), wuchang(武昌), zhenjiang(镇江), hangzhou(杭州), xuzhou(徐州), nanchang(南昌), fuzhou(福州)
-农民军领地: chengdu(成都), xiangyang(襄阳)
-郑氏领地: xiamen(厦门), quanzhou(泉州), taiwan(台湾)
+大清初始领地（游戏进行中会变化，以系统注入的实时数据为准）: beijing(北京/京师), shenyang(沈阳/盛京), jinan(济南), luoyang(洛阳), kaifeng(开封), datong(大同), taiyuan(太原)
+南明初始领地（游戏进行中会变化，以系统注入的实时数据为准）: nanjing(南京/应天), yangzhou(扬州), wuchang(武昌), zhenjiang(镇江), hangzhou(杭州), xuzhou(徐州), nanchang(南昌), fuzhou(福州)
+农民军初始领地（游戏进行中会变化，以系统注入的实时数据为准）: chengdu(成都), xiangyang(襄阳)
+郑氏初始领地（游戏进行中会变化，以系统注入的实时数据为准）: xiamen(厦门), quanzhou(泉州), taiwan(台湾)
 
 ## 南明场景解析示例
 

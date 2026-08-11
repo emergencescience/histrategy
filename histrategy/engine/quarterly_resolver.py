@@ -131,7 +131,7 @@ class QuarterlyResolver:
                 if parsed is None:
                     _t_parse = time.time()
                     try:
-                        parsed = self.intent_parser.parse(dr.decision_text, faction_id)
+                        parsed = self.intent_parser.parse(dr.decision_text, faction_id, ws=world_state)
                     except Exception as e:
                         logger.warning("[room=%s] Intent parse failed for %s: %s", room.id, faction_id, e)
                         parsed = []

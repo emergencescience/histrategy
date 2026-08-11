@@ -119,6 +119,65 @@ def _ensure_scenario_factions(scenario: str | None = None):
         )
 
 
+
+    def _build_state_context(self, ws, faction_id: str) -> str:
+        """Build a concise game-state snapshot for the intent parse prompt.
+
+        Injects live territory ownership and alliance relationships so the
+        LLM can distinguish "your city" from "enemy city" and avoid
+        parsing recruit/develop commands targeting territories the player
+        does not control.
+        """
+        if ws is None:
+            return ""
+
+        lines = []
+
+        # ── Player's territories ──
+        player_faction = ws.factions.get(faction_id)
+        if player_faction:
+            player_territories = list(getattr(player_faction, "territories", []))
+            if player_territories:
+                named = []
+                for tid in player_territories:
+                    t = ws.territories.get(tid) if hasattr(ws, "territories") else None
+                    name = getattr(t, "name", tid) if t else tid
+                    pop = getattr(t, "population", "?") if t else "?"
+                    named.append(f"{tid}({name}, pop={pop})")
+                lines.append(f"## 你的领土（只能在这些城征兵/发展）\n{', '.join(named)}")
+            else:
+                lines.append("## 你的领土\n（无领地）")
+
+            # ── Allies ──
+            allies = list(getattr(player_faction, "allies", []))
+            if allies:
+                ally_names = []
+                for aid in allies:
+                    af = ws.factions.get(aid)
+                    name = getattr(af, "name", aid) if af else aid
+                    ally_names.append(f"{aid}({name})")
+                lines.append(f"## 你的盟友\n{', '.join(ally_names)}")
+            else:
+                lines.append("## 你的盟友\n（无）")
+
+        # ── All faction territories (for attack/move targets) ──
+        lines.append("## 全势力领土分布")
+        for fid, f in ws.factions.items():
+            if not getattr(f, "is_active", True):
+                continue
+            f_terrs = list(getattr(f, "territories", []))
+            if not f_terrs:
+                continue
+            named = []
+            for tid in f_terrs:
+                t = ws.territories.get(tid) if hasattr(ws, "territories") else None
+                name = getattr(t, "name", tid) if t else tid
+                named.append(f"{tid}({name})")
+            lines.append(f"- {fid}({getattr(f, 'name', fid)}): {', '.join(named)}")
+
+        return "\n".join(lines)
+
+
 class IntentParser:
     """Parses player free-text into structured Command objects via LLM or keyword fallback."""
 
@@ -130,7 +189,7 @@ class IntentParser:
         _ensure_scenario_territories(scenario)
         _ensure_scenario_factions(scenario)
 
-    def parse(self, raw_text: str, faction_id: str) -> list:
+    def parse(self, raw_text: str, faction_id: str, ws=None) -> list:
         """Parse natural language text into a list of Command objects.
 
         Args:
@@ -154,7 +213,7 @@ class IntentParser:
 
         if self.llm_available and self.llm:
             try:
-                commands = self._llm_parse(resolved_text, faction_id)
+                commands = self._llm_parse(resolved_text, faction_id, ws)
                 llm_used = True
             except Exception:
                 commands = []
@@ -182,7 +241,7 @@ class IntentParser:
 
         return commands
 
-    def _llm_parse(self, text: str, faction_id: str) -> list:
+    def _llm_parse(self, text: str, faction_id: str, ws=None) -> list:
         """Use LLM to parse text into commands.
 
         Retries once if LLM returns empty commands, with a stronger prompt
@@ -193,6 +252,11 @@ class IntentParser:
 
         # Build scenario-aware system prompt with territory/faction IDs
         system_prompt = _load_intent_prompt(self.scenario)
+
+        # Inject live game state context: territories, alliances
+        state_ctx = self._build_state_context(ws, faction_id)
+        if state_ctx:
+            system_prompt += "\n\n" + state_ctx
 
         # Inject current scenario's territory map so LLM knows valid IDs
         territory_refs = []
