@@ -13,6 +13,21 @@ const UI = {
     this.el('stat-strength').textContent = (s.strength || 0).toLocaleString();
     this.el('stat-lands').textContent = (s.territories || []).join('、') || '无';
     this.el('stat-turn').textContent = s.turn || 1;
+
+    // ── Stat concern tooltips ──
+    const concerns = s.stat_concerns || {};
+    document.querySelectorAll('.stat-tip').forEach(tip => {
+      const key = tip.dataset.stat;
+      const concern = concerns[key];
+      if (concern) {
+        tip.style.display = 'inline';
+        tip.className = 'stat-tip ' + (concern.level === 'critical' ? 'critical' : 'warn');
+        tip.title = concern.hint;
+      } else {
+        tip.style.display = 'none';
+        tip.title = '';
+      }
+    });
   },
 
   /* ── Narrative ── */

@@ -129,6 +129,34 @@ header h1 span {
 .stat .s { color: #6fb0d6; }
 .stat .f { color: #e5b072; }
 
+/* ── Stat concern tooltip ── */
+.stat-tip {
+  display: inline-block;
+  width: 15px; height: 15px;
+  line-height: 15px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: bold;
+  border-radius: 50%;
+  cursor: help;
+  margin-left: 2px;
+  vertical-align: super;
+  position: relative;
+}
+.stat-tip.critical {
+  background: #dc3545;
+  color: #fff;
+  animation: pulse-tip 1.5s ease-in-out infinite;
+}
+.stat-tip.warn {
+  background: #ffc107;
+  color: #333;
+}
+@keyframes pulse-tip {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 #stat-lands {
   color: var(--green);
   font-size: 0.75em;
