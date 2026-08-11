@@ -60,7 +60,8 @@ OUTPUT_SCHEMA_HINT = """\
 禁止输出knowledge_cards/black_swan/narrative_seeds/diplomatic_reactions等额外字段。
 
 ## npc_faction_actions
-[{"faction":"cao","action_type":"conscript|develop|diplomacy|tax|declare_war|none","target":"shu","reason":"...","params":{"amount":5000},"narrative":"曹操命..."}]
+[{"faction":"cao","action_type":"develop|diplomacy|tax|declare_war|none","target":"shu","reason":"...","params":{},"narrative":"曹操命..."}]
+注意：NPC征兵由游戏引擎自动根据士气+人口计算，LLM无需生成conscript动作。
 
 ## battle_results
 [{"location":"xinye","attacker":"cao","defender":"shu","result":"attack_win|defend_win|stalemate|rout","territory_captured":true,"narrative":"..."}]

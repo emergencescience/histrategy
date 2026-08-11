@@ -73,10 +73,12 @@ def _persist_fast_path_game_state(room, fp_result: dict) -> None:
                     "name": getattr(t_obj, "name", tid) if t_obj else tid,
                     "population": getattr(t_obj, "population", None) if t_obj else None,
                 })
-            # Compute population: sum territory populations, fallback to faction data, then default 50000/territory
-            pop = sum(t.get("population") or 0 for t in territories)
+            # Compute population: use faction.population as primary source.
+            # Territory populations are static scenario data and may be stale.
+            # faction.population is the live authoritative value.
+            pop = int(fd.get("population", 0) or 0) or sum(t.get("population") or 0 for t in territories)
             if not pop:
-                pop = int(fd.get("population", 0) or 0) or (len(territories) * 50000)
+                pop = len(territories) * 50000
 
             # ── Save game_state snapshot ──
             save_game_state(

@@ -303,15 +303,23 @@ def _settle_battle(br: dict, ws, fmap: dict, tmap: dict, summary: dict) -> None:
     d_mor = getattr(df, "morale_actual", 50)
 
     # ── Effective combat power (troops weighted by morale + terrain) ──
-    a_pow = a_tr * (0.6 + a_mor / 250.0)
+    # Morale effect is now stronger — high morale multiplies power, low morale cripples it.
+    # At 100 morale: 1.0× multiplier; at 50: 0.8×; at 20: 0.68×; at 0: 0.6×.
+    a_morale_mult = 0.6 + a_mor / 250.0
+    d_morale_mult = 0.6 + d_mor / 250.0
+    a_pow = a_tr * a_morale_mult
     terrain = _DEFENDER_TERRAIN_BONUS if (territory and territory.owner_id == dfd) else 1.0
-    d_pow = d_tr * (0.6 + d_mor / 250.0) * terrain
+    d_pow = d_tr * d_morale_mult * terrain
     ratio = a_pow / max(d_pow, 1.0)
 
-    # ── Deterministic casualties: the weaker side bleeds more ──
-    # Attacker loss fraction shrinks as its ratio grows; defender's grows.
-    atk_loss_frac = _clamp(_BASE_ATTRITION / max(ratio, 0.25), _MIN_BATTLE_LOSS_FRAC, _MAX_BATTLE_LOSS_FRAC)
-    def_loss_frac = _clamp(_BASE_ATTRITION * max(ratio, 0.25), _MIN_BATTLE_LOSS_FRAC, _MAX_BATTLE_LOSS_FRAC)
+    # ── Deterministic casualties: morale directly modifies loss fraction ──
+    # High morale → fewer losses (troops fight harder, retreat in order)
+    # Low morale → more losses (routes, desertion during battle)
+    # Baseline: 10% attrition, scaled by force ratio
+    atk_morale_loss_mod = 2.0 - a_morale_mult  # 1.0 at 100 mor, 1.4 at 0 mor (40% more losses)
+    def_morale_loss_mod = 2.0 - d_morale_mult
+    atk_loss_frac = _clamp(_BASE_ATTRITION * atk_morale_loss_mod / max(ratio, 0.25), _MIN_BATTLE_LOSS_FRAC, _MAX_BATTLE_LOSS_FRAC)
+    def_loss_frac = _clamp(_BASE_ATTRITION * def_morale_loss_mod * max(ratio, 0.25), _MIN_BATTLE_LOSS_FRAC, _MAX_BATTLE_LOSS_FRAC)
     det_atk_loss = int(a_tr * atk_loss_frac)
     det_def_loss = int(d_tr * def_loss_frac)
 
@@ -462,7 +470,15 @@ def _apply_npc_faction_action(nfa: dict, ws, fmap: dict, summary: dict, battle_t
     summary["npc_actions"] += 1
 
     if action_type == "conscript":
-        amount = int(params.get("amount", 5000) or 5000)
+        # Deprecated: NPC recruitment is now handled deterministically by
+        # QuarterlyEngine.execute_npc_recruitment() based on morale × population.
+        # LLM-generated conscript actions are silently ignored to prevent
+        # the double-recruitment bug (NPCs growing despite losing battles).
+        logger.info(
+            "NPC %s conscript action IGNORED — now auto-calculated by quarterly_engine",
+            fid,
+        )
+        return
         # ── Grounded recruitment: cap by population, treasury, food, and streak ──
         # Use faction.population as primary source (territories may have stale/zero pop).
         # Fall back to territory sum if faction.population is not set.

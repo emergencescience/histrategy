@@ -3129,14 +3129,23 @@ def build_faction_status_for_api(room, faction_id: str) -> dict:
         }
 
     territories = []
-    pop_sum = 0
+    # ── Population: use faction.population (the authoritative source).
+    # Territory population fields are static scenario data, not updated
+    # by the quarterly engine. faction.population is the live value that
+    # grows/decays with tax rate, morale, and seasonal events.
+    pop_sum = getattr(faction, "population", 0) or 0
+
     for tid in getattr(faction, "territories", []) or []:
         tid_str = getattr(tid, "id", None) or str(tid)
         territories.append(tid_str)
-        if ws and hasattr(ws, "territories"):
-            t_obj = ws.territories.get(tid_str)
-            if t_obj:
-                pop_sum += getattr(t_obj, "population", 0) or 0
+
+    # Fallback: if faction.population is 0, try territory populations
+    if pop_sum == 0:
+        for tid_str in territories:
+            if ws and hasattr(ws, "territories"):
+                t_obj = ws.territories.get(tid_str)
+                if t_obj:
+                    pop_sum += getattr(t_obj, "population", 0) or 0
 
     # Fallback: if territories dict is empty (old WorldState doesn't
     # survive to_dict/from_dict round-trip), read population from game_state table.

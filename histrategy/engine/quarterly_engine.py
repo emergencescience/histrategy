@@ -186,18 +186,21 @@ class QuarterlyEngine:
         laws_to_apply: dict[str, list[str]] = {}  # faction -> [law_names]
         conscriptions: dict[str, int] = {}  # faction -> amount
 
+        player_fid = world_state.player_faction_id
         for cmd in policy_commands:
             if cmd.type == "tax_rate":
                 rate = cmd.params.get("rate", 0.3)
-                tax_rates[world_state.player_faction_id] = min(rate, p.max_tax_rate)
+                tax_rates[player_fid] = min(rate, p.max_tax_rate)
             elif cmd.type == "law":
                 law_name = cmd.params.get("name", "")
                 if law_name:
-                    laws_to_apply.setdefault(world_state.player_faction_id, []).append(law_name)
+                    laws_to_apply.setdefault(player_fid, []).append(law_name)
             elif cmd.type in ("conscript", "recruit"):
-                amount = cmd.params.get("amount", 0)
-                fid = getattr(cmd, "faction_id", "") or world_state.player_faction_id
-                conscriptions[fid] = conscriptions.get(fid, 0) + amount
+                cmd_fid = getattr(cmd, "faction_id", "") or player_fid
+                # Only process player faction conscription — NPCs get
+                # automatic morale-based recruitment instead (see execute_npc_recruitment).
+                if cmd_fid == player_fid:
+                    conscriptions[cmd_fid] = conscriptions.get(cmd_fid, 0) + cmd.params.get("amount", 0)
 
         # Process each active faction
         for fid, faction in world_state.factions.items():
@@ -378,3 +381,76 @@ class QuarterlyEngine:
             }
 
         return result
+
+    def execute_npc_recruitment(
+        self,
+        world_state: WorldState,
+        result: QuarterResult | None = None,
+    ) -> None:
+        """Automatic morale-based NPC recruitment — runs every quarter.
+
+        NPC factions DO NOT issue conscript commands through the LLM.
+        Instead, recruitment is a deterministic function of population × morale.
+
+        Design: recruitment depends on morale, not treasury.
+        - Below 20 morale: desertion (troops leave)
+        - 20-30 morale: no recruitment (no volunteers)
+        - 30-50 morale: reduced recruitment
+        - 50-80 morale: normal rate
+        - Above 80 morale: enthusiastic volunteers (+bonus)
+        """
+        p = self.params
+        for fid, faction in world_state.factions.items():
+            if fid == world_state.player_faction_id:
+                continue
+            if not getattr(faction, "is_active", True):
+                continue
+
+            total_pop = getattr(faction, "population", 0) or 0
+            if total_pop <= 0:
+                continue
+
+            morale = getattr(faction, "morale_actual", 50)
+            strength = getattr(faction, "strength_actual", 0)
+            treasury = getattr(faction, "treasury", 0)
+
+            base_rate = p.dynamic_conscript_ratio(total_pop)
+
+            if morale < 20:
+                morale_factor = -0.015  # desertion
+            elif morale < 30:
+                morale_factor = 0.0  # no recruitment
+            elif morale < 50:
+                morale_factor = (morale - 30) / 40.0  # 0.0→0.5
+            elif morale < 80:
+                morale_factor = 0.5 + (morale - 50) / 60.0  # 0.5→1.0
+            else:
+                morale_factor = 1.0 + (morale - 80) / 100.0  # 1.0→1.2
+
+            recruit_rate = base_rate * max(0, morale_factor)
+            raw_amount = int(total_pop * recruit_rate)
+
+            if morale_factor < 0:
+                desert = max(int(strength * 0.02), int(total_pop * 0.005))
+                if desert > 100:
+                    faction.strength_actual = max(500, strength - desert)
+                    if result:
+                        result.notable_events.append(f"{fid}士气崩溃，逃兵{desert}人")
+                continue
+
+            if raw_amount <= 0:
+                continue
+
+            # Cost scales inversely with morale — volunteers cost less
+            cost_per_soldier = p.conscript_cost * (2.0 - min(morale_factor, 1.2))
+            max_affordable = int(treasury / cost_per_soldier) if cost_per_soldier > 0 else raw_amount
+            actual = min(raw_amount, max_affordable)
+
+            if actual > 50:
+                faction.strength_actual = getattr(faction, "strength_actual", 0) + actual
+                faction.treasury = max(0, treasury - actual * cost_per_soldier)
+                if result:
+                    vol_note = "（义从踊跃）" if morale > 80 else ""
+                    result.notable_events.append(
+                        f"{fid}自动征兵{actual}人（士气{morale}，花费{actual * cost_per_soldier:.0f}金）{vol_note}"
+                    )

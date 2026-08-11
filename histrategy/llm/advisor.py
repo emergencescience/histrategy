@@ -126,12 +126,14 @@ class StrategicAdvisor:
         else:
             output_instruction = (
                 "\n\n请输出严格的JSON格式（不要markdown代码块），结构如下：\n"
-                '{"analysis": "2-3句战略分析（文言文）", '
+                '{"analysis": "2-3句战略分析（文言文），必须提及当前民心、粮草、税率等关键数值", '
                 '"suggestions": ['
-                '{"title": "≤8字标题", "description": "此策为何可行", '
+                '{"title": "≤8字标题", "description": "此策为何可行（引用实际数值论证）", '
                 '"command": "玩家可直接照抄发送的完整政令"}, ...]}\n'
                 "必须提供恰好3条建议（上策、中策、下策），按优劣排序。\n"
-                "command字段必须是玩家可不加修改直接发送的完整政令。"
+                "command字段必须是玩家可不加修改直接发送的完整政令。\n"
+                "若民心低（<40），上策必须涉及减税/屯田/赈济等恢复民心之策。\n"
+                "若粮草低（<1000），上策必须涉及屯田/购粮/发展农业。\n"
             )
 
         messages = [
@@ -371,6 +373,48 @@ class StrategicAdvisor:
                 f"- 民心: {my.get('morale', '?')}\n"
                 f"- 领地: {', '.join(my.get('territories', []))}"
             )
+
+        # ── Critical Stats Analysis ──
+        morale = int(my.get('morale', 50))
+        food_val = float(my.get('food', 5000))
+        treasury_val = float(my.get('treasury', 5000))
+        tax_rate = float(my.get('tax_rate', 0.3))
+        population = int(my.get('population', 0))
+        strength = int(my.get('strength', 0))
+
+        concerns = []
+        if morale < 40:
+            concerns.append(f"⚠️ 民心低迷（{morale}/100）。提升方法：①减税（当前税率{tax_rate:.0%}，高于20%会压制民心）"
+                           f" ②发展农业提高粮草盈余 ③取得军事胜利 ④赈济百姓。民心影响征兵速度与战力。")
+        elif morale < 60:
+            concerns.append(f"⚡ 民心中等（{morale}/100）。维持税率≤30%，避免连年征战即可稳步恢复。")
+        if food_val < 1000:
+            concerns.append(f"⚠️ 粮草告急（{food_val:.0f}）。立即推行屯田制，或在领地发展农业。冬季粮耗增加30%，需提前储粮。")
+        if treasury_val < 1000:
+            concerns.append(f"⚠️ 国库空虚（{treasury_val:.0f}）。提高税收可增收，但会压制民心。或通过扩张领土增加税基。")
+        if population > 0 and strength > population * 0.15:
+            concerns.append(f"⚡ 兵力占人口{strength/population*100:.1f}%，接近动员上限。过多征兵将压缩劳动力，影响粮食产出。")
+
+        if concerns:
+            if en:
+                parts.append("\n## Critical Concerns\n" + "\n".join(concerns))
+            else:
+                parts.append("\n## 当前隐患\n" + "\n".join(concerns))
+
+        # ── Improvement Guide (always show) ──
+        guide_lines = []
+        if morale < 80:
+            guide_lines.append(f"- 民心提升：减税（每降10%税≈+3民心/季）、屯田（+5民心）、打胜仗（+5民心）")
+        if food_val < 5000:
+            guide_lines.append(f"- 粮草提升：发展农业、推行屯田制（+30%粮食产出）、秋季收获季产出最高")
+        if treasury_val < 5000:
+            guide_lines.append(f"- 资金提升：提高税收率、扩张领土增加税基、盐铁专卖（+15%税收）")
+
+        if guide_lines:
+            if en:
+                parts.append("\n## Improvement Reference\n" + "\n".join(guide_lines))
+            else:
+                parts.append("\n## 提升参考\n" + "\n".join(guide_lines))
 
         perceived = local_state.get("perceived", {})
         if perceived:

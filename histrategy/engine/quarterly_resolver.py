@@ -177,6 +177,17 @@ class QuarterlyResolver:
                 baseline = _empty_baseline(world_state)
                 results.baseline = baseline
 
+        # ── Step 2.5: NPC morale-based auto-recruitment ──
+        # NPCs no longer issue conscript commands through LLM. Instead,
+        # recruitment is a deterministic function of population × morale.
+        # This prevents the bug where NPCs gain troops despite losing battles.
+        try:
+            from histrategy.engine.quarterly_engine import QuarterlyEngine
+            _qe = QuarterlyEngine(scenario=getattr(room, "scenario", None))
+            _qe.execute_npc_recruitment(world_state, baseline)
+        except Exception as e:
+            logger.warning("[room=%s] NPC auto-recruitment failed: %s", room.id, e)
+
         # ── Step 3: 黑天鹅事件 ──
         bs_proposals = []
         if self.black_swan_injector and self.history_engine:

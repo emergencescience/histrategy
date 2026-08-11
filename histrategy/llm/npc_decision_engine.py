@@ -433,30 +433,11 @@ class NPCDecisionEngine:
             elif rel > 30:
                 friendly_neighbors.append((nid, nf, n_strength))
 
-        # ── Priority 1: Emergency conscription if critically weak ──
-        if strength < 3000 and treasury > 1000:
-            amount = min(5000, treasury // 2)
-            if amount >= 1000:
-                commands.append(
-                    _cmd(
-                        "conscript",
-                        {"amount": amount},
-                        "危急存亡之秋，紧急扩军备战" if not is_en else "Emergency conscription, nation in peril",
-                    )
-                )
-                decision_parts.append(f"紧急征兵{amount}" if not is_en else f"Emergency draft of {amount}")
-
-        # ── Priority 2: Recruitment if below threshold ──
-        elif strength < 10000 and treasury > 2000:
-            amount = min(5000, treasury // 2)
-            commands.append(
-                _cmd(
-                    "conscript",
-                    {"amount": amount},
-                    "兵力薄弱，扩充军备以自保" if not is_en else "Troops weak, expanding military for self-defense",
-                )
-            )
-            decision_parts.append(f"征兵{amount}" if not is_en else f"Conscript {amount}")
+        # ── Priority 1/2: NPC recruitment is NOW handled automatically by
+        # QuarterlyEngine.execute_npc_recruitment() based on morale × population.
+        # LLM/heuristic conscript commands are ignored by state_applier and
+        # quarterly_engine to prevent the double-recruitment bug.
+        # Instead, NPCs focus on economic/strategic actions.
 
         # ── Priority 2.5: Starvation — MUST develop if food is 0 ──
         if food <= 0 and territories:
