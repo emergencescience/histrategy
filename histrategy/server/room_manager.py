@@ -398,7 +398,10 @@ def submit_decision(room_id: str, faction_id: str, decision: str, skip_narrative
         from histrategy.parser.intent import IntentParser
         llm = _get_llm()  # V3: use LLM for intent parsing; falls back to keyword if unavailable
         parser = IntentParser(llm_adapter=llm, scenario=room.scenario)
-        parsed = parser.parse(decision, faction_id)
+        # Pass world_state so territory ownership validation can auto-correct
+        # recruit/develop targets that don't belong to the player
+        ws_for_parse = room.world_state if hasattr(room, 'world_state') else None
+        parsed = parser.parse(decision, faction_id, ws=ws_for_parse)
         if parsed:
             slot.pending_commands = [c.to_dict() if hasattr(c, 'to_dict') else c for c in parsed]
         # ── Log intent parse for debug traceability ──
