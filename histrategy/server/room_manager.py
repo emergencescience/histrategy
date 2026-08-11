@@ -2662,10 +2662,17 @@ def _advance_season(ws):
             ws.year = getattr(ws, "year", 207) + 1
 
 
-def _enrich_narratives_with_npc(narratives: dict, decisions: dict, room) -> dict:
-    """Add NPC decision text as _npc_actions to narratives for shared page display."""
+def _enrich_narratives_with_npc(narratives: dict, decisions: dict, room, baseline_notable=None) -> dict:
+    """Add NPC decision text and baseline auto-recruitment events as _npc_actions
+    for shared page display.
+
+    H35y: baseline.notable_events (auto-recruitment, maintenance, desertion)
+    are now appended as ⚙️-prefixed entries so spectators can see the deterministic
+    engine actions — not just the LLM-generated decisions.
+    """
     enriched = dict(narratives)
     npc_actions = []
+    # ── NPC strategic decisions (from LLM) ──
     for slot in room.active_slots():
         fid = slot.faction_id
         if slot.is_human():
@@ -2674,6 +2681,13 @@ def _enrich_narratives_with_npc(narratives: dict, decisions: dict, room) -> dict
         if dr and dr.decision_text:
             name = room.factions[fid].name if hasattr(room, "factions") and fid in (room.factions or {}) else fid
             npc_actions.append(f"{name}: {dr.decision_text[:300]}")
+    # ── Baseline engine events (auto-recruitment, maintenance, desertion) ──
+    if baseline_notable:
+        for ev in baseline_notable:
+            # Format: "qing自动征兵9342人（士气95，花费3975金）"
+            #          "qing自动军费10094金（兵力336482）（大军3级补给）"
+            #          "qing士气崩溃，逃兵1500人"
+            npc_actions.append(f"⚙️ {ev}")
     if npc_actions:
         enriched["_npc_actions"] = npc_actions
     return enriched
@@ -2738,6 +2752,10 @@ def _save_quarter(room, decisions, result):
         # Serialize macro_delta (already a dict)
         macro_dict = getattr(result, "macro_delta", None) or None
 
+        # Extract notable_events from baseline (auto-recruitment, maintenance, desertion)
+        # for shared page visibility (H35y).
+        notable = getattr(baseline, "notable_events", None) if baseline is not None else None
+
         save_quarter_turn(
             room.id,
             room.quarter_number,
@@ -2746,7 +2764,9 @@ def _save_quarter(room, decisions, result):
             faction_decisions=fd,
             baseline_result=baseline_dict,
             macro_delta=macro_dict,
-            narratives=_enrich_narratives_with_npc(result.narratives or {}, decisions, room),
+            narratives=_enrich_narratives_with_npc(
+                result.narratives or {}, decisions, room, baseline_notable=notable
+            ),
             state_changes=result.state_changes,
             token_usage=token_usage,
         )

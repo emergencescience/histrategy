@@ -741,6 +741,15 @@ def _log_exc(room_id: str, context: str, exc: Exception) -> None:
     logger.error("[room=%s] %s: %s", room_id, context, exc)
 
 
+def _resolve_territory_name(tid: str) -> str:
+    """Resolve a territory ID to its Chinese display name. Falls back to tid."""
+    try:
+        from histrategy.engine.fast_path import _TERRITORY_ZH
+        return _TERRITORY_ZH.get(tid, tid)
+    except ImportError:
+        return tid
+
+
 def _extract_state_changes(
     ws: WorldState,
     decisions: dict[str, DecisionResult],
@@ -820,6 +829,7 @@ def _extract_state_changes(
             "treasury": getattr(faction, "treasury", 0),
             "morale": getattr(faction, "morale_actual", 50),
             "territories": len(owned),
+            "territory_names": [_resolve_territory_name(tid) for tid in owned],
         }
     changes["faction_stats"] = faction_stats
     return changes

@@ -45,17 +45,30 @@ def format_baseline_for_narrative(baseline, ws: "WorldState | None" = None) -> s
 
         # Territory ownership AFTER battles (authoritative)
         if ws and hasattr(ws, "factions"):
+            # H35y: Build territory ownership from ws.territories[].owner_id FIRST,
+            # then fall back to faction.territories — matching _extract_state_changes.
+            # faction.territories can be stale after deserialization / combat.
+            faction_territories: dict[str, list[str]] = {}
+            if hasattr(ws, "territories") and ws.territories:
+                for tid, territory in ws.territories.items():
+                    owner = getattr(territory, "owner_id", "") or ""
+                    if owner and owner in ws.factions:
+                        faction_territories.setdefault(owner, []).append(tid)
+
             lines.append("")
             lines.append("### 战后领土归属 (Post-Battle Territory — authoritative)")
             for fid, faction in ws.factions.items():
                 if not getattr(faction, "is_active", True):
                     continue
-                tids = list(getattr(faction, "territories", []))
+                tids = faction_territories.get(fid, [])
+                if not tids:
+                    tids = list(getattr(faction, "territories", []))
                 names = []
                 for tid in tids:
                     t = ws.territories.get(tid) if hasattr(ws, "territories") else None
                     names.append(t.name if t and hasattr(t, "name") else str(tid))
-                lines.append(f"- {faction.name} ({fid}): {', '.join(names) if names else '无领地 (流亡中)'}")
+                warning = " ⚠️ 流亡中无领地" if not tids else ""
+                lines.append(f"- {faction.name} ({fid}): {', '.join(names) if names else '无领地 (流亡中)'}{warning}")
         lines.append("")
     else:
         lines.append("### 本季战事: 无")

@@ -317,16 +317,26 @@ class NarrativeEngine:
             lines.append("")
 
         # Faction snapshots
-        lines.append("## Faction Snapshots")
+        # H35y: Build territory ownership from ws.territories[].owner_id first
+        faction_territories: dict[str, list[str]] = {}
+        if hasattr(ws, "territories") and ws.territories:
+            for tid, territory in ws.territories.items():
+                owner = getattr(territory, "owner_id", "") or ""
+                if owner and owner in ws.factions:
+                    faction_territories.setdefault(owner, []).append(tid)
+
+        lines.append("## Faction Snapshots (Current State)")
         for fid in faction_decisions:
             faction = ws.factions.get(fid)
             if not faction:
                 continue
             fname = getattr(faction, "name_en", "") if (is_en and getattr(faction, "name_en", "")) else faction.name
             troops = getattr(faction, "strength_actual", 0)
-            territories = list(getattr(faction, "territories", []))
+            tids = faction_territories.get(fid, [])
+            if not tids:
+                tids = list(getattr(faction, "territories", []))
             territory_names = []
-            for tid in territories:
+            for tid in tids:
                 t = ws.territories.get(tid) if hasattr(ws, "territories") else None
                 territory_names.append(t.name if t and hasattr(t, "name") else str(tid))
             lines.append(
@@ -420,16 +430,26 @@ class NarrativeEngine:
             lines.append(str(macro_delta))
             lines.append("")
 
-        lines.append("## Faction Snapshots")
+        # H35y: Build territory ownership from ws.territories[].owner_id first
+        faction_territories: dict[str, list[str]] = {}
+        if hasattr(ws, "territories") and ws.territories:
+            for tid, territory in ws.territories.items():
+                owner = getattr(territory, "owner_id", "") or ""
+                if owner and owner in ws.factions:
+                    faction_territories.setdefault(owner, []).append(tid)
+
+        lines.append("## Faction Snapshots (Current State)")
         for fid in faction_decisions:
             faction = ws.factions.get(fid)
             if not faction:
                 continue
             fname = getattr(faction, "name_en", "") if (is_en and getattr(faction, "name_en", "")) else faction.name
             troops = getattr(faction, "strength_actual", 0)
-            territories = list(getattr(faction, "territories", []))
+            tids = faction_territories.get(fid, [])
+            if not tids:
+                tids = list(getattr(faction, "territories", []))
             territory_names = []
-            for tid in territories:
+            for tid in tids:
                 t = ws.territories.get(tid) if hasattr(ws, "territories") else None
                 territory_names.append(t.name if t and hasattr(t, "name") else str(tid))
             lines.append(
