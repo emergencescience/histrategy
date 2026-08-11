@@ -428,14 +428,16 @@ def create_app(llm_provider: str | None = None) -> Any:
             return {"ok": False, "error": f"Faction {fid} not found"}
 
         # Build context (same as advisor-stream)
-        turn_summaries = getattr(room, "turn_summaries", [])[-4:]
+        turn_summaries = getattr(room, "turn_summaries", [])[-6:]
         chronicle = []
         for ts in turn_summaries:
-            year = ts.get("year", "?")
-            season = ts.get("season", "?")
             outcome = ts.get("outcome_summary", "")
-            decision = ts.get("decision", "")
-            chronicle.append(f"{year}年{season}: {decision[:60]} → {outcome}"[:180])
+            chronicle.append(outcome[:300])
+
+        # ── Previous advisor suggestions (avoid repetition) ──
+        prev_suggestions = getattr(room, "_last_advisor_suggestions", None)
+        prev_commands = [s.get("command", "") for s in (prev_suggestions or [])]
+        prev_titles = [s.get("title", "") for s in (prev_suggestions or [])]
 
         perceived = {}
         for ofid, of in ws.factions.items():
@@ -466,6 +468,8 @@ def create_app(llm_provider: str | None = None) -> Any:
                 "food": faction.food,
                 "morale": getattr(faction, "morale_actual", 50),
                 "territories": terr_names,
+                "population": getattr(faction, "population", 0),
+                "tax_rate": getattr(faction, "tax_rate", 0.3),
             },
             "perceived": perceived,
             "chronicle": chronicle,
@@ -495,6 +499,10 @@ def create_app(llm_provider: str | None = None) -> Any:
         advisor = StrategicAdvisor(llm, language=lang_meta)
         result = advisor.advise_player_structured(local_state, personality=personality)
         result["ok"] = True
+
+        # ── Store suggestions to avoid repetition next call ──
+        room._last_advisor_suggestions = result.get("suggestions", [])
+
         return result
 
     @app.get("/api/rooms/{room_id}/advisor-stream")
@@ -592,6 +600,8 @@ def create_app(llm_provider: str | None = None) -> Any:
                 "food": faction.food,
                 "morale": getattr(faction, "morale_actual", 50),
                 "territories": terr_names,
+                "population": getattr(faction, "population", 0),
+                "tax_rate": getattr(faction, "tax_rate", 0.3),
             },
             "perceived": perceived,
             "chronicle": chronicle,

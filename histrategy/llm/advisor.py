@@ -132,8 +132,10 @@ class StrategicAdvisor:
                 '"command": "玩家可直接照抄发送的完整政令"}, ...]}\n'
                 "必须提供恰好3条建议（上策、中策、下策），按优劣排序。\n"
                 "command字段必须是玩家可不加修改直接发送的完整政令。\n"
-                "若民心低（<40），上策必须涉及减税/屯田/赈济等恢复民心之策。\n"
-                "若粮草低（<1000），上策必须涉及屯田/购粮/发展农业。\n"
+                "⚠️ 三条建议必须是不同方向的策略（如：外交、军事、内政各一），不可三条都在说同一件事。\n"
+                "若上次建议中有未生效的，本次必须替换为全新方向。\n"
+                "若民心低（<40），至少一条建议涉及减税/屯田/赈济等恢复民心之策。\n"
+                "若粮草低（<1000），至少一条建议涉及屯田/购粮/发展农业。\n"
             )
 
         messages = [
@@ -478,6 +480,15 @@ class StrategicAdvisor:
                     f"- 侵略性: {personality.get('aggression', '?')}\n"
                     f"- 谨慎度: {personality.get('caution', '?')}"
                 )
+
+        # ── Previous suggestions (avoid repetition, track what was tried) ──
+        prev = local_state.get("previous_suggestions", [])
+        if prev:
+            parts.append("\n## ⚠️ 上次建议（请勿重复，除非上次建议已生效）")
+            for i, title in enumerate(prev):
+                if title:
+                    parts.append(f"- 上次第{i+1}策: {title}")
+            parts.append("若上次建议未被采纳或未生效，请给出全新的策略方向。")
 
         if query:
             label = "## Commander's Question" if en else "## 主公问策"
