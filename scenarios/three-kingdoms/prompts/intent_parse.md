@@ -1,6 +1,6 @@
 # 三国场景领土与势力参考
 
-## 关键领土ID参考
+## ⚠️ 领土参考 — 仅作初始参考，实际以系统注入的「全势力领土分布」为准
 
 ## ⚠️ 输出硬限制
 
@@ -9,11 +9,12 @@
 - **仅输出 JSON，不要输出任何其他文本。**
 
 
-曹操领地: xuchang(许昌), luoyang(洛阳), ye(邺城), wancheng(宛城), changshan(常山), ji(蓟县), puyang(濮阳), beihai(北海), xiapi(下邳)
-刘备领地: xinye(新野), pingyuan(平原)
-孙权领地: jianye(建业), wu(吴郡), kuaiji(会稽), chaisang(柴桑), lujiang(庐江)
-刘表领地: xiangyang(襄阳), jiangling(江陵), changsha(长沙), jiangkou(江口)
-刘璋领地: chengdu(成都)
+（三国初始领土 — 仅供参考。游戏进行中领土会变化，以系统注入的实时数据为准。）
+曹操初始领地: xuchang(许昌), luoyang(洛阳), ye(邺城), wancheng(宛城), changshan(常山), ji(蓟县), puyang(濮阳), beihai(北海), xiapi(下邳)
+刘备初始领地: xinye(新野)
+孙权初始领地: jianye(建业), wu(吴郡), kuaiji(会稽), chaisang(柴桑), lujiang(庐江)
+刘表初始领地: xiangyang(襄阳), jiangling(江陵), changsha(长沙), jiangkou(江口)
+刘璋初始领地: chengdu(成都)
 
 ## 三国场景解析示例
 
