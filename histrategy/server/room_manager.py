@@ -3165,17 +3165,53 @@ def build_faction_status_for_api(room, faction_id: str) -> dict:
         except Exception as e:
             logger.debug("[room=%s] Population sum lookup failed: %s", room.id, e)
 
+    # ── Build stat concern hints for frontend tooltips ──
+    morale_val = getattr(faction, "morale_actual", 50) or 50
+    food_val = int(getattr(faction, "food", 0) or 0)
+    treasury_val = int(getattr(faction, "treasury", 0) or 0)
+    tax_rate = getattr(faction, "tax_rate", 0.3) or 0.3
+    strength_val = getattr(faction, "strength_actual", 0) or 0
+
+    stat_concerns = {}
+    if morale_val < 40:
+        stat_concerns["morale"] = {
+            "level": "critical",
+            "hint": f"民心低迷（{morale_val}/100）。减税（当前{tax_rate:.0%}，高于20%每季-3民心）、屯田（+5民心）、打胜仗（+5民心）可提升。",
+        }
+    elif morale_val < 60:
+        stat_concerns["morale"] = {
+            "level": "warning",
+            "hint": f"民心偏低（{morale_val}/100）。保持税率≤30%、避免连年征战可稳步恢复至50。",
+        }
+    if food_val < 1000:
+        stat_concerns["food"] = {
+            "level": "critical",
+            "hint": f"粮草告急（{food_val}）。推行屯田制（+30%粮食）、秋季收获最高。冬季粮耗+30%，需提前储粮。",
+        }
+    if treasury_val < 1000:
+        stat_concerns["treasury"] = {
+            "level": "critical",
+            "hint": f"国库空虚（{treasury_val}）。提高税收可增收但压制民心，或扩张领土增加税基。",
+        }
+    if pop_sum > 0 and strength_val > pop_sum * 0.15:
+        stat_concerns["strength"] = {
+            "level": "warning",
+            "hint": f"兵力占人口{strength_val/pop_sum*100:.1f}%，接近动员上限。征兵过多压缩劳动力影响粮食产出。",
+        }
+
     return {
         "name": getattr(faction, "name", faction_id),
         "faction_id": faction_id,
-        "strength": getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0,
-        "food": int(getattr(faction, "food", 0) or 0),
-        "treasury": int(getattr(faction, "treasury", 0) or 0),
+        "strength": strength_val,
+        "food": food_val,
+        "treasury": treasury_val,
         "territories": territories,
-        "morale": getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50) or 50,
+        "morale": morale_val,
         "is_active": getattr(faction, "is_active", True),
         "population": pop_sum,
         "loyalty": getattr(faction, "loyalty", 50) or 50,
+        "tax_rate": tax_rate,
+        "stat_concerns": stat_concerns,
         "year": room.year,
         "season": room.season,
         "turn": room.quarter_number,
