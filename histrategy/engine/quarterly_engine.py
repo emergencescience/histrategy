@@ -73,7 +73,7 @@ class EconomyParams:
     # ── Military costs ──
     # Recruitment is cheap (刘备仁德感召, volunteers flock to the banner).
     # Maintenance is expensive — the real cost of a large army is keeping it fed, paid, and equipped.
-    military_maintenance_per_soldier: float = 0.05  # gold per soldier per quarter (16x increase: was 0.003)
+    military_maintenance_per_soldier: float = 0.02  # gold per soldier per quarter (was 0.003, then 0.05 — now 0.02 balances nanming scale)
     conscript_cost: float = 0.5  # one-time gold cost per conscript (was 3.0 → near-free mobilization)
     conscript_food_penalty: float = 0.1  # food output loss per conscript (was 0.5)
     conscription_fatigue_factor: float = 0.3  # each consecutive draft reduces available pool by this %
