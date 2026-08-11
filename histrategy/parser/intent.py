@@ -265,6 +265,10 @@ class IntentParser:
 
         import logging
         _log = logging.getLogger("histrategy.parser")
+        _log.info(
+            "[intent-validate] Checking %d commands for %s (owns: %s)",
+            len(commands), faction_id, sorted(owned_territories),
+        )
 
         validated = []
         for cmd in commands:
