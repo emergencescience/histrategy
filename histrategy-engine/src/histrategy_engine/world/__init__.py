@@ -235,6 +235,7 @@ class FactionState:
     loyalty: int = 50  # faction-wide obedience to ruler (0-100)
     treasury: int = 5000
     food: int = 3000
+    population: int = 0  # total faction population (de-coupled from territory populations)
     tax_rate: float = 0.3  # 0.1 - 0.5
     tech_levels: dict[str, int] = field(default_factory=dict)
 
@@ -494,6 +495,7 @@ def _worldstate_from_dict(self, data: dict) -> None:
             morale=fd.get("morale", fd.get("morale_actual", 50)),
             food=fd.get("food", 0),
             treasury=fd.get("treasury", 0),
+            population=fd.get("population", 0),
             is_active=fd.get("is_active", True),
             tax_rate=fd.get("tax_rate", 0.3),
             prestige=fd.get("prestige", 50),
@@ -555,6 +557,7 @@ def _worldstate_to_dict(self) -> dict:
             "morale_actual": fs.morale_actual,
             "food": fs.food,
             "treasury": fs.treasury,
+            "population": getattr(fs, "population", 0),
             "is_active": fs.is_active,
             "tax_rate": fs.tax_rate,
             "prestige": fs.prestige,

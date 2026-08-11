@@ -98,6 +98,7 @@ class FactionState:  # noqa: F811 — shadowed by re-export at L28
     loyalty: int = 50  # 0-100 — willingness to obey ruler (vs defection/disobedience)
     treasury: int = 5000  # gold
     food: int = 3000  # grain
+    population: int = 0  # total faction population (de-coupled from territory populations)
     territories: list[str] = field(default_factory=list)
     is_active: bool = True
     personality_applied: str = ""  # last personality-driven narrative tag

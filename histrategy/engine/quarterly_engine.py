@@ -183,18 +183,28 @@ class QuarterlyEngine:
             food = getattr(faction, "food", 5000)
             tax_rate = tax_rates.get(fid, getattr(faction, "tax_rate", 0.3))
 
-            # ── Population (simplified) ──
-            total_pop = sum(
-                getattr(world_state.territories[t], "population", 25000)
-                for t in territories
-                if t in world_state.territories
-            )
+            # ── Population ──
+            # Use faction.population as primary source (de-coupled from territories).
+            # Fall back to territory sum for backward compatibility.
+            faction_pop = getattr(faction, "population", 0)
+            if faction_pop <= 0:
+                faction_pop = sum(
+                    getattr(world_state.territories[t], "population", 25000)
+                    for t in territories
+                    if t in world_state.territories
+                )
+                # Seed faction.population from territory sum on first pass
+                if faction_pop > 0:
+                    faction.population = faction_pop
+            total_pop = faction_pop
             growth = total_pop * p.base_population_growth
             # High tax slows growth, high morale accelerates
             tax_mod = max(0.2, 1.0 - (tax_rate - 0.2) * 2)
             morale_mod = 0.5 + morale / 200  # 0.75 at 50, 1.0 at 100
             population_delta = growth * tax_mod * morale_mod
             result.population_delta[fid] = population_delta
+            # Apply population delta to faction.population
+            faction.population = max(0, int(faction_pop + population_delta))
 
             # ── Tax Revenue ──
             revenue = total_pop * p.base_tax_revenue_per_pop * tax_rate
