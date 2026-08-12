@@ -308,14 +308,70 @@ class QuarterlyResolver:
                 baseline = _empty_baseline(world_state)
                 results.baseline = baseline
 
-        # ── Step 2.5: NPC recruitment from structured LLM decisions ──
-        # H36r FORCE DEPLOY VERIFY — this WILL appear in logs. If not, deploy is stale.
-        logger.error("H36R_DEPLOY_VERIFY v5 — if you see this, deploy works. world_state type=%s all_commands keys=%s",
-                    type(world_state).__name__, list(all_commands.keys()))
-
+        # ── Step 2.5: NPC recruitment — INLINED (H36r) ──
+        # Bypassing _apply_npc_structured_recruitment() entirely to rule out
+        # deployment caching issues. Logic identical but directly in resolve().
+        player_fid = getattr(world_state, "player_faction_id", None)
         _npc_recruited = 0
         try:
-            _npc_recruited = _apply_npc_structured_recruitment(world_state, all_commands, baseline)
+            for fid, commands in all_commands.items():
+                if fid == player_fid:
+                    continue
+                faction = world_state.factions.get(fid)
+                if not faction or not getattr(faction, "is_active", True):
+                    continue
+                treasury = getattr(faction, "treasury", 0) or 0
+                strength = getattr(faction, "strength_actual", 0) or 0
+                population = getattr(faction, "population", 0) or 0
+                morale = getattr(faction, "morale_actual", 50) or 50
+                faction_had_recruit = False
+                for cmd in (commands or []):
+                    if not isinstance(cmd, dict):
+                        continue
+                    ct = cmd.get("type", "")
+                    params = cmd.get("params", {}) or {}
+                    amt = int(params.get("amount", 0))
+                    if ct == "recruit" and amt > 0:
+                        amt = min(amt, int(population * 0.03))
+                        cost = amt * 0.5
+                        if cost > treasury:
+                            amt = int(treasury / 0.5)
+                            cost = amt * 0.5
+                        if amt >= 50:
+                            strength += amt
+                            treasury -= cost
+                            faction.strength_actual = strength
+                            faction.treasury = treasury
+                            faction_had_recruit = True
+                            logger.info("H36R_INLINE %s recruit %d (cost %.0f)", fid, amt, cost)
+                    elif ct == "conscript" and amt > 0:
+                        amt = min(amt, int(population * 0.02))
+                        cost = amt * 0.3
+                        if cost > treasury:
+                            amt = int(treasury / 0.3)
+                            cost = amt * 0.3
+                        if amt >= 50:
+                            strength += amt
+                            treasury -= cost
+                            morale = max(0, morale - 2)
+                            faction.strength_actual = strength
+                            faction.treasury = treasury
+                            faction.morale_actual = morale
+                            faction_had_recruit = True
+                            logger.info("H36R_INLINE %s conscript %d (cost %.0f)", fid, amt, cost)
+                    elif ct == "disband" and amt > 0:
+                        amt = min(amt, strength - 500)
+                        if amt >= 50:
+                            strength -= amt
+                            treasury += amt * 0.2
+                            population += amt
+                            faction.strength_actual = strength
+                            faction.treasury = treasury
+                            faction.population = population
+                            faction_had_recruit = True
+                            logger.info("H36R_INLINE %s disband %d", fid, amt)
+                if faction_had_recruit:
+                    _npc_recruited += 1
         except Exception as e:
             logger.warning("[room=%s] NPC structured recruitment failed: %s", room.id, e)
         # H36p: Only fall back to deterministic if NO NPC had structured recruitment
