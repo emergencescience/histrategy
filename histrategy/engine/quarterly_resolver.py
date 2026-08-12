@@ -660,6 +660,7 @@ def _empty_baseline(ws: WorldState):
         resource_changes={},
         character_events=[],
         history_events=[],
+        notable_events=[],
         season_name=str(getattr(getattr(ws, "season", None), "cn", None) or getattr(ws, "season", "?")),
         year=ws.year,
         tax_revenue={},
