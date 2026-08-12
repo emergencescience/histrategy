@@ -205,6 +205,35 @@ class MacroPolicyEngine:
                     lines.append(f"- {cmd.type}: {p}" + (f"  // {n}" if n else ""))
             lines.append("")
 
+        # ── 财政危机警告：逐势力金兵比分析 ──
+        # H36b-fix: The macro_simulator_zh.md already has a "金库为0的势力应当收缩防御"
+        # rule, but the LLM ignores it without per-faction explicit warnings.
+        # Add a hard-to-miss per-faction treasury crisis alert.
+        treasury_crisis_factions = []
+        for fid, f in ws.factions.items():
+            if not getattr(f, "is_active", True):
+                continue
+            treasury = getattr(f, "treasury", 0)
+            strength = getattr(f, "strength_actual", 0)
+            gold_per_soldier = treasury / max(strength, 1)
+            if treasury <= 0:
+                treasury_crisis_factions.append(
+                    f"🚨 **{f.name}({fid})**：金库=0！兵力={strength}。"
+                    f"不可进攻、不可征兵。必须立即：裁军/提高税率/掠夺邻国/求和。"
+                    f"若继续维持大军或发动进攻，将导致哗变溃散。"
+                )
+            elif gold_per_soldier < 0.2:
+                treasury_crisis_factions.append(
+                    f"⚠️ {f.name}({fid})：金兵比仅 {gold_per_soldier:.2f}（资金={treasury} / 兵力={strength}）。"
+                    f"军饷将断，进攻和征兵都会加速破产。优先增加收入或缩减军队。"
+                )
+        if treasury_crisis_factions:
+            lines.append("## 🚨 财政危机警报（必须遵守！）")
+            for warning in treasury_crisis_factions:
+                lines.append(warning)
+            lines.append("⚠️ 以上势力如继续进攻或维持大军，将在下一季度遭受士气崩溃+大规模逃兵。")
+            lines.append("")
+
         lines.append("## 势力状态")
         for fid, f in ws.factions.items():
             if not getattr(f, "is_active", True):
