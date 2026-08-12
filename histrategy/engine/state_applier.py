@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -121,6 +122,16 @@ class StateApplier:
             if ch:
                 f.morale_actual = _clamp(getattr(f, "morale_actual", 50) + ch, 0, 100)
                 summary["morale_changes"] += 1
+
+        # 1.5) Narrative → structured reconciliation (P0 fix 2026-06-18)
+        # LLM sometimes describes capturing a city in narrative but forgets
+        # to set territory_captured:true in the structured JSON. Scan all
+        # battle_result narratives for city-capture language and fix mismatches
+        # before deterministic settlement runs.
+        reconciled = _reconcile_narrative_captures(delta, ws, fmap, tmap)
+        if reconciled:
+            logger.info("Narrative reconciliation: fixed %d battle_results", reconciled)
+            summary["narrative_reconciled"] = reconciled
 
         # 2) Battle results → deterministic casualty + territory settlement.
         battle_troops_lost: dict[str, int] = {}
@@ -254,6 +265,108 @@ def _apply_battle_override(bo: dict, ws) -> None:
             char.faction_id = ""  # Captured — removed from faction
             char.is_commanding = False
             char.is_governor = False
+
+
+# ── Narrative → Structured Reconciliation ──────────────────
+# P0 fix (2026-06-18): LLM sometimes describes capturing a city
+# in narrative but forgets territory_captured:true. Scan narratives
+# for city-capture language before deterministic settlement.
+
+# Capture verbs: 克, 破, 陷, 夺, 取, 攻占, 攻下, 攻取, 收复, 光复,
+# 进占, 占领, 控制, 降, 献, 易主, 归附, 拿下
+_CAPTURE_VERB_PATTERN = (
+    r"(克|破|陷|夺|取|攻占|攻下|攻取|收复|光复|进占|占领|控制"
+    r"|降(?!低|税|价)|献城|献降|易主|归附|拿下|入城|陷落)"
+)
+
+# "失守" for defender perspective — attacker is the capturer
+_DEFENDER_LOSS_PATTERN = r"(失守|陷落|沦陷|献降|献城|易主|归附|被(克|破|夺|取|占))"
+
+
+def _narrative_describes_capture(narrative: str, city_name: str) -> bool:
+    """Check if narrative text describes capturing a specific city.
+
+    Looks for patterns like:
+      - "克扬州" "破南京" "收复洛阳"
+      - "扬州陷落" "南京失守"
+      - "进占武昌" "占领杭州"
+
+    Returns True if capture language is found near the city name.
+    """
+    if not narrative or not city_name:
+        return False
+    # Escape city name for regex
+    escaped = re.escape(city_name)
+    # Pattern: capture verb (with optional 0-3 chars between) followed by city name
+    # OR: city name followed by capture-from-defender verb
+    patterns = [
+        rf"{_CAPTURE_VERB_PATTERN}\S{{0,4}}{escaped}",
+        rf"{escaped}\S{{0,4}}{_DEFENDER_LOSS_PATTERN}",
+    ]
+    for pat in patterns:
+        if re.search(pat, narrative):
+            return True
+    return False
+
+
+def _reconcile_narrative_captures(
+    delta: dict,
+    ws,
+    fmap: dict,
+    tmap: dict,
+) -> int:
+    """Post-process battle_results: scan narrative for city-capture language.
+
+    When the LLM's narrative describes capturing a city but the structured
+    ``territory_captured`` field is missing or False, set it to True.
+
+    This bridges the gap between LLM prose and structured state mutation.
+
+    Returns:
+        Number of battle_results fixed.
+    """
+    reconciled = 0
+    for br in delta.get("battle_results", []):
+        if br.get("territory_captured"):
+            continue  # Already explicitly set — trust the LLM
+        if br.get("_capture_reconciled"):
+            continue  # Already reconciled
+
+        narrative = br.get("narrative", "")
+        if not narrative:
+            continue
+
+        # Try to match the location name
+        loc_raw = br.get("location", "")
+        loc = tmap.get(loc_raw, loc_raw)
+
+        # Get city display name for matching
+        territory = ws.territories.get(loc)
+        if territory:
+            city_name = getattr(territory, "name", loc)
+            # Also try the raw location id as a fallback
+            names_to_try = [city_name, loc_raw]
+            # Remove duplicates
+            names_to_try = list(dict.fromkeys(names_to_try))
+        else:
+            names_to_try = [loc_raw]
+
+        for name in names_to_try:
+            if not name:
+                continue
+            if _narrative_describes_capture(narrative, name):
+                br["territory_captured"] = True
+                br["_capture_reconciled"] = True
+                logger.info(
+                    "Narrative reconciliation: %s → territory_captured=true (city=%s, narrative='%s'...)",
+                    br.get("attacker", "?"),
+                    name,
+                    narrative[:80],
+                )
+                reconciled += 1
+                break  # Don't double-count
+
+    return reconciled
 
 
 def _apply_morale_event(me: dict, ws) -> None:
