@@ -64,9 +64,15 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
     events = getattr(baseline, "notable_events", []) if baseline else []
     recruited_count = 0
 
+    # H36r: quick debug
+    import sys
+    npc_fids = [fid for fid in all_commands if fid != player_fid]
+    total = sum(len(v) for k, v in all_commands.items() if k != player_fid)
+    print(f"H36R_DBG player={player_fid} npcs={npc_fids} cmds={total}", file=sys.stderr, flush=True)
+
     for fid, commands in all_commands.items():
         if fid == player_fid:
-            continue  # player recruitment handled separately
+            continue
         faction = world_state.factions.get(fid)
         if not faction or not getattr(faction, "is_active", True):
             continue
@@ -80,6 +86,7 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
             if not isinstance(cmd, dict):
                 continue
             cmd_type = cmd.get("type", "")
+            print(f"H36R_DBG cmd {fid} type={cmd_type}", file=sys.stderr, flush=True)
             params = cmd.get("params", {}) if isinstance(cmd.get("params"), dict) else {}
 
             if cmd_type == "recruit":
