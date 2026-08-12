@@ -309,20 +309,14 @@ class QuarterlyResolver:
                 results.baseline = baseline
 
         # ── Step 2.5: NPC recruitment from structured LLM decisions ──
-        # H36r: Inline debug — log what commands we have BEFORE calling the function
-        import logging as _logging_h36r
-        _log36r = _logging_h36r.getLogger("histrategy")
-        for _fid, _cmds in all_commands.items():
-            _types = [c.get('type','?') if isinstance(c,dict) else '?' for c in (_cmds or [])[:3]]
-            _log36r.warning("H36R_PRE player=%s faction=%s cmds=%d types=%s", 
-                          getattr(world_state, "player_faction_id", "?"), _fid, len(_cmds or []), _types)
+        # H36r FORCE DEPLOY VERIFY — this WILL appear in logs. If not, deploy is stale.
+        logger.error("H36R_DEPLOY_VERIFY v5 — if you see this, deploy works. world_state type=%s all_commands keys=%s",
+                    type(world_state).__name__, list(all_commands.keys()))
 
         _npc_recruited = 0
         try:
             _npc_recruited = _apply_npc_structured_recruitment(world_state, all_commands, baseline)
-            _log36r.warning("H36R_POST recruited=%d", _npc_recruited)
         except Exception as e:
-            _log36r.warning("H36R_ERR %s", e, exc_info=True)
             logger.warning("[room=%s] NPC structured recruitment failed: %s", room.id, e)
         # H36p: Only fall back to deterministic if NO NPC had structured recruitment
         # that ran. If even one NPC had structured commands processed (even with
