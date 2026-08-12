@@ -303,10 +303,14 @@ def _settle_battle(br: dict, ws, fmap: dict, tmap: dict, summary: dict) -> None:
     d_mor = getattr(df, "morale_actual", 50)
 
     # ── Effective combat power (troops weighted by morale + terrain) ──
-    # Morale effect is now stronger — high morale multiplies power, low morale cripples it.
-    # At 100 morale: 1.0× multiplier; at 50: 0.8×; at 20: 0.68×; at 0: 0.6×.
-    a_morale_mult = 0.6 + a_mor / 250.0
-    d_morale_mult = 0.6 + d_mor / 250.0
+    # H36c: Morale → Lanchester α coefficient (steeper mapping).
+    # α = 0.5 + morale / 170
+    #   morale 0   → α = 0.50 (broken — 50% combat effectiveness)
+    #   morale 50  → α = 0.79 (shaken)
+    #   morale 85  → α = 1.00 (elite baseline)
+    #   morale 100 → α = 1.09 (zealous — 109% effectiveness)
+    a_morale_mult = 0.5 + a_mor / 170.0
+    d_morale_mult = 0.5 + d_mor / 170.0
     a_pow = a_tr * a_morale_mult
     terrain = _DEFENDER_TERRAIN_BONUS if (territory and territory.owner_id == dfd) else 1.0
     d_pow = d_tr * d_morale_mult * terrain

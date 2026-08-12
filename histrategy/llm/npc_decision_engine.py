@@ -647,6 +647,41 @@ class NPCDecisionEngine:
             lines.append(f"🏰 **{L['territories']}**: {no_territory_text}")
         lines.append("")
 
+        # ── 财政可持续性预警 (Treasury Sustainability Warning) ──
+        # H36b: NPCs need to see their financial runway to make realistic decisions.
+        # 金兵比 = treasury / troops shows how many "gold units" back each soldier.
+        # Below 1.0, the faction cannot sustain its army — NPCs must react.
+        _treasury_val = getattr(faction, "treasury", 0)
+        _strength_val = getattr(faction, "strength_actual", 1)
+        _gold_per_soldier = _treasury_val / max(_strength_val, 1)
+        _maint_est = int(_strength_val * 0.015)  # rough quarterly maintenance
+        if self.language == "zh":
+            lines.append("## ⚠️ 财政预警 (Treasury Warning)")
+            lines.append(f"当前金库: {_treasury_val:,} | 兵力: {_strength_val:,} | 金兵比: {_gold_per_soldier:.2f}")
+            lines.append(f"每季军费约: {_maint_est:,}（兵力 × 0.015）")
+            if _gold_per_soldier <= 0:
+                lines.append("🚨 **金库已空！无法发饷！必须立即裁军或掠夺。继续维持当前兵力将导致士气崩溃和逃兵潮。**")
+                lines.append("- 不可进攻、不可征兵、不可维持大军")
+                lines.append("- 优先行动：裁军/提高税率/掠夺邻国/求和")
+            elif _gold_per_soldier < 0.5:
+                lines.append(f"⚠️ 金兵比仅 {_gold_per_soldier:.2f}——军饷仅够维持 {int(_gold_per_soldier * 3)} 个月。请优先增加收入或缩减军队。")
+                lines.append("- 谨慎进攻，优先发展经济")
+            elif _gold_per_soldier < 1.0:
+                lines.append(f"⚡ 金兵比 {_gold_per_soldier:.2f}——财政偏紧。维持现有军队可行但无余裕扩张。")
+        else:
+            lines.append("## ⚠️ Treasury Warning")
+            lines.append(f"Current Treasury: {_treasury_val:,} | Troops: {_strength_val:,} | Gold/Soldier: {_gold_per_soldier:.2f}")
+            lines.append(f"Est. quarterly maintenance: {_maint_est:,} (troops × 0.015)")
+            if _gold_per_soldier <= 0:
+                lines.append("🚨 **Treasury is EMPTY! Cannot pay troops! Must disband or raid immediately.**")
+                lines.append("- No attacks, no recruitment, cannot sustain current army")
+                lines.append("- Priority: disband troops / raise taxes / raid neighbors / sue for peace")
+            elif _gold_per_soldier < 0.5:
+                lines.append(f"⚠️ Gold/Soldier only {_gold_per_soldier:.2f} — can only sustain army for ~{int(_gold_per_soldier * 3)} months. Prioritize income or reduce troops.")
+            elif _gold_per_soldier < 1.0:
+                lines.append(f"⚡ Gold/Soldier {_gold_per_soldier:.2f} — treasury is tight. Can maintain current army but no room for expansion.")
+        lines.append("")
+
         # ── FULL TERRITORY MAP: show which faction controls which territories ──
         # Without this, NPCs hallucinate enemy presence in wrong regions
         # (e.g. Zheng attacking "Qing in Xiamen" when Qing has zero coastal territory).

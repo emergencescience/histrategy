@@ -127,9 +127,6 @@ class EconomyParams:
 
 # ─── Result type ───────────────────────────────────────────────
 
-# Track consecutive quarters with treasury=0 per faction for progressive penalties
-_treasury_zero_streak: dict[str, int] = {}
-
 
 @dataclass
 class QuarterResult:
@@ -493,18 +490,32 @@ class QuarterlyEngine:
         result=None,
         apply_to_player: bool = False,
     ) -> None:
-        """Apply progressive penalties for factions with critically low treasury.
+        """Apply progressive penalties for factions with low treasury.
 
-        Historical basis: Armies without pay mutiny (e.g. Ming dynasty's frequent
-        mutinies when the treasury couldn't pay troops). Officials unpaid for
-        months become corrupt or defect. Populations without relief starve.
+        H36a: Simplified model using 金兵比 (gold-per-soldier ratio).
+        treasury_per_soldier = treasury / max(troops, 1)
 
-        Progressive scale:
-        - 0 gold for 1 quarter: morale -2, tiny desertion (0.5% troops)
-        - 0 gold for 2-3 quarters: morale -5, moderate desertion (2% troops), loyalty crisis
-        - 0 gold for 4+ quarters: morale -10, mass desertion (5% troops), potential defection
+        This is the faction's ability to pay its army. No runway prediction —
+        just the instantaneous ratio of cash to troops.
 
-        Also applies moderate penalties when food=0 or morale < 15.
+        Mapping:
+          > 2.0  → morale +3  ("府库充盈，军心安定")
+          1.0-2.0 → morale +1  ("粮饷充足")
+          0.5-1.0 → morale  0  (normal)
+          0.2-0.5 → morale -2  ("库银渐少，士卒微有不安")
+          0.05-0.2→ morale -5  ("军饷将断，营中流言四起")
+          0-0.05  → morale -8  ("粮饷见底，军心思变")
+          0        → morale -10 + desertion ("金库空虚，哗变溃散")
+
+        Desertion at treasury=0 scales with army size:
+          ≤5k troops → 0% (tiny factions skip desertion)
+          5k-50k     → 2%
+          50k-200k   → 3%
+          >200k      → 5% (large armies collapse faster without pay)
+
+        Historical basis: Armies without pay mutiny. The larger the army,
+        the faster discipline breaks — a 500k army burns through loyalty
+        faster than a 20k garrison when there's no money.
         """
         for fid, faction in world_state.factions.items():
             if not getattr(faction, "is_active", True):
@@ -517,30 +528,30 @@ class QuarterlyEngine:
             morale = getattr(faction, "morale_actual", 50)
             strength = getattr(faction, "strength_actual", 0)
 
-            # ── Treasury penalties (progressive) ──
-            if treasury <= 0:
-                streak = _treasury_zero_streak.get(fid, 0) + 1
-                _treasury_zero_streak[fid] = streak
+            # ── 金兵比 (gold-per-soldier) ──
+            gold_per_soldier = treasury / max(strength, 1)
 
-                if streak == 1:
-                    morale_penalty = 2
-                    desertion_pct = 0.005  # 0.5%
-                    desc = "金库空虚，士卒微有不安"
-                elif streak <= 3:
-                    morale_penalty = 5
-                    desertion_pct = 0.02   # 2%
-                    desc = "连续缺饷，军心浮动，逃兵日增"
+            if treasury <= 0:
+                # Catastrophic: no treasury at all
+                morale_penalty = 10
+                desc = "金库空虚，哗变溃散"
+
+                # Desertion scales with army size
+                if strength <= 5000:
+                    desertion_pct = 0.0
+                elif strength <= 50000:
+                    desertion_pct = 0.02
+                elif strength <= 200000:
+                    desertion_pct = 0.03
                 else:
-                    morale_penalty = 10
-                    desertion_pct = 0.05   # 5%
-                    desc = "久不發餉，營兵嘩變，將士離心"
+                    desertion_pct = 0.05
 
                 # Apply morale penalty
                 new_morale = max(0, morale - morale_penalty)
                 faction.morale_actual = new_morale
 
                 # Apply desertion
-                if strength > 500:
+                if strength > 500 and desertion_pct > 0:
                     deserters = max(100, int(strength * desertion_pct))
                     faction.strength_actual = max(500, strength - deserters)
                 else:
@@ -548,12 +559,47 @@ class QuarterlyEngine:
 
                 if result and hasattr(result, "notable_events"):
                     result.notable_events.append(
-                        f"{fid}{desc}：士气-{morale_penalty}，逃兵{deserters}人（连续{streak}季无饷）"
+                        f"{fid}{desc}：士气-{morale_penalty}，逃兵{deserters}人"
+                    )
+            elif gold_per_soldier > 2.0:
+                # Surplus: bonus morale
+                bonus = 3
+                faction.morale_actual = min(100, morale + bonus)
+                if result and hasattr(result, "notable_events"):
+                    result.notable_events.append(
+                        f"{fid}府库充盈，军心安定：士气+{bonus}"
+                    )
+            elif gold_per_soldier > 1.0:
+                bonus = 1
+                faction.morale_actual = min(100, morale + bonus)
+                if result and hasattr(result, "notable_events"):
+                    result.notable_events.append(
+                        f"{fid}粮饷充足：士气+{bonus}"
+                    )
+            elif gold_per_soldier > 0.5:
+                pass  # normal range — no effect
+            elif gold_per_soldier > 0.2:
+                penalty = 2
+                faction.morale_actual = max(0, morale - penalty)
+                if result and hasattr(result, "notable_events"):
+                    result.notable_events.append(
+                        f"{fid}库银渐少，士卒微有不安：士气-{penalty}"
+                    )
+            elif gold_per_soldier > 0.05:
+                penalty = 5
+                faction.morale_actual = max(0, morale - penalty)
+                if result and hasattr(result, "notable_events"):
+                    result.notable_events.append(
+                        f"{fid}军饷将断，营中流言四起：士气-{penalty}"
                     )
             else:
-                # Reset streak when treasury recovers
-                if fid in _treasury_zero_streak:
-                    del _treasury_zero_streak[fid]
+                # 0 < gold_per_soldier <= 0.05: nearly empty
+                penalty = 8
+                faction.morale_actual = max(0, morale - penalty)
+                if result and hasattr(result, "notable_events"):
+                    result.notable_events.append(
+                        f"{fid}粮饷见底，军心思变：士气-{penalty}"
+                    )
 
             # ── Food starvation (separate from treasury) ──
             if food <= 0 and strength > 1000:
