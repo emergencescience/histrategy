@@ -546,7 +546,7 @@ class QuarterlyEngine:
                 else:
                     deserters = 0
 
-                if result:
+                if result and hasattr(result, "notable_events"):
                     result.notable_events.append(
                         f"{fid}{desc}：士气-{morale_penalty}，逃兵{deserters}人（连续{streak}季无饷）"
                     )
@@ -560,7 +560,7 @@ class QuarterlyEngine:
                 starve_loss = max(200, int(strength * 0.03))
                 faction.strength_actual = max(500, strength - starve_loss)
                 faction.morale_actual = max(0, morale - 3)
-                if result:
+                if result and hasattr(result, "notable_events"):
                     result.notable_events.append(
                         f"{fid}粮草断绝，饿殍{starve_loss}人，民心-3"
                     )
@@ -569,7 +569,7 @@ class QuarterlyEngine:
             if morale <= 10 and strength > 5000:
                 rout = max(1000, int(strength * 0.10))
                 faction.strength_actual = max(500, strength - rout)
-                if result:
+                if result and hasattr(result, "notable_events"):
                     result.notable_events.append(
                         f"{fid}民心崩溃，大军溃散{rout}人"
                     )
