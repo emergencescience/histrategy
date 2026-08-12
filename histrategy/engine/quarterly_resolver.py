@@ -143,7 +143,13 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
                 amount = int(params.get("amount", 0))
                 if amount <= 0:
                     continue
-                amount = min(amount, strength - 500)  # keep at least 500
+                # H37c: guardrail — cap disband at 15% of current strength per quarter.
+                # The npc_decision LLM decides the disband amount, but without a cap it
+                # can disband 50%+ of an army in a single turn (observed troop crash).
+                # recruit/conscript already cap at 3%/2% of population; disband gets a
+                # symmetric 15%-of-strength cap so financial pressure can't vaporize an
+                # army in one quarter.
+                amount = min(amount, int(strength * 0.15), strength - 500)  # keep at least 500
                 if amount < 50:
                     continue
                 strength -= amount
@@ -360,7 +366,9 @@ class QuarterlyResolver:
                             faction_had_recruit = True
                             logger.info("H36R_INLINE %s conscript %d (cost %.0f)", fid, amt, cost)
                     elif ct == "disband" and amt > 0:
-                        amt = min(amt, strength - 500)
+                        # H37c: guardrail — cap disband at 15% of current strength per quarter
+                        # (same rationale as _apply_npc_structured_recruitment).
+                        amt = min(amt, int(strength * 0.15), strength - 500)
                         if amt >= 50:
                             strength -= amt
                             treasury += amt * 0.2

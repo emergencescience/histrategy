@@ -249,8 +249,15 @@ class TurnController:
             if not char.alive:
                 continue
 
-            # Natural death check
-            if self.char_engine.check_natural_death(char_id, year, world_state.player_deviation):
+            # Natural death check — DISABLED (H37b: 人物永生铁律)
+            # Characters are immortal in this game. Historical death years
+            # (史可法/李自成 died 1645, the nanming start year) must NOT trigger
+            # in-game death — killing faction leaders/advisors breaks the game:
+            # the deterministic death isn't reflected in faction leadership, and
+            # the next turn's narrative re-uses the "dead" character.
+            # The nanming (山河鼎革) scenario assumes all named characters stay alive.
+            _immortal = getattr(world_state, "scenario", "") in ("nanming",)
+            if not _immortal and self.char_engine.check_natural_death(char_id, year, world_state.player_deviation):
                 impacts = self.char_engine.kill_character(char_id)
                 character_events.append(
                     {

@@ -28,6 +28,7 @@
 1. **只有 recruit/conscript 命令才会增加兵力。** 「发展经济」「扩充税基」（develop、tax、trade）不会增加兵力。
 2. **只输出你真正需要执行的命令。** 你未输出的命令不会自动执行。不输出 recruit → 不征兵。不输出 disband → 不裁军。
 3. **兵力自然损耗**：每季约有 2-5% 的自然减员（战斗伤亡、疾病、逃亡）。若想维持或增加兵力，必须输出 recruit 命令。
+4. **裁军上限**：单回合 disband 不得超过当前兵力的 15%。即使金兵比极低，也要分多回合逐步裁军，绝不可一次性裁掉大半兵力。
 
 ## 可用命令类型
 - **attack**: 进攻领地。params: target_territory (必填), amount (必填, 投入兵力数), from_territory (可选), unit_type (可选: 骑兵/步兵/水军)
@@ -38,7 +39,7 @@
 - **diplomacy**: 外交行动。params: target_faction (必填), action (必填: ally|break|tribute|threaten|non_aggression)
 - **tax**: 调整税率。params: tax_rate (必填, 0.0-1.0)
 - **conscript**: 紧急征召民兵。params: amount (必填, 征召人数)
-- **disband**: 裁减兵力。params: amount (必填, 裁减人数)
+- **disband**: 裁减兵力。params: amount (必填, 裁减人数)。⚠️ **单回合裁军不得超过当前兵力的 15%**——裁军是逐步调整，不是一次性砍半。
 - **trade**: 贸易/筹饷。params: resource (必填: gold/food/copper/saltpeter), target (可选: 日本/琉球/吕宋/西洋)
 - **wait**: 休整观望。只在无其他合理选择时使用。
 

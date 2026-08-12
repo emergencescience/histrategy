@@ -462,7 +462,7 @@ class IntentParser:
         _is_diplomatic = any(
             kw in text_lower for kw in ("派遣", "使者", "盟约", "互不侵犯", "请求", "请", "求援", "协防")
         )
-        if not _is_diplomatic and any(kw in text_lower for kw in ("攻击", "进攻", "攻打", "讨伐", "出兵", "取", "夺取", "夺", "袭取", "袭", "征伐", "伐", "攻克", "攻取")):
+        if not _is_diplomatic and any(kw in text_lower for kw in ("攻击", "进攻", "攻打", "讨伐", "出兵", "取", "夺取", "夺", "袭取", "袭", "征伐", "伐", "攻克", "攻取", "南征", "北伐", "西征", "东征", "征讨", "攻伐", "南下攻", "北上攻")):
             target = self._extract_territory(text) or self._extract_target_faction(text, exclude_fid=faction_id) or ""
             if target:
                 params = {"target_territory": target}
@@ -494,7 +494,7 @@ class IntentParser:
 
         # Move (includes 北上, 南下, 东进, 西征, 回师)
         # Guard: skip move if text also contains attack keywords (北上取X = attack, not move)
-        _has_attack_kw = any(kw in text_lower for kw in ("攻击", "进攻", "攻打", "讨伐", "出兵", "取", "夺取", "夺", "袭取", "袭", "征伐", "伐", "攻克", "攻取"))
+        _has_attack_kw = any(kw in text_lower for kw in ("攻击", "进攻", "攻打", "讨伐", "出兵", "取", "夺取", "夺", "袭取", "袭", "征伐", "伐", "攻克", "攻取", "南征", "北伐", "西征", "东征", "征讨", "攻伐", "南下攻", "北上攻"))
         if not _has_attack_kw and any(kw in text_lower for kw in ("移动", "行军", "调兵", "移师", "北上", "南下", "东进", "西征", "回师", "进发", "开赴", "支援", "增援", "驰援")):
             dest = self._extract_territory(text) or ""
             if dest:
@@ -570,7 +570,7 @@ class IntentParser:
                 )
 
         # Negotiate
-        if any(kw in text_lower for kw in ("联盟", "结盟", "外交", "谈判", "同盟", "遣使", "修好", "归顺", "招安", "诏安", "断交", "决裂", "破盟", "毁约")):
+        if any(kw in text_lower for kw in ("联盟", "结盟", "外交", "谈判", "同盟", "遣使", "修好", "归顺", "招安", "诏安", "断交", "决裂", "破盟", "毁约", "劝降", "传檄", "招降", "招抚", "纳降", "诱降")):
             target = self._extract_target_faction(text, exclude_fid=faction_id) or ""
             if target:
                 # Detect action: break vs form alliance

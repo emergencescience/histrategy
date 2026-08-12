@@ -152,6 +152,13 @@ TERRITORY_NAME_MAP: dict[str, str] = {
     # 刘璋领地
     "成都": "chengdu",
     "chengdu": "chengdu",
+
+    # 南明（山河鼎革）历史城池别名 → 抽象领土 ID
+    # 扬州在游戏中被抽象进南京（史可法督师扬州=守卫南明核心区），
+    # 但玩家常按历史城池名下令，需映射到实际领土。
+    "扬州": "nanjing",
+    "扬": "nanjing",
+    "yangzhou": "nanjing",
 }
 
 
