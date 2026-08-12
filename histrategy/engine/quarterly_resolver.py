@@ -31,7 +31,7 @@ logger = logging.getLogger("histrategy.quarterly")
 # ── 内部引擎引用（延迟导入以避免循环依赖） ──
 
 
-def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline) -> None:
+def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline) -> int:
     """H36k: Apply NPC recruit/conscript/disband from structured LLM decisions.
 
     Replaces the old deterministic execute_npc_recruitment() which ignored
@@ -41,14 +41,28 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
     - disband: removes troops, adds gold back (0.2 per soldier)
 
     All amounts are CLAMPED to actual faction limits (treasury, population).
-    """
-    from histrategy_engine.world import WorldState
 
-    if not isinstance(world_state, WorldState):
-        return
+    Returns:
+        Number of factions that had at least one recruitment action applied.
+        0 means NO recruitment happened — caller should fall back to deterministic.
+    """
+    # H36r: Accept both WorldState classes (histrategy_engine.world and
+    # histrategy.state.world_state). The isinstance check was rejecting
+    # the histrategy.state.world_state.WorldState that create_initial_world()
+    # returns, causing ALL NPC recruitment to be silently skipped.
+    try:
+        from histrategy_engine.world import WorldState as _EngineWS
+        _has_engine_ws = isinstance(world_state, _EngineWS)
+    except ImportError:
+        _has_engine_ws = False
+
+    # Check for factions dict (duck-type)
+    if not hasattr(world_state, "factions"):
+        return 0
 
     player_fid = getattr(world_state, "player_faction_id", None)
     events = getattr(baseline, "notable_events", []) if baseline else []
+    recruited_count = 0
 
     for fid, commands in all_commands.items():
         if fid == player_fid:
@@ -88,6 +102,7 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
                 treasury -= cost
                 if events is not None:
                     events.append(f"{fid}从LLM决策征兵{amount}人（花费{cost:.0f}金）")
+                recruited_count += 1
 
             elif cmd_type == "conscript":
                 amount = int(params.get("amount", 0))
@@ -124,6 +139,8 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
                 treasury += amount * 0.2
                 if events is not None:
                     events.append(f"{fid}从LLM决策裁军{amount}人（回金{amount*0.2:.0f}，人口+{amount}）")
+
+    return recruited_count
 
 
 class QuarterlyResolver:
@@ -282,16 +299,17 @@ class QuarterlyResolver:
         # of "recruit", respect that decision. Old execute_npc_recruitment()
         # was overriding NPC strategy with fixed +17,500/quarter regardless of
         # whether the NPC wanted to grow, causing infinite army bloat.
-        _npc_recruited = False
+        _npc_recruited = 0
         try:
-            _apply_npc_structured_recruitment(world_state, all_commands, baseline)
-            _npc_recruited = True
+            _npc_recruited = _apply_npc_structured_recruitment(world_state, all_commands, baseline)
         except Exception as e:
             logger.warning("[room=%s] NPC structured recruitment failed: %s", room.id, e)
         # H36p: Only fall back to deterministic if NO NPC had structured recruitment
         # that ran. If even one NPC had structured commands processed (even with
         # zero recruit actions), skip the fallback entirely.
-        if not _npc_recruited:
+        # H36r: _apply_npc_structured_recruitment now returns the count of factions
+        # that had recruitment applied, not just a success boolean.
+        if _npc_recruited <= 0:
             logger.warning("[room=%s] No structured NPC recruitment applied, using deterministic fallback", room.id)
             try:
                 from histrategy.engine.quarterly_engine import QuarterlyEngine
