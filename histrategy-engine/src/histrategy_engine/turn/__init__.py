@@ -604,6 +604,13 @@ class TurnController:
             rate = cmd.params.get("rate")
             return not (rate is None or not 0.1 <= rate <= 0.5)
 
+        # H38b: Accept policy/economic/diplomacy commands — these are handled
+        # by MacroPolicyEngine, not the deterministic baseline.
+        if cmd_type in ("train", "fortify", "reward", "disarm", "reform", "relief",
+                        "patrol", "negotiate", "trade", "spy", "research",
+                        "appoint", "dismiss", "rest", "aid_request"):
+            return True
+
         return False
 
     def _execute_move(self, cmd: Command, world_state: WorldState) -> dict | None:
@@ -707,6 +714,43 @@ class TurnController:
         elif cmd.type == "tax":
             rate = cmd.params.get("rate", 0.3)
             faction.tax_rate = max(0.1, min(0.5, rate))
+
+        # H38b: New domestic command handlers — deterministic portion only.
+        # Full effects (diplomacy/reform consequences) are handled by MacroPolicyEngine.
+        elif cmd.type == "reward":
+            amount = cmd.params.get("amount", 1000)
+            if faction.treasury >= amount:
+                faction.treasury -= amount
+                faction.morale_actual = min(100, getattr(faction, "morale_actual", 50) + 5)
+                if faction_id not in resource_changes:
+                    resource_changes[faction_id] = {"food_delta": 0, "tax_revenue": 0}
+                resource_changes[faction_id]["treasury_spent"] = (
+                    resource_changes[faction_id].get("treasury_spent", 0) + amount
+                )
+        elif cmd.type == "train":
+            faction.morale_actual = min(100, getattr(faction, "morale_actual", 50) + 3)
+        elif cmd.type == "fortify":
+            tid = cmd.params.get("territory", "")
+            territory = world_state.territories.get(tid) if tid else None
+            if territory and territory.owner_id == faction_id:
+                territory.development = min(100, getattr(territory, "development", 10) + 5)
+        elif cmd.type == "reform":
+            # Reforms reduce treasury short-term but boost morale/population
+            cost = 2000
+            if faction.treasury >= cost:
+                faction.treasury -= cost
+                faction.morale_actual = min(100, getattr(faction, "morale_actual", 50) + 2)
+                if faction_id not in resource_changes:
+                    resource_changes[faction_id] = {"food_delta": 0, "tax_revenue": 0}
+                resource_changes[faction_id]["treasury_spent"] = (
+                    resource_changes[faction_id].get("treasury_spent", 0) + cost
+                )
+        elif cmd.type == "relief":
+            # Relief: food -2000, morale +3
+            cost_food = 2000
+            if faction.food >= cost_food:
+                faction.food -= cost_food
+                faction.morale_actual = min(100, getattr(faction, "morale_actual", 50) + 3)
 
     def _resolve_all_battles(self, world_state: WorldState) -> list:
         """Find all territories with armies from different factions and resolve battles."""

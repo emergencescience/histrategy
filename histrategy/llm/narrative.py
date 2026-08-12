@@ -268,6 +268,7 @@ class NarrativeEngine:
         history_events: list | None = None,
         room_id: str = "",
         scenario: str = "",
+        state_deltas: dict | None = None,
     ) -> str:
         """Generate a single global narrative covering ALL factions for the quarter."""
         if not self.llm_available or not self.llm:
@@ -345,6 +346,31 @@ class NarrativeEngine:
                 f"territories={territory_names}"
             )
         lines.append("")
+
+        # H38a: State deltas — show exactly what changed for each faction.
+        # This prevents the narrative LLM from hallucinating false events.
+        if state_deltas:
+            lines.append("## State Deltas (Authoritative — what actually changed)")
+            lines.append("These are the REAL changes. Your narrative MUST be consistent")
+            lines.append("with these deltas. Do NOT describe opposite changes.")
+            for fid, deltas in state_deltas.items():
+                if not deltas:
+                    continue
+                faction = ws.factions.get(fid)
+                fname = faction.name if faction else fid
+                parts = []
+                for d in deltas:
+                    dt = d.get("delta_type", "?")
+                    old_v = d.get("old_value", 0)
+                    new_v = d.get("new_value", 0)
+                    delta = d.get("delta", 0)
+                    if abs(delta) < 0.5 and dt not in ("troops", "population"):
+                        continue  # skip negligible changes
+                    sign = "+" if delta > 0 else ""
+                    parts.append(f"{dt}: {old_v:,.0f}→{new_v:,.0f} ({sign}{delta:,.0f})")
+                if parts:
+                    lines.append(f"- {fname} ({fid}): {' | '.join(parts)}")
+            lines.append("")
 
         # History events
         if history_events:

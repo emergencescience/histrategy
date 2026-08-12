@@ -94,6 +94,9 @@ class QuarterlyResolver:
         # safety net only fires if the baseline did NOT already advance.
         _season_idx_at_start = _season_to_idx(getattr(world_state, "season", "spring"))
 
+        # H38a: Capture BEFORE snapshots so narrative can reference actual deltas
+        _before_snapshots = _snapshot_factions(world_state)
+
         # ── Step 1: 解析所有势力决策 ──
         all_commands: dict[str, list] = {}
         all_decisions: dict[str, str] = {}
@@ -320,6 +323,8 @@ class QuarterlyResolver:
         elif self.narrative_engine:
             try:
                 _t_narr = time.time()
+                # H38a: Compute actual state deltas from before/after snapshots
+                _state_deltas = _compute_state_deltas(_before_snapshots, world_state)
                 results.narratives = self._generate_narratives(
                     world_state,
                     all_commands,
@@ -327,6 +332,7 @@ class QuarterlyResolver:
                     baseline,
                     macro_delta,
                     room,
+                    state_deltas=_state_deltas,
                 )
                 print(f"⏱ [room={room.id}] narrative {time.time() - _t_narr:.1f}s", flush=True)
             except Exception as e:
@@ -466,6 +472,7 @@ class QuarterlyResolver:
         baseline,
         macro_delta,
         room,
+        state_deltas: dict | None = None,
     ) -> dict[str, str]:
         """Generate a single global narrative covering all factions.
 
@@ -485,6 +492,7 @@ class QuarterlyResolver:
             history_events=getattr(self, "_last_history_events", None),
             room_id=room.id,
             scenario=getattr(room, "scenario", ""),
+            state_deltas=state_deltas,
         )
 
         if not global_narrative or not global_narrative.strip():
@@ -895,3 +903,54 @@ def _build_turn_summary(
         "year": ws.year,
         "season": season_cn,
     }
+
+
+# ── H38a: Before/after state delta helpers ──
+
+def _snapshot_factions(ws: WorldState) -> dict[str, dict]:
+    """Capture pre-turn snapshot of all active factions."""
+    snap: dict[str, dict] = {}
+    for fid, faction in ws.factions.items():
+        if not getattr(faction, "is_active", True):
+            continue
+        snap[fid] = {
+            "troops": getattr(faction, "strength_actual", 0) or 0,
+            "food": getattr(faction, "food", 0) or 0,
+            "treasury": getattr(faction, "treasury", 0) or 0,
+            "morale": getattr(faction, "morale_actual", 50) or 50,
+            "population": getattr(faction, "population", 0) or 0,
+            "territories": len(getattr(faction, "territories", []) or []),
+        }
+    return snap
+
+
+def _compute_state_deltas(
+    before: dict[str, dict],
+    ws: WorldState,
+) -> dict[str, list[dict]]:
+    """Compute per-faction state deltas from before/after snapshots."""
+    deltas: dict[str, list[dict]] = {}
+    for fid, prev in before.items():
+        faction = ws.factions.get(fid)
+        if not faction or not getattr(faction, "is_active", True):
+            continue
+        curr = {
+            "troops": getattr(faction, "strength_actual", 0) or 0,
+            "food": getattr(faction, "food", 0) or 0,
+            "treasury": getattr(faction, "treasury", 0) or 0,
+            "morale": getattr(faction, "morale_actual", 50) or 50,
+            "population": getattr(faction, "population", 0) or 0,
+        }
+        changes = []
+        for key, label in [("troops", "troops"), ("food", "food"), ("treasury", "treasury"), ("morale", "morale"), ("population", "population")]:
+            old_v = prev.get(key, 0) or 0
+            new_v = curr.get(key, 0) or 0
+            delta = new_v - old_v
+            changes.append({
+                "delta_type": label,
+                "old_value": old_v,
+                "new_value": new_v,
+                "delta": delta,
+            })
+        deltas[fid] = changes
+    return deltas
