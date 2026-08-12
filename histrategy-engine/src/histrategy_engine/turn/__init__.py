@@ -177,130 +177,29 @@ class TurnController:
             resource_changes[fid]["food_delta"] -= upkeep
 
         # ── Step 3: Collect commands ──
+        # H36q: NPC commands come from LLM structured decisions (via
+        # quarterly_resolver), NOT from TurnController's hard-coded
+        # decision_engine. TurnController's role is purely economic baseline:
+        # food, tax, population — not NPC strategy.
+        # The old decision_engine.generate_commands() ran IN PARALLEL with
+        # LLM NPC decisions, creating conflicting "second command system"
+        # that overrode NPC strategy.
         all_commands: list[Command] = list(player_commands or [])
-
-        active_npcs = [
-            fid
-            for fid, faction in world_state.factions.items()
-            if faction.is_active and fid != world_state.player_faction_id
-        ]
-
-        if active_npcs:
-            import concurrent.futures
-            import logging
-
-            _logger = logging.getLogger(__name__)
-
-            with concurrent.futures.ThreadPoolExecutor(max_workers=len(active_npcs)) as executor:
-                # Submit tasks for all active NPCs in parallel
-                futures = {}
-                for fid in active_npcs:
-                    if self.npc_planner is not None:
-                        futures[
-                            executor.submit(
-                                self.npc_planner.generate_commands_local,
-                                fid,
-                                world_state,
-                                self.map_engine,
-                            )
-                        ] = fid
-                    else:
-                        futures[
-                            executor.submit(
-                                self.decision_engine.generate_commands,
-                                fid,
-                                world_state,
-                                self.map_engine,
-                            )
-                        ] = fid
-
-                # Gather results as they complete
-                for future in concurrent.futures.as_completed(futures):
-                    fid = futures[future]
-                    try:
-                        npc_commands = future.result()
-                        all_commands.extend(npc_commands)
-                    except Exception as e:
-                        _logger.warning("NPC %s planning failed: %s", fid, e)
 
         # ── Step 4: Command validation ──
         valid_commands = self._validate_commands(all_commands, world_state)
 
         # ── Common enemy alliances ──
-        # If two factions both hate a third more than they hate each other,
-        # they tacitly coordinate: attacks between them are redirected to the
-        # common enemy if possible (historical: Ming loyalists + peasant remnants
-        # vs Qing in the 1650s).
-        for cmd in list(valid_commands):
-            if cmd.type not in ("attack",):
-                continue
-            attacker = world_state.factions.get(cmd.faction_id)
-            if not attacker:
-                continue
-            target_id = (cmd.params.get("target_territory") or
-                        cmd.params.get("destination") or
-                        cmd.params.get("territory", ""))
-            target_terr = world_state.territories.get(target_id)
-            if not target_terr or not target_terr.owner_id:
-                continue
-            defender_id = target_terr.owner_id
-            if defender_id == cmd.faction_id:
-                continue
-
-            # Check for common enemy OR explicit alliance
-            atk_rels = getattr(attacker, "relations", {})
-            def_faction = world_state.factions.get(defender_id)
-            if not def_faction:
-                continue
-            def_rels = getattr(def_faction, "relations", {})
-
-            # Explicit allies should never fight each other — always redirect
-            are_allies = (
-                defender_id in getattr(attacker, "allies", [])
-                or cmd.faction_id in getattr(def_faction, "allies", [])
-            )
-
-            # Find factions both hate more than each other (or any common enemy if allied)
-            for common_enemy_id in world_state.factions:
-                if common_enemy_id in (cmd.faction_id, defender_id):
-                    continue
-                atk_hate = atk_rels.get(common_enemy_id, 0)
-                def_hate = def_rels.get(common_enemy_id, 0)
-                atk_mutual = atk_rels.get(defender_id, 0)
-                # Both hate the common enemy more than they hate each other,
-                # OR they are explicit allies (always redirect)
-                if (are_allies and (atk_hate < -30 or def_hate < -30)) or (atk_hate < -70 and def_hate < -70 and atk_mutual > atk_hate):
-                    # Redirect attack to common enemy's nearest territory
-                    common_f = world_state.factions.get(common_enemy_id)
-                    if common_f and common_f.territories:
-                        # Find nearest common-enemy territory
-                        new_target = common_f.territories[0]
-                        for tid in common_f.territories:
-                            # Prefer territories bordering the attacker
-                            for nid in self.map_engine.get_neighbors(tid):
-                                if world_state.territories.get(nid) and world_state.territories[nid].owner_id == cmd.faction_id:
-                                    new_target = tid
-                                    break
-                        cmd.params["target_territory"] = new_target
-                        import random as _ra
-                        if _ra.random() < 0.1:
-                            # Improve relations slightly
-                            attacker.relations[defender_id] = min(100, atk_mutual + 5)
-                        break
+        # H36q REMOVED: This hard-coded rule redirected attacks between
+        # allied factions to common enemies, overriding NPC LLM strategic
+        # decisions. NPC strategy now comes from structured LLM commands.
 
         # Separate commands by type
         move_commands = [c for c in valid_commands if c.type in ("move", "attack", "defend")]
+        # H36q: NPC recruit commands now flow through from LLM structured decisions.
+        # The old block that filtered NPC recruit is removed — NPC recruitment
+        # is handled by _apply_npc_structured_recruitment() in quarterly_resolver.
         domestic_commands = [c for c in valid_commands if c.type in ("recruit", "develop", "tax", "trade", "negotiate")]
-        # H35z: Block NPC recruit commands in the TurnController baseline.
-        # NPC recruitment is handled deterministically by QuarterlyEngine.
-        # execute_npc_recruitment() (morale × population, cost-aware).
-        # Allowing the TurnController to also recruit leads to double-dipping
-        # and infinite NPC growth: tax revenue arrives BEFORE NPC decisions,
-        # so treasury always looks "OK" and recruit succeeds every quarter.
-        domestic_commands = [
-            c for c in domestic_commands
-            if not (c.type == "recruit" and c.faction_id != world_state.player_faction_id)
-        ]
 
         # ── Step 4.5: Alliance Processing ──
         # Negotiate commands form/break alliances; alliance state grants bonuses
