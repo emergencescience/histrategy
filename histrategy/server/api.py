@@ -148,6 +148,8 @@ def create_app(llm_provider: str | None = None) -> Any:
     @app.get("/api/health")
     def health():
         """Health check: LLM availability, engine mode, DB type."""
+        # H36r deploy marker — if this doesn't appear, deploy is stale
+        _deploy_marker = "H36R_INLINE_196fd0a"
         llm_available = False
         llm_provider_name = _llm_provider or "none"
         llm_debug: dict[str, Any] = {}
@@ -197,6 +199,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         return {
             "status": "ok",
+            "deploy_marker": _deploy_marker,  # H36r
             "llm": {
                 "available": llm_available,
                 "provider": llm_provider_name,

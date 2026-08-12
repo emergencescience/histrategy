@@ -22,6 +22,9 @@ RUN pip install --no-cache-dir ./histrategy-engine/
 # Install main package as editable (needs histrategy-engine available)
 RUN pip install -e .
 
+# H36r: Force cache bust — verify deployment picks up latest code
+RUN echo "H36R_INLINE_196fd0a" > /app/deploy_marker.txt
+
 # Expose port
 EXPOSE 8080
 
