@@ -178,9 +178,56 @@ def get_command_progress(game_id: str) -> dict:
 # ── Public API ────────────────────────────────────────────────────────────────
 
 
+def _create_game_participation(room_id: str, user_id: str, faction_id: str) -> None:
+    """H18k: Insert a row into railway.public.game_participation.
+
+    Uses a separate connection because game_participation lives in the main
+    'railway' database, not the histrategy-specific database.
+    """
+    import os
+    import uuid
+
+    import psycopg2
+    import psycopg2.extras
+
+    # Build a connection URL pointing to the 'railway' database
+    db_url = os.environ.get("HISTRATEGY_DATABASE_URL", "")
+    if not db_url:
+        return
+
+    # Replace the database name with 'railway'
+    if "/histrategy" in db_url:
+        db_url = db_url.replace("/histrategy", "/railway")
+    else:
+        # If URL is postgresql://user:pass@host:port/histrategy?sslmode=...
+        # change /histrategy to /railway
+        db_url = db_url.rsplit("/", 1)[0] + "/railway" + (db_url[db_url.rindex("/")+1:].split("?", 1)[1] if "?" in db_url.rsplit("/", 1)[1] else "")
+
+    try:
+        psycopg2.extras.register_uuid()
+        conn = psycopg2.connect(db_url)
+        cur = conn.cursor()
+        participation_id = str(uuid.uuid4())
+        cur.execute(
+            """INSERT INTO game_participation (id, room_id, user_id, faction_id, role, is_active)
+               VALUES (%s, %s, %s, %s, %s, TRUE)""",
+            (participation_id, room_id, user_id, faction_id, "player"),
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        import logging
+        logging.getLogger("histrategy").warning(
+            "game_participation insert failed for room=%s user=%s: %s", room_id, user_id, e
+        )
+
+
+
 def start(
     faction: str, scenario: str = "three-kingdoms", language_style: str = "vernacular", lang: str = "zh",
     device_type: str = "unknown",
+    user_id: str | None = None,
 ) -> dict:
     """Create a single-player game.
 
@@ -192,6 +239,7 @@ def start(
         language_style: Narrative style (classical | vernacular)
         lang: UI language (zh | en)
         device_type: Device classification (mobile | tablet | desktop | unknown)
+        user_id: UUID from portal auth (creates game_participation record)
 
     Returns:
         GameCreatedResponse format:
@@ -221,6 +269,14 @@ def start(
     room = _get_room(room_id)
     if not room:
         return {"ok": False, "error": "Room not found after creation"}
+
+    # H18k: Create game_participation record in the main emergence DB
+    if user_id:
+        try:
+            _create_game_participation(room_id, user_id, internal_fid)
+        except Exception:
+            # Non-critical — don't fail game creation if DB insert fails
+            pass
 
     # 2. Build intro narrative
     intro = build_single_player_intro(room, internal_fid, language_style, lang)
