@@ -8,10 +8,10 @@
   {"id": "kaifeng",        "name": "开封",   "neighbors": ["luoyang", "henan_east", "jinan", "shanxi", "xiangyang"], "terrain": "plains", "climate_zone": "central", "fertility": 8, "population": 180000, "has_river": true},
   {"id": "luoyang",        "name": "洛阳",   "neighbors": ["kaifeng", "henan_east", "shanxi", "shaanxi", "xiangyang"], "terrain": "plains", "climate_zone": "central", "fertility": 6, "population": 100000},
   {"id": "henan_east",     "name": "河南东部","neighbors": ["kaifeng", "luoyang", "nanjing", "xiangyang", "shaanxi"], "terrain": "plains", "climate_zone": "central", "fertility": 6, "population": 80000},
-  {"id": "jinan",          "name": "济南",   "neighbors": ["beijing", "dengzhou", "kaifeng", "nanjing"],          "terrain": "plains",  "climate_zone": "north",    "fertility": 7, "population": 150000},
+  {"id": "jinan",          "name": "济南",   "neighbors": ["beijing", "dengzhou", "kaifeng", "nanjing"],          "terrain": "plains",  "climate_zone": "north",    "fertility": 7, "population": 150000, "has_coast": true},
   {"id": "dengzhou",       "name": "登州",   "neighbors": ["jinan", "beijing"],                                  "terrain": "coast",   "climate_zone": "north",    "fertility": 5, "population": 80000,  "has_coast": true},
 
-  {"id": "nanjing",        "name": "南京",   "neighbors": ["zhejiang", "jiangxi", "wuchang", "henan_east", "jinan"], "terrain": "plains", "climate_zone": "central", "fertility": 9, "population": 300000, "has_river": true},
+  {"id": "nanjing",        "name": "南京",   "neighbors": ["zhejiang", "jiangxi", "wuchang", "henan_east", "jinan"], "terrain": "plains", "climate_zone": "central", "fertility": 9, "population": 300000, "has_river": true, "has_coast": true},
   {"id": "zhejiang",       "name": "杭州",   "neighbors": ["nanjing", "jiangxi", "fujian"],                       "terrain": "coast",   "climate_zone": "central",  "fertility": 7, "population": 200000, "has_coast": true},
   {"id": "jiangxi",        "name": "南昌",   "neighbors": ["nanjing", "zhejiang", "fujian", "guangdong", "wuchang"], "terrain": "hills", "climate_zone": "central", "fertility": 6, "population": 100000},
   {"id": "wuchang",        "name": "武昌",   "neighbors": ["nanjing", "jiangxi", "huguang_west", "huguang_south", "xiangyang"], "terrain": "plains", "climate_zone": "central", "fertility": 8, "population": 200000, "has_river": true},
@@ -20,7 +20,7 @@
 
   {"id": "fujian",         "name": "福州",   "neighbors": ["zhejiang", "jiangxi", "guangdong", "taiwan"],        "terrain": "coast",   "climate_zone": "south",    "fertility": 6, "population": 120000, "has_coast": true},
   {"id": "guangdong",      "name": "广州",   "neighbors": ["jiangxi", "fujian", "guangxi"],                      "terrain": "coast",   "climate_zone": "south",    "fertility": 7, "population": 130000, "has_coast": true},
-  {"id": "guangxi",        "name": "广西",   "neighbors": ["guangdong", "huguang_south", "yunnan"],              "terrain": "hills",   "climate_zone": "south",    "fertility": 5, "population": 70000},
+  {"id": "guangxi",        "name": "广西",   "neighbors": ["guangdong", "huguang_south", "yunnan"],              "terrain": "coast",   "climate_zone": "south",    "fertility": 5, "population": 70000,  "has_coast": true},
   {"id": "yunnan",         "name": "云南",   "neighbors": ["sichuan", "guangxi"],                                "terrain": "hills",   "climate_zone": "south",    "fertility": 5, "population": 60000},
   {"id": "taiwan",         "name": "台湾",   "neighbors": ["fujian"],                                           "terrain": "coast",   "climate_zone": "south",    "fertility": 5, "population": 40000,  "has_coast": true},
 
