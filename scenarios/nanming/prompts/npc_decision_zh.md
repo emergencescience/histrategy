@@ -23,6 +23,12 @@
   ]
 }
 
+## ⚠️ 命令三原则（违反将导致部队异常）
+
+1. **只有 recruit/conscript 命令才会增加兵力。** 「发展经济」「扩充税基」（develop、tax、trade）不会增加兵力。
+2. **只输出你真正需要执行的命令。** 你未输出的命令不会自动执行。不输出 recruit → 不征兵。不输出 disband → 不裁军。
+3. **兵力自然损耗**：每季约有 2-5% 的自然减员（战斗伤亡、疾病、逃亡）。若想维持或增加兵力，必须输出 recruit 命令。
+
 ## 可用命令类型
 - **attack**: 进攻领地。params: target_territory (必填), amount (必填, 投入兵力数), from_territory (可选), unit_type (可选: 骑兵/步兵/水军)
 - **defend**: 防守领地。params: territory (必填)

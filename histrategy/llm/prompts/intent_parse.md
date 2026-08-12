@@ -69,7 +69,12 @@
 5. 如果玩家文本无法对应任何支持的命令 → 返回空列表 []
 6. 语言是中文，命令type必须用英文
 7. **绝不对本方领地发起 attack** — 如果目标领土已属于本方，将「出X」理解为 move，不是 attack
-8. **每一个「攻打」「攻陷」「进攻」「夺取」「率军取X」都必须生成对应的 attack 命令** — 这是最重要的地方，不可遗漏
+8. **「攻打」「进攻」「夺取」必须区分主体**：
+   - 「我要**攻打**洛阳」→ **attack** target_territory=luoyang，主体是玩家自己
+   - 「**请**农民军派兵**进攻**清军后方」→ **negotiate** target_faction=nongminjun, action=request_aid，主体是别人
+   - 「**请求**他们共同**抗清**」→ **negotiate** target_faction=..., action=form_alliance
+   - **关键判据**：如果句中有「请」「派遣」「请求」「求」「要求」「让」「令其」等让他人行动的词 → 用 negotiate/diplomacy，绝不用 attack
+9. **⚠️「请X做Y」≠ attack** — 这是外交请求！用 negotiate 或 diplomacy 命令类型
 
 ## 输出格式
 

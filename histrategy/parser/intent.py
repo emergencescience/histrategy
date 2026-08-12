@@ -457,7 +457,12 @@ class IntentParser:
             )
 
         # Attack
-        if any(kw in text_lower for kw in ("攻击", "进攻", "攻打", "讨伐", "出兵", "取", "夺取", "夺", "袭取", "袭", "征伐", "伐", "攻克", "攻取")):
+        # H36p: Guard — don't generate attack when segment is a diplomatic request
+        # 「请X派兵进攻Y」means "ask X to attack Y", NOT "I attack X"
+        _is_diplomatic = any(
+            kw in text_lower for kw in ("派遣", "使者", "盟约", "互不侵犯", "请求", "请", "求援", "协防")
+        )
+        if not _is_diplomatic and any(kw in text_lower for kw in ("攻击", "进攻", "攻打", "讨伐", "出兵", "取", "夺取", "夺", "袭取", "袭", "征伐", "伐", "攻克", "攻取")):
             target = self._extract_territory(text) or self._extract_target_faction(text, exclude_fid=faction_id) or ""
             if target:
                 params = {"target_territory": target}

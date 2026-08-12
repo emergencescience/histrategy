@@ -276,15 +276,23 @@ class QuarterlyResolver:
                 results.baseline = baseline
 
         # ── Step 2.5: NPC recruitment from structured LLM decisions ──
-        # H36k: NPCs now output structured JSON with specific recruit amounts.
+        # H36k/H36p: NPCs output structured JSON with specific recruit amounts.
         # The engine validates (clamps to treasury/population limits) and applies.
-        # This replaces the old deterministic execute_npc_recruitment which ignored
-        # LLM intent and caused infinite NPC growth.
+        # H36p: NO FALLBACK to deterministic. If NPC LLM chose "develop" instead
+        # of "recruit", respect that decision. Old execute_npc_recruitment()
+        # was overriding NPC strategy with fixed +17,500/quarter regardless of
+        # whether the NPC wanted to grow, causing infinite army bloat.
+        _npc_recruited = False
         try:
             _apply_npc_structured_recruitment(world_state, all_commands, baseline)
+            _npc_recruited = True
         except Exception as e:
-            logger.warning("[room=%s] NPC structured recruitment failed, falling back: %s", room.id, e)
-            # Fallback: old deterministic recruitment only if structured fails
+            logger.warning("[room=%s] NPC structured recruitment failed: %s", room.id, e)
+        # H36p: Only fall back to deterministic if NO NPC had structured recruitment
+        # that ran. If even one NPC had structured commands processed (even with
+        # zero recruit actions), skip the fallback entirely.
+        if not _npc_recruited:
+            logger.warning("[room=%s] No structured NPC recruitment applied, using deterministic fallback", room.id)
             try:
                 from histrategy.engine.quarterly_engine import QuarterlyEngine
                 _qe = QuarterlyEngine(scenario=getattr(room, "scenario", None))
