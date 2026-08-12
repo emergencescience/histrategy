@@ -64,16 +64,17 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
     events = getattr(baseline, "notable_events", []) if baseline else []
     recruited_count = 0
 
-    # H36r: quick debug
-    import sys
+    # H36r: quick debug — use logger to ensure visibility
+    import logging
+    _log = logging.getLogger("histrategy.recruit")
     npc_fids = [fid for fid in all_commands if fid != player_fid]
     total = sum(len(v) for k, v in all_commands.items() if k != player_fid)
-    print(f"H36R_DBG player={player_fid} npcs={npc_fids} cmds={total} has_factions={hasattr(world_state,'factions')}", file=sys.stderr, flush=True)
-    # Print first command type for each NPC
+    _log.warning("H36R_ENTER player=%s npcs=%s cmds=%d has_factions=%s",
+                 player_fid, npc_fids, total, hasattr(world_state, 'factions'))
     for fid in npc_fids:
         cmds = all_commands.get(fid, [])
         types = [c.get('type','?') if isinstance(c,dict) else type(c).__name__ for c in cmds[:3]]
-        print(f"H36R_DBG {fid}: {types}", file=sys.stderr, flush=True)
+        _log.warning("H36R_CMDS %s: %s", fid, types)
 
     for fid, commands in all_commands.items():
         if fid == player_fid:
@@ -91,7 +92,7 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
             if not isinstance(cmd, dict):
                 continue
             cmd_type = cmd.get("type", "")
-            print(f"H36R_DBG cmd {fid} type={cmd_type}", file=sys.stderr, flush=True)
+            _log.debug("H36R_CMD %s type=%s", fid, cmd_type)
             params = cmd.get("params", {}) if isinstance(cmd.get("params"), dict) else {}
 
             if cmd_type == "recruit":
