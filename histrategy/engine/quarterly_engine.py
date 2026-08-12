@@ -127,6 +127,9 @@ class EconomyParams:
 
 # ─── Result type ───────────────────────────────────────────────
 
+# Track consecutive quarters with treasury=0 per faction for progressive penalties
+_treasury_zero_streak: dict[str, int] = {}
+
 
 @dataclass
 class QuarterResult:
@@ -482,4 +485,91 @@ class QuarterlyEngine:
                     vol_note = "（义从踊跃）" if morale > 80 else ""
                     result.notable_events.append(
                         f"{fid}自动征兵{actual}人（士气{morale}，花费{actual * cost_per_soldier:.0f}金）{vol_note}"
+                    )
+
+    def execute_treasury_penalties(
+        self,
+        world_state,
+        result=None,
+        apply_to_player: bool = False,
+    ) -> None:
+        """Apply progressive penalties for factions with critically low treasury.
+
+        Historical basis: Armies without pay mutiny (e.g. Ming dynasty's frequent
+        mutinies when the treasury couldn't pay troops). Officials unpaid for
+        months become corrupt or defect. Populations without relief starve.
+
+        Progressive scale:
+        - 0 gold for 1 quarter: morale -2, tiny desertion (0.5% troops)
+        - 0 gold for 2-3 quarters: morale -5, moderate desertion (2% troops), loyalty crisis
+        - 0 gold for 4+ quarters: morale -10, mass desertion (5% troops), potential defection
+
+        Also applies moderate penalties when food=0 or morale < 15.
+        """
+        for fid, faction in world_state.factions.items():
+            if not getattr(faction, "is_active", True):
+                continue
+            if not apply_to_player and fid == getattr(world_state, "player_faction_id", None):
+                continue
+
+            treasury = getattr(faction, "treasury", 0)
+            food = getattr(faction, "food", 0)
+            morale = getattr(faction, "morale_actual", 50)
+            strength = getattr(faction, "strength_actual", 0)
+
+            # ── Treasury penalties (progressive) ──
+            if treasury <= 0:
+                streak = _treasury_zero_streak.get(fid, 0) + 1
+                _treasury_zero_streak[fid] = streak
+
+                if streak == 1:
+                    morale_penalty = 2
+                    desertion_pct = 0.005  # 0.5%
+                    desc = "金库空虚，士卒微有不安"
+                elif streak <= 3:
+                    morale_penalty = 5
+                    desertion_pct = 0.02   # 2%
+                    desc = "连续缺饷，军心浮动，逃兵日增"
+                else:
+                    morale_penalty = 10
+                    desertion_pct = 0.05   # 5%
+                    desc = "久不發餉，營兵嘩變，將士離心"
+
+                # Apply morale penalty
+                new_morale = max(0, morale - morale_penalty)
+                faction.morale_actual = new_morale
+
+                # Apply desertion
+                if strength > 500:
+                    deserters = max(100, int(strength * desertion_pct))
+                    faction.strength_actual = max(500, strength - deserters)
+                else:
+                    deserters = 0
+
+                if result:
+                    result.notable_events.append(
+                        f"{fid}{desc}：士气-{morale_penalty}，逃兵{deserters}人（连续{streak}季无饷）"
+                    )
+            else:
+                # Reset streak when treasury recovers
+                if fid in _treasury_zero_streak:
+                    del _treasury_zero_streak[fid]
+
+            # ── Food starvation (separate from treasury) ──
+            if food <= 0 and strength > 1000:
+                starve_loss = max(200, int(strength * 0.03))
+                faction.strength_actual = max(500, strength - starve_loss)
+                faction.morale_actual = max(0, morale - 3)
+                if result:
+                    result.notable_events.append(
+                        f"{fid}粮草断绝，饿殍{starve_loss}人，民心-3"
+                    )
+
+            # ── Morale collapse threshold ──
+            if morale <= 10 and strength > 5000:
+                rout = max(1000, int(strength * 0.10))
+                faction.strength_actual = max(500, strength - rout)
+                if result:
+                    result.notable_events.append(
+                        f"{fid}民心崩溃，大军溃散{rout}人"
                     )

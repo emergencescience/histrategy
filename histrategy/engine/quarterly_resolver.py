@@ -188,6 +188,16 @@ class QuarterlyResolver:
         except Exception as e:
             logger.warning("[room=%s] NPC auto-recruitment failed: %s", room.id, e)
 
+        # ── Step 2.6: Treasury starvation penalties ──
+        # H35z3: Factions with 0 treasury suffer progressive morale loss,
+        # desertion, and eventual collapse. Also handles food=0 starvation.
+        try:
+            from histrategy.engine.quarterly_engine import QuarterlyEngine as QE2
+            _qe2 = QE2(scenario=getattr(room, "scenario", None))
+            _qe2.execute_treasury_penalties(world_state, baseline, apply_to_player=True)
+        except Exception as e:
+            logger.warning("[room=%s] Treasury penalties failed: %s", room.id, e)
+
         # ── Step 3: 黑天鹅事件 ──
         bs_proposals = []
         if self.black_swan_injector and self.history_engine:
