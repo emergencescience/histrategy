@@ -537,10 +537,13 @@ class ScenarioLoader:
             base_morale = _FACTION_MORALE.get(fid, 80)
 
             # Deploy the FULL faction strength, spread across territories
-            troops_per_territory = min(
-                max(3000, faction.strength_actual // num_territories),
-                30000,
-            )
+            # H37c-fix: the old `min(..., 30000)` cap silently dropped troops for
+            # factions with few territories + large armies (e.g. nongminjun 90k in
+            # 2 territories → capped to 60k deployed). The TurnController's periodic
+            # reconciliation then synced strength_actual DOWN to the capped deployed
+            # count every turn, causing the observed -60%/turn troop crash.
+            # Remove the cap so deployed == strength_actual exactly.
+            troops_per_territory = max(3000, faction.strength_actual // num_territories)
 
             for i, tid in enumerate(faction.territories):
                 army_id = f"army_{fid}_{army_idx}"
