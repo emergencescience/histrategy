@@ -64,10 +64,6 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
     events = getattr(baseline, "notable_events", []) if baseline else []
     recruited_count = 0
 
-    # H36r debug: log what we're working with
-    import sys
-    print(f"H36R_DEBUG structured recruitment START: player={player_fid} npc_factions={[fid for fid in all_commands if fid != player_fid]} total_cmds={sum(len(v) for k, v in all_commands.items() if k != player_fid)}", file=sys.stderr, flush=True)
-
     for fid, commands in all_commands.items():
         if fid == player_fid:
             continue  # player recruitment handled separately
@@ -84,7 +80,6 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
             if not isinstance(cmd, dict):
                 continue
             cmd_type = cmd.get("type", "")
-            print(f"H36R_DEBUG cmd: faction={fid} type={cmd_type}", file=sys.stderr, flush=True)
             params = cmd.get("params", {}) if isinstance(cmd.get("params"), dict) else {}
 
             if cmd_type == "recruit":
@@ -101,10 +96,10 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
                     cost = amount * 0.5
                 if amount < 50:  # too small, skip
                     continue
-                faction.strength_actual = strength + amount
-                faction.treasury = treasury - cost
                 strength += amount
                 treasury -= cost
+                faction.strength_actual = strength
+                faction.treasury = treasury
                 if events is not None:
                     events.append(f"{fid}从LLM决策征兵{amount}人（花费{cost:.0f}金）")
                 recruited_count += 1
@@ -121,14 +116,15 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
                     cost = amount * 0.3
                 if amount < 50:
                     continue
-                faction.strength_actual = strength + amount
-                faction.treasury = treasury - cost
-                faction.morale_actual = max(0, morale - 2)
                 strength += amount
                 treasury -= cost
                 morale = max(0, morale - 2)
+                faction.strength_actual = strength
+                faction.treasury = treasury
+                faction.morale_actual = morale
                 if events is not None:
                     events.append(f"{fid}从LLM决策紧急征召{amount}人（花费{cost:.0f}金，士气-2）")
+                recruited_count += 1
 
             elif cmd_type == "disband":
                 amount = int(params.get("amount", 0))
@@ -137,13 +133,15 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
                 amount = min(amount, strength - 500)  # keep at least 500
                 if amount < 50:
                     continue
-                faction.strength_actual = strength - amount
-                faction.treasury = treasury + amount * 0.2  # partial refund
-                faction.population = population + amount  # soldiers return to civilian life
                 strength -= amount
                 treasury += amount * 0.2
+                population += amount
+                faction.strength_actual = strength
+                faction.treasury = treasury
+                faction.population = population
                 if events is not None:
                     events.append(f"{fid}从LLM决策裁军{amount}人（回金{amount*0.2:.0f}，人口+{amount}）")
+                recruited_count += 1
 
     return recruited_count
 
