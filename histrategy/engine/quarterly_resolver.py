@@ -65,11 +65,8 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
     recruited_count = 0
 
     # H36r debug: log what we're working with
-    import logging
-    _log = logging.getLogger("histrategy.recruit")
-    _log.info("H36r structured recruitment: player=%s npc_factions=%s total_commands=%d",
-              player_fid, [fid for fid in all_commands if fid != player_fid],
-              sum(len(v) for k, v in all_commands.items() if k != player_fid))
+    import sys
+    print(f"H36R_DEBUG structured recruitment START: player={player_fid} npc_factions={[fid for fid in all_commands if fid != player_fid]} total_cmds={sum(len(v) for k, v in all_commands.items() if k != player_fid)}", file=sys.stderr, flush=True)
 
     for fid, commands in all_commands.items():
         if fid == player_fid:
@@ -87,7 +84,7 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
             if not isinstance(cmd, dict):
                 continue
             cmd_type = cmd.get("type", "")
-            _log.debug("H36r cmd: faction=%s type=%s", fid, cmd_type)
+            print(f"H36R_DEBUG cmd: faction={fid} type={cmd_type}", file=sys.stderr, flush=True)
             params = cmd.get("params", {}) if isinstance(cmd.get("params"), dict) else {}
 
             if cmd_type == "recruit":
