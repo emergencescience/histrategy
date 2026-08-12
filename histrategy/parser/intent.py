@@ -118,8 +118,8 @@ def _ensure_scenario_factions(scenario: str | None = None):
             "Failed to load scenario factions for %s: %s", scenario, e
         )
 
-
-
+class IntentParser:
+    """Parses player free-text into structured Command objects via LLM or keyword fallback."""
     def _build_state_context(self, ws, faction_id: str) -> str:
         """Build a concise game-state snapshot for the intent parse prompt.
 
@@ -177,10 +177,6 @@ def _ensure_scenario_factions(scenario: str | None = None):
 
         return "\n".join(lines)
 
-
-class IntentParser:
-    """Parses player free-text into structured Command objects via LLM or keyword fallback."""
-
     def __init__(self, llm_adapter: LLMAdapter | None = None, scenario: str | None = None):
         self.llm = llm_adapter
         self.llm_available = llm_adapter is not None and llm_adapter.is_available
@@ -218,26 +214,33 @@ class IntentParser:
             except Exception:
                 commands = []
 
-        # Always run keyword fallback to catch commands the LLM missed.
-        # Merge LLM results + keyword results (deduplicate by type+territory/faction).
+        # Keyword fallback: only used to fill gaps when the LLM is unavailable
+        # or returned nothing. When the LLM DID produce commands, it is the
+        # authoritative parser — running keyword fallback in that case produces
+        # duplicate/spurious commands (e.g. "征兵两万" → LLM `recruit amount=20000`
+        # PLUS keyword `recruit amount=20000`, or "征兵扩军" → LLM `recruit amount=0`
+        # PLUS keyword `recruit amount=500`). The old (type, params) dedup could
+        # not catch these because LLM and keyword params differ slightly.
         kw_commands = self._keyword_parse(resolved_text, faction_id)
         if kw_commands:
-            # Deduplicate: if LLM already parsed a command of the same type for the
-            # same target, skip the keyword version.
-            llm_sigs = set()
-            for cmd in commands:
-                sig = (cmd.type, tuple(sorted(cmd.params.items())))
-                llm_sigs.add(sig)
-            for kw_cmd in kw_commands:
-                kw_sig = (kw_cmd.type, tuple(sorted(kw_cmd.params.items())))
-                if kw_sig not in llm_sigs:
-                    commands.append(kw_cmd)
-            if llm_used and len(commands) > len(llm_sigs):
-                import logging
-                logging.getLogger("histrategy.parser").info(
-                    "Keyword fallback added %d commands LLM missed for faction=%s",
-                    len(commands) - len(llm_sigs), faction_id,
-                )
+            if llm_used and commands:
+                # LLM authoritative → keep only keyword commands whose TYPE the
+                # LLM did not already produce (fill genuine gaps).
+                llm_types = {c.type for c in commands}
+                added = 0
+                for kw_cmd in kw_commands:
+                    if kw_cmd.type not in llm_types:
+                        commands.append(kw_cmd)
+                        added += 1
+                if added:
+                    import logging
+                    logging.getLogger("histrategy.parser").info(
+                        "Keyword fallback added %d gap commands LLM missed for faction=%s",
+                        added, faction_id,
+                    )
+            else:
+                # LLM unavailable/empty → keyword fallback is the only parser.
+                commands.extend(kw_commands)
 
         # ── Post-parse validation: redirect commands targeting non-owned territories ──
         if ws is not None:
