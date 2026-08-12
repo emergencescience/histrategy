@@ -465,10 +465,12 @@ class QuarterlyEngine:
                 # Treasury is zero — no recruitment at all, only desertion
                 recruit_rate_mult = 0.0
             elif gold_per_soldier < 0.1:
-                recruit_rate_mult = 0.0  # nearly broke — stop recruiting
-            elif gold_per_soldier < 0.2:
-                recruit_rate_mult = 0.2  # severely constrained
+                recruit_rate_mult = 0.0  # broke — stop recruiting
+            elif gold_per_soldier < 0.3:
+                recruit_rate_mult = 0.0  # H36j: critical — freeze recruitment below 0.3
             elif gold_per_soldier < 0.5:
+                recruit_rate_mult = 0.2  # severely constrained
+            elif gold_per_soldier < 1.0:
                 recruit_rate_mult = 0.5  # tight budget
 
             # ── Logistic manpower pool: recruitment slows as troops → population ──
