@@ -43,33 +43,6 @@ def _safe_json_loads(value: str | None, default: Any = None) -> Any:
         return default
 
 
-def _extract_user_id_from_auth(authorization: str, x_user_id: str) -> str | None:
-    """Extract user UUID from Authorization Bearer JWT or X-User-Id header.
-
-    H18k: Single-player games need a user_id for game_participation records.
-    The portal sends a JWT via Authorization: Bearer <token> from the surp_jwt cookie.
-    """
-    # Priority 1: X-User-Id header (set by orchestrator proxy)
-    if x_user_id and x_user_id.strip():
-        return x_user_id.strip()
-
-    # Priority 2: Decode JWT from Authorization header
-    if authorization and authorization.startswith("Bearer "):
-        token = authorization[7:]
-        try:
-            import jwt as _jwt
-            # Don't verify signature (we only need the user_id claim)
-            payload = _jwt.decode(token, options={"verify_signature": False})
-            # Common claim names: sub, user_id, userId
-            user_id = payload.get("sub") or payload.get("user_id") or payload.get("userId")
-            if user_id:
-                return str(user_id)
-        except Exception:
-            pass
-
-    return None
-
-
 # ─── FastAPI App ─────────────────────────────────────────────────
 
 _llm_provider: str | None = None  # Set by run_server / create_app
@@ -1080,14 +1053,10 @@ def create_app(llm_provider: str | None = None) -> Any:
         body: dict = Body(...),  # noqa: B008
         x_user_id: str = Header(default="", alias="X-User-Id"),
         user_agent: str = Header(default="", alias="User-Agent"),
-        authorization: str = Header(default="", alias="Authorization"),
     ):
         """Single-player — start new game."""
         from histrategy.server.room_manager import detect_device_type
         from histrategy.server.single_player import start
-
-        # H18k: Extract user_id from JWT Bearer token
-        user_id = _extract_user_id_from_auth(authorization, x_user_id)
 
         return start(
             faction=body.get("faction", "shu"),
@@ -1095,7 +1064,6 @@ def create_app(llm_provider: str | None = None) -> Any:
             language_style=body.get("language_style", "vernacular"),
             lang=body.get("lang", "zh"),
             device_type=detect_device_type(user_agent),
-            user_id=user_id,
         )
 
     # ═══════════════════════════════════════════════════════════
