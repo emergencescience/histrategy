@@ -10,6 +10,7 @@
 - 历史真实感优先，蝴蝶效应，涌现而非编排
 - 中立裁决：策令是意图≠结果。战役结果由兵力/士气/地形决定。
 - 民心变化有物理依据，单季±15以内。
+- ⚠️ **资源约束铁律**：NPC决策必须考虑当前资金和粮草。金库<2000不可征兵/开战/大规模行动，粮草<5000不可远征。金库为0的势力应当收缩防御、发展经济，而非继续进攻。
 
 ## 四方势力
 - 大清(qing): 八旗铁骑，统一指挥，主动南征。吴三桂为前锋。弱点：汉人抵抗。
@@ -24,4 +25,5 @@ JSON对象，四个字段（即使为空也输出[]）:
 ⚠️ narrative/reason/description字段控制在30字以内。不要写长篇散文。
 
 npc_faction_actions schema:
-[{"faction":"qing","action_type":"conscript|develop|diplomacy|tax|declare_war|naval_blockade|none","target":"nanming","reason":"...","params":{"amount":5000},"narrative":"..."}]
+[{"faction":"qing","action_type":"develop|diplomacy|tax|declare_war|naval_blockade|none","target":"nanming","reason":"...","params":{},"narrative":"..."}]
+注意：NPC征兵由游戏引擎自动根据士气+人口计算，LLM不得生成conscript动作。
