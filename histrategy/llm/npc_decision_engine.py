@@ -683,6 +683,40 @@ class NPCDecisionEngine:
                 lines.append(f"⚡ Gold/Soldier {_gold_per_soldier:.2f} — treasury is tight. Can maintain current army but no room for expansion.")
         lines.append("")
 
+        # ── H36m: 士气预警 (Morale Warning) ──
+        # Morale death spiral: once morale drops below ~20, tax penalties suppress
+        # recovery → morale → 0 → faction effectively paralyzed. NPCs must break
+        # this cycle by lowering taxes and/or winning a battle.
+        _morale_val = getattr(faction, "morale_actual", 50)
+        if self.language == "zh":
+            if _morale_val < 10:
+                lines.append("## 🚨 士气崩溃预警 (Morale Collapse)")
+                lines.append(f"当前士气仅 {_morale_val}！**这是你的首要危机。**")
+                lines.append(f"- 当前税率 {int(getattr(faction, 'tax_rate', 0.3) * 100)}% —— **必须立即降至 10% 以下**，否则士气将继续下降。")
+                lines.append("- 禁止征兵（conscript 会进一步打击士气）。")
+                lines.append("- 优先行动：降税 → 发展经济 → 犒赏三军。暂停一切进攻。")
+            elif _morale_val < 20:
+                lines.append("## ⚠️ 士气危机预警 (Morale Crisis)")
+                lines.append(f"当前士气仅 {_morale_val}，军队人心浮动。")
+                lines.append(f"- 若税率 > 10%，士气每季将继续下降。**强烈建议降税。**")
+                lines.append("- 谨慎进攻——若战败，士气将进一步恶化。")
+            elif _morale_val < 35:
+                lines.append("## ⚡ 士气偏弱预警 (Low Morale)")
+                lines.append(f"当前士气 {_morale_val}，低于健康水平。")
+                lines.append("- 高税率（>20%）会压制士气恢复。考虑适当减税。")
+        else:
+            if _morale_val < 10:
+                lines.append("## 🚨 Morale Collapse Warning")
+                lines.append(f"Current morale: {_morale_val}! **This is your TOP priority.**")
+                lines.append(f"- Current tax rate {int(getattr(faction, 'tax_rate', 0.3) * 100)}% — **MUST reduce below 10%** or morale keeps dropping.")
+                lines.append("- No conscription (further morale hit).")
+                lines.append("- Priority: lower taxes → develop economy → reward troops. No attacks.")
+            elif _morale_val < 20:
+                lines.append("## ⚠️ Morale Crisis Warning")
+                lines.append(f"Current morale: {_morale_val}. Troops are wavering.")
+                lines.append("- If tax rate > 10%, morale will drop every quarter. **Strongly recommend tax cut.**")
+                lines.append("- Avoid risky attacks — a defeat will worsen morale further.")
+
         # ── FULL TERRITORY MAP: show which faction controls which territories ──
         # Without this, NPCs hallucinate enemy presence in wrong regions
         # (e.g. Zheng attacking "Qing in Xiamen" when Qing has zero coastal territory).

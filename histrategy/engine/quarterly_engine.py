@@ -294,8 +294,20 @@ class QuarterlyEngine:
                 morale_change += int(food_delta / 2000 * p.food_morale_impact)
             # Natural morale regen toward 50 — prevents death spiral
             # H16: No morale recovery when starving (food <= 0)
-            if morale < 40 and morale_change <= 0 and food > 0:
-                morale_change += 2  # slow recovery toward neutral (only if not starving)
+            # H36m: Tiered recovery — stronger pull at very low morale
+            if morale_change <= 0 and food > 0:
+                if morale < 10:
+                    morale_change += 8  # rapid bounce from near-zero
+                elif morale < 20:
+                    morale_change += 5  # strong recovery when severely low
+                elif morale < 30:
+                    morale_change += 3  # moderate recovery
+                elif morale < 40:
+                    morale_change += 2  # slow recovery toward neutral
+            # H36m: Resource-backed morale floor — large factions don't collapse below 5
+            # If faction has resources to pay troops, morale shouldn't hit absolute zero
+            if morale < 5 and treasury > 50000 and strength > 50000:
+                morale_change += 3  # minimum cushion for resource-backed factions
             # Diminishing returns above 80 — harder to reach 100
             if morale >= 80 and morale_change > 0:
                 diminishing = int((morale - 80) / 10)  # -1 at 80, -2 at 90, -3 at 99
