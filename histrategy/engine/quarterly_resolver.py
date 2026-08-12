@@ -337,6 +337,44 @@ class QuarterlyResolver:
         results.all_commands = all_commands
         results.total_latency_ms = (time.time() - t_start) * 1000
 
+        # ── Step 7.2: 物理约束（Physics constraints）──
+        # 1. troops cannot exceed population (soldiers are drawn from population)
+        # 2. factions with critically low gold/soldier lose troops (auto-correction)
+        for fid, faction in world_state.factions.items():
+            if not getattr(faction, "is_active", True):
+                continue
+            pop = getattr(faction, "population", 0) or 0
+            troops = getattr(faction, "strength_actual", 0)
+            treasury = getattr(faction, "treasury", 0)
+
+            # Constraint 1: Troops ≤ Population
+            if troops > pop and pop > 0:
+                excess = troops - pop
+                faction.strength_actual = pop
+                logger.warning(
+                    "[room=%s] Physics: %s troops(%d) > population(%d) — capping at %d (-%d)",
+                    room.id, fid, troops, pop, pop, excess,
+                )
+                # Excess troops return to population (they were already counted)
+                if results.baseline and hasattr(results.baseline, "notable_events"):
+                    results.baseline.notable_events.append(
+                        f"{fid}兵力超过人口上限，裁撤{excess}人"
+                    )
+
+            # Constraint 2: Gold/soldier sanity — cannot sustain > population army
+            gold_per_soldier = treasury / max(troops, 1)
+            if gold_per_soldier < 0.05 and treasury > 0 and troops > 5000:
+                # Nearly broke with large army — force reduction
+                sustainable_troops = int(treasury / 0.1)  # need at least 0.1 gold/soldier
+                if sustainable_troops < troops:
+                    reduction = troops - sustainable_troops
+                    reduction = min(reduction, troops // 2)  # max 50% reduction
+                    faction.strength_actual = max(500, troops - reduction)
+                    if results.baseline and hasattr(results.baseline, "notable_events"):
+                        results.baseline.notable_events.append(
+                            f"{fid}财政不可持续，自动裁军{reduction}人（金兵比仅{gold_per_soldier:.2f}）"
+                        )
+
         # ── Step 7.5: 季节推进安全网（条件触发，防双重推进）──
         # TurnController.execute_turn() 正常时已推进一季；若它静默失败回退到
         # _empty_baseline()，季节不变。仅当季节仍等于回合开始时的值（说明 baseline
