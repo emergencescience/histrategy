@@ -332,41 +332,6 @@ class QuarterlyResolver:
             except Exception as e:
                 logger.error("[room=%s] Narrative generation failed: %s", room.id, e)
 
-        # ── Step 6.5: 物理约束（Physics constraints — MUST run before state capture）──
-        # 1. troops cannot exceed population (soldiers are drawn from population)
-        # 2. factions with critically low gold/soldier lose troops (auto-correction)
-        for fid, faction in world_state.factions.items():
-            if not getattr(faction, "is_active", True):
-                continue
-            pop = getattr(faction, "population", 0) or 0
-            troops = getattr(faction, "strength_actual", 0)
-            treasury = getattr(faction, "treasury", 0)
-
-            # Constraint 1: Troops ≤ Population (hard cap)
-            if troops > pop and pop > 0:
-                excess = troops - pop
-                faction.strength_actual = pop
-                logger.warning(
-                    "[room=%s] Physics: %s troops(%d) > population(%d) — capping at %d (-%d)",
-                    room.id, fid, troops, pop, pop, excess,
-                )
-                if results.baseline and hasattr(results.baseline, "notable_events"):
-                    results.baseline.notable_events.append(
-                        f"{fid}兵力超过人口上限，裁撤{excess}人"
-                    )
-
-            # Constraint 2: Gold/soldier sanity
-            gold_per_soldier = treasury / max(troops, 1)
-            if gold_per_soldier < 0.05 and treasury > 0 and troops > 5000:
-                sustainable_troops = int(treasury / 0.1)
-                if sustainable_troops < troops:
-                    reduction = min(troops - sustainable_troops, troops // 2)
-                    faction.strength_actual = max(500, troops - reduction)
-                    if results.baseline and hasattr(results.baseline, "notable_events"):
-                        results.baseline.notable_events.append(
-                            f"{fid}财政不可持续，自动裁军{reduction}人（金兵比仅{gold_per_soldier:.2f}）"
-                        )
-
         # ── Step 7: 状态收集 ──
         results.state_changes = _extract_state_changes(world_state, decisions)
         results.all_commands = all_commands

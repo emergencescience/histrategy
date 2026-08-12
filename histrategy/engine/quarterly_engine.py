@@ -471,6 +471,13 @@ class QuarterlyEngine:
             elif gold_per_soldier < 0.5:
                 recruit_rate_mult = 0.5  # tight budget
 
+            # ── Logistic manpower pool: recruitment slows as troops → population ──
+            # Δ征兵 ∝ population × (population − troops) / population
+            # When troops = 0, pool = 100%. When troops = population, pool = 0.
+            # This naturally prevents troops > population without a hard cap.
+            manpower_pool_ratio = max(0, total_pop - strength) / max(total_pop, 1)
+            recruit_rate_mult *= manpower_pool_ratio
+
             recruit_rate = base_rate * max(0, morale_factor) * recruit_rate_mult
             raw_amount = int(total_pop * recruit_rate)
 
