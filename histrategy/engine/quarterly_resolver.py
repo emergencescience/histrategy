@@ -31,6 +31,101 @@ logger = logging.getLogger("histrategy.quarterly")
 # ── 内部引擎引用（延迟导入以避免循环依赖） ──
 
 
+def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline) -> None:
+    """H36k: Apply NPC recruit/conscript/disband from structured LLM decisions.
+
+    Replaces the old deterministic execute_npc_recruitment() which ignored
+    LLM intent. Each NPC's structured commands drive recruitment:
+    - recruit: adds troops, deducts gold (0.5 per soldier)
+    - conscript: adds troops, deducts gold (0.3 per soldier, cheaper but morale hit)
+    - disband: removes troops, adds gold back (0.2 per soldier)
+
+    All amounts are CLAMPED to actual faction limits (treasury, population).
+    """
+    from histrategy_engine.world import WorldState
+
+    if not isinstance(world_state, WorldState):
+        return
+
+    player_fid = getattr(world_state, "player_faction_id", None)
+    events = getattr(baseline, "notable_events", []) if baseline else []
+
+    for fid, commands in all_commands.items():
+        if fid == player_fid:
+            continue  # player recruitment handled separately
+        faction = world_state.factions.get(fid)
+        if not faction or not getattr(faction, "is_active", True):
+            continue
+
+        treasury = getattr(faction, "treasury", 0) or 0
+        strength = getattr(faction, "strength_actual", 0) or 0
+        population = getattr(faction, "population", 0) or 0
+        morale = getattr(faction, "morale_actual", 50) or 50
+
+        for cmd in commands:
+            if not isinstance(cmd, dict):
+                continue
+            cmd_type = cmd.get("type", "")
+            params = cmd.get("params", {}) if isinstance(cmd.get("params"), dict) else {}
+
+            if cmd_type == "recruit":
+                amount = int(params.get("amount", 0))
+                if amount <= 0:
+                    continue
+                # Clamp to 3% of population
+                max_recruit = int(population * 0.03)
+                amount = min(amount, max_recruit)
+                # Clamp to treasury (0.5 gold per soldier)
+                cost = amount * 0.5
+                if cost > treasury:
+                    amount = int(treasury / 0.5)
+                    cost = amount * 0.5
+                if amount < 50:  # too small, skip
+                    continue
+                faction.strength_actual = strength + amount
+                faction.treasury = treasury - cost
+                strength += amount
+                treasury -= cost
+                if events is not None:
+                    events.append(f"{fid}从LLM决策征兵{amount}人（花费{cost:.0f}金）")
+
+            elif cmd_type == "conscript":
+                amount = int(params.get("amount", 0))
+                if amount <= 0:
+                    continue
+                max_conscript = int(population * 0.02)
+                amount = min(amount, max_conscript)
+                cost = amount * 0.3  # cheaper but morale hit
+                if cost > treasury:
+                    amount = int(treasury / 0.3)
+                    cost = amount * 0.3
+                if amount < 50:
+                    continue
+                faction.strength_actual = strength + amount
+                faction.treasury = treasury - cost
+                faction.morale_actual = max(0, morale - 2)
+                strength += amount
+                treasury -= cost
+                morale = max(0, morale - 2)
+                if events is not None:
+                    events.append(f"{fid}从LLM决策紧急征召{amount}人（花费{cost:.0f}金，士气-2）")
+
+            elif cmd_type == "disband":
+                amount = int(params.get("amount", 0))
+                if amount <= 0:
+                    continue
+                amount = min(amount, strength - 500)  # keep at least 500
+                if amount < 50:
+                    continue
+                faction.strength_actual = strength - amount
+                faction.treasury = treasury + amount * 0.2  # partial refund
+                faction.population = population + amount  # soldiers return to civilian life
+                strength -= amount
+                treasury += amount * 0.2
+                if events is not None:
+                    events.append(f"{fid}从LLM决策裁军{amount}人（回金{amount*0.2:.0f}，人口+{amount}）")
+
+
 class QuarterlyResolver:
     """对称多 faction 季度引擎。
 
@@ -180,16 +275,22 @@ class QuarterlyResolver:
                 baseline = _empty_baseline(world_state)
                 results.baseline = baseline
 
-        # ── Step 2.5: NPC morale-based auto-recruitment ──
-        # NPCs no longer issue conscript commands through LLM. Instead,
-        # recruitment is a deterministic function of population × morale.
-        # This prevents the bug where NPCs gain troops despite losing battles.
+        # ── Step 2.5: NPC recruitment from structured LLM decisions ──
+        # H36k: NPCs now output structured JSON with specific recruit amounts.
+        # The engine validates (clamps to treasury/population limits) and applies.
+        # This replaces the old deterministic execute_npc_recruitment which ignored
+        # LLM intent and caused infinite NPC growth.
         try:
-            from histrategy.engine.quarterly_engine import QuarterlyEngine
-            _qe = QuarterlyEngine(scenario=getattr(room, "scenario", None))
-            _qe.execute_npc_recruitment(world_state, baseline)
+            _apply_npc_structured_recruitment(world_state, all_commands, baseline)
         except Exception as e:
-            logger.warning("[room=%s] NPC auto-recruitment failed: %s", room.id, e)
+            logger.warning("[room=%s] NPC structured recruitment failed, falling back: %s", room.id, e)
+            # Fallback: old deterministic recruitment only if structured fails
+            try:
+                from histrategy.engine.quarterly_engine import QuarterlyEngine
+                _qe = QuarterlyEngine(scenario=getattr(room, "scenario", None))
+                _qe.execute_npc_recruitment(world_state, baseline)
+            except Exception as e2:
+                logger.warning("[room=%s] NPC fallback recruitment also failed: %s", room.id, e2)
 
         # ── Step 2.6: Treasury starvation penalties ──
         # H35z3: Factions with 0 treasury suffer progressive morale loss,

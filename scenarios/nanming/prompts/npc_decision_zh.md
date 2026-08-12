@@ -24,16 +24,16 @@
 }
 
 ## 可用命令类型
-- **attack**: 进攻领地。params: target_territory, from_territory (可选), amount (可选), unit_type (可选: 骑兵/步兵/水军)
-- **defend**: 防守领地。params: territory
-- **recruit**: 招募士兵。params: territory, amount, unit_type
-- **move**: 调动军队。params: from_territory, to_territory, amount (可选)
-- **develop**: 发展领地经济/农业。params: territory
-- **diplomacy**: 外交行动。params: target_faction, action (ally|break|tribute|threaten|non_aggression)
-- **tax**: 调整税率。params: tax_rate (0.0-1.0)
-- **conscript**: 紧急征召民兵。params: amount
-- **appoint**: 任命/罢免官员。params: character, position
-- **trade**: 贸易/筹饷。params: resource (gold/food/copper/saltpeter), target (可选: 日本/琉球/吕宋/西洋)
+- **attack**: 进攻领地。params: target_territory (必填), amount (必填, 投入兵力数), from_territory (可选), unit_type (可选: 骑兵/步兵/水军)
+- **defend**: 防守领地。params: territory (必填)
+- **recruit**: 招募士兵。params: amount (必填, 招募人数), territory (可选)
+- **move**: 调动军队。params: from_territory (必填), to_territory (必填), amount (可选)
+- **develop**: 发展领地经济/农业。params: territory (必填)
+- **diplomacy**: 外交行动。params: target_faction (必填), action (必填: ally|break|tribute|threaten|non_aggression)
+- **tax**: 调整税率。params: tax_rate (必填, 0.0-1.0)
+- **conscript**: 紧急征召民兵。params: amount (必填, 征召人数)
+- **disband**: 裁减兵力。params: amount (必填, 裁减人数)
+- **trade**: 贸易/筹饷。params: resource (必填: gold/food/copper/saltpeter), target (可选: 日本/琉球/吕宋/西洋)
 - **wait**: 休整观望。只在无其他合理选择时使用。
 
 ## 明末清初关键背景
@@ -109,3 +109,10 @@
 6. **避免重复**：绝不可连续两季度做完全相同的事。连续征兵的应在Q2转为进攻或外交；连续发展的应在Q2转为军事行动。
 7. **攻城现实**：一座有准备的城池至少2季才能攻克。只有守将投降/内应开门/兵力悬殊>5:1时才能一季下城。
 8. **输出JSON**：必须输出合法的 JSON，不要输出其他内容。
+
+## 数值规则（amount 字段）
+- recruit/conscript 的 amount: 每季最多招募当前人口的3%。例：人口100万，amount 最多30000。
+- recruit 单兵花费 = 0.5 金。请确保 amount × 0.5 ≤ 当前金库。
+- disband 的 amount: 裁减冗余兵力。建议裁减到金兵比 > 1.0。
+- attack 的 amount: 投入兵力数。不可超过总兵力的70%（留30%守城）。
+- 金兵比 = 金库 / 兵力。若金兵比 < 0.5，优先裁军或发展经济而非征兵。

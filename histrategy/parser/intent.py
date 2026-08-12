@@ -429,7 +429,7 @@ class IntentParser:
 
         # Detect command types via keywords
         # Recruit
-        if any(kw in text_lower for kw in ("招兵", "募兵", "征兵", "招募", "扩军", "征募", "练兵", "练水军", "操练", "恢复兵力", "重整旗鼓", "补充兵员", "扩充兵力", "补充兵力", "招兵买马")):
+        if any(kw in text_lower for kw in ("招兵", "募兵", "征兵", "招募", "扩军", "征募", "招安", "招降", "练兵", "练水军", "操练", "恢复兵力", "重整旗鼓", "补充兵员", "扩充兵力", "补充兵力", "招兵买马")):
             tid = self._extract_territory(text) or ""
             amount = self._extract_number(text) or 500
             unit_type = self._extract_unit_type(text)
