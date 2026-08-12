@@ -68,7 +68,12 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
     import sys
     npc_fids = [fid for fid in all_commands if fid != player_fid]
     total = sum(len(v) for k, v in all_commands.items() if k != player_fid)
-    print(f"H36R_DBG player={player_fid} npcs={npc_fids} cmds={total}", file=sys.stderr, flush=True)
+    print(f"H36R_DBG player={player_fid} npcs={npc_fids} cmds={total} has_factions={hasattr(world_state,'factions')}", file=sys.stderr, flush=True)
+    # Print first command type for each NPC
+    for fid in npc_fids:
+        cmds = all_commands.get(fid, [])
+        types = [c.get('type','?') if isinstance(c,dict) else type(c).__name__ for c in cmds[:3]]
+        print(f"H36R_DBG {fid}: {types}", file=sys.stderr, flush=True)
 
     for fid, commands in all_commands.items():
         if fid == player_fid:
