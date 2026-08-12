@@ -910,16 +910,26 @@ def _build_turn_summary(
 def _snapshot_factions(ws: WorldState) -> dict[str, dict]:
     """Capture pre-turn snapshot of all active factions."""
     snap: dict[str, dict] = {}
+    # Build territory ownership map from ws.territories
+    faction_terrs: dict[str, list[str]] = {}
+    if hasattr(ws, "territories") and ws.territories:
+        for tid, t in ws.territories.items():
+            owner = getattr(t, "owner_id", "") or ""
+            if owner and owner in ws.factions:
+                faction_terrs.setdefault(owner, []).append(tid)
     for fid, faction in ws.factions.items():
         if not getattr(faction, "is_active", True):
             continue
+        terrs = faction_terrs.get(fid, [])
+        if not terrs:
+            terrs = list(getattr(faction, "territories", []) or [])
         snap[fid] = {
             "troops": getattr(faction, "strength_actual", 0) or 0,
             "food": getattr(faction, "food", 0) or 0,
             "treasury": getattr(faction, "treasury", 0) or 0,
             "morale": getattr(faction, "morale_actual", 50) or 50,
             "population": getattr(faction, "population", 0) or 0,
-            "territories": len(getattr(faction, "territories", []) or []),
+            "territory_ids": terrs,
         }
     return snap
 
@@ -941,6 +951,18 @@ def _compute_state_deltas(
             "morale": getattr(faction, "morale_actual", 50) or 50,
             "population": getattr(faction, "population", 0) or 0,
         }
+        # H38d: Include territory changes to prevent narrative hallucination
+        curr_terrs = []
+        if hasattr(ws, "territories") and ws.territories:
+            for tid, t in ws.territories.items():
+                if getattr(t, "owner_id", "") == fid:
+                    curr_terrs.append(tid)
+        if not curr_terrs:
+            curr_terrs = list(getattr(faction, "territories", []) or [])
+        prev_terrs = prev.get("territory_ids", [])
+        gained = [tid for tid in curr_terrs if tid not in prev_terrs]
+        lost = [tid for tid in prev_terrs if tid not in curr_terrs]
+
         changes = []
         for key, label in [("troops", "troops"), ("food", "food"), ("treasury", "treasury"), ("morale", "morale"), ("population", "population")]:
             old_v = prev.get(key, 0) or 0
@@ -952,5 +974,9 @@ def _compute_state_deltas(
                 "new_value": new_v,
                 "delta": delta,
             })
+        if gained:
+            changes.append({"delta_type": "territory_gained", "old_value": 0, "new_value": len(gained), "delta": len(gained), "detail": gained})
+        if lost:
+            changes.append({"delta_type": "territory_lost", "old_value": 0, "new_value": len(lost), "delta": -len(lost), "detail": lost})
         deltas[fid] = changes
     return deltas

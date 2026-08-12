@@ -353,6 +353,8 @@ class NarrativeEngine:
             lines.append("## State Deltas (Authoritative — what actually changed)")
             lines.append("These are the REAL changes. Your narrative MUST be consistent")
             lines.append("with these deltas. Do NOT describe opposite changes.")
+            lines.append("If territory_gained is empty for a faction, do NOT describe")
+            lines.append("that faction as having captured territory.")
             for fid, deltas in state_deltas.items():
                 if not deltas:
                     continue
@@ -361,6 +363,11 @@ class NarrativeEngine:
                 parts = []
                 for d in deltas:
                     dt = d.get("delta_type", "?")
+                    if dt in ("territory_gained", "territory_lost"):
+                        detail = d.get("detail", [])
+                        detail_str = ", ".join(detail) if detail else "none"
+                        parts.append(f"{dt}: {detail_str}")
+                        continue
                     old_v = d.get("old_value", 0)
                     new_v = d.get("new_value", 0)
                     delta = d.get("delta", 0)
