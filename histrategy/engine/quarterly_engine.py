@@ -456,7 +456,22 @@ class QuarterlyEngine:
             else:
                 morale_factor = 1.0 + (morale - 80) / 100.0  # 1.0→1.2
 
-            recruit_rate = base_rate * max(0, morale_factor)
+            # ── H36a-fix: Gate recruitment on treasury health ──
+            # Factions with critically low gold/soldier should reduce or stop
+            # recruitment — they literally cannot afford to feed more soldiers.
+            gold_per_soldier = treasury / max(strength, 1)
+            recruit_rate_mult = 1.0
+            if gold_per_soldier <= 0:
+                # Treasury is zero — no recruitment at all, only desertion
+                recruit_rate_mult = 0.0
+            elif gold_per_soldier < 0.1:
+                recruit_rate_mult = 0.0  # nearly broke — stop recruiting
+            elif gold_per_soldier < 0.2:
+                recruit_rate_mult = 0.2  # severely constrained
+            elif gold_per_soldier < 0.5:
+                recruit_rate_mult = 0.5  # tight budget
+
+            recruit_rate = base_rate * max(0, morale_factor) * recruit_rate_mult
             raw_amount = int(total_pop * recruit_rate)
 
             if morale_factor < 0:
@@ -556,6 +571,24 @@ class QuarterlyEngine:
                     faction.strength_actual = max(500, strength - deserters)
                 else:
                     deserters = 0
+
+                # ── Auto-disband: 军转民屯田 ──
+                # When treasury=0 for a large army, the faction MUST disband.
+                # This isn't just desertion — it's the faction leadership making
+                # the rational choice to reduce the army it can't pay.
+                # 5% disband → population (soldiers return to farms/trade).
+                if strength > 5000:
+                    disband_pct = 0.05  # 5% forced disband per quarter
+                    disbanded = max(500, int(strength * disband_pct))
+                    faction.strength_actual = max(500, faction.strength_actual - disbanded)
+                    # Soldiers return to civilian life → population boost
+                    pop = getattr(faction, "population", 0) or 0
+                    faction.population = pop + disbanded
+                    if result and hasattr(result, "notable_events"):
+                        result.notable_events.append(
+                            f"{fid}无力养兵，裁军{disbanded}人转为屯田（兵力→人口）"
+                        )
+                    deserters += disbanded  # include in total loss reporting
 
                 if result and hasattr(result, "notable_events"):
                     result.notable_events.append(

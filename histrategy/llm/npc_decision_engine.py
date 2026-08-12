@@ -192,6 +192,7 @@ NPC_COMMAND_TYPES = [
     "diplomacy",
     "tax",
     "conscript",
+    "disband",
     "appoint",
     "wait",
 ]

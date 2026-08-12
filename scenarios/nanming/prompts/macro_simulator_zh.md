@@ -25,5 +25,5 @@ JSON对象，四个字段（即使为空也输出[]）:
 ⚠️ narrative/reason/description字段控制在30字以内。不要写长篇散文。
 
 npc_faction_actions schema:
-[{"faction":"qing","action_type":"develop|diplomacy|tax|declare_war|naval_blockade|none","target":"nanming","reason":"...","params":{},"narrative":"..."}]
-注意：NPC征兵由游戏引擎自动根据士气+人口计算，LLM不得生成conscript动作。
+[{"faction":"qing","action_type":"develop|diplomacy|tax|declare_war|naval_blockade|disband|none","target":"nanming","reason":"...","params":{},"narrative":"..."}]
+注意：NPC征兵由游戏引擎自动根据士气+人口计算，LLM不得生成conscript动作。金库为0的势力应使用disband裁军。disband的params: {"amount": N} 裁减N兵力。

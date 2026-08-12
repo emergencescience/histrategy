@@ -345,6 +345,19 @@ def _settle_battle(br: dict, ws, fmap: dict, tmap: dict, summary: dict) -> None:
     llm_wants_capture = bool(br.get("territory_captured")) or br.get("result") in ("attack_win", "rout")
     force_permits = a_pow > d_pow * _TERRITORY_CAPTURE_POWER_RATIO
     morale_collapse = d_mor < _MORALE_COLLAPSE_THRESHOLD
+
+    # ── Overwhelming force override ──
+    # When the attacker has >5:1 effective power advantage, the city MUST fall
+    # regardless of what the LLM narrates. The physics engine doesn't negotiate
+    # with the LLM when the force ratio is absurd. (e.g. 540k vs 40k = 12:1)
+    _OVERWHELMING_FORCE_RATIO = 5.0
+    if territory and a_pow > d_pow * _OVERWHELMING_FORCE_RATIO and not llm_wants_capture:
+        llm_wants_capture = True
+        logger.info(
+            "Overwhelming force override: %s(%d eff) vs %s(%d eff) at %s — auto-capturing",
+            atk, int(a_pow), dfd, int(d_pow), loc,
+        )
+
     adjacency_ok = _attacker_borders_territory(atk, loc, ws)
     if territory and llm_wants_capture and (force_permits or morale_collapse):
         if not adjacency_ok:
