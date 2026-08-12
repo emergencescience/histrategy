@@ -57,7 +57,12 @@ def _json_safe_deep_convert(obj):
     if is_dataclass(obj):
         return {k: _json_safe_deep_convert(v) for k, v in asdict(obj).items()}
     if isinstance(obj, dict):
-        return {str(k): _json_safe_deep_convert(v) for k, v in obj.items()}
+        # H37d-fix: Enum dict keys (e.g. UnitType in army.units) must serialize as
+        # their .value ("cavalry"), NOT str() ("UnitType.CAVALRY"). The reload path
+        # does `UnitType(key)` which only accepts the .value form — str() produced
+        # "UnitType.CAVALRY", which failed and corrupted unit keys to None
+        # (→ KeyError: None in _army_speed). Use the recursive converter for keys.
+        return {_json_safe_deep_convert(k): _json_safe_deep_convert(v) for k, v in obj.items()}
     if isinstance(obj, (list, tuple)):
         return [_json_safe_deep_convert(v) for v in obj]
     return obj

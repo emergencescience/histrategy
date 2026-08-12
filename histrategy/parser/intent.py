@@ -366,13 +366,16 @@ class IntentParser:
                     return {}
 
         result = _do_llm_call()
+        _raw = result.get("commands", []) if isinstance(result, dict) else result
 
         commands_data = result.get("commands", [])
         if not isinstance(commands_data, list):
             commands_data = []
 
         # ── Retry: if LLM returned empty commands, retry with explicit error message ──
+        _retried = False
         if not commands_data:
+            _retried = True
             retry_msg = (
                 "You returned empty commands. Please re-parse the following text "
                 "into one or more structured Command objects. Each command should "
@@ -392,6 +395,14 @@ class IntentParser:
             cmd = self._build_command(cmd_data, faction_id)
             if cmd:
                 commands.append(cmd)
+
+        # H37d: log LLM intent-parse result to diagnose empty/partial parses.
+        import logging as _logging
+        _logging.getLogger("histrategy.parser").warning(
+            "[LLMPARSE][%s] text=%r → raw=%r retried=%s → %d cmds: %s",
+            faction_id, text[:60], str(_raw)[:200], _retried, len(commands),
+            [getattr(c, "type", "?") for c in commands],
+        )
 
         return commands
 

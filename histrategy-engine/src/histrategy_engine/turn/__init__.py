@@ -333,6 +333,13 @@ class TurnController:
                 a.total_troops for a in world_state.armies.values()
                 if a.faction_id == fid
             )
+            # H37d: log the reconciliation to trace the troop crash.
+            _n_armies = sum(1 for a in world_state.armies.values() if a.faction_id == fid)
+            import logging as _h37d_logging
+            _h37d_logging.getLogger("histrategy.trooptrace").warning(
+                "[TROOPTRACE][reconcile] %s strength_actual=%d deployed=%d armies=%d",
+                fid, getattr(faction, "strength_actual", 0), deployed, _n_armies,
+            )
             if deployed > 0:
                 faction.strength_actual = deployed
 

@@ -165,6 +165,21 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
     return recruited_count
 
 
+def _log_faction_troops(ws, label: str, room_id: str = "") -> None:
+    """H37d: Log all faction troops at a resolve() step to trace the troop crash."""
+    import logging
+    log = logging.getLogger("histrategy.trooptrace")
+    if not hasattr(ws, "factions"):
+        log.warning("[TROOPTRACE][room=%s] %s: (no factions)", room_id, label)
+        return
+    parts = []
+    for fid, f in ws.factions.items():
+        if not getattr(f, "is_active", True):
+            continue
+        parts.append(f"{fid}={getattr(f, 'strength_actual', 0)}")
+    log.warning("[TROOPTRACE][room=%s] %s → %s", room_id, label, ", ".join(parts))
+
+
 class QuarterlyResolver:
     """对称多 faction 季度引擎。
 
@@ -300,6 +315,7 @@ class QuarterlyResolver:
             pass
 
         # ── Step 2: 确定性基线 ──
+        _log_faction_troops(world_state, "pre-baseline", room.id)
         baseline = None
         if self.turn_controller:
             try:
@@ -313,6 +329,7 @@ class QuarterlyResolver:
                 logger.error("[room=%s] TurnController failed: %s", room.id, e)
                 baseline = _empty_baseline(world_state)
                 results.baseline = baseline
+        _log_faction_troops(world_state, "post-baseline", room.id)
 
         # ── Step 2.5: NPC recruitment — INLINED (H36r) ──
         # Bypassing _apply_npc_structured_recruitment() entirely to rule out
@@ -382,19 +399,12 @@ class QuarterlyResolver:
                     _npc_recruited += 1
         except Exception as e:
             logger.warning("[room=%s] NPC structured recruitment failed: %s", room.id, e)
-        # H36p: Only fall back to deterministic if NO NPC had structured recruitment
-        # that ran. If even one NPC had structured commands processed (even with
-        # zero recruit actions), skip the fallback entirely.
-        # H36r: _apply_npc_structured_recruitment now returns the count of factions
-        # that had recruitment applied, not just a success boolean.
-        if _npc_recruited <= 0:
-            logger.warning("[room=%s] No structured NPC recruitment applied, using deterministic fallback", room.id)
-            try:
-                from histrategy.engine.quarterly_engine import QuarterlyEngine
-                _qe = QuarterlyEngine(scenario=getattr(room, "scenario", None))
-                _qe.execute_npc_recruitment(world_state, baseline)
-            except Exception as e2:
-                logger.warning("[room=%s] NPC fallback recruitment also failed: %s", room.id, e2)
+        # H37d: auto-recruit (execute_npc_recruitment) fallback REMOVED.
+        # NPC recruitment now comes EXCLUSIVELY from npc_decision structured
+        # commands (recruit/conscript/disband). The old deterministic auto-recruit
+        # was deprecated in H36q and is no longer a fallback — if no NPC issued a
+        # recruit command, that is the NPC's choice (no recruitment this turn).
+        _log_faction_troops(world_state, "post-npc-recruit", room.id)
 
         # ── Step 2.6: Treasury starvation penalties ──
         # H35z3: Factions with 0 treasury suffer progressive morale loss,
@@ -434,8 +444,12 @@ class QuarterlyResolver:
                 logger.warning("[room=%s] BlackSwanInjector failed: %s", room.id, e)
 
         # ── Pre-sync: reconcile strength_actual from deployed armies ──
-        # Deployment (helpers.py L770) reduces strength_actual. Battles need
-        # total troops, not just reserves. Sync before macro sim → state applier.
+        # H37d-fix: the old `reserve + deployed` DOUBLE-COUNTED troops. After the
+        # TurnController's periodic reconciliation, strength_actual already equals
+        # deployed (armies are the source of truth), so `reserve + deployed` summed
+        # the same troops twice (→ the observed +28,977 inflation). Use
+        # max(deployed, reserve) so NPC recruit (which adds to strength_actual but
+        # not armies) is preserved without double-counting.
         if hasattr(world_state, 'armies') and world_state.armies:
             from .state_applier import _MIN_ACTIVE_TROOPS
             for fid in world_state.factions:
@@ -445,7 +459,7 @@ class QuarterlyResolver:
                     if getattr(a, 'faction_id', '') == fid
                 )
                 reserve = getattr(faction, 'strength_actual', 0) or 0
-                new_total = max(deployed, reserve + deployed, _MIN_ACTIVE_TROOPS)
+                new_total = max(deployed, reserve, _MIN_ACTIVE_TROOPS)
                 if new_total and new_total != reserve:
                     faction.strength_actual = new_total
 
@@ -499,9 +513,9 @@ class QuarterlyResolver:
             _extract_policies_from_delta(macro_delta, world_state, room.id)
 
         # ── Step 5.5: Sync faction strength_actual from deployed army totals ──
-        # strength_actual is reduced during deployment (helpers.py L770) to track
-        # available reserves. After battles, reconcile it from army totals so the
-        # API and next turn's battle code see the correct total troop count.
+        # H37d-fix: same double-count fix as the Pre-sync above — use
+        # max(deployed, reserve), NOT reserve + deployed (which summed the same
+        # troops twice and inflated strength_actual).
         if hasattr(world_state, 'armies') and world_state.armies:
             from .state_applier import _MIN_ACTIVE_TROOPS
             for fid in world_state.factions:
@@ -511,7 +525,7 @@ class QuarterlyResolver:
                     if getattr(a, 'faction_id', '') == fid
                 )
                 reserve = getattr(faction, 'strength_actual', 0) or 0
-                new_total = max(deployed, reserve + deployed, _MIN_ACTIVE_TROOPS)
+                new_total = max(deployed, reserve, _MIN_ACTIVE_TROOPS)
                 if new_total and new_total != reserve:
                     faction.strength_actual = new_total
 
@@ -603,7 +617,7 @@ class QuarterlyResolver:
                 turn_number=getattr(ws, "turn_number", getattr(ws, "turn", 1)),
             )
         except Exception as e:
-            logger.warning(f"Baseline execution failed: {e}")
+            logger.exception("[room=%s] Baseline execution failed: %s", getattr(room, "id", "?"), e)
         return _empty_baseline(ws)
 
     def _run_macro_simulation(

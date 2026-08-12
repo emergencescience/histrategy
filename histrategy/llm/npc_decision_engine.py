@@ -434,11 +434,11 @@ class NPCDecisionEngine:
             elif rel > 30:
                 friendly_neighbors.append((nid, nf, n_strength))
 
-        # ── Priority 1/2: NPC recruitment is NOW handled automatically by
-        # QuarterlyEngine.execute_npc_recruitment() based on morale × population.
-        # LLM/heuristic conscript commands are ignored by state_applier and
-        # quarterly_engine to prevent the double-recruitment bug.
-        # Instead, NPCs focus on economic/strategic actions.
+        # ── NPC recruitment: handled by the LLM npc_decision path via structured
+        # recruit/conscript/disband commands (see quarterly_resolver H36k/H36r).
+        # This heuristic fallback deliberately omits recruit/conscript to avoid
+        # double-recruitment. The old deterministic auto-recruit
+        # (execute_npc_recruitment) was removed in H37d.
 
         # ── Priority 2.5: Starvation — MUST develop if food is 0 ──
         if food <= 0 and territories:
