@@ -148,12 +148,8 @@ class StateApplier:
                 step = _clamp(round((_MORALE_EQUILIBRIUM - m) * 0.12), -_MORALE_REVERT_MAX, _MORALE_REVERT_MAX)
                 f.morale_actual = _clamp(m + step, 0, 100)
 
-        # 5) Auto-surrender: broken NPCs (morale < 15, ≤ 1 territory) fold.
-        for fid, f in list(ws.factions.items()):
-            if fid == getattr(ws, "player_faction_id", None):
-                continue
-            if getattr(f, "is_active", True) and getattr(f, "morale_actual", 50) < 15 and len(f.territories) <= 1:
-                _absorb_defeated_faction(fid, ws, summary)
+        # 5) 势力永生：无灭亡判定（移除 auto-surrender）。
+        #    失去城池的势力仍作为流亡军/流亡朝廷继续存在。
 
         return summary
 
@@ -370,10 +366,7 @@ def _settle_battle(br: dict, ws, fmap: dict, tmap: dict, summary: dict) -> None:
             # capture morale swing
             af.morale_actual = _clamp(getattr(af, "morale_actual", 50) + 5, 0, 100)
             df.morale_actual = _clamp(getattr(df, "morale_actual", 50) - 8, 0, 100)
-            # If the defender lost its last city, it is finished.
-            if not df.territories:
-                df.is_active = False
-                summary["factions_defeated"] += 1
+            # 势力永生：失去最后一座城池不再判灭亡，作为流亡军继续存在。
 
 
 def _sum_casualties(v) -> int:
@@ -452,26 +445,6 @@ def _transfer_territory(loc: str, new_owner: str, old_owner: str, ws, summary: d
         if absorbed > 0:
             old_faction.strength_actual = max(_MIN_ACTIVE_TROOPS, old_faction.strength_actual - absorbed)
             ws.factions[new_owner].strength_actual = getattr(ws.factions[new_owner], "strength_actual", 0) + absorbed
-
-
-def _absorb_defeated_faction(fid: str, ws, summary: dict) -> None:
-    """Mark a broken faction inactive and hand its last land to a neighbor."""
-    f = ws.factions.get(fid)
-    if not f:
-        return
-    f.is_active = False
-    summary["factions_defeated"] += 1
-    for last_t in list(f.territories):
-        territory = ws.territories.get(last_t)
-        neighbors = getattr(territory, "neighbors", []) if territory else []
-        heir = None
-        for nid in neighbors:
-            nt = ws.territories.get(nid)
-            if nt and nt.owner_id in ws.factions and getattr(ws.factions[nt.owner_id], "is_active", True):
-                heir = nt.owner_id
-                break
-        if heir:
-            _transfer_territory(last_t, heir, fid, ws, summary)
 
 
 def _apply_npc_faction_action(nfa: dict, ws, fmap: dict, summary: dict, battle_troops_lost: dict | None = None) -> None:

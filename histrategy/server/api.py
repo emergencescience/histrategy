@@ -534,7 +534,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         return result
 
     @app.get("/api/rooms/{room_id}/advisor-stream")
-    def api_advisor_stream(room_id: str, faction_id: str = ""):
+    def api_advisor_stream(room_id: str, faction_id: str = "", goal: str = ""):
         """Stream AI advisor advice (军师进言) via SSE.
 
         Uses recent 3-4 turn_summaries + current faction state to generate
@@ -669,8 +669,26 @@ def create_app(llm_provider: str | None = None) -> Any:
             # Structured 三策/Three Strategies format so the frontend can parse
             # the stream into clickable option cards (click → fill the input box).
             is_en = lang_meta.startswith("en")
+            # ── 注入玩家目标（玩家在输入框写的文字）──
+            goal_prefix = ""
+            if goal and goal.strip():
+                if is_en:
+                    goal_prefix = (
+                        f'The commander has stated this goal: "{goal.strip()}".\n'
+                        "Evaluate its FEASIBILITY first — if it targets a city/faction "
+                        "that does not exist on this map, or is wildly beyond our strength, "
+                        "say so plainly and do NOT invent a path to an impossible goal. "
+                        "If feasible, tailor all three strategies around it.\n\n"
+                    )
+                else:
+                    goal_prefix = (
+                        f"主公当前提出的目标是：「{goal.strip()}」。\n"
+                        "请先评估此目标的可行性。若该目标指向的城池/势力根本不存在于当前地图，"
+                        "或远超我方当前实力，必须明确点破，切勿为不可能的目标编造实现路径。"
+                        "若目标可行，则三条建议应围绕该目标展开。\n\n"
+                    )
             if is_en:
-                query = (
+                query = goal_prefix + (
                     f"Advise me as the war councilor of {faction.name}: first, analyze "
                     f"the current strategic situation in 2-3 sentences of vivid prose, "
                     f"then provide three actionable strategies considering relative "
@@ -683,7 +701,7 @@ def create_app(llm_provider: str | None = None) -> Any:
                     f"【Lower Strategy】〈title ≤8 words〉\nDecree: 〈one executable command〉"
                 )
             else:
-                query = (
+                query = goal_prefix + (
                     f"请以我（{faction.name}）的军师身份进言：先用2-3句文言简析当前形势，"
                     f"再给出三条可执行的策略，务必兼顾敌我实力对比与近期战况。\n"
                     f"严格按以下格式输出（每条策略之间空一行），"

@@ -1467,27 +1467,7 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
     # that never changes territory ownership.
     _resolve_npc_territory_combat(room, ws, decisions)
 
-    # ── P0-2: 同步势力灭亡状态到 slot ──
-    # V3 引擎（state_applier / turn_processor）会在势力失地后设置
-    # ws.factions[fid].is_active = False，但从未同步 room.slots[fid].is_active。
-    # 结果：灭亡势力（含玩家）仍可提交命令，且叙事不提灭亡。
-    # 这里在每次 resolve 后统一同步，并记录本回合灭亡的势力供叙事提示。
-    defeated_factions = []
-    for _fid, _f in ws.factions.items():
-        if not getattr(_f, "is_active", True):
-            _slot = room.slots.get(_fid)
-            if _slot is not None and _slot.is_active:
-                _slot.is_active = False
-                defeated_factions.append(_fid)
-                logger.warning(
-                    "[room=%s] 势力 %s 灭亡（失地），slot 已标记 inactive",
-                    room.id, _fid,
-                )
-    if defeated_factions:
-        _fnames = _get_faction_names(room, lang=lang or "zh")
-        result.narratives["_defeated_factions"] = _json_persist.dumps(
-            {_fid: _fnames.get(_fid, _fid) for _fid in defeated_factions}
-        )
+    # 势力永生：不再有灭亡同步（无势力会被标记 inactive）。
 
     if result.turn_summary:
         room.turn_summaries.append(result.turn_summary)
@@ -2851,21 +2831,7 @@ def _ensure_narrative_fallback(room, decisions, result):
 
         lines = [f"### {year}年{season_cn} · 大事纪", "", era_line, ""]
 
-        # ── P0-1: 用真实 NPC 决策摘要 + 灭亡事件生成确定性叙事 ──
-        # 此前收集了 npc_summaries 却不用，只输出"史官记录本季大事"占位符，
-        # 导致 SSE 失败/后台线程未跑时玩家看到空泛文本。现在注入真实内容。
-        defeated_raw = (result.narratives or {}).get("_defeated_factions", "")
-        defeated_map = {}
-        if defeated_raw:
-            try:
-                import json as _json_def
-                defeated_map = _json_def.loads(defeated_raw)
-            except Exception:
-                defeated_map = {}
-
-        if defeated_map:
-            defeated_names = "、".join(defeated_map.values())
-            lines.append(f"**⚔️ 势力更迭**：{defeated_names} 已失去全部领地，势力覆灭。")
+        # ── P0-1: 用真实 NPC 决策摘要生成确定性叙事（势力永生，无灭亡事件）──
 
         if npc_summaries:
             lines.append("")

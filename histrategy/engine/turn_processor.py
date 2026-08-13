@@ -843,44 +843,6 @@ class TurnProcessorMixin:
                                 ws.factions[att].strength_actual = (
                                     getattr(ws.factions[att], "strength_actual", 0) + absorbed
                                 )
-            # Auto-surrender: factions with morale < 15 and ≤ 1 territory
-            for fid, f in list(ws.factions.items()):
-                if fid == ws.player_faction_id:
-                    continue
-                if getattr(f, "is_active", True) and getattr(f, "morale_actual", 50) < 15 and len(f.territories) <= 1:
-                    f.is_active = False
-                    # Transfer last territory to nearest neighbor
-                    if f.territories:
-                        last_t = f.territories[0]
-                        neighbors = getattr(ws.territories[last_t], "neighbors", [])
-                        for nid in neighbors:
-                            if nid in ws.territories:
-                                n_owner = ws.territories[nid].owner_id
-                                if n_owner in ws.factions and getattr(ws.factions[n_owner], "is_active", True):
-                                    ws.territories[last_t].owner_id = n_owner
-                                    if last_t not in ws.factions[n_owner].territories:
-                                        ws.factions[n_owner].territories.append(last_t)
-                                    break
-            for br in llm_delta.get("battle_results", []):
-                if not br.get("territory_captured") and br.get("defender_faction"):
-                    # Handle "defeated" factions — mark inactive
-                    def_raw = br.get("defender_faction", "") or br.get("defender", "")
-                    def_id = faction_id_map.get(def_raw, def_raw)
-                    if (
-                        def_id in ws.factions
-                        and def_id != ws.player_faction_id
-                        and (br.get("result") in ("attack_win", "rout") or br.get("is_total_defeat"))
-                    ):
-                        ws.factions[def_id].is_active = False
-                        # Transfer remaining territories to victor
-                        att_raw = br.get("attacker", "")
-                        att = faction_id_map.get(att_raw, att_raw)
-                        if att in ws.factions:
-                            for t_loc in list(ws.factions[def_id].territories):
-                                ws.territories[t_loc].owner_id = att
-                                ws.factions[def_id].territories.remove(t_loc)
-                                if t_loc not in ws.factions[att].territories:
-                                    ws.factions[att].territories.append(t_loc)
 
         # Step 6.5: Apply NPC faction independent actions
         if llm_delta:
