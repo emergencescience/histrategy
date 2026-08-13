@@ -347,7 +347,11 @@ class TestDBPersistence:
 
         # Verify content integrity
         import json as _json
-        saved_baseline = _json.loads(turn["baseline_result"]) if isinstance(turn["baseline_result"], str) else turn["baseline_result"]
+        saved_baseline = (
+            _json.loads(turn["baseline_result"])
+            if isinstance(turn["baseline_result"], str)
+            else turn["baseline_result"]
+        )
         assert saved_baseline["year"] == 208
         assert len(saved_baseline["battles"]) == 1
 
@@ -416,7 +420,7 @@ class TestNPCTriggerDecisions:
 
         _trigger_npc_decisions(room)
 
-        # Only major AI slots (shu, wu) should have decisions — 
+        # Only major AI slots (shu, wu) should have decisions —
         # npc_only minors (liuzhang, etc.) use heuristic not LLM
         ai_slots = room.major_ai_slots()
         assert len(ai_slots) > 0, "Room should have major AI slots"

@@ -11,8 +11,6 @@ Run with: pytest tests/test_nanming_e2e.py -v
 """
 
 import json
-import os
-import sys
 from pathlib import Path
 
 import pytest

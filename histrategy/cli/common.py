@@ -5,8 +5,6 @@ Extracted from the three CLI entry points during the 2025-06-18 cleanup scan.
 
 from __future__ import annotations
 
-import os
-
 from ..llm.adapter import LLMAdapter, detect_provider
 from ..llm.game_master import GameMaster
 

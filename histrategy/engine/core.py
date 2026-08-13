@@ -674,8 +674,8 @@ class GameEngineCore:
         if sim_engine is not None:
             self.sim_engine = sim_engine
         elif llm is not None:
-            from ..llm.llm_sim_engine import LLMSimEngine
             from ..engine.offline_sim_engine import OfflineSimEngine
+            from ..llm.llm_sim_engine import LLMSimEngine
 
             primary = LLMSimEngine(llm)
             fallback = OfflineSimEngine()

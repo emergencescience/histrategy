@@ -205,7 +205,7 @@ class TestSerialization:
 
     def test_get_returns_raw_dicts(self):
         """get() returns raw dicts (no Command deserialization)."""
-        from histrategy.server.intent_cache import get, store, clear
+        from histrategy.server.intent_cache import clear, get, store
 
         try:
             data = [

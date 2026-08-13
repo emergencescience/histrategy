@@ -7,13 +7,13 @@ from .helpers import EARLY_TURNS_SUGGESTIONS, FIRST_TURN_SUGGESTIONS, _suppress_
 
 def _resolve_early_suggestions(scenario: str, faction_id: str, turn: int, lang: str) -> list[str]:
     """Resolve suggestions from EARLY_TURNS_SUGGESTIONS dict.
-    
+
     Args:
         scenario: Scenario ID (e.g. 'three-kingdoms', 'rome-triumvirate')
         faction_id: Faction identifier
         turn: Turn number (1-based, 1-4 supported)
         lang: Language ('zh' or 'en')
-    
+
     Returns:
         List of suggestion strings, or empty list if not found.
     """
@@ -383,7 +383,7 @@ class IntroPlanMixin:
             # Generic fallback for non-three-kingdoms scenarios
             intro = (
                 self._ERA_FALLBACKS[scenario].format(year=207)
-                + f"\n你，执掌一方势力。\n\n"
+                + "\n你，执掌一方势力。\n\n"
                 + "当审时度势，谋定而后动。\n"
             )
         else:

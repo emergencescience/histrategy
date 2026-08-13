@@ -204,17 +204,17 @@ class PolicyParser:
         """Redirect recruit/develop/train targeting non-owned territories."""
         import logging
         _log = logging.getLogger("histrategy.policy")
-        
+
         player_faction = ws.factions.get(faction_id)
         if not player_faction:
             return commands
-        
+
         owned = set(getattr(player_faction, "territories", []) or [])
         if not owned:
             return commands
-        
+
         _log.info("[policy-validate] %d commands for %s (owns: %s)", len(commands), faction_id, sorted(owned))
-        
+
         territory_types = {"recruit", "develop", "train", "defend", "policy"}
         for cmd in commands:
             ct = getattr(cmd, "type", "") if hasattr(cmd, "type") else cmd.get("type", "")
@@ -223,7 +223,7 @@ class PolicyParser:
                 tid = cmd.params.get("territory", "") or cmd.params.get("target_territory", "")
             elif isinstance(cmd, dict):
                 tid = cmd.get("params", {}).get("territory", "") or cmd.get("params", {}).get("target_territory", "")
-            
+
             if ct in territory_types and tid and tid not in owned:
                 fallback = next(iter(owned))
                 fn = getattr(ws.territories.get(fallback), "name", fallback) if hasattr(ws, "territories") else fallback
@@ -238,7 +238,7 @@ class PolicyParser:
                 elif isinstance(cmd, dict):
                     if "territory" in cmd.get("params", {}):
                         cmd["params"]["territory"] = fallback
-        
+
         return commands
 
     # ── Name resolution ────────────────────────────────────

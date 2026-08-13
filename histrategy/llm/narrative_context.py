@@ -10,10 +10,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from histrategy_engine.world import WorldState, TurnResult
+    from histrategy_engine.world import WorldState
 
 
-def format_baseline_for_narrative(baseline, ws: "WorldState | None" = None) -> str:
+def format_baseline_for_narrative(baseline, ws: WorldState | None = None) -> str:
     """Format a TurnResult baseline into structured Chinese text.
 
     Produces a readable narrative context suitable for LLM prompt injection.

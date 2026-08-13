@@ -407,6 +407,7 @@ def submit_decision(room_id: str, faction_id: str, decision: str, skip_narrative
         # ── Log intent parse for debug traceability ──
         try:
             import json as _json
+
             from histrategy.db.models import log_llm_call
             log_llm_call(
                 room_id=room.id,
@@ -547,7 +548,7 @@ def stream_and_persist_narrative(room):
                         if chunk:
                             chunks.append(chunk)
                             yield chunk
-                except Exception as e:
+                except Exception:
                     logger.error(
                         "[room=%s] Fallback narrative stream failed: %s",
                     )
@@ -566,7 +567,7 @@ def stream_and_persist_narrative(room):
                 try:
                     from histrategy.db.models import update_quarter_turn_narratives
 
-                    narratives = {fid: full for fid in faction_decisions}
+                    narratives = dict.fromkeys(faction_decisions, full)
                     narratives["global"] = full
                     update_quarter_turn_narratives(room.id, quarter, narratives)
                 except Exception as e:
@@ -1183,13 +1184,11 @@ def _bg_generate_narrative(room_id: str, quarter: int, scenario: str, lang: str 
         return
 
     # Persist to DB
-    persist_ok = False
     try:
         from histrategy.db.models import update_quarter_turn_narratives
-        narratives = {fid: full_text for fid in all_decisions}
+        narratives = dict.fromkeys(all_decisions, full_text)
         narratives["global"] = full_text
         update_quarter_turn_narratives(room_id, quarter, narratives)
-        persist_ok = True
         logger.info(
             "[room=%s] bg_narrative: persisted %d chars in %.1fs",
             room_id, len(full_text), _t.time() - _t0,
@@ -1467,6 +1466,28 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
     # military actions. Without this, NPC battles are pure narrative fiction
     # that never changes territory ownership.
     _resolve_npc_territory_combat(room, ws, decisions)
+
+    # ── P0-2: 同步势力灭亡状态到 slot ──
+    # V3 引擎（state_applier / turn_processor）会在势力失地后设置
+    # ws.factions[fid].is_active = False，但从未同步 room.slots[fid].is_active。
+    # 结果：灭亡势力（含玩家）仍可提交命令，且叙事不提灭亡。
+    # 这里在每次 resolve 后统一同步，并记录本回合灭亡的势力供叙事提示。
+    defeated_factions = []
+    for _fid, _f in ws.factions.items():
+        if not getattr(_f, "is_active", True):
+            _slot = room.slots.get(_fid)
+            if _slot is not None and _slot.is_active:
+                _slot.is_active = False
+                defeated_factions.append(_fid)
+                logger.warning(
+                    "[room=%s] 势力 %s 灭亡（失地），slot 已标记 inactive",
+                    room.id, _fid,
+                )
+    if defeated_factions:
+        _fnames = _get_faction_names(room, lang=lang or "zh")
+        result.narratives["_defeated_factions"] = _json_persist.dumps(
+            {_fid: _fnames.get(_fid, _fid) for _fid in defeated_factions}
+        )
 
     if result.turn_summary:
         room.turn_summaries.append(result.turn_summary)
@@ -1825,7 +1846,12 @@ def _resolve_v1(room, ws, decisions, llm):
     """V1 引擎：纯 LLM 仿真。"""
     import concurrent.futures
 
-    from histrategy.engine.v1_simulator import V1Simulator, _apply_v1_state_to_world, detect_territory_changes, save_v1_state_to_db
+    from histrategy.engine.v1_simulator import (
+        V1Simulator,
+        _apply_v1_state_to_world,
+        detect_territory_changes,
+        save_v1_state_to_db,
+    )
 
     simulator = V1Simulator(llm)
 
@@ -2083,7 +2109,7 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
     _sync_faction_territories(ws)
 
     _save_v3_state_to_db(room, ws, decisions, result, old_state, pre_territories)
-    
+
     # ── Restore ws.territories after simulation (Bug H35k) ──
     # The V3 engine clears ws.territories during execute_turn. Restore from
     # pre-simulation snapshot so _serialize_world_state (called later in
@@ -2098,7 +2124,7 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
         logger.warning(
             "[room=%s] H35k: _saved_territories was EMPTY at start — world_state already corrupted!",
             room.id)
-    
+
     return result
 
 
@@ -2464,7 +2490,7 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict, pre_terri
     """将 V3 仿真结果写入 game_state + policy_state + turn_delta 表。
 
     使用逐势力 try/except 保障：单个势力故障不影响其他势力持久化。
-    
+
     pre_territories: {faction_id: [{id, name, population}]} captured BEFORE
         simulation. Used as fallback when ws.territories is cleared by engine.
     """
@@ -2719,7 +2745,7 @@ def _save_quarter(room, decisions, result):
                         serialized_cmds.append(dict(c))
                     except (TypeError, ValueError):
                         serialized_cmds.append(str(c))
-            
+
             fd[fid] = {
                 "decision": dr.decision_text,
                 "commands": serialized_cmds,
@@ -2787,7 +2813,6 @@ def _ensure_narrative_fallback(room, decisions, result):
         ws = room.world_state
         if ws is None:
             return
-        lang = getattr(room, "metadata", {}).get("lang", "zh") if getattr(room, "metadata", None) else "zh"
         scenario = getattr(room, "scenario", "") or ""
 
         # Collect NPC decision summaries
@@ -2826,12 +2851,30 @@ def _ensure_narrative_fallback(room, decisions, result):
 
         lines = [f"### {year}年{season_cn} · 大事纪", "", era_line, ""]
 
-        # Note: NPC decisions are shown in "天下八方动向" section via npc_reactions.
-        # Faction stats are shown in "🏰 势力资源" table via state_changes.
-        # The narrative should be a chronicle, not a data dump — keep it clean.
+        # ── P0-1: 用真实 NPC 决策摘要 + 灭亡事件生成确定性叙事 ──
+        # 此前收集了 npc_summaries 却不用，只输出"史官记录本季大事"占位符，
+        # 导致 SSE 失败/后台线程未跑时玩家看到空泛文本。现在注入真实内容。
+        defeated_raw = (result.narratives or {}).get("_defeated_factions", "")
+        defeated_map = {}
+        if defeated_raw:
+            try:
+                import json as _json_def
+                defeated_map = _json_def.loads(defeated_raw)
+            except Exception:
+                defeated_map = {}
+
+        if defeated_map:
+            defeated_names = "、".join(defeated_map.values())
+            lines.append(f"**⚔️ 势力更迭**：{defeated_names} 已失去全部领地，势力覆灭。")
+
+        if npc_summaries:
+            lines.append("")
+            lines.append("### 各方动向")
+            for s in npc_summaries[:6]:
+                lines.append(f"- {s}")
 
         lines.append("")
-        lines.append("_史官记录本季大事。实时战报将在后续回合中由AI生成。_")
+        lines.append("_（完整战报正在由史官撰写，稍后呈现。）_")
 
         narrative = "\n".join(lines)
         if not getattr(result, "narratives", None):
@@ -2854,7 +2897,11 @@ def _resolve_npc_territory_combat(room, ws, decisions):
     """
     try:
         from histrategy.engine.fast_path import (
-            _FACTION_ATTACK_TARGETS, _resolve_combat, _YANGTZE_SOUTH,
+            _FACTION_ATTACK_TARGETS,
+            _YANGTZE_SOUTH,
+            _resolve_combat,
+        )
+        from histrategy.engine.fast_path import (
             _TERRITORY_ZH as _TERR_ZH,
         )
     except ImportError:
@@ -3037,8 +3084,9 @@ def _get_npc_only_ids(room_id: str) -> set[str]:
 
     # Strategy 3: Read scenario.toml npc_only list
     try:
-        import tomllib as _toml
         from pathlib import Path as _Path
+
+        import tomllib as _toml
 
         root = _Path(__file__).resolve().parents[2]
         fp = root / "scenarios" / scenario / "scenario.toml"

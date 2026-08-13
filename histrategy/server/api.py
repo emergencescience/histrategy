@@ -78,7 +78,6 @@ def create_app(llm_provider: str | None = None) -> Any:
     if llm_provider:
         _llm_provider = llm_provider
     elif not _llm_provider:
-        import os as _os
 
         from histrategy.llm.adapter import detect_provider as _detect_provider
 
@@ -415,7 +414,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         )
 
     @app.get("/api/rooms/{room_id}/advisor")
-    def api_advisor(room_id: str, faction_id: str = ""):
+    def api_advisor(room_id: str, faction_id: str = "", goal: str = ""):
         """Return structured strategic advice as JSON.
 
         Manual trigger via 军师 button. Returns:
@@ -424,6 +423,10 @@ def create_app(llm_provider: str | None = None) -> Any:
         The 'command' field in each suggestion is a ready-to-execute
         decree that bypasses keyword parsing — the player can send it
         directly as their /decide input.
+
+        Optional `goal` query param: the player's stated strategic goal from
+        the input box. When provided, the advisor evaluates its feasibility
+        and tailors (or rejects) the three strategies accordingly.
         """
         from histrategy.llm.adapter import LLMAdapter
         from histrategy.server.room_manager import _get_room
@@ -461,7 +464,6 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         # ── Previous advisor suggestions (avoid repetition) ──
         prev_suggestions = getattr(room, "_last_advisor_suggestions", None)
-        prev_commands = [s.get("command", "") for s in (prev_suggestions or [])]
         prev_titles = [s.get("title", "") for s in (prev_suggestions or [])]
 
         perceived = {}
@@ -498,6 +500,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             },
             "perceived": perceived,
             "chronicle": chronicle,
+            "previous_suggestions": prev_titles,
         }
         personality = {
             "name": faction.name,
@@ -522,7 +525,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         lang_meta = getattr(room, "metadata", {}).get("lang", "zh")
         advisor = StrategicAdvisor(llm, language=lang_meta)
-        result = advisor.advise_player_structured(local_state, personality=personality)
+        result = advisor.advise_player_structured(local_state, personality=personality, goal=goal)
         result["ok"] = True
 
         # ── Store suggestions to avoid repetition next call ──

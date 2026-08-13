@@ -162,9 +162,9 @@ class TestLoadRoomPersistence:
 
     def test_save_after_submit_keeps_world_state_non_null(self):
         """Regression: submit_decision used to NULL out world_state."""
+        from histrategy.db.models import load_world_state_dict
         from histrategy.engine.faction_slot import create_human_slot
         from histrategy.engine.game_room import GameRoom, RoomPhase
-        from histrategy.db.models import load_world_state_dict
 
         room = GameRoom(
             id="test-submit-room",

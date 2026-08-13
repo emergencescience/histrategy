@@ -305,6 +305,39 @@ class IntentParser:
                         cmd["params"]["territory"] = fallback
                     if "target_territory" in cmd.get("params", {}):
                         cmd["params"]["target_territory"] = fallback
+
+            # ── P1-1: attack 目标必须是地图上存在的城，且不能是自己的城 ──
+            # 修复"漳州"类幻觉：LLM 把不存在的地名硬映射到某个城（如 漳州→fujian），
+            # 导致攻击自己领地被下游静默吞掉，而叙事却编造"攻下漳州拓地"。
+            if cmd_type in ("attack", "move"):
+                atk_tid = None
+                if hasattr(cmd, "params"):
+                    atk_tid = cmd.params.get("target_territory") or cmd.params.get("destination") or cmd.params.get("territory", "")
+                elif isinstance(cmd, dict):
+                    p = cmd.get("params", {}) or {}
+                    atk_tid = p.get("target_territory") or p.get("destination") or p.get("territory", "")
+                if atk_tid:
+                    # 目标必须是地图上真实存在的城
+                    if atk_tid not in ws.territories:
+                        _note = f"[目标不存在: {atk_tid}] "
+                        if hasattr(cmd, "params"):
+                            cmd.notes = _note + (getattr(cmd, "notes", "") or "")
+                        elif isinstance(cmd, dict):
+                            cmd["notes"] = _note + (cmd.get("notes", "") or "")
+                        _log.warning(
+                            "[intent] %s 目标 %s 不存在于地图，标记为无效", cmd_type, atk_tid,
+                        )
+                    elif cmd_type == "attack" and atk_tid in owned_territories:
+                        # 攻击自己领地 → 标记无效，而不是静默吞掉
+                        _note = f"[已拦截: 攻击目标 {atk_tid} 是自己领地] "
+                        if hasattr(cmd, "params"):
+                            cmd.notes = _note + (getattr(cmd, "notes", "") or "")
+                        elif isinstance(cmd, dict):
+                            cmd["notes"] = _note + (cmd.get("notes", "") or "")
+                        _log.warning(
+                            "[intent] attack 目标 %s 是 %s 自己的领地，标记无效", atk_tid, faction_id,
+                        )
+
             validated.append(cmd)
 
         return validated
@@ -415,7 +448,6 @@ class IntentParser:
         Splits multi-clause text on ；。, then parses each segment
         independently to handle complex multi-step commands.
         """
-        from histrategy_engine.world import Command
 
         # Split on sentence/clause delimiters and parse each segment
         # Include ， (full-width comma U+FF0C) which is the standard Chinese delimiter
