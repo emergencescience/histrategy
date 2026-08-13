@@ -115,23 +115,33 @@ class StrategicAdvisor:
         if self._is_en:
             output_instruction = (
                 "\n\nOutput a JSON object with exactly this structure:\n"
-                '{"analysis": "2-3 sentence strategic assessment", '
+                '{"analysis": "2-3 sentence strategic assessment citing concrete numbers", '
                 '"suggestions": ['
-                '{"title": "≤8 word title", "description": "why this strategy", '
+                '{"title": "≤8 word title", "description": "why this strategy (cite numbers)", '
                 '"command": "exact decree the player can copy-paste and send"}, ...]}\n'
                 "Provide exactly 3 suggestions ranked from best to riskiest.\n"
+                "Accuracy over literary flair: plain is better than vague.\n"
+                "Every 'command' must contain BOTH a concrete number (e.g. 'recruit 20000 troops', "
+                "'lower tax to 20%', 'send 5000 grain') AND a clear target "
+                "(e.g. 'attack Xuzhou', 'ally with Zheng', 'crush the rebels').\n"
+                "Forbidden: vague commands like 'recruit', 'strengthen defenses', 'develop economy'.\n"
                 "The 'command' field must be a complete, self-contained decree "
                 "that a player can send without modification."
             )
         else:
             output_instruction = (
                 "\n\n请输出严格的JSON格式（不要markdown代码块），结构如下：\n"
-                '{"analysis": "2-3句战略分析（文言文），必须提及当前民心、粮草、税率等关键数值", '
+                '{"analysis": "2-3句战略分析，必须引用当前人口、兵力、资金、粮草、民心/士气的具体数值", '
                 '"suggestions": ['
-                '{"title": "≤8字标题", "description": "此策为何可行（引用实际数值论证）", '
+                '{"title": "≤8字标题", "description": "此策为何可行（引用具体数值论证）", '
                 '"command": "玩家可直接照抄发送的完整政令"}, ...]}\n'
                 "必须提供恰好3条建议（上策、中策、下策），按优劣排序。\n"
-                "command字段必须是玩家可不加修改直接发送的完整政令。\n"
+                "⚠️ 准确性比文学性更重要：宁可平实，不可含糊。\n"
+                "每条建议的 command 字段必须同时包含：\n"
+                "  (1) 明确的数值——如「征兵两万」「税率降至二成」「拨粮五千石」「动员三成民力」；\n"
+                "  (2) 明确的攻击或联合对象——如「攻取徐州」「与郑氏结盟」「讨伐农民军」「联合南明」。\n"
+                "严禁写出「征兵」「加强防线」「发展经济」「巩固国防」这类无数字、无对象的空泛政令。\n"
+                "command 字段必须是玩家可不加修改直接发送的完整政令。\n"
                 "⚠️ 三条建议必须是不同方向的策略（如：外交、军事、内政各一），不可三条都在说同一件事。\n"
                 "若上次建议中有未生效的，本次必须替换为全新方向。\n"
                 "若民心低（<40），至少一条建议涉及减税/屯田/赈济等恢复民心之策。\n"
@@ -355,24 +365,28 @@ class StrategicAdvisor:
             parts.append(
                 f"## My Intelligence\n"
                 f"- My faction: {faction_name}\n"
+                f"- Population: {my.get('population', '?')}\n"
                 f"- Troops: {my.get('strength', '?')}\n"
                 f"- Army composition: {my.get('army_composition', 'all infantry')}\n"
                 f"- Treasury: {my.get('treasury', '?')}\n"
                 f"- Food: {my.get('food', '?')}\n"
                 f"- Economy: {my.get('economy', '?')}\n"
                 f"- Morale: {my.get('morale', '?')}\n"
+                f"- Tax rate: {my.get('tax_rate', '?')}\n"
                 f"- Territories: {', '.join(my.get('territories', []))}"
             )
         else:
             parts.append(
                 f"## 我方情报\n"
                 f"- 我方势力: {faction_name}\n"
+                f"- 人口: {my.get('population', '?')}\n"
                 f"- 兵力: {my.get('strength', '?')}\n"
                 f"- 兵种构成: {my.get('army_composition', '全部步兵')}\n"
                 f"- 资金: {my.get('treasury', '?')}\n"
                 f"- 粮草: {my.get('food', '?')}\n"
                 f"- 经济: {my.get('economy', '?')}\n"
-                f"- 民心: {my.get('morale', '?')}\n"
+                f"- 民心/士气: {my.get('morale', '?')}\n"
+                f"- 税率: {my.get('tax_rate', '?')}\n"
                 f"- 领地: {', '.join(my.get('territories', []))}"
             )
 
