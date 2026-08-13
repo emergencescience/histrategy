@@ -414,6 +414,7 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
                 "historical_footnote": hist_footnote,
                 "game_over": None,
                 "faction_status": fs,
+                "commands": [],
                 "year": fs.get("year", room.year),
                 "season": fs.get("season", room.season),
                 "turn": fs.get("turn", room.quarter_number),
@@ -439,6 +440,7 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
 
     # 1. Submit decision → synchronous resolve (submit_decision calls _resolve_and_advance internally)
     submit_result = submit_decision(game_id, human_fid, decision, skip_narrative=streaming)
+    parsed_commands = submit_result.get("commands", []) if submit_result.get("ok") else []
     if not submit_result.get("ok"):
         return {"ok": False, "error": submit_result.get("error", "Decision submission failed")}
 
@@ -545,6 +547,7 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
         "game_id": game_id,
         "narrative": narrative or ("" if narrative_pending else "The realm is at peace."),
         "narrative_pending": narrative_pending,
+        "commands": parsed_commands,
         "aftermath": build_aftermath_text(faction_status, lang),
         "state_changes": state_changes,
         "events_occurred": extract_turn_events(room),

@@ -394,6 +394,7 @@ def submit_decision(room_id: str, faction_id: str, decision: str, skip_narrative
     # factions, making it impossible for players to see what the engine understood
     # from their orders.  Parse here at submit time so commands are visible in the
     # API and stored in the quarter_turn record.
+    parsed_commands: list = []
     try:
         from histrategy.parser.intent import IntentParser
         llm = _get_llm()  # V3: use LLM for intent parsing; falls back to keyword if unavailable
@@ -403,7 +404,8 @@ def submit_decision(room_id: str, faction_id: str, decision: str, skip_narrative
         ws_for_parse = room.world_state if hasattr(room, 'world_state') else None
         parsed = parser.parse(decision, faction_id, ws=ws_for_parse)
         if parsed:
-            slot.pending_commands = [c.to_dict() if hasattr(c, 'to_dict') else c for c in parsed]
+            parsed_commands = [c.to_dict() if hasattr(c, 'to_dict') else c for c in parsed]
+            slot.pending_commands = parsed_commands
         # ── Log intent parse for debug traceability ──
         try:
             import json as _json
@@ -452,6 +454,7 @@ def submit_decision(room_id: str, faction_id: str, decision: str, skip_narrative
         "status": status,
         "submitted": submitted,
         "pending": pending,
+        "commands": parsed_commands,
         "is_public": getattr(room, "is_public", False),
     }
 
