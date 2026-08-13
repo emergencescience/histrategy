@@ -33,9 +33,6 @@ Write pure text (not JSON). Structure as follows:
 ### Military Affairs
 (Battle results with casualties, recruitment, troop movements. If no battles, summarize each faction's military posture.)
 
-### Economy & Livelihood
-(Harvest yields, treasury changes, tax adjustments, population shifts, climate impact on agriculture and welfare. Cover all affected factions.)
-
 ### Notable Figures
 (ONLY if character_events exist: deaths, defections, loyalty changes. Omit this section entirely if none.)
 
