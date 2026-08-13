@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..world import Army, Territory, Season
+    from ..world import Season
 
 
 # ── Siege constants ────────────────────────────────────────────
@@ -167,13 +167,13 @@ def resolve_siege_tick(
     # ── Narrative ──
     parts = []
     if food_exhausted and state.turns_under_siege == resistance + 1:
-        parts.append(f"城中粮尽，守军开始宰杀战马充饥。")
+        parts.append("城中粮尽，守军开始宰杀战马充饥。")
     if walls_breached and not state.walls_breached:
         parts.append(f"城墙被{'火炮轰塌' if has_gunpowder else '撞车攻破'}一个缺口。")
     if defender_surrendered:
-        parts.append(f"守军士气崩溃，开城投降。")
+        parts.append("守军士气崩溃，开城投降。")
     elif food_exhausted and state.turns_under_siege > resistance + 2:
-        parts.append(f"城内饿殍遍野，守军仍在苦撑。")
+        parts.append("城内饿殍遍野，守军仍在苦撑。")
 
     narrative = " ".join(parts) if parts else f"围城第{state.turns_under_siege}日，守军仍在坚守。"
 

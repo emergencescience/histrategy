@@ -152,7 +152,7 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
 
 
 
-def deserialize_world_state(ws_data: dict) -> "WorldState":
+def deserialize_world_state(ws_data: dict) -> WorldState:
     """Rebuild a full engine WorldState from a DB-persisted dict.
 
     NOTE: engine WS.from_dict() only restores factions + basic fields —
@@ -171,9 +171,11 @@ def deserialize_world_state(ws_data: dict) -> "WorldState":
         Season,
         StrategicPoint,
         Territory,
+    )
+    from histrategy_engine.world import (
         WorldState as WS,
     )
-    from histrategy.engine.scenario_loader import _coerce_factions_to_dict as _cfd
+
 
     # Map season string → season_index (to_dict uses "spring", from_dict expects int)
     _SEASON_MAP = {"spring": 0, "summer": 1, "autumn": 2, "winter": 3}
@@ -215,7 +217,7 @@ def deserialize_world_state(ws_data: dict) -> "WorldState":
             ws.factions[fid] = FactionState(id=fid, name=fd.get("name", fid), ruler_id=fd.get("ruler_id", fid))
 
     # Rebuild territories (with enum terrain_type)
-    from enum import Enum as _Enum
+
     from histrategy_engine.world import TerrainType
 
     def _enum(cls, val):

@@ -10,8 +10,8 @@ Thin wrapper over the multiplayer room system:
 from __future__ import annotations
 
 import logging
-import re as _re_strip
 import re  # for suggestion_id format matching
+import re as _re_strip
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -39,7 +39,6 @@ def _persist_fast_path_game_state(room, fp_result: dict) -> None:
     ws_territories = getattr(ws, "territories", {}) if ws else {}
     old_factions = fp_result.get("old_factions", {})
     events = fp_result.get("events_occurred", [])
-    state_changes = fp_result.get("state_changes", {})
 
     # ── Build reason annotations from events ──
     # Parse event strings like "大清围困福建" → type=combat, detail="qing:fujian"

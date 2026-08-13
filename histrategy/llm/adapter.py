@@ -604,13 +604,13 @@ class LLMAdapter:
                 depth -= 1
                 if depth == 0:
                     last_good_pos = i + 1
-        
+
         if last_good_pos > 0 and last_good_pos < len(text):
             try:
                 return json.loads(text[:last_good_pos])
             except json.JSONDecodeError:
                 pass
-        
+
         # Strategy 2: try to remove the last incomplete key-value pair
         # Find the last comma before the error point, and parse up to it
         last_comma = text.rfind(',"', 0, len(text) - 1)
@@ -626,8 +626,8 @@ class LLMAdapter:
                 return json.loads(candidate)
             except json.JSONDecodeError:
                 pass
-        
-        raise ValueError(f"Could not salvage truncated JSON")
+
+        raise ValueError("Could not salvage truncated JSON")
 
     @staticmethod
     def _clean_json_text(text: str) -> str:

@@ -9,8 +9,9 @@ Verifies the fixes for the d02b446 room bugs:
 
 from __future__ import annotations
 
-from histrategy.engine.state_applier import StateApplier
 from histrategy_engine.world import FactionState, Territory, WorldState
+
+from histrategy.engine.state_applier import StateApplier
 
 
 def _make_world():

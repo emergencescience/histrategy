@@ -134,4 +134,5 @@ class TestStrategicAdvisor:
     def test_system_prompt(self):
         """System prompt should contain key instructions."""
         assert "诸葛亮" in ADVISOR_SYSTEM or "军师" in ADVISOR_SYSTEM
-        assert "局部情报" in ADVISOR_SYSTEM or "有限" in ADVISOR_SYSTEM
+        # 明牌对局（无战争迷雾）——P2 已移除"局部情报/有限信息"措辞
+        assert "明牌" in ADVISOR_SYSTEM or "公开" in ADVISOR_SYSTEM

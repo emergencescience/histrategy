@@ -94,6 +94,7 @@ class StrategicAdvisor:
         self,
         local_state: dict,
         personality: dict | None = None,
+        goal: str = "",
     ) -> dict:
         """Return structured strategic advice as JSON.
 
@@ -103,6 +104,13 @@ class StrategicAdvisor:
             where 'command' is a ready-to-execute decree the player
             can send directly (bypasses keyword parse).
 
+        Args:
+            goal: Player's stated strategic goal (from the input box). When
+                provided, the advisor evaluates its feasibility and either
+                tailors the three strategies around it, or points out that the
+                goal is infeasible (e.g. attacking a city that doesn't exist).
+                When empty, falls back to generic three-strategy advice.
+
         Used by the /advisor API endpoint for the manual "军师" button.
         """
         if not self.is_available:
@@ -110,6 +118,30 @@ class StrategicAdvisor:
 
         context = self._build_context(local_state, personality, "")
         system = ADVISOR_SYSTEM_EN if self._is_en else ADVISOR_SYSTEM
+
+        # ── P1-2: 注入玩家目标 ──
+        # 若玩家在输入框写下了战略目标，军师必须针对该目标评估可行性：
+        #   - 目标可行 → 三条策略围绕该目标展开
+        #   - 目标不可行（如攻打不存在的城、实力悬殊）→ 明确点破，而非顺着编
+        goal_instruction = ""
+        if goal and goal.strip():
+            if self._is_en:
+                goal_instruction = (
+                    f"\n\nThe commander has stated this goal: \"{goal.strip()}\".\n"
+                    "Evaluate its FEASIBILITY first. If the goal targets a city/faction "
+                    "that does not exist on this map, or is wildly beyond our current "
+                    "strength, you MUST say so plainly in the analysis — do NOT invent "
+                    "a path to an impossible goal. If the goal IS feasible, tailor all "
+                    "three strategies around achieving it.\n"
+                )
+            else:
+                goal_instruction = (
+                    f"\n\n主公当前提出的目标是：「{goal.strip()}」。\n"
+                    "请先评估此目标的可行性。若该目标指向的城池/势力根本不存在于当前地图，"
+                    "或远超我方当前实力，你必须在 analysis 中**明确点破**此目标不可行，"
+                    "切勿为一个不可能的目标编造实现路径。若目标可行，则三条建议应围绕该目标展开。\n"
+                )
+        system += goal_instruction
 
         # Structured output instruction
         if self._is_en:
@@ -196,11 +228,6 @@ class StrategicAdvisor:
     def _offline_structured(self, local_state: dict, personality: dict | None = None) -> dict:
         """Offline fallback structured advice."""
         my = local_state.get("my", {})
-        perceived = local_state.get("perceived", {})
-        border_enemies = [
-            pf for pf in perceived.values()
-            if pf.get("is_border") and not pf.get("is_allied")
-        ]
 
         if self._is_en:
             analysis = "No AI advisor available. Basic heuristic analysis follows."
@@ -420,11 +447,11 @@ class StrategicAdvisor:
         # ── Improvement Guide (always show) ──
         guide_lines = []
         if morale < 80:
-            guide_lines.append(f"- 民心提升：减税（每降10%税≈+3民心/季）、屯田（+5民心）、打胜仗（+5民心）")
+            guide_lines.append("- 民心提升：减税（每降10%税≈+3民心/季）、屯田（+5民心）、打胜仗（+5民心）")
         if food_val < 5000:
-            guide_lines.append(f"- 粮草提升：发展农业、推行屯田制（+30%粮食产出）、秋季收获季产出最高")
+            guide_lines.append("- 粮草提升：发展农业、推行屯田制（+30%粮食产出）、秋季收获季产出最高")
         if treasury_val < 5000:
-            guide_lines.append(f"- 资金提升：提高税收率、扩张领土增加税基、盐铁专卖（+15%税收）")
+            guide_lines.append("- 资金提升：提高税收率、扩张领土增加税基、盐铁专卖（+15%税收）")
 
         if guide_lines:
             if en:

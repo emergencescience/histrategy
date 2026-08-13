@@ -33,7 +33,7 @@ def extract_suggestion_id(decision: str) -> str | None:
 
 def _parse_player_faction(suggestion_id: str) -> str:
     """Extract player faction from suggestion ID.
-    
+
     e.g. "nanming_t1_defend" → "nanming"
          "qing_t2_storm" → "qing"
          "nongmin_t1_revolt" → "nongminjun"
@@ -360,7 +360,6 @@ def simulate_fast_path(room, player_decision: str,
     turn = (room.quarter_number or 0) + 1
 
     # ── Snapshot pre-simulation state for turn_delta ──
-    import copy as _copy
     old_factions: dict[str, dict] = {}
     for _fid, _fd in factions.items():
         old_factions[_fid] = {
@@ -613,8 +612,6 @@ def _try_player_counterattack(player_fid: str, factions: dict,
                                territory_population: dict | None = None,
                                lang: str = "zh"):
     """If player is aggressive, they attempt to capture an enemy border territory."""
-    player_territories = set(factions[player_fid]["territories"])
-
     # Find weakest enemy with a border territory
     best_target = None
     best_enemy = None
@@ -734,7 +731,7 @@ def _npc_cao(idx: int, troops: int, events: list, conquest: bool, siege: bool, r
         if conquest:
             return f"曹操：亲率大军南下，连克数城。许昌精锐尽出，兵力{troops//1000}K，势如破竹。"
         elif siege:
-            return f"曹操：大军围城，切断粮道。曹军于城外扎营，日夜擂鼓震慑守军。"
+            return "曹操：大军围城，切断粮道。曹军于城外扎营，日夜擂鼓震慑守军。"
         else:
             return f"曹操：调集主力南征，然守军据城死守，攻势受阻。兵力{troops//1000}K。"
     elif idx == 1:
@@ -747,9 +744,9 @@ def _npc_shu(idx: int, troops: int, events: list, conquest: bool, siege: bool, r
         if conquest:
             return f"刘备：关羽张飞率军出战，攻克城池。仁德之师所到之处百姓箪食壶浆。兵力{troops//1000}K。"
         elif siege:
-            return f"刘备：诸葛亮设计围城，断敌粮道。关张二将领兵日夜攻打。"
+            return "刘备：诸葛亮设计围城，断敌粮道。关张二将领兵日夜攻打。"
         else:
-            return f"刘备：亲率关张赵出战，然寡不敌众。诸葛亮劝其暂避锋芒，另图良策。"
+            return "刘备：亲率关张赵出战，然寡不敌众。诸葛亮劝其暂避锋芒，另图良策。"
     elif idx == 1:
         return "刘备：诸葛亮运筹帷幄，一面联络东吴鲁肃共商大计，一面遣使安抚荆州士族。"
     else:
@@ -758,11 +755,11 @@ def _npc_shu(idx: int, troops: int, events: list, conquest: bool, siege: bool, r
 def _npc_wu(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
     if idx == 0:
         if conquest:
-            return f"孙权：周瑜率水师出击，楼船蔽江，一举攻占城池。江东子弟士气如虹。"
+            return "孙权：周瑜率水师出击，楼船蔽江，一举攻占城池。江东子弟士气如虹。"
         elif siege:
-            return f"孙权：周瑜水陆并进，围困敌城。长江天险已为东吴所据。"
+            return "孙权：周瑜水陆并进，围困敌城。长江天险已为东吴所据。"
         else:
-            return f"孙权：周瑜督师北上，然曹军势大，水陆夹击下暂退。江东诸将厉兵秣马。"
+            return "孙权：周瑜督师北上，然曹军势大，水陆夹击下暂退。江东诸将厉兵秣马。"
     elif idx == 1:
         return "孙权：鲁肃力主联刘抗曹，孙权召集群臣商议，张昭等主和派与周瑜等主战派激烈辩论。"
     else:
@@ -791,7 +788,7 @@ def _npc_cao_en(idx: int, troops: int, events: list, conquest: bool, siege: bool
         if conquest:
             return f"Cao Cao: Led the army south, capturing cities. Xuchang elites fully deployed. Strength: {troops//1000}K."
         elif siege:
-            return f"Cao Cao: Besieged the city, cutting supply lines. Drums beat day and night outside the walls."
+            return "Cao Cao: Besieged the city, cutting supply lines. Drums beat day and night outside the walls."
         else:
             return f"Cao Cao: Mobilized southward. Defenders held the walls - assault repelled. Strength: {troops//1000}K."
     elif idx == 1:
@@ -804,9 +801,9 @@ def _npc_shu_en(idx: int, troops: int, events: list, conquest: bool, siege: bool
         if conquest:
             return f"Liu Bei: Guan Yu and Zhang Fei led the charge, seizing the city. The people welcomed the benevolent army. Strength: {troops//1000}K."
         elif siege:
-            return f"Liu Bei: Zhuge Liang devised a siege, cutting enemy supply lines. Guan and Zhang attacked day and night."
+            return "Liu Bei: Zhuge Liang devised a siege, cutting enemy supply lines. Guan and Zhang attacked day and night."
         else:
-            return f"Liu Bei: Led Guan, Zhang, and Zhao Yun into battle - but outnumbered. Zhuge Liang advised a strategic withdrawal."
+            return "Liu Bei: Led Guan, Zhang, and Zhao Yun into battle - but outnumbered. Zhuge Liang advised a strategic withdrawal."
     elif idx == 1:
         return "Liu Bei: Zhuge Liang masterminded diplomacy - contacting Lu Su of Wu while courting Jing Province gentry."
     else:
@@ -815,11 +812,11 @@ def _npc_shu_en(idx: int, troops: int, events: list, conquest: bool, siege: bool
 def _npc_wu_en(idx: int, troops: int, events: list, conquest: bool, siege: bool, repelled: bool) -> str:
     if idx == 0:
         if conquest:
-            return f"Sun Quan: Zhou Yu's fleet struck - towering warships darkened the river. Jiangdong morale soared."
+            return "Sun Quan: Zhou Yu's fleet struck - towering warships darkened the river. Jiangdong morale soared."
         elif siege:
-            return f"Sun Quan: Zhou Yu advanced by land and water, besieging the enemy. The Yangtze is now Wu's shield."
+            return "Sun Quan: Zhou Yu advanced by land and water, besieging the enemy. The Yangtze is now Wu's shield."
         else:
-            return f"Sun Quan: Zhou Yu led the offensive north, but Cao Cao's forces were overwhelming. The fleet regrouped."
+            return "Sun Quan: Zhou Yu led the offensive north, but Cao Cao's forces were overwhelming. The fleet regrouped."
     elif idx == 1:
         return "Sun Quan: Lu Su urged alliance with Liu Bei against Cao Cao. The court split - appeasers vs. war hawks in fierce debate."
     else:
@@ -1146,18 +1143,18 @@ def _build_narrative(player_fid: str, suggestion_id: str, events: list,
     else:
         # English
         if "defend" in suggestion_id or "hold" in suggestion_id:
-            parts.append(f"fortified their defenses and held their ground. ")
+            parts.append("fortified their defenses and held their ground. ")
         elif "retreat" in suggestion_id or "relocate" in suggestion_id or "sail" in suggestion_id:
-            parts.append(f"executed a strategic withdrawal to preserve strength. ")
+            parts.append("executed a strategic withdrawal to preserve strength. ")
         elif any(kw in suggestion_id for kw in ["ally", "counter", "invade", "storm", "march",
                                                   "commit", "offensive", "retake"]):
-            parts.append(f"launched a preemptive strike, seizing the initiative. ")
+            parts.append("launched a preemptive strike, seizing the initiative. ")
         elif any(kw in suggestion_id for kw in ["recover", "trade", "buildup", "consolidate"]):
-            parts.append(f"focused on recovery and building reserves. ")
+            parts.append("focused on recovery and building reserves. ")
         elif any(kw in suggestion_id for kw in _ACTIVE_LOYALTY_KW):
-            parts.append(f"sent envoys and mobilized troops in loyal service. ")
+            parts.append("sent envoys and mobilized troops in loyal service. ")
         else:
-            parts.append(f"assessed the situation and issued decrees. ")
+            parts.append("assessed the situation and issued decrees. ")
 
         if player_lost:
             lost_cities = [e.split("攻陷")[1] for e in player_lost if "攻陷" in e and len(e.split("攻陷")) > 1]

@@ -92,7 +92,7 @@ class CompanyState:
         return d
 
     @classmethod
-    def from_dict(cls, d: dict) -> "CompanyState":
+    def from_dict(cls, d: dict) -> CompanyState:
         return cls(**{k: d.get(k, v.default if v.default is not v.default else None)
                        for k, v in cls.__dataclass_fields__.items()})
 
@@ -165,7 +165,7 @@ class MarketState:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "MarketState":
+    def from_dict(cls, data: dict) -> MarketState:
         ms = cls()
         ms.quarter = data.get("quarter", 0)
         ms.year = data.get("year", 2025)

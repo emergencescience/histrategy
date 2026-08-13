@@ -1198,7 +1198,7 @@ def save_v1_state_to_db(
 def detect_territory_changes(
     old_state: dict,
     v1_factions: dict,
-    ws: "WorldState",
+    ws: WorldState,
     narrative: str,
 ) -> str:
     """Detect territory changes and append missing narrative explanations.

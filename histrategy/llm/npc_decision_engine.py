@@ -698,7 +698,7 @@ class NPCDecisionEngine:
             elif _morale_val < 20:
                 lines.append("## ⚠️ 士气危机预警 (Morale Crisis)")
                 lines.append(f"当前士气仅 {_morale_val}，军队人心浮动。")
-                lines.append(f"- 若税率 > 10%，士气每季将继续下降。**强烈建议降税。**")
+                lines.append("- 若税率 > 10%，士气每季将继续下降。**强烈建议降税。**")
                 lines.append("- 谨慎进攻——若战败，士气将进一步恶化。")
             elif _morale_val < 35:
                 lines.append("## ⚡ 士气偏弱预警 (Low Morale)")
