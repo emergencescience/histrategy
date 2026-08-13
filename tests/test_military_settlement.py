@@ -131,8 +131,8 @@ def test_npc_conscript_grows_troops():
     assert ws.factions["qing"].treasury < tr0
 
 
-def test_defender_loses_last_city_becomes_inactive():
-    """A faction that loses its last territory is marked inactive."""
+def test_defender_loses_last_city_stays_active():
+    """势力永生：失去最后一座城池后势力仍活跃（流亡军），不判灭亡。"""
     ws = _make_world()
     ws.factions["nanming"].territories = ["yangzhou"]  # single city left
     ws.territories["nanjing"].owner_id = "qing"
@@ -143,9 +143,10 @@ def test_defender_loses_last_city_becomes_inactive():
          "casualties": {"attacker": 3000, "defender": 20000}},
     ]}
     summary = StateApplier.apply_macro_delta(delta, ws)
+    # 城池易主，但势力不灭亡
     assert ws.territories["yangzhou"].owner_id == "qing"
-    assert ws.factions["nanming"].is_active is False
-    assert summary["factions_defeated"] >= 1
+    assert ws.factions["nanming"].is_active is True
+    assert summary["factions_defeated"] == 0
 
 
 def test_guardrail_to_applier_pipeline():
