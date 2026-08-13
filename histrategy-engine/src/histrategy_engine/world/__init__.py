@@ -499,6 +499,7 @@ def _worldstate_from_dict(self, data: dict) -> None:
             is_active=fd.get("is_active", True),
             tax_rate=fd.get("tax_rate", 0.3),
             prestige=fd.get("prestige", 50),
+            loyalty=fd.get("loyalty", 50),
             aggression=fd.get("aggression", fd.get("personality", {}).get("aggression", 0.5)),
             cunning=fd.get("cunning", fd.get("personality", {}).get("cunning", 0.5)),
             caution=fd.get("caution", fd.get("personality", {}).get("caution", 0.5)),
