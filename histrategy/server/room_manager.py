@@ -803,6 +803,9 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
         # ── Get npc_only factions to exclude from ranking ──
         npc_only_ids = _get_npc_only_ids(room_id)
 
+        # Live faction objects for fields not persisted to game_state (e.g. loyalty/民心)
+        _ws_factions = getattr(getattr(room, "world_state", None), "factions", {}) or {}
+
         ranking = []
         for row in raw_states:
             fid = row["faction_id"]
@@ -815,6 +818,7 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
                 + (row.get("treasury") or 0) / 1000
                 + (row.get("morale") or 0) / 100
             )
+            _fobj = _ws_factions.get(fid)
             ranking.append(
                 {
                     "faction_id": fid,
@@ -823,6 +827,8 @@ def get_room_status(room_id: str, faction_id: str | None = None) -> dict:
                     "population": row.get("population", 0),
                     "treasury": row.get("treasury", 0),
                     "food": row.get("food", 0),
+                    "morale": row.get("morale", 50) or 50,
+                    "loyalty": getattr(_fobj, "loyalty", 50) if _fobj else (row.get("loyalty", 50) or 50),
                     "territories": len(
                         _json.loads(row.get("territories", "[]"))
                         if isinstance(row.get("territories"), str)
