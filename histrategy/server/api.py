@@ -43,6 +43,28 @@ def _safe_json_loads(value: str | None, default: Any = None) -> Any:
         return default
 
 
+def _faction_is_border(ws: Any, faction_id: str, other_id: str) -> bool:
+    """基于 territory.neighbors 判断 other 势力是否与 faction 接壤。
+
+    两个势力接壤 ⟺ 存在一对 (我方城池, 对方城池) 直接相邻。
+    """
+    faction = ws.factions.get(faction_id)
+    other = ws.factions.get(other_id)
+    if not faction or not other:
+        return False
+    my_terrs = set(getattr(faction, "territories", []) or [])
+    other_terrs = set(getattr(other, "territories", []) or [])
+    territories = getattr(ws, "territories", {}) or {}
+    for tid in my_terrs:
+        t = territories.get(tid)
+        if not t:
+            continue
+        for nid in (getattr(t, "neighbors", []) or []):
+            if nid in other_terrs:
+                return True
+    return False
+
+
 # ─── FastAPI App ─────────────────────────────────────────────────
 
 _llm_provider: str | None = None  # Set by run_server / create_app
@@ -450,7 +472,7 @@ def create_app(llm_provider: str | None = None) -> Any:
                 "name": of.name,
                 "strength": getattr(of, "strength_actual", 0),
                 "territories": len(list(getattr(of, "territories", []))),
-                "is_border": False,
+                "is_border": _faction_is_border(ws, fid, ofid),
                 "is_allied": getattr(of, "relations", {}).get(fid, 0) >= 50,
             }
 
@@ -581,7 +603,7 @@ def create_app(llm_provider: str | None = None) -> Any:
                 "name": of.name,
                 "strength": getattr(of, "strength_actual", 0),
                 "territories": len(list(getattr(of, "territories", []))),
-                "is_border": False,
+                "is_border": _faction_is_border(ws, fid, ofid),
                 "is_allied": getattr(of, "relations", {}).get(fid, 0) >= 50,
             }
 
