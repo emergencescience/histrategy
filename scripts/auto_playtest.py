@@ -70,13 +70,18 @@ def check_turn(issues, label, decision, parsed_cmds, before, after, narrative):
     # Check 1: 兵力暴跌 (>40% 单轮降幅)
     for fid, bt in before.items():
         at = after.get(fid)
-        if at is None or bt is None or bt <= 0:
+        if at is None or bt is None:
             continue
-        drop = (bt - at) / bt
+        # snap() returns per-faction dicts {'troops','food','treasury','morale'}
+        bt_troops = bt.get('troops') if isinstance(bt, dict) else bt
+        at_troops = at.get('troops') if isinstance(at, dict) else at
+        if bt_troops is None or at_troops is None or bt_troops <= 0:
+            continue
+        drop = (bt_troops - at_troops) / bt_troops
         if drop > 0.40:
             issues.append({
                 'turn': label, 'type': 'troop_crash',
-                'detail': f'{fid} 兵力暴跌 {bt}->{at} (-{drop*100:.0f}%)',
+                'detail': f'{fid} 兵力暴跌 {bt_troops}->{at_troops} (-{drop*100:.0f}%)',
             })
 
     # Check 2 & 3: intent parse
