@@ -86,6 +86,15 @@ class GuardrailValidator:
                 )
             )
             if known_loc:
+                # ── Hard drop: attacker already owns the target (济南/洛阳 反复易主 bug) ──
+                atk = br.get("attacker", "")
+                if atk and loc in world_state.territories:
+                    target = world_state.territories[loc]
+                    if getattr(target, "owner_id", "") == atk:
+                        logger.warning(
+                            "Battle dropped: attacker %s already owns %s", atk, loc
+                        )
+                        continue
                 # ── Soft check: warn if LLM tries to capture non-adjacent territory ──
                 wants_capture = br.get("territory_captured") or br.get("result") in (
                     "attack_win",

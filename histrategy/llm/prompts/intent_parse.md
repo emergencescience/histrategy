@@ -20,6 +20,7 @@
 - **move**: 移动/调遣军队。params: destination(目标领土ID), source_territory(出发地领土ID, 可选), amount(兵力数量, 可选, 整数), unit_type(兵种, 可选, 如 infantry/cavalry/archer/navy/all，可逗号和空格分隔)。用于「集结」「调往」「行军」「移师」「北上」「南下」「支援」「增援」等
 - **attack**: 攻击敌方领土。params: target_territory(目标领土ID), source_territory(出发地领土ID, 可选), amount(兵力数量, 可选, 整数), unit_type(兵种, 可选, 如 infantry/cavalry/archer/navy/all，可逗号和空格分隔)。⚠️ 只要玩家提到「攻打」「攻陷」「进攻」「夺取」「讨伐」「出征」「率军取X」，必须生成 attack 命令。
 - **defend**: 防守指定领土。params: territory(领土ID), amount(兵力数量, 可选, 整数), unit_type(兵种, 可选, 如 infantry/cavalry/archer/navy/all，可逗号和空格分隔)。用于「防守」「布防」「戒备」「部署兵力防御」等
+- **military_posture**: 设定全局军事姿态。params: stance(defensive/offensive/neutral)。用于「不许出城野战」「据城死守」「坚守不出」「收缩防线」→ stance=defensive；「主动出击」「北伐」「南征」「全线进攻」→ stance=offensive。⚠️ 这是全局战略姿态，不指定具体城池。
 - **recruit**: 招募新兵（花费金钱，减少人口）。params: territory(领土ID), unit_type(infantry/cavalry/archer/navy), amount(数量)。⚠️ 仅当玩家明确说「招募」「征兵」「招兵」「募兵」「增加军队」时使用
 - **train**: 训练军队。params: territory(领土ID)。用于「训练」「练兵」「整顿军纪」「将士兵训练成精锐之师」
 - **fortify**: 修缮城防。params: territory(领土ID)。用于「修缮城墙」「挖掘壕沟」「修建堡垒」「加固城防」
@@ -59,6 +60,11 @@
 ### 「防守」是独立的命令类型
 - 「在下邳部署3万兵力防守」→ **defend** territory: xiapi，notes 中记录防守原因
 - 不要将「防守」错误地解析为 recruit 或 move
+
+### 否定词 → military_posture（全局姿态）
+- 「不许/不要/禁止/严禁/不得 + 野战/出城/进攻/出击」→ **military_posture** stance=defensive（防守不出城），**不是** attack
+- 「主动出击/北伐/南征/全线进攻」→ **military_posture** stance=offensive
+- 否定词是对后续动作的**反转**，不是取消：例如「不许出城野战」= 全局防守姿态，必须生成 military_posture，绝不生成 attack
 
 ## 解析规则
 

@@ -930,7 +930,18 @@ class NPCDecisionEngine:
         end = text.rfind("}") + 1
         if start >= 0 and end > start:
             try:
-                return json.loads(text[start:end])
+                parsed = json.loads(text[start:end])
             except json.JSONDecodeError:
-                pass
+                parsed = None
+            if parsed is not None:
+                # 兼容 OpenAI 风格包装 {"choices":[{"message":{"content": ...}}]}
+                if isinstance(parsed, dict) and "choices" in parsed:
+                    try:
+                        content = parsed["choices"][0]["message"]["content"]
+                        if isinstance(content, str):
+                            return json.loads(content)
+                        return content
+                    except (KeyError, IndexError, TypeError, json.JSONDecodeError):
+                        pass
+                return parsed
         return {}

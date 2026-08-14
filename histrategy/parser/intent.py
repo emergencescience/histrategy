@@ -473,6 +473,20 @@ class IntentParser:
         commands: list[Command] = []
         text_lower = text.lower()
 
+        # ── military_posture (全局军事姿态) — 否定词/防守词 → defensive ──
+        _negation = any(kw in text_lower for kw in ("不许", "不要", "禁止", "严禁", "不得", "切勿", "避免", "绝不"))
+        _defensive_stance = any(kw in text_lower for kw in ("死守", "坚守", "固守", "收缩", "据城", "不出城", "不出战", "绝不出", "防守不出"))
+        _military_verb = any(kw in text_lower for kw in ("野战", "出城", "出击", "进攻", "出战", "出战迎"))
+        if _defensive_stance or (_negation and _military_verb):
+            commands.append(
+                Command(
+                    type="military_posture",
+                    params={"stance": "defensive"},
+                    faction_id=faction_id,
+                    notes="防守姿态：不出城野战，据城死守",
+                )
+            )
+
         # Detect command types via keywords
         # Recruit
         if any(kw in text_lower for kw in ("招兵", "募兵", "征兵", "招募", "扩军", "征募", "招安", "招降", "练兵", "练水军", "操练", "恢复兵力", "重整旗鼓", "补充兵员", "扩充兵力", "补充兵力", "招兵买马")):
@@ -775,6 +789,7 @@ class IntentParser:
             "negotiate",
             "research",
             "defend",
+            "military_posture",
         ):
             return None
 
