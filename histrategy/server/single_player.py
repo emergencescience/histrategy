@@ -10,132 +10,11 @@ Thin wrapper over the multiplayer room system:
 from __future__ import annotations
 
 import logging
-import re  # for suggestion_id format matching
-import re as _re_strip
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     pass
 
-def _strip_suggestion_tag(text: str) -> str:
-    """Strip [suggestion_id] prefix from decision text for display/storage."""
-    return _re_strip.sub(r'^\[[a-zA-Z0-9_]+\]\s*', '', text.strip())
-
-
-def _persist_fast_path_game_state(room, fp_result: dict) -> None:
-    """Write per-faction game_state + turn_delta rows after a fast-path turn.
-
-    Args:
-        room: GameRoom (already advanced to the new quarter).
-        fp_result: the full simulate_fast_path() return dict, containing
-            all_factions, old_factions, events_occurred, state_changes.
-    """
-    all_factions = fp_result.get("all_factions", {})
-    if not all_factions:
-        return
-    from histrategy.db.models import save_game_state, save_turn_delta
-
-    ws = getattr(room, "world_state", None)
-    ws_territories = getattr(ws, "territories", {}) if ws else {}
-    old_factions = fp_result.get("old_factions", {})
-    events = fp_result.get("events_occurred", [])
-
-    # ── Build reason annotations from events ──
-    # Parse event strings like "大清围困福建" → type=combat, detail="qing:fujian"
-    def _event_reason(event: str) -> str:
-        for attacker_zh, attacker_id in [("大清", "qing"), ("南明", "nanming"),
-                                          ("农民军", "nongminjun"), ("郑氏", "zheng")]:
-            if event.startswith(attacker_zh):
-                rest = event[len(attacker_zh):]
-                if "攻陷" in rest:
-                    target = rest.replace("攻陷", "")
-                    return f"combat_city_fell:{attacker_id}:{target}"
-                elif "围困" in rest:
-                    target = rest.replace("围困", "")
-                    return f"combat_siege:{attacker_id}:{target}"
-                elif "守住" in rest:
-                    target = rest.replace("守住", "")
-                    return f"combat_defended:{attacker_id}:{target}"
-        return f"combat:{event}"
-
-    quarter = room.quarter_number
-
-    for fid, fd in all_factions.items():
-        try:
-            # ── Build territory list (same as before) ──
-            territories = []
-            for t in fd.get("territories", []) or []:
-                tid = getattr(t, "id", None) or (t if isinstance(t, str) else str(t))
-                t_obj = ws_territories.get(tid) if isinstance(ws_territories, dict) else None
-                territories.append({
-                    "id": tid,
-                    "name": getattr(t_obj, "name", tid) if t_obj else tid,
-                    "population": getattr(t_obj, "population", None) if t_obj else None,
-                })
-            # Compute population: use faction.population as primary source.
-            # Territory populations are static scenario data and may be stale.
-            # faction.population is the live authoritative value.
-            pop = int(fd.get("population", 0) or 0) or sum(t.get("population") or 0 for t in territories)
-            if not pop:
-                pop = len(territories) * 50000
-
-            # ── Save game_state snapshot ──
-            save_game_state(
-                room_id=room.id,
-                quarter_number=quarter,
-                faction_id=fid,
-                population=pop,
-                troops=int(fd.get("troops", 0) or 0),
-                food=float(fd.get("food", 0) or 0),
-                treasury=float(fd.get("treasury", 0) or 0),
-                morale=int(fd.get("morale", 50) or 50),
-                territories=territories,
-                policies={},
-                is_active=bool(fd.get("is_active", True)),
-            )
-
-            # ── Write turn_delta entries ──
-            old = old_factions.get(fid, {})
-            if not old:
-                continue
-
-            # Determine which combat events affected this faction
-            faction_events = []
-            for evt in events:
-                # Events like "大清围困福建" affect specific factions via territory owner change
-                faction_events.append(evt)
-
-            # Build composite reason from combat events
-            combat_reasons = [_event_reason(e) for e in faction_events]
-            combat_reason = "; ".join(combat_reasons) if combat_reasons else ""
-
-            delta_items = [
-                ("troops", int(old.get("troops", 0)), int(fd.get("troops", 0)),
-                 combat_reason or "natural_attrition"),
-                ("food", float(old.get("food", 0)), float(fd.get("food", 0)),
-                 combat_reason or "natural_consumption"),
-                ("treasury", float(old.get("treasury", 0)), float(fd.get("treasury", 0)),
-                 "domestic_economy"),
-                ("morale", int(old.get("morale", 50)), int(fd.get("morale", 50)),
-                 combat_reason or "domestic_morale"),
-            ]
-
-            for delta_type, old_val, new_val, reason in delta_items:
-                if old_val == new_val:
-                    continue
-                save_turn_delta(
-                    room_id=room.id,
-                    quarter_number=quarter,
-                    faction_id=fid,
-                    delta_type=delta_type,
-                    old_value=float(old_val),
-                    new_value=float(new_val),
-                    reason=reason,
-                    source="fast_path",
-                )
-
-        except Exception as e:
-            logger.warning(f"Room {room.id}: game_state/turn_delta save failed for {fid} (non-fatal): {e}")
 
 # Legacy faction key → internal ID mapping (unified to short codes; kept for compatibility)
 from histrategy.engine.faction_slot import FACTION_ID_TO_DISPLAY
@@ -249,7 +128,6 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
     # ── Timing: _get_room
     import time as _dbgt
 
-    from histrategy.engine.fast_path import extract_suggestion_id
     from histrategy.server.room_manager import (
         _get_room,
         _streaming_enabled,
@@ -278,157 +156,6 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
     if not human_slots:
         return {"ok": False, "error": "No human faction found", "_debug": {"load_s": round(_dbgt_load-_dbgt0, 4)}}
     human_fid = human_slots[0].faction_id
-
-    # ── Fast Path: detect suggestion_id prefix → deterministic simulation ──
-    # Only active for turns 1-4 (quarter_number 0-3) AND ONLY for
-    # EARLY_TURNS format IDs (e.g. [shu_t1_drill]). Advisor-card IDs
-    # (e.g. [sug_1719000000_0]) bypass fast path and go through V3
-    # with intent cache — they're LLM-generated strategies that need
-    # full simulation, not deterministic resolution.
-    sid = extract_suggestion_id(decision)
-    _is_early_turns_sid = bool(sid and re.match(r'^[a-z]+_t\d_', sid))
-    if sid and _is_early_turns_sid and room.quarter_number < 4:
-        try:
-            _dbgt1 = _dbgt.time()
-            # Track player's suggestion choice for Q1/Q2 NPC pre-baking
-            room._last_player_suggestion_id = sid
-            # Record decision on slot
-            slot = room.slots.get(human_fid)
-            if slot:
-                slot.submit_decision(decision)
-
-            # Run deterministic simulation
-            import time as _fpt
-
-            from histrategy.engine.fast_path import simulate_fast_path
-            _fpt0 = _fpt.time()
-            fp_result = simulate_fast_path(room, decision, sid, lang)
-            _fpt1 = _fpt.time()
-            print(f"DEBUG {game_id} fpsim elapsed={_fpt1-_fpt0:.3f}s", flush=True)
-
-            # Store results on room object (same pattern as _resolve_and_advance)
-            # Save narrative under BOTH the human faction key AND "global" so the
-            # shared page (which reads narratives["global"]) renders it.
-            room._last_narratives = {human_fid: fp_result["narrative"], "global": fp_result["narrative"]}
-            room._last_npc_actions = fp_result.get("npc_actions", [])
-            room._last_state_changes = fp_result.get("state_changes", {})
-
-            # ── Sync faction changes back to room.world_state ──
-            # simulate_fast_path modified an in-memory factions dict;
-            # write those changes to room.world_state so subsequent
-            # _get_room/reloads see the correct state.
-            _sync_result = fp_result.get("all_factions", {})
-            if _sync_result and room.world_state:
-                _ws_factions = getattr(room.world_state, "factions", {})
-                for _fid, _fd in _sync_result.items():
-                    _wsf = _ws_factions.get(_fid)
-                    if _wsf is not None:
-                        _wsf.strength_actual = _fd.get("troops", getattr(_wsf, "strength_actual", 5000))
-                        _wsf.morale_actual = _fd.get("morale", getattr(_wsf, "morale_actual", 50))
-                        _wsf.food = _fd.get("food", getattr(_wsf, "food", 3000))
-                        _wsf.treasury = _fd.get("treasury", getattr(_wsf, "treasury", 5000))
-                        _wsf.territories = list(_fd.get("territories", getattr(_wsf, "territories", [])))
-                        _wsf.is_active = _fd.get("is_active", True)
-
-            # Advance quarter
-            prev_quarter = room.quarter_number
-            room.advance_quarter()
-
-            # ── Pre-submit AI NPC decisions for next turn ──
-            # advance_quarter() clears all slot decisions. Without this,
-            # the next _get_room() call sees AI slots as unsubmitted
-            # and triggers _trigger_npc_decisions() → LLM call → hang.
-            _next_turn = room.quarter_number
-            for _fid, _slot in room.slots.items():
-                if _slot.is_ai() and _slot.is_active:
-                    _slot.submit_decision(f"[{_fid}_t{_next_turn}_fp] fast-path deterministic")
-
-            # Sync year/season from fast-path result
-            room.year = fp_result.get("year", room.year)
-            room.season = fp_result.get("season", room.season)
-
-            _try_save(room)
-            _fpt2 = _fpt.time()
-            print(f"DEBUG _try_save elapsed={_fpt2-_fpt1:.3f}s", flush=True)
-
-            # ── Persist per-faction game_state so the sandbox map + power
-            #    ranking reflect fast-path combat results. Without this, the
-            #    map falls back to the scenario baseline (initial ownership)
-            #    and shows stale territory ownership after conquests. ──
-            try:
-                _persist_fast_path_game_state(room, fp_result)
-            except Exception as e:
-                logger.warning(f"Room {game_id}: fast-path game_state persist failed (non-fatal): {e}")
-
-            # Persist npc_actions to quarter_turn DB
-            # (same pattern as room_manager._save_quarter — embeds _npc_actions
-            #  in narratives JSON so status() can recover them after DB reload)
-            try:
-                import json as _fp_json
-
-                from histrategy.db.models import save_quarter_turn
-                # Narrative under BOTH human faction key and "global" (shared page reads global)
-                narratives_for_db = {human_fid: fp_result["narrative"], "global": fp_result["narrative"]}
-                narratives_for_db["_npc_actions"] = _fp_json.dumps(
-                    fp_result.get("npc_actions", []), ensure_ascii=False
-                )
-                # Build per-faction decisions: human + hard-coded NPC decisions, so the
-                # shared page shows each faction's move (not just the human's).
-                _fd = {human_fid: {"decision": _strip_suggestion_tag(decision), "commands": [], "source": "fast_path"}}
-                for _npc_fid, _npc_text in (fp_result.get("npc_decisions") or {}).items():
-                    _fd[_npc_fid] = {"decision": _npc_text, "commands": [], "source": "fast_path"}
-                _fpt3 = _fpt.time()
-                save_quarter_turn(
-                    room.id,
-                    room.quarter_number,
-                    room.year,
-                    room.season,
-                    faction_decisions=_fd,
-                    narratives=narratives_for_db,
-                    state_changes=fp_result.get("state_changes", {}),
-                )
-                _fpt4 = _fpt.time()
-                print(f"DEBUG {game_id} save_quarter_turn elapsed={_fpt4-_fpt3:.3f}s", flush=True)
-                logger.info(f"Room {game_id}: quarter_turn saved with {len(fp_result.get('npc_actions', []))} npc_actions")
-            except Exception as e:
-                logger.warning(f"Room {game_id}: quarter_turn save failed (non-fatal): {e}")
-
-            # Build API response
-            fs = fp_result["faction_status"]
-            suggestions = fp_result.get("new_suggestions", [])
-            room._last_suggestions = suggestions
-
-            # Historical footnote for education
-            from histrategy.engine.helpers import get_historical_footnote
-            hist_footnote = get_historical_footnote(
-                room.scenario or "nanming", fs.get("turn", 1), lang)
-
-            return {
-                "game_id": game_id,
-                "narrative": fp_result["narrative"],
-                "aftermath": fp_result.get("aftermath", ""),
-                "state_changes": fp_result.get("state_changes", {}),
-                "events_occurred": fp_result.get("events_occurred", []),
-                "npc_actions": fp_result.get("npc_actions", []),
-                "new_suggestions": suggestions,
-                "historical_footnote": hist_footnote,
-                "game_over": None,
-                "faction_status": fs,
-                "commands": [],
-                "year": fs.get("year", room.year),
-                "season": fs.get("season", room.season),
-                "turn": fs.get("turn", room.quarter_number),
-                "_debug": {"fast_path": True, "sid": sid,
-                           "load_s": round(_dbgt_load - _dbgt0, 4),
-                           "t_entry": round(_dbgt1 - _dbgt0, 4),
-                           "t_total": round(_dbgt.time() - _dbgt0, 4)},
-            }
-        except Exception as e:
-            return {
-                "ok": False,
-                "error": f"fast-path exception: {e}",
-                "_debug": {"fast_path": False, "sid": sid, "error": str(e)},
-            }
 
     # ── Normal LLM path ──
 
@@ -558,7 +285,7 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
         "year": faction_status.get("year", 207),
         "season": faction_status.get("season", "春"),
         "turn": faction_status.get("turn", 0),
-        "_debug": {"fast_path": False, "sid": None, "streaming": streaming},
+        "_debug": {"streaming": streaming},
     }
 
 

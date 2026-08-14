@@ -22,6 +22,7 @@ POLICY_COMMAND_TYPES = frozenset(
         "develop",  # Invest in territory development
         "trade",  # Establish trade route
         "conscript",  # Raise troops (macro-level, no unit micromanagement)
+        "military_posture",  # Set military stance (defensive/offensive/neutral)
     }
 )
 
@@ -61,6 +62,7 @@ REQUIRED_PARAMS: dict[str, set[str]] = {
     "develop": {"territory"},
     "trade": {"target"},
     "conscript": {"amount"},
+    "military_posture": {"stance"},
 }
 
 OPTIONAL_PARAMS: dict[str, set[str]] = {
@@ -75,6 +77,7 @@ OPTIONAL_PARAMS: dict[str, set[str]] = {
     "develop": {"focus"},
     "trade": {"goods", "amount"},
     "conscript": {"territory"},
+    "military_posture": {"territory"},
 }
 
 

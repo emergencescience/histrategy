@@ -36,7 +36,7 @@ def client(tmp_path, monkeypatch):
 
 
 def _play_to_v3(client, monkeypatch):
-    """Start a nanming game and play 4 fast-path turns to reach the V3 path."""
+    """Start a nanming game and play 4 turns through the normal resolution path."""
     monkeypatch.setenv("HISTRATEGY_STREAMING", "1")
     r = client.post("/api/single-player/start",
                     json={"faction": "nanming", "scenario": "nanming", "lang": "zh"})
@@ -44,9 +44,8 @@ def _play_to_v3(client, monkeypatch):
     gid = r.json()["game_id"]
     for t in range(1, 5):
         d = client.post(f"/api/single-player/{gid}/command",
-                        json={"decision": f"[nanming_t{t}_defend]固守", "lang": "zh"})
+                        json={"decision": "固守江淮，安抚百姓", "lang": "zh"})
         assert d.status_code == 200, d.text
-        assert d.json()["_debug"]["fast_path"] is True
     return gid
 
 

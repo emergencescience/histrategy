@@ -258,7 +258,7 @@ class QuarterlyResolver:
                 # 人类决策 → 优先检查预计算缓存
                 parsed = None
                 try:
-                    from histrategy.engine.fast_path import extract_suggestion_id
+                    from histrategy.engine.names import extract_suggestion_id
                     from histrategy.server.intent_cache import _feature_enabled
                     from histrategy.server.intent_cache import get as cache_get
 
@@ -982,7 +982,7 @@ def _log_exc(room_id: str, context: str, exc: Exception) -> None:
 def _resolve_territory_name(tid: str) -> str:
     """Resolve a territory ID to its Chinese display name. Falls back to tid."""
     try:
-        from histrategy.engine.fast_path import _TERRITORY_ZH
+        from histrategy.engine.names import _TERRITORY_ZH
         return _TERRITORY_ZH.get(tid, tid)
     except ImportError:
         return tid
