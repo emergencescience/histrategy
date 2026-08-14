@@ -2860,6 +2860,36 @@ def _ensure_narrative_fallback(room, decisions, result):
         logger.warning("[room=%s] _ensure_narrative_fallback failed: %s", room.id, e)
 
 
+def _defender_is_dug_in(defender_fid: str, decisions: dict) -> bool:
+    """Determine whether a defender has a defensive military posture this turn.
+
+    True when the defender's parsed commands contain a ``military_posture``
+    command with ``stance="defensive"`` (e.g. 玩家「不许出城野战」→ defensive),
+    or — as a keyword fallback for unparsed text — the decision text explicitly
+    indicates holding the walls (据城死守/坚守/固守/收缩防线).
+    """
+    dr = decisions.get(defender_fid)
+    if dr is None:
+        return False
+
+    commands = getattr(dr, "commands", None) or []
+    for cmd in commands:
+        if isinstance(cmd, dict):
+            if cmd.get("type") == "military_posture":
+                params = cmd.get("params") or {}
+                stance = params.get("stance", "") if isinstance(params, dict) else ""
+                return stance == "defensive"
+        else:
+            if getattr(cmd, "type", "") == "military_posture":
+                params = getattr(cmd, "params", None) or {}
+                stance = params.get("stance", "") if isinstance(params, dict) else ""
+                return stance == "defensive"
+
+    # Keyword fallback (unparsed human text)
+    text = getattr(dr, "decision_text", "") or ""
+    return any(kw in text for kw in ("据城死守", "坚守不出", "死守", "固守", "不许出", "收缩防线"))
+
+
 def _resolve_npc_territory_combat(room, ws, decisions):
     """After LLM generates NPC decisions, run deterministic combat for any
     military actions that should result in territory transfers.
@@ -2951,7 +2981,8 @@ def _resolve_npc_territory_combat(room, ws, decisions):
         def_troops = int(enemy_fs["troops"] / max(len(enemy_fs["territories"]), 1))
         is_south = best_target in _YANGTZE_SOUTH
 
-        result = _resolve_combat(atk, def_troops, is_south, defender_dug_in=False)
+        result = _resolve_combat(atk, def_troops, is_south,
+                                 defender_dug_in=_defender_is_dug_in(best_enemy, decisions))
 
         if result["city_falls"]:
             fs["territories"].append(best_target)

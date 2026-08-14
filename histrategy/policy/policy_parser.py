@@ -34,6 +34,7 @@ POLICY_PARSE_SYSTEM = (
     "| develop | territory(目标城市), focus(可选: agriculture/commerce/military) | 区域开发 |\n"
     "| trade | target(目标势力), goods(可选), amount(可选) | 建立贸易 |\n"
     "| conscript | amount(征兵数量), territory(可选) | 征兵动员 |\n\n"
+    "| military_posture | stance(defensive/offensive/neutral), territory(可选) | 设定军事姿态：防守/进攻 |\n"
     "## 核心规则\n\n"
     "1. 一项玩家决策可能分解为多条策令\n"
     '2. 法令(law)应该使用历史上真实存在的制度名（如"屯田制"、"九品中正制"、"盐铁专卖"）\n'
@@ -46,6 +47,9 @@ POLICY_PARSE_SYSTEM = (
     '仅用于从自己领地**新征募平民**入伍（如"征募5000新兵"、"在宛城征兵"）。\n'
     "8. **conscript 的量**：古代一郡一季最多征募总人口的5%（如新野3万人口→最多1500人）。"
     "不要解析出超过这个比例的征兵量。\n\n"
+    "9. **军事姿态 military_posture**：玩家表达战术层面的军事姿态时用此策令。"
+    "「不许出城野战」「据城死守」「坚守不出」「防守某城」「收缩防线」→ military_posture stance=defensive；"
+    "「主动出击」「出城野战」「进攻」「北伐」「南征」→ stance=offensive。territory 只在玩家明确指定某座城时填写。\n\n"
     "## 输出格式\n\n"
     "每行一个 JSON 对象（不要数组包裹）：\n\n"
     '{"type": "tax_rate", "params": {"rate": 0.30}, "notes": "减轻百姓负担，藏富于民"}\n'
@@ -215,7 +219,10 @@ class PolicyParser:
 
         _log.info("[policy-validate] %d commands for %s (owns: %s)", len(commands), faction_id, sorted(owned))
 
-        territory_types = {"recruit", "develop", "train", "defend", "policy"}
+        # Only command types that carry a territory param and are actually
+        # produced by PolicyParser need ownership redirection: develop and
+        # military_posture (defensive stance can name a specific city).
+        territory_types = {"develop", "military_posture"}
         for cmd in commands:
             ct = getattr(cmd, "type", "") if hasattr(cmd, "type") else cmd.get("type", "")
             tid = None
@@ -349,6 +356,7 @@ class PolicyParser:
                 "develop",
                 "trade",
                 "conscript",
+                "military_posture",
             }:
                 continue
             params = item.get("params", {})
@@ -483,5 +491,28 @@ class PolicyParser:
                     source_text=law_match.group(0),
                 )
             )
+
+        # Military posture — 战术姿态（防守/进攻）
+        def_match = re.search(r"(据城死守|坚守不出|坚守|不许出|不许出城|防守|固守|收缩)", text)
+        if def_match:
+            commands.append(
+                PolicyCommand(
+                    type="military_posture",
+                    params={"stance": "defensive"},
+                    notes=f"关键词匹配: {def_match.group(0)} → 防守姿态",
+                    source_text=def_match.group(0),
+                )
+            )
+        else:
+            off_match = re.search(r"(主动出击|出城野战|出击|进攻|北伐|南征)", text)
+            if off_match:
+                commands.append(
+                    PolicyCommand(
+                        type="military_posture",
+                        params={"stance": "offensive"},
+                        notes=f"关键词匹配: {off_match.group(0)} → 进攻姿态",
+                        source_text=off_match.group(0),
+                    )
+                )
 
         return commands
