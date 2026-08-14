@@ -163,6 +163,28 @@ class TestKeywordFallback:
         cmds = parser.parse("", "cao")
         assert cmds == []
 
+    # ── seek_refuge (流亡依附/投靠) ──
+
+    def test_seek_refuge_parse(self, parser):
+        """「南撤襄阳依附刘表」→ move(襄阳) + negotiate(seek_refuge, 刘表)。"""
+        cmds = parser.parse("南撤襄阳依附刘表", "shu")
+        types = {c.type for c in cmds}
+        assert "negotiate" in types
+        assert "move" in types
+        neg = next(c for c in cmds if c.type == "negotiate")
+        assert neg.params["target_faction"] == "liubiao"
+        assert neg.params["action"] == "seek_refuge"
+        mv = next(c for c in cmds if c.type == "move")
+        assert mv.params["destination"] == "xiangyang"
+
+    def test_seek_refuge_keywords(self, parser):
+        """依附/投靠/投奔 等关键词应触发 seek_refuge action。"""
+        for kw in ("依附刘表", "投靠刘表", "投奔刘表", "归附刘表"):
+            cmds = parser.parse(kw, "shu")
+            neg = [c for c in cmds if c.type == "negotiate"]
+            assert neg, f"Keyword '{kw}' missed negotiate"
+            assert neg[0].params["action"] == "seek_refuge"
+
 
 # ═══════════════════════════════════════════════════════════════
 # _build_command — notes passthrough

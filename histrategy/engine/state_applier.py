@@ -407,6 +407,10 @@ def _attacker_borders_territory(attacker_id: str, target_id: str, ws) -> bool:
         tid for tid, t in ws.territories.items()
         if getattr(t, "owner_id", "") == attacker_id
     }
+    # 流亡军（0 领地）：流浪军队无固定基地，可机动接近任意城池发动进攻。
+    # 攻占仍受兵力比 + 士气硬门槛约束（见 _settle_battle），不会凭空夺城。
+    if not atk_territories:
+        return True
     # Check if any of them are neighbors of the target
     target_neighbors = set(getattr(target, "neighbors", []))
     if target_neighbors & atk_territories:

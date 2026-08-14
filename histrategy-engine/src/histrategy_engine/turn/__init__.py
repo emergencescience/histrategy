@@ -400,6 +400,7 @@ class TurnController:
             # Check action param (set by intent parser, not keyword matching)
             action = cmd.params.get("action", "form_alliance")
             is_break = action == "break_alliance"
+            is_refuge = action == "seek_refuge"
 
             if is_break:
                 # Remove from mutual allies
@@ -413,6 +414,71 @@ class TurnController:
                     })
                 if source_id in target.allies:
                     target.allies.remove(source_id)
+                continue
+
+            # ── seek_refuge: 流亡势力依附/投靠盟友，请求割让一座非首都城作为新基地 ──
+            if is_refuge:
+                rel = target.relations.get(source_id, 0)
+                will_host = bool(
+                    source_id in target.allies
+                    or target_id in source.allies
+                    or rel >= 0
+                )
+                if not will_host:
+                    # 拒绝收留：关系略微改善（请求被听到了）
+                    target.relations[source_id] = max(-100, rel + 5)
+                    events.append({
+                        "type": "refuge_rejected",
+                        "source": source_id,
+                        "target": target_id,
+                        "proposal": proposal,
+                    })
+                    continue
+
+                # 目标势力同意：割让一座非首都城给流亡方作为新基地。
+                cede_city = None
+                for tid in list(target.territories):
+                    if tid != getattr(target, "capital", ""):
+                        cede_city = tid
+                        break
+                if cede_city:
+                    territory = world_state.territories.get(cede_city)
+                    if territory:
+                        territory.owner_id = source_id
+                    if cede_city in target.territories:
+                        target.territories.remove(cede_city)
+                    if cede_city not in source.territories:
+                        source.territories.append(cede_city)
+                    # 迁都到新基地（流亡方原先的都城已丢失或不存在）
+                    source.capital = cede_city
+                    # 流亡军迁驻新城
+                    for a in world_state.armies.values():
+                        if a.faction_id == source_id and not a.location:
+                            a.location = cede_city
+                            break
+                    # 结盟 + 关系提升
+                    if target_id not in source.allies:
+                        source.allies.append(target_id)
+                    if source_id not in target.allies:
+                        target.allies.append(source_id)
+                    target.relations[source_id] = min(100, rel + 25)
+                    source.relations[target_id] = min(100, source.relations.get(target_id, 0) + 25)
+                    events.append({
+                        "type": "refuge_granted",
+                        "source": source_id,
+                        "target": target_id,
+                        "territory": cede_city,
+                        "proposal": proposal,
+                    })
+                else:
+                    # 目标无城可割（仅剩首都）→ 关系改善，未获基地
+                    target.relations[source_id] = min(100, rel + 10)
+                    events.append({
+                        "type": "refuge_pending",
+                        "source": source_id,
+                        "target": target_id,
+                        "proposal": proposal,
+                    })
                 continue
 
             # Alliance formation: check if target would accept
@@ -485,7 +551,21 @@ class TurnController:
             cmd.get("params", {}) if isinstance(cmd, dict) else {}
         )
 
-        if cmd_type in ("recruit", "develop"):
+        if cmd_type == "develop":
+            tid = (
+                params.get("territory", "")
+                if isinstance(params, dict)
+                else getattr(params, "territory", "")
+            )
+            territory = world_state.territories.get(tid)
+            if not territory:
+                return False
+            return territory.owner_id == fid
+
+        if cmd_type == "recruit":
+            # 流亡军（0 领地）：允许征兵，从跟随百姓征召，不要求拥有领地。
+            if not faction.territories:
+                return True
             tid = (
                 params.get("territory", "")
                 if isinstance(params, dict)
@@ -498,9 +578,9 @@ class TurnController:
 
         if cmd_type in ("move", "attack", "defend"):
             target = (
-                cmd.params.get("destination")
-                or cmd.params.get("target_territory")
-                or cmd.params.get("territory", "")
+                params.get("destination")
+                or params.get("target_territory")
+                or params.get("territory", "")
             )
             if not target or target not in world_state.territories:
                 return False
@@ -513,8 +593,8 @@ class TurnController:
                     return False
             return True
 
-        if cmd.type == "tax":
-            rate = cmd.params.get("rate")
+        if cmd_type == "tax":
+            rate = params.get("rate")
             return not (rate is None or not 0.1 <= rate <= 0.5)
 
         # H38b: Accept policy/economic/diplomacy commands — these are handled
@@ -552,6 +632,20 @@ class TurnController:
         if not army:
             return None
 
+        # 流亡军（无驻地 location=""）：直接抵达目标 —— 流浪军队无固定基地，
+        # 沿途机动开赴目的地。
+        if not army.location:
+            army.location = target
+            return {
+                "command_type": cmd.type,
+                "faction_id": faction_id,
+                "army_id": army.id,
+                "from": "",
+                "to": target,
+                "success": True,
+                "reason": "流亡军开赴目标",
+            }
+
         result = self.military_engine.move_army(army, target, self.map_engine)
         return {
             "command_type": cmd.type,
@@ -579,6 +673,31 @@ class TurnController:
             try:
                 unit_type = UnitType(unit_type_str)
             except ValueError:
+                return
+
+            # 流亡军：0 领地，直接从跟随百姓征召（不减 territory 人口，只耗金库）。
+            if not faction.territories:
+                pop_source = getattr(faction, "population", 0) or 0
+                if pop_source <= 0:
+                    pop_source = max(1, int(getattr(faction, "strength_actual", 0) or 0) * 2)
+                max_recruit = max(1, int(pop_source * 0.05))
+                amount = min(int(amount), max_recruit)
+                cost = amount * 3
+                if faction.treasury < cost:
+                    amount = int(faction.treasury // 3)
+                    cost = amount * 3
+                if amount <= 0:
+                    return
+                faction.treasury -= cost
+                faction.strength_actual += amount
+                army = self._find_faction_army(faction_id, world_state)
+                if army:
+                    army.units[unit_type] = army.units.get(unit_type, 0) + amount
+                if faction_id not in resource_changes:
+                    resource_changes[faction_id] = {"food_delta": 0, "tax_revenue": 0}
+                resource_changes[faction_id]["treasury_spent"] = (
+                    resource_changes[faction_id].get("treasury_spent", 0) + cost
+                )
                 return
 
             territory = world_state.territories.get(tid)
@@ -831,6 +950,22 @@ class TurnController:
         ]
 
         if not faction_armies:
+            # 流亡军：无领地势力若仍有兵力，补建一支无驻地军队以便移动/进攻。
+            faction = world_state.factions.get(faction_id)
+            if (
+                faction
+                and getattr(faction, "is_active", True)
+                and getattr(faction, "strength_actual", 0) > 0
+            ):
+                army_id = f"army_{faction_id}_exile"
+                army = Army(
+                    id=army_id,
+                    faction_id=faction_id,
+                    location="",
+                    units={UnitType.INFANTRY: int(faction.strength_actual)},
+                )
+                world_state.armies[army_id] = army
+                return army
             return None
 
         if prefer_border:

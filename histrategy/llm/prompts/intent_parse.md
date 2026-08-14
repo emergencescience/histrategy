@@ -38,7 +38,8 @@
 - **rest**: 休整。无params
 
 ### 外交/贸易
-- **negotiate**: 外交谈判。params: target_faction(目标势力ID), action("form_alliance"结盟/"break_alliance"断交/"request_aid"求援/"unify"统一联合), proposal(提案内容)
+- **negotiate**: 外交谈判。params: target_faction(目标势力ID), action("form_alliance"结盟/"break_alliance"断交/"request_aid"求援/"unify"统一联合/"seek_refuge"依附投靠), proposal(提案内容)
+  - **seek_refuge**：流亡势力（无领地）请求目标盟友割让一座非首都城作为新基地。用于「依附」「投靠」「投奔」「归附」「避难」「南撤投奔X」「依附X于襄阳」等 —— 玩家势力已无领地时，向盟友/关系友好势力寻求落脚。
 - **trade**: 贸易。params: target_faction(目标势力ID), resource(food/gold/cannon/weapons), action("import"进口/"export"出口)
 - **spy**: 派遣细作。params: target_faction(目标势力ID)
 

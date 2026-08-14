@@ -311,6 +311,92 @@ class TestPolicyValidator:
         assert len(result) == 1
 
 
+class TestSeekRefuge:
+    """流亡势力「依附/投靠」→ 盟友割让一座非首都城作为新基地。"""
+
+    def test_landless_faction_receives_ceded_city(self, world_state):
+        from histrategy_engine.turn import TurnController
+        from histrategy_engine.world import Command
+
+        # 刘备失去全部领地 → 流亡军
+        shu = world_state.factions["shu"]
+        world_state.territories["xinye"].owner_id = "cao"
+        world_state.factions["cao"].territories.append("xinye")
+        shu.territories = []
+
+        tc = TurnController(None, None, None, None, None)
+        cmd = Command(
+            type="negotiate",
+            params={"target_faction": "liubiao", "action": "seek_refuge", "proposal": "依附刘表"},
+            faction_id="shu",
+        )
+        events = tc._process_alliances([cmd], world_state)
+
+        # 刘表割让非首都城江陵给刘备
+        assert "jiangling" in shu.territories
+        assert "jiangling" not in world_state.factions["liubiao"].territories
+        assert world_state.territories["jiangling"].owner_id == "shu"
+        assert shu.capital == "jiangling"
+        assert any(e["type"] == "refuge_granted" for e in events)
+        assert "liubiao" in shu.allies
+
+    def test_seek_refuge_rejected_when_hostile(self, world_state):
+        from histrategy_engine.turn import TurnController
+        from histrategy_engine.world import Command
+
+        shu = world_state.factions["shu"]
+        shu.territories = []
+        # 刘表对刘备敌对（关系 -80）
+        world_state.factions["liubiao"].relations = {"shu": -80}
+
+        tc = TurnController(None, None, None, None, None)
+        cmd = Command(
+            type="negotiate",
+            params={"target_faction": "liubiao", "action": "seek_refuge", "proposal": "依附刘表"},
+            faction_id="shu",
+        )
+        events = tc._process_alliances([cmd], world_state)
+
+        assert shu.territories == []
+        assert any(e["type"] == "refuge_rejected" for e in events)
+
+
+class TestExileFactionCanAct:
+    """流亡军（0 领地）可征兵、可移动进攻（引擎层）。"""
+
+    def test_landless_recruit_valid(self, world_state):
+        from histrategy_engine.turn import TurnController
+
+        shu = world_state.factions["shu"]
+        shu.territories = []
+        shu.population = 30000  # 百姓跟随流浪
+        shu.treasury = 10000
+
+        tc = TurnController(None, None, None, None, None)
+        cmd = {
+            "type": "recruit",
+            "params": {"amount": 500, "unit_type": "infantry"},
+            "faction_id": "shu",
+        }
+        # 流亡军征兵不应被校验拦下
+        assert tc._is_valid_command(cmd, world_state) is True
+
+    def test_landless_move_target_valid(self, world_state):
+        from histrategy_engine.turn import TurnController
+
+        shu = world_state.factions["shu"]
+        shu.territories = []
+        shu.strength_actual = 3000
+
+        tc = TurnController(None, None, None, None, None)
+        cmd = {
+            "type": "move",
+            "params": {"destination": "xiangyang"},
+            "faction_id": "shu",
+        }
+        assert tc._is_valid_command(cmd, world_state) is True
+
+
 # ═══════════════════════════════════════════════════════════════
 # Economy Parameters
 # ═══════════════════════════════════════════════════════════════

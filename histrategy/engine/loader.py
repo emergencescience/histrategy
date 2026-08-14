@@ -527,9 +527,14 @@ def build_world_state(
     armies: dict[str, Army] = {}
     army_idx = 1
     for fid, faction in factions.items():
-        if not faction.is_active or not faction.territories:
+        if not faction.is_active:
             continue
-        capital = faction.capital or faction.territories[0]
+        # 流亡军：失去全部领地但 is_active=True 的势力（百姓跟随 = 民兵）。
+        # 不再 continue 跳过 —— 建一支无驻地「流亡军」，使其仍可移动/进攻/征兵。
+        if faction.territories:
+            capital = faction.capital or faction.territories[0]
+        else:
+            capital = ""  # 无驻地，部队随军流浪
         army_id = f"army_{fid}_{army_idx}"
         armies[army_id] = Army(
             id=army_id,

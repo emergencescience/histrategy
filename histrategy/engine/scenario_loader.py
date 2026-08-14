@@ -525,7 +525,24 @@ class ScenarioLoader:
         armies: dict[str, Army] = {}
         army_idx = 1
         for fid, faction in factions.items():
-            if not faction.is_active or not faction.territories:
+            if not faction.is_active:
+                continue
+
+            # 流亡军：无领地但活跃的势力（百姓跟随流浪 = 民兵）。
+            # 不再跳过 —— 建一支无驻地军队，使其仍可移动/进攻/征兵。
+            if not faction.territories:
+                army_id = f"army_{fid}_{army_idx}"
+                armies[army_id] = Army(
+                    id=army_id,
+                    faction_id=fid,
+                    location="",  # 流亡军无驻地
+                    commander_id=faction.ruler_id,
+                    units={UnitType.INFANTRY: max(0, int(faction.strength_actual))},
+                    morale=80,
+                    training=0.8,
+                    supply=15,
+                )
+                army_idx += 1
                 continue
 
             num_territories = len(faction.territories)

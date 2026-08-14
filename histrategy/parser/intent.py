@@ -555,7 +555,7 @@ class IntentParser:
         # Move (includes 北上, 南下, 东进, 西征, 回师)
         # Guard: skip move if text also contains attack keywords (北上取X = attack, not move)
         _has_attack_kw = any(kw in text_lower for kw in ("攻击", "进攻", "攻打", "讨伐", "出兵", "取", "夺取", "夺", "袭取", "袭", "征伐", "伐", "攻克", "攻取", "南征", "北伐", "西征", "东征", "征讨", "攻伐", "南下攻", "北上攻"))
-        if not _has_attack_kw and any(kw in text_lower for kw in ("移动", "行军", "调兵", "移师", "北上", "南下", "东进", "西征", "回师", "进发", "开赴", "支援", "增援", "驰援")):
+        if not _has_attack_kw and any(kw in text_lower for kw in ("移动", "行军", "调兵", "移师", "北上", "南下", "东进", "西征", "回师", "进发", "开赴", "支援", "增援", "驰援", "南撤", "北撤", "东撤", "西撤", "撤退", "南奔", "北奔")):
             dest = self._extract_territory(text) or ""
             if dest:
                 params = {"destination": dest}
@@ -630,12 +630,18 @@ class IntentParser:
                 )
 
         # Negotiate
-        if any(kw in text_lower for kw in ("联盟", "结盟", "外交", "谈判", "同盟", "遣使", "修好", "归顺", "招安", "诏安", "断交", "决裂", "破盟", "毁约", "劝降", "传檄", "招降", "招抚", "纳降", "诱降")):
+        if any(kw in text_lower for kw in ("联盟", "结盟", "外交", "谈判", "同盟", "遣使", "修好", "归顺", "招安", "诏安", "断交", "决裂", "破盟", "毁约", "劝降", "传檄", "招降", "招抚", "纳降", "诱降", "依附", "投靠", "投奔", "归附", "托庇", "寄居", "避难")):
             target = self._extract_target_faction(text, exclude_fid=faction_id) or ""
             if target:
-                # Detect action: break vs form alliance
+                # Detect action: break / seek_refuge(依附投靠) / form alliance
                 break_kw = ("断交", "决裂", "破盟", "毁约")
-                action = "break_alliance" if any(kw in text_lower for kw in break_kw) else "form_alliance"
+                refuge_kw = ("依附", "投靠", "投奔", "归附", "托庇", "寄居", "避难")
+                if any(kw in text_lower for kw in break_kw):
+                    action = "break_alliance"
+                elif any(kw in text_lower for kw in refuge_kw):
+                    action = "seek_refuge"
+                else:
+                    action = "form_alliance"
                 commands.append(
                     Command(
                         type="negotiate",

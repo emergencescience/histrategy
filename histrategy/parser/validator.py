@@ -86,33 +86,44 @@ class CommandValidator:
     # ── Specific validators ──────────────────────────────────────
 
     def _validate_recruit(self, cmd: Command, world_state: WorldState) -> bool:
-        """Validate recruitment: amount ≤ 5% of territory population."""
+        """Validate recruitment: amount ≤ 5% of territory population.
+
+        流亡军（0 领地）例外：允许从跟随百姓征召（faction.population 仍在），
+        不需要指定/拥有领地。
+        """
+        faction = world_state.factions.get(cmd.faction_id)
+        if not faction:
+            return False
+
         tid = cmd.params.get("territory", "")
-        if not tid:
-            return False
-
-        territory = world_state.territories.get(tid)
-        if not territory:
-            return False
-        if territory.owner_id != cmd.faction_id:
-            return False
-
         amount = cmd.params.get("amount", 0)
         if amount <= 0:
             return False
 
-        max_recruit = max(1, int(territory.population * 0.05))
+        territory = world_state.territories.get(tid) if tid else None
+
+        if faction.territories:
+            # 常规势力：必须有领地且领地归本方所有
+            if not territory or territory.owner_id != cmd.faction_id:
+                return False
+            pop_source = territory.population
+        else:
+            # 流亡军：0 领地，从跟随百姓征召（population 仍在，或按兵力估算）
+            pop_source = getattr(faction, "population", 0) or 0
+            if pop_source <= 0:
+                # 无人口记录时，用现有兵力作为「流民基数」估算（10% 兵力）
+                pop_source = max(1, int(getattr(faction, "strength_actual", 0) or 0) * 2)
+
+        max_recruit = max(1, int(pop_source * 0.05))
         if amount > max_recruit:
             return False
 
         # Check treasury
-        faction = world_state.factions.get(cmd.faction_id)
-        if faction:
-            unit_type = cmd.params.get("unit_type", "infantry")
-            cost_per_unit = {"infantry": 3, "cavalry": 10, "archer": 6, "navy": 8}
-            cost = cost_per_unit.get(unit_type, 3) * amount
-            if faction.treasury < cost:
-                return False
+        unit_type = cmd.params.get("unit_type", "infantry")
+        cost_per_unit = {"infantry": 3, "cavalry": 10, "archer": 6, "navy": 8}
+        cost = cost_per_unit.get(unit_type, 3) * amount
+        if faction.treasury < cost:
+            return False
 
         return True
 

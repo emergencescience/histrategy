@@ -117,3 +117,26 @@
   ]
 }
 ```
+
+### 示例5：流亡依附（seek_refuge）
+玩家指令：「南撤襄阳依附刘表」（我方已无领地，是流亡军）
+
+解析输出：
+```json
+{
+  "commands": [
+    {
+      "type": "move",
+      "params": {"destination": "xiangyang"},
+      "notes": "流亡军南撤，开赴襄阳一带"
+    },
+    {
+      "type": "negotiate",
+      "params": {"target_faction": "liubiao", "proposal": "依附刘表，求割一城为基业", "action": "seek_refuge"},
+      "notes": "依附/投靠刘表：请求割让一座非首都城作为新基地"
+    }
+  ]
+}
+```
+
+⚠️ 「依附」「投靠」「投奔」「归附」「避难」「南撤投奔X」→ **negotiate** action=seek_refuge（请求割让一座非首都城作为流亡新基地）。
