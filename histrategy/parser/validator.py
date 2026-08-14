@@ -74,8 +74,8 @@ class CommandValidator:
             return self._validate_negotiate(cmd, world_state)
         elif cmd_type in ("spy", "trade"):
             return self._validate_target_faction(cmd, world_state)
-        elif cmd_type in ("rest",):
-            return True  # rest is always valid
+        elif cmd_type in ("rest", "military_posture"):
+            return True  # rest/posture always valid
         elif cmd_type in ("appoint", "dismiss"):
             return self._validate_character_command(cmd, world_state)
         elif cmd_type == "research":

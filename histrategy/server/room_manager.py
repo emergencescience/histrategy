@@ -2875,12 +2875,18 @@ def _defender_is_dug_in(defender_fid: str, decisions: dict) -> bool:
     commands = getattr(dr, "commands", None) or []
     for cmd in commands:
         if isinstance(cmd, dict):
-            if cmd.get("type") == "military_posture":
+            cmd_type = cmd.get("type", "")
+            if cmd_type == "defend":
+                return True  # 防守某城 = 据守
+            if cmd_type == "military_posture":
                 params = cmd.get("params") or {}
                 stance = params.get("stance", "") if isinstance(params, dict) else ""
                 return stance == "defensive"
         else:
-            if getattr(cmd, "type", "") == "military_posture":
+            cmd_type = getattr(cmd, "type", "")
+            if cmd_type == "defend":
+                return True
+            if cmd_type == "military_posture":
                 params = getattr(cmd, "params", None) or {}
                 stance = params.get("stance", "") if isinstance(params, dict) else ""
                 return stance == "defensive"
