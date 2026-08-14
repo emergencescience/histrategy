@@ -12,7 +12,8 @@
       "ruler": "liubei",
       "capital": "xinye",
       "territories": [
-        "xinye"
+        "xinye",
+        "jiangxia"
       ],
       "treasury": 5000,
       "food": 3500,
@@ -198,6 +199,16 @@
       "terrain": "plains",
       "climate_zone": "central",
       "fertility": 6
+    },
+    "jiangxia": {
+      "name": "江夏",
+      "owner": "shu",
+      "population": 70000,
+      "development": 30,
+      "terrain": "river",
+      "climate_zone": "central",
+      "has_river": true,
+      "fertility": 7
     },
     "xuchang": {
       "name": "许昌",

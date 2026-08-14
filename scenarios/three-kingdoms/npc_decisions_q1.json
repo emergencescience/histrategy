@@ -120,7 +120,7 @@
     },
     "wu": {
       "zh": {
-        "decision_text": "【江夏既平】周瑜水师已破江夏，黄祖授首。孙权大宴群臣，庆父仇得报。然鲁肃进言：「江夏虽得，曹操在北，不可不备。刘备在新野，虽是弱邻，然得诸葛亮辅佐，日后或可为抗曹助力。」孙权从之——命周瑜整编江夏降军，扩建水师。遣鲁肃以吊刘表病为名赴襄阳，实则探查荆州虚实。",
+        "decision_text": "【联刘抗曹】孙权闻曹操整军南征之意，召群臣廷议。鲁肃进言：「曹操若南下，必先取荆州，再图江东。刘备屯新野、领江夏，得诸葛亮辅佐，可结为唇齿，共抗曹操。」孙权从之——遣鲁肃赴江夏与刘备定盟，命周瑜在柴桑整训水师以备北来，张昭坐镇建业稳固后方。",
         "commands": [
           {
             "type": "recruit",
@@ -134,22 +134,22 @@
           {
             "type": "develop",
             "params": {
-              "territory": "jiangxia"
+              "territory": "chaisang"
             },
-            "reasoning": "安抚江夏百姓，巩固新占"
+            "reasoning": "加固柴桑水寨，巩固江防"
           },
           {
             "type": "diplomacy",
             "params": {
-              "target_faction": "liubiao",
-              "action": "non_aggression"
+              "target_faction": "shu",
+              "action": "ally"
             },
-            "reasoning": "鲁肃赴襄阳吊丧探虚实"
+            "reasoning": "鲁肃赴江夏与刘备定盟共抗曹操"
           }
         ]
       },
       "en": {
-        "decision_text": "Jiangxia has fallen. Huang Zu is dead. Sun Quan celebrates the avenging of his father. But Lu Su counsels: though Jiangxia is won, Cao Cao looms in the north. Liu Bei at Xinye, though weak, has gained Zhuge Liang — he may prove a valuable ally against Cao. Sun Quan agrees — Zhou Yu reorganizes the Jiangxia captives into the fleet. Lu Su travels to Xiangyang, ostensibly to inquire after Liu Biao's health, truly to gauge Jingzhou's condition.",
+        "decision_text": "Sun Quan hears of Cao Cao's looming southern campaign and convenes his council. Lu Su counsels: should Cao Cao march south, he will take Jingzhou first, then threaten Jiangdong. Liu Bei holds Xinye and Jiangxia and has gained Zhuge Liang — he can be a vital ally against Cao. Sun Quan agrees — Lu Su travels to Jiangxia to seal an alliance with Liu Bei, while Zhou Yu drills the fleet at Chaisang and Zhang Zhao stabilizes the home front.",
         "commands": [
           {
             "type": "recruit",
@@ -163,17 +163,17 @@
           {
             "type": "develop",
             "params": {
-              "territory": "jiangxia"
+              "territory": "chaisang"
             },
-            "reasoning": "Pacify Jiangxia, consolidate new territory"
+            "reasoning": "Fortify the Chaisang naval fortress and river defenses"
           },
           {
             "type": "diplomacy",
             "params": {
-              "target_faction": "liubiao",
-              "action": "non_aggression"
+              "target_faction": "shu",
+              "action": "ally"
             },
-            "reasoning": "Lu Su probes Jingzhou under guise of condolence"
+            "reasoning": "Lu Su seals an alliance with Liu Bei at Jiangxia against Cao Cao"
           }
         ]
       }

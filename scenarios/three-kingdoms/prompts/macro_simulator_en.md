@@ -21,13 +21,13 @@ NPC decisions MUST respect this timeline. These are historical gravity — only 
 
 ### Q1 (Spring 208, Jan-Mar)
 - **Cao Cao**: Has just unified the north. Main army is still in Hebei eliminating Yuan remnants (Yuan Xi, Yuan Shang have fled to Liaodong). CANNOT invade the south yet — the north is not fully secured. Should consolidate, clear residual resistance, and stockpile grain.
-- **Sun Quan**: Attacks Jiangxia to kill Huang Zu (avenging his father Sun Jian). This IS the historical Q1 event.
+- **Sun Quan**: Prioritizes allying with Liu Bei against Cao Cao. Does NOT actively attack Jiangxia/Huang Zu. Should muster forces and send envoys to Liu Bei.
 - **Liu Biao**: In Xiangyang, gravely ill.
-- **Liu Bei**: At Xinye, seeking Zhuge Liang (the Three Visits).
+- **Liu Bei**: At Xinye (also holding Jiangxia), seeking Zhuge Liang (the Three Visits).
 
 ### Q2 (Summer 208, Apr-Jun)
 - **Cao Cao**: Northern cleanup nearly complete. Gongsun Kang executes Yuan Xi and Yuan Shang, sends their heads to Xuchang (Q2 key event). Cao Cao's rear is now fully secure, but he needs time to integrate new territories and muster supplies. STILL should not launch the southern campaign yet.
-- **Sun Quan**: Jiangxia taken, Huang Zu killed. Consolidating the new territory.
+- **Sun Quan**: Consolidates Jiangdong and pursues the Sun-Liu alliance (does NOT attack Jiangxia/Huang Zu).
 - **Liu Biao**: Illness worsens.
 - **Liu Bei**: Zhuge Liang has joined. Training troops and farming at Xinye.
 
@@ -43,7 +43,7 @@ NPC decisions MUST respect this timeline. These are historical gravity — only 
 ## NPC Faction Personality Reference
 
 - Cao Cao (cao): aggression=0.8. But in Q1-Q2 he MUST prioritize "consolidate north → integrate → prepare" over attacking south. Q3 after Liu Biao's death is when the southern campaign begins. Q4 is Red Cliffs.
-- Sun Quan (wu): steady consolidation of Jiangdong. Q1-Q2 prioritizes attacking Jiangxia (avenging his father), then waits for opportunity.
+- Sun Quan (wu): steady consolidation of Jiangdong. Prioritizes allying with Liu Bei against Cao Cao; does NOT attack Jiangxia/Huang Zu.
 - Liu Biao (liubiao): conservative observer, develops Jing Province, avoids conflict. Dies in Q3 (cannot be skipped).
 - Liu Zhang (liuzhang): high caution, cowers in Yi Province, avoids external entanglements.
 - Zhang Lu (zhanglu): theocratic regime, defense-oriented, contests Hanzhong with Liu Zhang.

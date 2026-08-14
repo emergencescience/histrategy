@@ -3,7 +3,7 @@
   "quarter": 0,
   "generated_at": "2026-08-01T00:00:00.000000+00:00",
   "generated_by": "manual-fix",
-  "note": "208年春：曹操刚定河北，袁绍残部（袁熙、袁尚）逃往辽东，曹操主力在北方追剿。此时不可南下攻荆——北方未定，南下是军事大忌。曹操应巩固北方、清除残余、屯田积粮。孙权应准备攻打江夏黄祖（报父仇）。本文件覆盖了 LLM 生成的错误版本（2026-06-16 deepseek-v4-pro 生成，含 attack xinye 的错误命令）。",
+  "note": "208年春：曹操刚定河北，袁绍残部（袁熙、袁尚）逃往辽东，曹操主力在北方追剿。此时不可南下攻荆——北方未定，南下是军事大忌。曹操应巩固北方、清除残余、屯田积粮。孙权应整军备战、遣使联刘抗曹（不主动进攻江夏）。本文件覆盖了 LLM 生成的错误版本（2026-06-16 deepseek-v4-pro 生成，含 attack xinye 的错误命令）。",
   "decisions": {
     "cao": {
       "zh": {
@@ -125,7 +125,7 @@
     },
     "wu": {
       "zh": {
-        "decision_text": "【蓄势江东】孙权继承父兄基业，坐领江东。黄祖据江夏，乃杀父仇人，不可不除。然此时曹操在北虎视眈眈，江东不可二面树敌。命周瑜为大都督，在柴桑整训水师。鲁肃巡江防务，张昭坐镇建业稳固后方。先练水军，待时机成熟再图江夏。",
+        "decision_text": "【蓄势江东】孙权继承父兄基业，坐领江东。曹操在北虎视眈眈，江东不可孤立。命周瑜为大都督，在柴桑整训水师。鲁肃巡江防务，并遣使赴新野，与刘备互通声气，共商抗曹大计。张昭坐镇建业稳固后方。",
         "commands": [
           {
             "type": "recruit",
@@ -134,7 +134,7 @@
               "amount": 5000,
               "unit_type": "水军"
             },
-            "reasoning": "扩建柴桑水师基地，备战江夏"
+            "reasoning": "扩建柴桑水师基地，以备北来曹军"
           },
           {
             "type": "develop",
@@ -147,14 +147,14 @@
             "type": "diplomacy",
             "params": {
               "target_faction": "shu",
-              "action": "non_aggression"
+              "action": "ally"
             },
-            "reasoning": "遣使至新野，示好刘备以共抗曹操"
+            "reasoning": "遣使至新野，与刘备结盟以共抗曹操"
           }
         ]
       },
       "en": {
-        "decision_text": "Sun Quan rules Jiangdong. Huang Zu at Jiangxia killed his father — this blood debt must be repaid. But Cao Cao's shadow looms in the north; Jiangdong cannot afford enemies on two fronts. Zhou Yu drills the navy at Chaisang. Lu Su inspects the river defenses while Zhang Zhao secures the home front at Jianye. First, train the fleet — Jiangxia can wait for the right moment.",
+        "decision_text": "Sun Quan rules Jiangdong. Cao Cao's shadow looms in the north; Jiangdong cannot stand alone. Zhou Yu drills the navy at Chaisang. Lu Su inspects the river defenses and sends envoys to Xinye to open talks with Liu Bei on a joint stand against Cao Cao. Zhang Zhao secures the home front at Jianye.",
         "commands": [
           {
             "type": "recruit",
@@ -163,7 +163,7 @@
               "amount": 5000,
               "unit_type": "navy"
             },
-            "reasoning": "Expand the Chaisang naval base for the Jiangxia campaign"
+            "reasoning": "Expand the Chaisang naval base to prepare for Cao Cao's advance"
           },
           {
             "type": "develop",
@@ -176,9 +176,9 @@
             "type": "diplomacy",
             "params": {
               "target_faction": "shu",
-              "action": "non_aggression"
+              "action": "ally"
             },
-            "reasoning": "Send envoys to Xinye, befriend Liu Bei against Cao Cao"
+            "reasoning": "Send envoys to Xinye to ally with Liu Bei against Cao Cao"
           }
         ]
       }

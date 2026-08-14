@@ -81,6 +81,7 @@ _TERRITORY_ZH = {
     "chengdu": "成都", "hanzhong": "汉中",
     # three-kingdoms
     "xinye": "新野", "xuchang": "许昌", "ye": "邺城",
+    "jiangxia": "江夏",
     "wancheng": "宛城", "beihai": "北海", "ji": "蓟",
     "puyang": "濮阳", "xiapi": "下邳", "changshan": "常山",
     "jianye": "建业", "wu": "吴", "chaisang": "柴桑",
