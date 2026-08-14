@@ -63,7 +63,6 @@ ignore = [
 "histrategy/llm/narrative.py" = ["E501"]
 "histrategy/engine/intro_plan.py" = ["E501"]
 "histrategy/engine/helpers.py" = ["E501"]
-"histrategy/engine/fast_path.py" = ["E501"]
 "histrategy/server/room_manager.py" = ["E501"]
 "histrategy/llm/advisor.py" = ["E501"]
 "histrategy/server/api.py" = ["E501"]

@@ -2871,12 +2871,12 @@ def _resolve_npc_territory_combat(room, ws, decisions):
     when city_falls.
     """
     try:
-        from histrategy.engine.fast_path import (
+        from histrategy.engine.combat import (
             _FACTION_ATTACK_TARGETS,
             _YANGTZE_SOUTH,
             _resolve_combat,
         )
-        from histrategy.engine.fast_path import (
+        from histrategy.engine.names import (
             _TERRITORY_ZH as _TERR_ZH,
         )
     except ImportError:
@@ -3108,10 +3108,10 @@ def _get_faction_names(room, lang: str = "zh") -> dict[str, str]:
     for fid in getattr(room, "slots", {}):
         if fid not in names:
             names[fid] = fid
-    # Final fallback: use fast_path's _FACTION_EN/_FACTION_ZH maps
+    # Final fallback: use shared _FACTION_EN map (from engine.names)
     if lang == "en":
         try:
-            from histrategy.engine.fast_path import _FACTION_EN
+            from histrategy.engine.names import _FACTION_EN
             for fid in names:
                 if not names[fid] or names[fid] == fid:
                     names[fid] = _FACTION_EN.get(fid, names[fid])
