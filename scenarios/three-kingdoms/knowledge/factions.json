@@ -50,7 +50,7 @@
     "starting_territories": [
       "yanzhou"
     ],
-    "strength": 30000,
+    "strength": 150000,
     "economy": 55,
     "morale": 75,
     "intel_level": 80,
@@ -88,7 +88,7 @@
       "changsha",
       "yuzhang"
     ],
-    "strength": 20000,
+    "strength": 50000,
     "economy": 50,
     "morale": 80,
     "intel_level": 55,
@@ -158,6 +158,14 @@
     "name": "刘璋",
     "color": "#8B4513",
     "npc_only": true,
-    "description": "益州牧，暗弱无能，偏安一隅。"
+    "description": "益州牧，暗弱无能，偏安一隅。",
+    "strength": 50000,
+    "capital": "chengdu",
+    "starting_territories": [
+      "chengdu",
+      "hanshui",
+      "jiangzhou",
+      "nanjun"
+    ]
   }
 ]
