@@ -20,7 +20,7 @@
     "climate_zone": "south",
     "population": 40000,
     "development": 40,
-    "neighbors": ["jianye", "jiangkou", "lujiang", "yuzhang"],
+    "neighbors": ["jianye", "jiangkou", "lujiang", "yuzhang", "jiangxia"],
     "has_river": true
   },
   {
@@ -99,7 +99,7 @@
     "climate_zone": "central",
     "population": 15000,
     "development": 20,
-    "neighbors": ["xiangyang", "jiangling", "chaisang"],
+    "neighbors": ["xiangyang", "jiangling", "chaisang", "jiangxia"],
     "has_river": true
   },
   {
@@ -112,6 +112,18 @@
     "population": 60000,
     "development": 50,
     "neighbors": ["xiangyang", "jiangkou", "nanjun", "jiangzhou"],
+    "has_river": true
+  },
+  {
+    "id": "jiangxia",
+    "name": "江夏",
+    "owner_id": "shu",
+    "fertility": 7,
+    "terrain": "river",
+    "climate_zone": "central",
+    "population": 70000,
+    "development": 30,
+    "neighbors": ["xinye", "chaisang", "jiangkou", "xiangyang"],
     "has_river": true
   },
   {
@@ -227,7 +239,7 @@
     "climate_zone": "central",
     "population": 80000,
     "development": 55,
-    "neighbors": ["xinye", "jiangling", "wancheng", "changsha", "jiangkou"],
+    "neighbors": ["xinye", "jiangling", "wancheng", "changsha", "jiangkou", "jiangxia"],
     "has_river": true
   },
   {
@@ -251,7 +263,7 @@
     "climate_zone": "central",
     "population": 30000,
     "development": 25,
-    "neighbors": ["xiangyang", "wancheng"]
+    "neighbors": ["xiangyang", "wancheng", "jiangxia"]
   },
   {
     "id": "xuchang",

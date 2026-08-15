@@ -12,11 +12,12 @@
       "ruler": "liubei",
       "capital": "xinye",
       "territories": [
-        "xinye"
+        "xinye",
+        "jiangxia"
       ],
       "treasury": 5000,
       "food": 3500,
-      "strength": 10000,
+      "strength_actual": 10000,
       "prestige": 35,
       "tax_rate": 0.2,
       "morale_actual": 70,
@@ -59,7 +60,7 @@
       ],
       "treasury": 50000,
       "food": 30000,
-      "strength": 150000,
+      "strength_actual": 150000,
       "prestige": 90,
       "tax_rate": 0.4,
       "morale_actual": 80,
@@ -99,7 +100,7 @@
       ],
       "treasury": 15000,
       "food": 10000,
-      "strength": 50000,
+      "strength_actual": 50000,
       "prestige": 60,
       "tax_rate": 0.3,
       "morale_actual": 75,
@@ -136,7 +137,7 @@
       ],
       "treasury": 10000,
       "food": 8000,
-      "strength": 60000,
+      "strength_actual": 60000,
       "prestige": 50,
       "tax_rate": 0.3,
       "morale_actual": 50,
@@ -173,7 +174,7 @@
       ],
       "treasury": 12000,
       "food": 15000,
-      "strength": 50000,
+      "strength_actual": 50000,
       "prestige": 30,
       "tax_rate": 0.3,
       "morale_actual": 55,
@@ -198,6 +199,16 @@
       "terrain": "plains",
       "climate_zone": "central",
       "fertility": 6
+    },
+    "jiangxia": {
+      "name": "江夏",
+      "owner": "shu",
+      "population": 70000,
+      "development": 30,
+      "terrain": "river",
+      "climate_zone": "central",
+      "has_river": true,
+      "fertility": 7
     },
     "xuchang": {
       "name": "许昌",

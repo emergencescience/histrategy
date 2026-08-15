@@ -2896,6 +2896,12 @@ def _defender_is_dug_in(defender_fid: str, decisions: dict) -> bool:
     return any(kw in text for kw in ("据城死守", "坚守不出", "死守", "固守", "不许出", "收缩防线"))
 
 
+# Fraction of a fallen city's population that flees to the defender's remaining
+# cities (refugee mechanism) instead of being absorbed by the attacker.
+# If the defender has no remaining cities, the full population transfers.
+_REFUGEE_FRACTION = 0.4
+
+
 def _resolve_npc_territory_combat(room, ws, decisions):
     """After LLM generates NPC decisions, run deterministic combat for any
     military actions that should result in territory transfers.
@@ -2997,10 +3003,19 @@ def _resolve_npc_territory_combat(room, ws, decisions):
             enemy_fs["troops"] = max(0, enemy_fs["troops"] - result["defender_losses"])
             fs["morale"] = min(100, fs["morale"] + 5)
             enemy_fs["morale"] = max(0, enemy_fs["morale"] - 8)
-            # Transfer population
-            pop_transfer = min(enemy_fs["population"] // max(len(enemy_fs["territories"]) + 1, 1), 50000)
-            fs["population"] += pop_transfer
-            enemy_fs["population"] = max(1, enemy_fs["population"] - pop_transfer)
+            # Transfer population with refugee mechanism:
+            # when a city falls, part of its population flees to the defender's
+            # remaining cities instead of being absorbed by the attacker.
+            city_pop = min(enemy_fs["population"] // max(len(enemy_fs["territories"]) + 1, 1), 50000)
+            if len(enemy_fs["territories"]) > 0:
+                # ~40% of the city's population flees to the defender's other cities
+                refugee_pop = int(city_pop * _REFUGEE_FRACTION)
+                transferred = city_pop - refugee_pop
+            else:
+                # defender has no cities left — all population goes to the attacker
+                transferred = city_pop
+            fs["population"] += transferred
+            enemy_fs["population"] = max(1, enemy_fs["population"] - transferred)
             tname = _TERR_ZH.get(best_target, best_target)
             logger.info(
                 f"Room {room.id}: NPC {fid} captured {best_target}({tname}) from {best_enemy}"

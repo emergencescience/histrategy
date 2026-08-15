@@ -118,6 +118,8 @@ TERRITORY_NAME_MAP: dict[str, str] = {
     # 刘备领地
     "新野": "xinye",
     "xinye": "xinye",
+    "江夏": "jiangxia",
+    "jiangxia": "jiangxia",
     "平原": "pingyuan",
     "pingyuan": "pingyuan",
     # 孙权领地

@@ -168,13 +168,13 @@ EARLY_TURNS_SUGGESTIONS = {
             },
             2: {
                 "zh": [
-                    "【西讨黄祖】命周瑜率水军西进，讨伐江夏黄祖，打通长江上游",
+                    "【联刘抗曹】遣鲁肃赴江夏，与刘备商议共抗曹操之策，巩固孙刘联盟",
                     "[wu_t2_scholars]【延揽贤才】在吴郡设招贤馆，广纳中原南渡士人",
                     "[wu_t2_fortify]【建造要塞】在柴桑修筑水寨，作为西进和北防的军事枢纽",
                     "[wu_t2_marriage]【联姻荆州】试探与刘表联姻以对抗曹操北来之势",
                 ],
                 "en": [
-                    "【Strike Huang Zu】Order Zhou Yu's fleet west to attack Jiangxia and secure the upper Yangtze",
+                    "【Ally Liu Bei】Send Lu Su to Jiangxia to coordinate the anti-Cao alliance with Liu Bei",
                     "[wu_t2_scholars]【Recruit Scholars】Open a talent hall at Wu Commandery for northern scholar-refugees",
                     "[wu_t2_fortify]【Fortify Chaisang】Build a naval fortress as the strategic hub for westward expansion",
                     "[wu_t2_marriage]【Marriage Diplomacy】Probe Liu Biao for a marriage alliance against Cao Cao",

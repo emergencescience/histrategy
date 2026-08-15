@@ -64,11 +64,12 @@
     "ruler_id": "liubei",
     "color": "green",
     "description": "汉室宗亲，以仁德取天下。势力代表蜀汉政权，匡扶汉室为旗帜。",
-    "capital": "pingyuan",
+    "capital": "xinye",
     "starting_territories": [
-      "pingyuan"
+      "xinye",
+      "jiangxia"
     ],
-    "strength": 5000,
+    "strength": 10000,
     "economy": 35,
     "morale": 90,
     "intel_level": 60,
