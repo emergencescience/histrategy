@@ -3015,7 +3015,7 @@ def _resolve_npc_territory_combat(room, ws, decisions):
                 # defender has no cities left — all population goes to the attacker
                 transferred = city_pop
             fs["population"] += transferred
-            enemy_fs["population"] = max(1, enemy_fs["population"] - transferred)
+            enemy_fs["population"] = max(0, enemy_fs["population"] - transferred)
             tname = _TERR_ZH.get(best_target, best_target)
             logger.info(
                 f"Room {room.id}: NPC {fid} captured {best_target}({tname}) from {best_enemy}"
@@ -3041,7 +3041,17 @@ def _resolve_npc_territory_combat(room, ws, decisions):
         if hasattr(f, "morale_actual"):
             f.morale_actual = fs["morale"]
         if hasattr(f, "population"):
-            f.population = fs["population"]
+            # Recompute aggregate population from the territory sum instead of
+            # trusting fs["population"]. The combat loop decrements the aggregate
+            # without updating per-territory populations, which let the two drift
+            # apart until the aggregate hit the max(1, …) clamp (observed as
+            # "population = 1" while territories still summed to ~700k).
+            _terr_map = getattr(ws, "territories", {})
+            _pop = sum(
+                getattr(_terr_map.get(t, None), "population", 0)
+                for t in getattr(f, "territories", [])
+            )
+            f.population = _pop if _pop > 0 else fs["population"]
         if hasattr(f, "food"):
             f.food = fs["food"]
 

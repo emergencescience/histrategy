@@ -34,7 +34,7 @@ class EconomyParams:
     # ── Food ──
     base_food_per_soldier: float = 0.005  # food per soldier per quarter (was 0.008, reduced for nanming sustainability)
     base_food_per_civilian: float = 0.0015  # food per civilian per quarter (was 0.002)
-    food_production_multiplier: float = 0.05  # food output per population * dev * fertility (was 0.03, increased for nanming)
+    food_production_multiplier: float = 0.02  # food output per population * dev * fertility (was 0.05 — produced ~8x consumption, food ballooned 6x in 4 quarters; 0.02 gives a ~30% surplus at the 125k-pop/50k-troop calibration target)
 
     # ── Seasonal food coefficients (spring=0, summer=1, autumn=2, winter=3) ──
     # Default: East Asian monsoon climate (spring planting, autumn harvest, winter barren)
