@@ -212,7 +212,17 @@ def deserialize_world_state(ws_data: dict) -> WorldState:
     # Rebuild factions
     for fid, fd in (ws_data.get("factions") or {}).items():
         try:
-            ws.factions[fid] = FactionState(**{k: v for k, v in fd.items() if k in FactionState.__dataclass_fields__})
+            # NOTE: _worldstate_to_dict() does NOT serialize `id`, so the naive
+            # FactionState(**fd) reconstruction raises TypeError (missing required
+            # `id`) and fell through to the except branch — which reset EVERYTHING
+            # to dataclass defaults (strength_actual=5000, population=0, food=3000,
+            # treasury=5000, morale=50). That single fallback was the root cause of
+            # both the "troops stuck at 5000" and "population collapse to 1" bugs.
+            # Pass id=fid explicitly so the full state round-trips.
+            ws.factions[fid] = FactionState(
+                id=fid,
+                **{k: v for k, v in fd.items() if k in FactionState.__dataclass_fields__ and k != "id"},
+            )
         except Exception:
             ws.factions[fid] = FactionState(id=fid, name=fd.get("name", fid), ruler_id=fd.get("ruler_id", fid))
 
