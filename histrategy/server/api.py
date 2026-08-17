@@ -920,6 +920,38 @@ def create_app(llm_provider: str | None = None) -> Any:
             "factions": factions,
         }
 
+    # Batch room metadata — for lobby room list (avoids N+1 getRoomStatus calls)
+    @app.post("/api/rooms/batch-status")
+    def api_rooms_batch_status(body: dict = Body(...)):  # noqa: B008
+        """Return lightweight room metadata for a list of room_ids.
+
+        The lobby room list needs scenario / turns / is_public / year for many
+        rooms at once. The frontend previously called /api/rooms/{id}/status
+        N times (N+1); this endpoint resolves all rooms in a single query.
+        """
+        from histrategy.db.connection import execute
+
+        room_ids = body.get("room_ids", [])
+        if not isinstance(room_ids, list) or not room_ids:
+            return {"rooms": []}
+        room_ids = [str(r) for r in room_ids][:500]  # cap to avoid abuse
+        placeholders = ",".join("?" for _ in room_ids)
+        rows = execute(
+            f"SELECT id, scenario, year, quarter_number, is_public FROM game_room WHERE id IN ({placeholders})",
+            tuple(room_ids),
+        )
+        rooms = [
+            {
+                "room_id": r["id"],
+                "scenario": r.get("scenario", ""),
+                "year": r.get("year", 0),
+                "quarter_number": r.get("quarter_number", 0),
+                "is_public": bool(r.get("is_public", 0)),
+            }
+            for r in rows
+        ]
+        return {"rooms": rooms}
+
     # Publish / Unpublish
     @app.patch("/api/rooms/{room_id}/publish")
     def api_publish_room(room_id: str, body: dict = Body(...)):  # noqa: B008
