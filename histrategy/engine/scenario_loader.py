@@ -140,6 +140,19 @@ class ScenarioLoader:
         factions_cfg = self._toml.get("factions", {})
         return list(factions_cfg.get("npc_only", []))
 
+    @property
+    def max_quarters(self) -> int:
+        """游戏最大季度数（剧终阈值）。0 表示不限制。
+
+        scenario.toml 的 [engine] max_quarters。到该季度后游戏进入终局
+        （强制剧终 + 历史偏移结算）。此前该字段定义了但从未被 enforce。
+        """
+        engine = self._toml.get("engine", {})
+        try:
+            return int(engine.get("max_quarters", 0) or 0)
+        except (TypeError, ValueError):
+            return 0
+
     # ── public data loaders ─────────────────────────────────────────────
 
     def load_factions(self) -> dict:

@@ -22,7 +22,7 @@ quarter_per_year = 4
 quarters = ["春", "夏", "秋", "冬"]
 turn_timeout_human = 300                  # 人类玩家决策超时（秒）
 turn_timeout_ai = 120                     # AI NPC 决策超时（秒）
-max_quarters = 120                        # 游戏最大季度数（207冬→237冬，共30年）
+max_quarters = 60                         # 游戏最大季度数（208春→222冬，刘备白帝城托孤前期，共15年）
 
 [factions]
 available = ["cao", "shu", "wu"]          # 可扮演势力

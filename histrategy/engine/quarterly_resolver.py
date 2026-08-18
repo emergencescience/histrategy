@@ -31,6 +31,46 @@ logger = logging.getLogger("histrategy.quarterly")
 # ── 内部引擎引用（延迟导入以避免循环依赖） ──
 
 
+_SCENARIO_DISPLAY = {
+    "nanming": "《山河鼎革》",
+    "three-kingdoms": "《三國志略》",
+    "rome-triumvirate": "《凯撒余烬》",
+}
+
+
+def _get_max_quarters(scenario: str) -> int:
+    """Read scenario.toml [engine] max_quarters. 0 = unlimited."""
+    try:
+        import tomllib
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parents[2]
+        fp = root / "scenarios" / scenario / "scenario.toml"
+        if fp.is_file():
+            cfg = tomllib.loads(fp.read_text())
+            return int(cfg.get("engine", {}).get("max_quarters", 0) or 0)
+    except Exception as exc:
+        logger.warning("Failed to read max_quarters for scenario=%s: %s", scenario, exc)
+    return 0
+
+
+def _build_conclusion(room, ws) -> dict:
+    """生成剧终 game_over 消息（历史偏移结算为后续增强）。"""
+    scenario = getattr(room, "scenario", "")
+    name = _SCENARIO_DISPLAY.get(scenario, "本作")
+    year = getattr(ws, "year", getattr(room, "year", ""))
+    return {
+        "type": "conclusion",
+        "message": (
+            f"# 🎌 {name} · 历史帷幕落下\n\n"
+            f"公元 {year} 年，这段由你亲手改写的历史走到了既定的终点。\n\n"
+            "乱世之中，你的每一个决策都曾改变山河的走向。\n"
+            "感谢你的运筹与坚守。\n\n"
+            "（终局结算：历史偏移对比与成就评语，将在后续版本呈现。）"
+        ),
+    }
+
+
 def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline) -> int:
     """H36k: Apply NPC recruit/conscript/disband from structured LLM decisions.
 
@@ -568,6 +608,17 @@ class QuarterlyResolver:
         # 没推进）才由安全网推进，保证净推进恰好一季。
         if _season_to_idx(getattr(world_state, "season", "spring")) == _season_idx_at_start:
             _ensure_season_advance(world_state, room.id)
+
+        # ── Step 7.6: max_quarters 终局检查 ──
+        # 本回合（quarter_number+1）达到 scenario.toml 上限时，标记 game_over。
+        # 玩家可玩满 max_quarters 回合；终局后前端禁用继续推进。
+        _max_q = _get_max_quarters(getattr(room, "scenario", ""))
+        if _max_q > 0 and room.quarter_number + 1 >= _max_q:
+            results.game_over = _build_conclusion(room, world_state)
+            logger.info(
+                "[room=%s] max_quarters=%d reached (quarter_number=%d) — game over",
+                room.id, _max_q, room.quarter_number,
+            )
 
         # ── Step 8: 回合摘要 ──
         results.turn_summary = _build_turn_summary(
