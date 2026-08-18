@@ -1054,6 +1054,18 @@ def _trigger_npc_decisions(room: GameRoom):
     finally:
         _NPC_DECISION_LOCK.discard(room.id)
 
+    # ── H18i-fix: 全员已提交时自动 resolve ──
+    # 玩家可能抢在后台预生成完成前提交（submit_decision 返回 waiting）。
+    # 后台填完 NPC 决策后，若全员已提交，必须在此触发 resolve，否则房间
+    # 卡在 waiting（submitted 全满但 phase 不推进）。
+    try:
+        _pending = [fid for fid, s in room.slots.items() if s.is_active and not s.has_submitted()]
+        if not _pending and room.phase.value == "waiting":
+            logger.info(f"Room {room.id}: all factions submitted — auto-resolving after NPC pre-gen")
+            _resolve_and_advance(room)
+    except Exception as _resolve_err:
+        logger.error("[room=%s] auto-resolve after NPC pre-gen failed: %s", room.id, _resolve_err)
+
 
 def _get_room(room_id: str) -> GameRoom | None:
     """Load room from database (no in-memory cache — survives pod restart)."""
