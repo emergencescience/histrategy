@@ -118,8 +118,14 @@ def test_morale_mean_reversion_depins_extremes():
     assert ws.factions["nanming"].morale_actual < 100, "morale stuck at 100"
 
 
-def test_npc_conscript_grows_troops():
-    """NPC conscription increases troops and spends treasury."""
+def test_npc_conscript_is_deprecated_ignored():
+    """NPC conscription is DEPRECATED — LLM conscript actions are ignored.
+
+    NPC recruitment is now handled deterministically by
+    QuarterlyEngine.execute_npc_recruitment() (morale × population), NOT via
+    LLM-generated conscript actions in npc_faction_actions. A stale LLM
+    conscript action must not double-recruit (the double-recruitment bug).
+    """
     ws = _make_world()
     t0 = ws.factions["qing"].strength_actual
     tr0 = ws.factions["qing"].treasury
@@ -127,8 +133,9 @@ def test_npc_conscript_grows_troops():
         {"faction": "qing", "action_type": "conscript", "params": {"amount": 10000}},
     ]}
     StateApplier.apply_macro_delta(delta, ws)
-    assert ws.factions["qing"].strength_actual == t0 + 10000
-    assert ws.factions["qing"].treasury < tr0
+    # Deprecated: conscript is ignored — no troop change, no treasury spend.
+    assert ws.factions["qing"].strength_actual == t0
+    assert ws.factions["qing"].treasury == tr0
 
 
 def test_defender_loses_last_city_stays_active():

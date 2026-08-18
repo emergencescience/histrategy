@@ -411,6 +411,13 @@ def _attacker_borders_territory(attacker_id: str, target_id: str, ws) -> bool:
     target_neighbors = set(getattr(target, "neighbors", []))
     if target_neighbors & atk_territories:
         return True
+    # ── 双向邻接检查：处理单向 neighbors 数据 ──
+    # 某些场景数据（及测试 fixture）的 neighbors 是单向声明的（A→B 但 B 不回指 A）。
+    # 反向检查：attacker 的任一领地是否声称 target 是它的邻居。
+    for tid in atk_territories:
+        atk_t = ws.territories.get(tid)
+        if atk_t and target_id in set(getattr(atk_t, "neighbors", [])):
+            return True
     # Also accept if attacker already owns the target (shouldn't happen normally)
     if getattr(target, "owner_id", "") == attacker_id:
         return True
