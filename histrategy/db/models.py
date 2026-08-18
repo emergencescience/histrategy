@@ -40,7 +40,33 @@ def _serialize_world_state(ws) -> dict | None:
     # Always use asdict — local WorldState.to_dict() drops territories (Bug H35l)
     from dataclasses import asdict
 
-    return _json_safe_deep_convert(asdict(ws))
+    result = _json_safe_deep_convert(asdict(ws))
+    # H18d: 诊断日志 — 序列化时 territories 的 owner_id 状态。
+    # 用于查清「owner_id 反序列化后经常为空」是序列化时丢（territories 已被
+    # H35k 清空 / H35l 历史遗留）还是反序列化时丢（字段名不匹配）。
+    import logging as _logging
+
+    _log = _logging.getLogger("histrategy.db")
+    try:
+        _terrs = result.get("territories") or {}
+        if not _terrs:
+            _log.warning(
+                "[owner_id-diag] _serialize: ws.territories is EMPTY — "
+                "owner_id will be lost on round-trip (H35k/H35l suspected)"
+            )
+        else:
+            _empty = sum(
+                1 for _td in _terrs.values()
+                if isinstance(_td, dict) and not _td.get("owner_id")
+            )
+            if _empty:
+                _log.warning(
+                    "[owner_id-diag] _serialize: %d/%d territories have empty owner_id",
+                    _empty, len(_terrs),
+                )
+    except Exception:
+        pass
+    return result
 
 
 def _json_safe_deep_convert(obj):
@@ -270,6 +296,25 @@ def deserialize_world_state(ws_data: dict) -> WorldState:
             ws.armies[aid] = Army(**{k: v for k, v in ad2.items() if k in Army.__dataclass_fields__})
         except Exception:
             pass
+
+    # H18d: 诊断日志 — 反序列化后 territories 的 owner_id 状态
+    import logging as _logging
+
+    _log = _logging.getLogger("histrategy.db")
+    try:
+        _terrs = getattr(ws, "territories", {}) or {}
+        if _terrs:
+            _empty = sum(
+                1 for _t in _terrs.values()
+                if not (getattr(_t, "owner_id", "") or "")
+            )
+            if _empty:
+                _log.warning(
+                    "[owner_id-diag] _deserialize: %d/%d territories have empty owner_id after rebuild",
+                    _empty, len(_terrs),
+                )
+    except Exception:
+        pass
 
     return ws
 

@@ -2307,6 +2307,10 @@ def _sync_faction_territories(ws):
     sync, _territories_to_list returns [] and _serialize_world_state saves
     factions with empty territory lists — causing every faction to reset to
     dataclass defaults (strength=5000, territories=[]) on the next DB round-trip.
+
+    H18e-fix: factions with NO territories are now explicitly cleared (previously
+    they retained stale territory lists → 一城多主). H18d: empty/invalid owner_id
+    values are logged for diagnosis.
     """
     # Build {faction_id: [territory_ids]} from territory.owner_id
     owner_map: dict[str, list[str]] = {}
@@ -2314,9 +2318,18 @@ def _sync_faction_territories(ws):
         owner = getattr(territory, "owner_id", "") or ""
         if owner and owner in ws.factions:
             owner_map.setdefault(owner, []).append(tid)
+        elif owner:
+            logger.warning(
+                "[owner_id-invalid] _sync: territory %s owner_id=%r not a faction",
+                tid, owner,
+            )
+        else:
+            logger.warning(
+                "[owner_id-empty] _sync: territory %s has empty owner_id",
+                tid,
+            )
     for fid, faction in ws.factions.items():
-        if fid in owner_map:
-            faction.territories = list(owner_map[fid])
+        faction.territories = list(owner_map.get(fid, []))
 
 
 def _territories_to_list(ws, faction) -> list[dict]:

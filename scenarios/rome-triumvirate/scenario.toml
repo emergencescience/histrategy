@@ -24,7 +24,7 @@ quarters = ["春", "夏", "秋", "冬"]
 year_direction = "negative"
 turn_timeout_human = 300
 turn_timeout_ai = 120
-max_quarters = 60
+max_quarters = 56
 
 [factions]
 available = ["octavian", "antony", "cleopatra", "senate"]

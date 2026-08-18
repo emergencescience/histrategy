@@ -429,7 +429,23 @@ def _transfer_territory(loc: str, new_owner: str, old_owner: str, ws, summary: d
     territory = ws.territories.get(loc)
     if not territory or new_owner not in ws.factions:
         return
-    old = old_owner if old_owner in ws.factions else territory.owner_id
+    # 单一权威源：以 territory.owner_id 为准（不信任 LLM 声称的 old_owner）。
+    # 仅当 owner_id 缺失/无效时，才退回调用方传入的 old_owner 作兜底。
+    old = getattr(territory, "owner_id", "") or ""
+    if old not in ws.factions:
+        if old:
+            logger.warning(
+                "[owner_id-invalid] territory %s owner_id=%r not a faction, "
+                "falling back to old_owner=%r",
+                loc, old, old_owner,
+            )
+        else:
+            logger.warning(
+                "[owner_id-empty] territory %s has empty owner_id "
+                "(deserialization loss?), falling back to old_owner=%r",
+                loc, old_owner,
+            )
+        old = old_owner if old_owner in ws.factions else ""
     territory.owner_id = new_owner
     if old in ws.factions and loc in ws.factions[old].territories:
         ws.factions[old].territories.remove(loc)
