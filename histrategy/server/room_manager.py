@@ -434,7 +434,12 @@ def submit_decision(room_id: str, faction_id: str, decision: str, skip_narrative
     submitted = [fid for fid, s in room.slots.items() if s.is_active and s.has_submitted()]
     pending = [fid for fid, s in room.slots.items() if s.is_active and not s.has_submitted()]
 
-    if not pending:
+    # ── H18i-fix: 单机模式下 pending 全是 AI（玩家抢在后台预生成前提交），
+    # 仍需 resolve——collect_all_decisions 复用已预生成的、对未预生成的同步
+    # 生成。仅当 pending 里还有【其他人类玩家】时才等待（多人对称模式）。
+    human_pending = [fid for fid in pending if room.slots[fid].is_human()]
+
+    if not human_pending:
         # 同步执行（调试用 — 若卡住请检查服务器日志）
         try:
             _resolve_and_advance(room, skip_narrative=skip_narrative)
@@ -448,7 +453,7 @@ def submit_decision(room_id: str, faction_id: str, decision: str, skip_narrative
             logger.exception("[room=%s] resolve failed: %s", room.id, exc)
             room.phase = type(room.phase).WAITING  # reset on error
 
-    status = "resolving" if not pending else "waiting"
+    status = "resolving" if not human_pending else "waiting"
     return {
         "ok": True,
         "status": status,
@@ -1056,13 +1061,16 @@ def _trigger_npc_decisions(room: GameRoom):
 
     # ── H18i-fix: 全员已提交时自动 resolve ──
     # 玩家可能抢在后台预生成完成前提交（submit_decision 返回 waiting）。
-    # 后台填完 NPC 决策后，若全员已提交，必须在此触发 resolve，否则房间
-    # 卡在 waiting（submitted 全满但 phase 不推进）。
+    # 后台填完 NPC 决策后，必须重新从 DB 加载 room（玩家的提交可能发生在
+    # 预生成期间，本函数持有的 room 对象是 resolve 时的旧快照），若全员已
+    # 提交则触发 resolve，否则房间卡在 waiting（submitted 全满但 phase 不推进）。
     try:
-        _pending = [fid for fid, s in room.slots.items() if s.is_active and not s.has_submitted()]
-        if not _pending and room.phase.value == "waiting":
-            logger.info(f"Room {room.id}: all factions submitted — auto-resolving after NPC pre-gen")
-            _resolve_and_advance(room)
+        _fresh = _get_room(room.id)
+        if _fresh:
+            _pending = [fid for fid, s in _fresh.slots.items() if s.is_active and not s.has_submitted()]
+            if not _pending and _fresh.phase.value == "waiting":
+                logger.info(f"Room {room.id}: all factions submitted — auto-resolving after NPC pre-gen")
+                _resolve_and_advance(_fresh)
     except Exception as _resolve_err:
         logger.error("[room=%s] auto-resolve after NPC pre-gen failed: %s", room.id, _resolve_err)
 
