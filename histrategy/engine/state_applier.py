@@ -30,7 +30,7 @@ _MIN_ACTIVE_TROOPS = 500  # an active faction never drops below this from one ba
 _MAX_BATTLE_LOSS_FRAC = 0.40  # a single battle can cost at most 40% of an army
 _MIN_BATTLE_LOSS_FRAC = 0.02  # even a rout costs the winner something
 _BASE_ATTRITION = 0.10  # baseline per-battle attrition scalar
-_TERRITORY_CAPTURE_POWER_RATIO = 0.65  # attacker effective power must exceed this × defender's (lowered from 1.10 — local superiority is enough)
+_TERRITORY_CAPTURE_POWER_RATIO = 1.0  # attacker effective power must exceed this × defender's (local superiority, after terrain bonus)
 _MORALE_COLLAPSE_THRESHOLD = 20  # defender morale below this → city may fall regardless of force
 _MORALE_EVENT_CAP = 15  # single-turn morale change hard cap
 _TROOP_ABSORB_FRAC = 0.15  # captured city → victor absorbs this fraction of loser's troops
@@ -336,26 +336,19 @@ def _settle_battle(br: dict, ws, fmap: dict, tmap: dict, summary: dict) -> None:
     summary["troops_lost"] += (a_tr - af.strength_actual) + (d_tr - df.strength_actual)
     summary["battles_settled"] += 1
 
-    # ── Territory capture: gated by force ratio OR defender morale collapse ──
-    # AND adjacency: attacker must border the target territory (P1 — no rear-line sniping)
-    llm_wants_capture = bool(br.get("territory_captured")) or br.get("result") in ("attack_win", "rout")
+    # ── Territory capture: decided by DETERMINISTIC force ratio + morale ──
+    # The physics engine is the authority (P4 — fairness): territory changes
+    # hands when the attacker has local superiority OR the defender's morale
+    # collapses. The LLM's narrative "result" string is NOT a gate — it uses a
+    # different vocabulary (decisive_victory/crushing_defeat/...) that never
+    # matched the old hardcoded ("attack_win", "rout") check, which silently
+    # vetoed every capture and froze the map into a permanent stalemate.
     force_permits = a_pow > d_pow * _TERRITORY_CAPTURE_POWER_RATIO
     morale_collapse = d_mor < _MORALE_COLLAPSE_THRESHOLD
-
-    # ── Overwhelming force override ──
-    # When the attacker has >5:1 effective power advantage, the city MUST fall
-    # regardless of what the LLM narrates. The physics engine doesn't negotiate
-    # with the LLM when the force ratio is absurd. (e.g. 540k vs 40k = 12:1)
-    _OVERWHELMING_FORCE_RATIO = 5.0
-    if territory and a_pow > d_pow * _OVERWHELMING_FORCE_RATIO and not llm_wants_capture:
-        llm_wants_capture = True
-        logger.info(
-            "Overwhelming force override: %s(%d eff) vs %s(%d eff) at %s — auto-capturing",
-            atk, int(a_pow), dfd, int(d_pow), loc,
-        )
+    capture_authorized = force_permits or morale_collapse
 
     adjacency_ok = _attacker_borders_territory(atk, loc, ws)
-    if territory and llm_wants_capture and (force_permits or morale_collapse):
+    if territory and capture_authorized:
         if not adjacency_ok:
             logger.warning(
                 "Territory capture BLOCKED: %s does not border %s (%s)",

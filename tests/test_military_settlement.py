@@ -77,6 +77,32 @@ def test_stronger_attacker_captures_city():
     assert summary["territories_captured"] == 1
 
 
+def test_stronger_attacker_captures_despite_llm_defeat_narrative():
+    """Regression (stalemate bug): the LLM's narrative "result" string must NOT
+    gate capture.
+
+    The world_simulator prompt tells the LLM to output result vocabulary
+    (decisive_victory/crushing_defeat/...) that never matched the old hardcoded
+    ("attack_win", "rout") check. Combined with "historical gravity" bias, the
+    LLM narrated "decisive_defeat" for every player attack, and the city never
+    changed hands even when the attacker had force superiority. Force ratio is
+    the authority — a stronger attacker captures EVEN IF the LLM said "defeat".
+    """
+    ws = _make_world()
+    delta = {
+        "battle_results": [
+            {"location": "yangzhou", "attacker": "qing", "defender": "nanming",
+             "result": "decisive_defeat", "territory_captured": False,  # LLM narrated a loss
+             "casualties": {"attacker": 4000, "defender": 15000}},
+        ],
+    }
+    summary = StateApplier.apply_macro_delta(delta, ws)
+    assert ws.territories["yangzhou"].owner_id == "qing", (
+        "stronger attacker failed to capture because LLM narrated 'decisive_defeat'"
+    )
+    assert summary["territories_captured"] == 1
+
+
 def test_weak_attacker_cannot_conquer_by_prose():
     """P4: a much weaker attacker cannot capture a defended city even if the
     LLM narrates a win. Force ratio gates territory transfer."""
