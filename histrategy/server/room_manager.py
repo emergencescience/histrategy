@@ -3001,7 +3001,7 @@ def _resolve_npc_territory_combat(room, ws, decisions):
             continue
 
         enemy_fs = fstate[best_enemy]
-        atk_ratio = 0.35
+        atk_ratio = 0.6  # commit 60% of faction troops to an offensive (was 0.35 — too timid, froze the map)
         atk = int(fs["troops"] * atk_ratio)
         def_troops = int(enemy_fs["troops"] / max(len(enemy_fs["territories"]), 1))
         is_south = best_target in _YANGTZE_SOUTH

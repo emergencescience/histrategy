@@ -126,13 +126,16 @@ def _resolve_combat(attacker_troops: int, defender_troops: int,
 
     ratio = attacker_troops / max(effective_defender, 1)
 
-    if ratio >= 2.5:
+    # City falls when the attacker has ~1.5× effective local superiority.
+    # (Was 2.5 — combined with the 35% attack-commitment this demanded ~9×
+    # total troop advantage, which froze equal factions into a stalemate.)
+    if ratio >= 1.5:
         return {
             "won": True, "city_falls": True, "siege_only": False,
             "attacker_losses": int(attacker_troops * 0.05),
             "defender_losses": int(defender_troops * 0.30),
         }
-    if ratio >= 1.3:
+    if ratio >= 1.0:
         return {
             "won": True, "city_falls": False, "siege_only": True,
             "attacker_losses": int(attacker_troops * 0.03),
