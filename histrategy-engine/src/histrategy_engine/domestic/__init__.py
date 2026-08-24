@@ -179,6 +179,11 @@ class ClimateSystem:
 
 # ─── Domestic calculations ─────────────────────────────────────
 
+# 折算数值：每人口每季度的基础粮食产出。与 economy.yaml 的
+# civilian_per_capita (0.01) 同量级，使中性地块(fertility=5, dev=0)
+# 在夏季刚好自给，盈余仅来自肥力/开发度/科技。
+_FOOD_YIELD_PER_CAPITA = 0.010
+
 
 @dataclass
 class TerritoryResult:
@@ -229,15 +234,26 @@ class DomesticEngine:
         """
         Calculate food produced in one territory for one season.
 
-        base = fertility × 1000 × (1 + development/100)
+        折算数值原则：产粮随农业人口缩放，产耗比跨场景稳定，无需按场景调参。
+        base = population × yield_per_capita × (fertility/5) × (1 + development/100)
         season_mod = spring:0.3, summer:1.0, autumn:1.2, winter:0.05
         climate_mod = normal:1.0, drought:0.4, flood:0.6, etc.
         gov_bonus = 1 + governor_politics/200
         tech_bonus = 1 + tech_agriculture × 0.1
 
+        yield_per_capita 与平民人均消耗 (civilian_per_capita) 同量级，使
+        「fertility=5、dev=0、无科技」的中性地块在夏季刚好自给（≈30% 盈余），
+        盈余仅来自肥力/开发度/科技。冬季 season_mod=0.05 制造真实缺口，
+        迫使玩家屯粮过冬，而非粮草无限膨胀。
+
         Returns integer food amount.
         """
-        base = territory.fertility * 1000.0 * (1.0 + territory.development / 100.0)
+        base = (
+            territory.population
+            * _FOOD_YIELD_PER_CAPITA
+            * (territory.fertility / 5.0)
+            * (1.0 + territory.development / 100.0)
+        )
         season_mod = season.food_multiplier
         climate_mod = climate.food_modifier
         gov_mod = 1.0 + governor_politics / 200.0

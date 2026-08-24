@@ -401,23 +401,23 @@ class TestClimateSystem:
 class TestFoodProduction:
     def test_spring_base_production(self):
         engine = DomesticEngine()
-        territory = Territory(id="test", name="测试", fertility=8, development=50)
+        territory = Territory(id="test", name="测试", fertility=8, development=50, population=50000)
         food = engine.calculate_food_production(territory, Season.SPRING, ClimateEvent.NORMAL)
-        # 8 × 1000 × 1.5 × 0.3 × 1.0 = 3600
-        assert food == 3600
+        # 折算数值: 50000 × 0.010 × (8/5) × 1.5 × 0.3 × 1.0 = 360
+        assert food == 360
 
     def test_autumn_peak_production(self):
         engine = DomesticEngine()
-        territory = Territory(id="test", name="测试", fertility=8, development=50)
+        territory = Territory(id="test", name="测试", fertility=8, development=50, population=50000)
         food = engine.calculate_food_production(territory, Season.AUTUMN, ClimateEvent.NORMAL)
-        # 8 × 1000 × 1.5 × 1.2 × 1.0 = 14400
-        assert food == 14400
+        # 50000 × 0.010 × (8/5) × 1.5 × 1.2 × 1.0 = 1440
+        assert food == 1440
 
     def test_winter_near_zero(self):
         engine = DomesticEngine()
-        territory = Territory(id="test", name="测试", fertility=8, development=50)
+        territory = Territory(id="test", name="测试", fertility=8, development=50, population=50000)
         food = engine.calculate_food_production(territory, Season.WINTER, ClimateEvent.NORMAL)
-        # 8 × 1000 × 1.5 × 0.05 × 1.0 = 600
+        # 50000 × 0.010 × (8/5) × 1.5 × 0.05 × 1.0 = 60
         assert food < 1000
 
     def test_drought_reduces_food(self):

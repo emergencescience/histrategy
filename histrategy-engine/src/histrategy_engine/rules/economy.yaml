@@ -10,12 +10,13 @@
 # =============================================================================
 
 food_production:
-  formula: "fertility * 1000 * (1 + development/100) * season_mod * climate_mod * gov_mod * tech_mod"
+  formula: "population * yield_per_capita * (fertility/5) * (1 + development/100) * season_mod * climate_mod * gov_mod * tech_mod"
   era_modifiers:
     ming-qing:
       multiplier: 1.15  # New World crops (sweet potato, maize) boost yield
   constants:
-    base_multiplier: 1000
+    yield_per_capita: 0.010   # per-pop per-quarter base yield (matches civilian_per_capita scale)
+    fertility_divisor: 5      # fertility 5 = neutral (1.0x)
     dev_divisor: 100
 
 food_consumption:
