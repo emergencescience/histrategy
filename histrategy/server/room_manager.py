@@ -368,6 +368,9 @@ def submit_decision(room_id: str, faction_id: str, decision: str, skip_narrative
         room.phase = RoomPhase.WAITING
         _try_save(room)
 
+    if room.phase == RoomPhase.FINISHED:
+        return {"ok": False, "error": "史册已合卷——这段历史已在既定的终点落下帷幕。可回看编年史回顾征程，或另开新局。"}
+
     if room.phase.value != "waiting":
         return {"ok": False, "error": f"当前阶段 {room.phase.value} 不能提交决策"}
 
@@ -1525,6 +1528,18 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
     #    narratives until (and unless) the SSE endpoint runs.
     if skip_narrative:
         _ensure_narrative_fallback(room, decisions, result)
+
+    # ── 终局处理：max_quarters 到达 → FINISHED + 结论持久化 ──
+    # quarterly_resolver Step 7.6 已设置 result.game_over，但此前无人消费：
+    # 既不置 phase 也不回传前端，导致 nanming 玩到 133 回合(1678年)仍未终局。
+    if getattr(result, "game_over", None):
+        room.phase = RoomPhase.FINISHED
+        room._last_game_over = result.game_over
+        # 结论写入 narratives._conclusion 持久化，pod 重启后可从 DB 恢复
+        result.narratives["_conclusion"] = _json_persist.dumps(
+            result.game_over, ensure_ascii=False
+        )
+        logger.info("[room=%s] 终局: max_quarters 到达, phase=FINISHED, conclusion persisted", room.id)
 
     _try_save(room, ws_dict)
     _save_quarter(room, decisions, result)

@@ -264,6 +264,21 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
     from histrategy.server.room_manager import _peek_narrative_context
 
     narrative_pending = bool(streaming and _peek_narrative_context(game_id))
+    # ── 终局结论：优先内存（本回合刚由 resolve 设置），否则从最近回合 narratives._conclusion 恢复 ──
+    game_over = getattr(room, "_last_game_over", None)
+    if not game_over:
+        try:
+            import json as _json_go2
+            from histrategy.db.models import get_quarter_turns as _gqt_go
+            _turns_go = _gqt_go(game_id, limit=1)
+            if _turns_go:
+                _nr_go = _turns_go[-1].get("narratives")
+                _loaded_go = _json_go2.loads(_nr_go) if isinstance(_nr_go, str) else (_nr_go or {})
+                _c_go = _loaded_go.get("_conclusion")
+                if _c_go:
+                    game_over = _json_go2.loads(_c_go) if isinstance(_c_go, str) else _c_go
+        except Exception:
+            pass
     logger.info(
         "[room=%s] command() returning: streaming=%s narrative_pending=%s stash_exists=%s",
         game_id, streaming, narrative_pending, bool(_peek_narrative_context(game_id)),
@@ -280,7 +295,7 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
         "events_occurred": extract_turn_events(room),
         "npc_actions": npc_actions,
         "new_suggestions": suggestions,
-        "game_over": None,
+        "game_over": game_over,
         "faction_status": faction_status,
         "year": faction_status.get("year", 207),
         "season": faction_status.get("season", "春"),
