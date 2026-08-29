@@ -140,6 +140,14 @@ class MilitaryEngine:
                     reason=f"招募{unit_type.value}需要河流或海岸",
                 )
 
+        # H38c: 每季征兵上限 — military.yaml recruitment.max_rate = 5% of territory population.
+        # 此前只查 treasury/population，无上限：玩家可对 37K 人口城市反复"募兵10万"，
+        # NPC 也能无限膨胀兵力（南明 91K 模板军）。此处与规则文件对齐。
+        max_allowed = max(1, int(territory.population * 0.05))
+        if amount > max_allowed:
+            amount = max_allowed
+            total_cost = cost_per_unit * amount
+
         if treasury < total_cost:
             return RecruitResult(
                 territory_id=territory.id,

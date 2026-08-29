@@ -821,6 +821,22 @@ class TurnProcessorMixin:
             # Normalize faction/territory IDs from LLM output
             faction_id_map = _build_faction_id_map(ws)
             territory_id_map = _build_territory_id_map(ws)
+            # H38c: 幻影战场过滤 — battle location 必须在地图上，否则从 delta 剔除。
+            # 此前只守卫 owner 变更（loc in ws.territories），叙事仍会播报地图外战斗。
+            _raw_battles = llm_delta.get("battle_results", [])
+            _valid_battles = []
+            import logging  # 局部导入，与文件内既有用法一致
+            for _br in _raw_battles:
+                _loc = territory_id_map.get(_br.get("location", ""), _br.get("location", ""))
+                if _loc in ws.territories:
+                    _valid_battles.append(_br)
+                else:
+                    logging.getLogger("histrategy").warning(
+                        "[phantom-battle][room=%s] location=%s 不在地图，已从 delta 剔除",
+                        getattr(self, "_room_id", "?"), _br.get("location", ""),
+                    )
+            if _valid_battles != _raw_battles:
+                llm_delta["battle_results"] = _valid_battles
             for br in llm_delta.get("battle_results", []):
                 if br.get("territory_captured"):
                     loc_raw = br.get("location", "")

@@ -50,6 +50,7 @@ NPC decisions MUST respect this timeline. These are historical gravity — only 
 - Ma Chao (machao): fierce and bellicose, bears a blood vendetta against Cao Cao. In Liang Province during Q1-Q2.
 
 ## Output Format
+- ⚠️ **Map-boundary iron law**: battle_results `location` MUST be a territory that actually exists on the current map. Off-map places (e.g. Ryukyu/Luzon/Cebu/Sulu or other South Seas islands) are FORBIDDEN in any battle_results — treat player edicts targeting off-map places as invalid; do NOT simulate battles or invent conquest narratives for them.
 
 Output a JSON object containing the following fields. Every field must be an array (output an empty array `[]` even if empty).
 

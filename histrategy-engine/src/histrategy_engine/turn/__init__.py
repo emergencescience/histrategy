@@ -413,6 +413,12 @@ class TurnController:
                     })
                 if source_id in target.allies:
                     target.allies.remove(source_id)
+                # H38c: 断交必须击穿关系值 — 此前只移除 allies 列表、relations 保持 100，
+                # NPC 决策仍读到"与郑氏友好"，且下回合一提议和立即复合。
+                # 现在把双方关系压到 ≤-60：NPC 感知敌意，且 will_accept 检查
+                # (rel >= 0 or rel > -30) 使立即复合被拒。
+                source.relations[target_id] = min(source.relations.get(target_id, 0), -60)
+                target.relations[source_id] = min(target.relations.get(source_id, 0), -60)
                 continue
 
             # Alliance formation: check if target would accept

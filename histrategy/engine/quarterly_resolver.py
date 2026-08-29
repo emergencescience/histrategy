@@ -141,7 +141,9 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
                     continue
                 # Clamp to 3% of population
                 max_recruit = int(population * 0.03)
-                amount = min(amount, max_recruit)
+                # H38c: 常备军上限 — 总兵力不得超过人口的 15%（防 NPC 逐季堆兵通胀）
+                _ceiling_headroom = max(0, int(population * 0.15) - strength)
+                amount = min(amount, max_recruit, _ceiling_headroom)
                 # Clamp to treasury (0.5 gold per soldier)
                 cost = amount * 0.5
                 if cost > treasury:
@@ -162,7 +164,9 @@ def _apply_npc_structured_recruitment(world_state, all_commands: dict, baseline)
                 if amount <= 0:
                     continue
                 max_conscript = int(population * 0.02)
-                amount = min(amount, max_conscript)
+                # H38c: 常备军上限 — 同 recruit，总兵力不得超过人口的 15%
+                _ceiling_headroom = max(0, int(population * 0.15) - strength)
+                amount = min(amount, max_conscript, _ceiling_headroom)
                 cost = amount * 0.3  # cheaper but morale hit
                 if cost > treasury:
                     amount = int(treasury / 0.3)
@@ -289,6 +293,7 @@ class QuarterlyResolver:
         # ── Step 1: 解析所有势力决策 ──
         all_commands: dict[str, list] = {}
         all_decisions: dict[str, str] = {}
+        parse_warnings: dict[str, list] = {}  # H38c: 意图校验警告 → 回显进叙事
         for faction_id, dr in decisions.items():
             all_decisions[faction_id] = dr.decision_text
             if dr.commands:
@@ -330,6 +335,11 @@ class QuarterlyResolver:
                     print(f"⏱ [room={room.id}] intent_parse({faction_id}) {time.time() - _t_parse:.1f}s", flush=True)
 
                 all_commands[faction_id] = parsed
+
+                # H38c: 收集意图校验警告（幻影战场拦截等），稍后注入叙事回显给玩家
+                _warns = getattr(self.intent_parser, "_validation_warnings", None)
+                if _warns:
+                    parse_warnings.setdefault(faction_id, []).extend(_warns)
 
         # ── Step 1.5: 从 DB 加载已有政策到 faction.policies ──
         try:
@@ -551,6 +561,20 @@ class QuarterlyResolver:
         # ── Step 5.3: 从 macro_delta 提取政策并持久化到 faction.policies ──
         if macro_delta:
             _extract_policies_from_delta(macro_delta, world_state, room.id)
+
+        # ── Step 5.6: 玩家指令校验警告回显 (H38c) ──
+        # 幻影战场等被拦截的命令 → 注入叙事开头，让玩家明确知道命令为何未执行。
+        # 覆盖流式（skip_narrative）与非流式路径：此处早于 Step 6 的 narrative_context 快照。
+        if parse_warnings and macro_delta:
+            _warn_seeds = []
+            for _fid, _warns in parse_warnings.items():
+                for _w in _warns:
+                    _warn_seeds.append(f"⚠️ 军师来报：{_w}")
+            macro_delta.setdefault("narrative_seeds", []).extend(_warn_seeds)
+            if baseline is not None:
+                _evts = getattr(baseline, "notable_events", None)
+                if isinstance(_evts, list):
+                    _evts.extend(_warn_seeds)
 
         # ── Step 5.5: Sync faction strength_actual from deployed army totals ──
         # H37d-fix: same double-count fix as the Pre-sync above — use

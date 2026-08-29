@@ -44,6 +44,7 @@ This is the core mechanic distinguishing this scenario from Three Kingdoms:
 - If the mainland situation becomes untenable, can retreat to Taiwan as a maritime stronghold
 
 ## Output Format
+- ⚠️ **Map-boundary iron law**: battle_results `location` MUST be a territory that actually exists on the current map (per the injected territory-ownership map). Off-map places (e.g. Philippines/Luzon/Sulu/Brunei/Borneo/Maluku) are FORBIDDEN in any battle_results — treat player edicts targeting off-map places as invalid; do NOT simulate battles or invent "conquered X / seized X" narratives for them.
 
 Output a JSON object containing the following fields. Every field must be an array (output an empty array `[]` even if empty).
 

@@ -258,6 +258,11 @@ class IntentParser:
         if not commands:
             return commands
 
+        # H38c: 收集本回合校验警告（幻影战场拦截等），供 quarterly_resolver 回显给玩家
+        if not hasattr(self, "_validation_warnings"):
+            self._validation_warnings = []
+        self._validation_warnings = []
+
         player_faction = ws.factions.get(faction_id)
         if not player_faction:
             return commands
@@ -306,9 +311,11 @@ class IntentParser:
                     if "target_territory" in cmd.get("params", {}):
                         cmd["params"]["target_territory"] = fallback
 
-            # ── P1-1: attack 目标必须是地图上存在的城，且不能是自己的城 ──
-            # 修复"漳州"类幻觉：LLM 把不存在的地名硬映射到某个城（如 漳州→fujian），
-            # 导致攻击自己领地被下游静默吞掉，而叙事却编造"攻下漳州拓地"。
+            # ── P1-1: attack/move 目标必须是地图上存在的城，且不能是自己的城 ──
+            # H38c 幻影战场根因修复：此前只打 [目标不存在] 注释不拦截，命令继续流入
+            # macro-sim LLM，LLM 为地图外地点（菲律宾/吕宋/苏禄/婆罗洲/马鲁古等）
+            # 编造 attack_win + territory_captured 战斗，叙事照播而玩家从未被警告。
+            # 现在：直接丢弃无效命令 + 收集警告回显给玩家。
             if cmd_type in ("attack", "move"):
                 atk_tid = None
                 if hasattr(cmd, "params"):
@@ -317,26 +324,22 @@ class IntentParser:
                     p = cmd.get("params", {}) or {}
                     atk_tid = p.get("target_territory") or p.get("destination") or p.get("territory", "")
                 if atk_tid:
-                    # 目标必须是地图上真实存在的城
                     if atk_tid not in ws.territories:
-                        _note = f"[目标不存在: {atk_tid}] "
-                        if hasattr(cmd, "params"):
-                            cmd.notes = _note + (getattr(cmd, "notes", "") or "")
-                        elif isinstance(cmd, dict):
-                            cmd["notes"] = _note + (cmd.get("notes", "") or "")
-                        _log.warning(
-                            "[intent] %s 目标 %s 不存在于地图，标记为无效", cmd_type, atk_tid,
+                        self._validation_warnings.append(
+                            f"「{cmd_type} {atk_tid}」的目标不在当前地图上（如菲律宾/吕宋/苏禄/婆罗洲/马鲁古等地图外地点），命令已作废"
                         )
+                        _log.warning(
+                            "[intent] %s 目标 %s 不存在于地图，命令已丢弃", cmd_type, atk_tid,
+                        )
+                        continue  # H38c: DROP the invalid command
                     elif cmd_type == "attack" and atk_tid in owned_territories:
-                        # 攻击自己领地 → 标记无效，而不是静默吞掉
-                        _note = f"[已拦截: 攻击目标 {atk_tid} 是自己领地] "
-                        if hasattr(cmd, "params"):
-                            cmd.notes = _note + (getattr(cmd, "notes", "") or "")
-                        elif isinstance(cmd, dict):
-                            cmd["notes"] = _note + (cmd.get("notes", "") or "")
-                        _log.warning(
-                            "[intent] attack 目标 %s 是 %s 自己的领地，标记无效", atk_tid, faction_id,
+                        self._validation_warnings.append(
+                            f"「攻击 {atk_tid}」是己方领地，攻击令已作废"
                         )
+                        _log.warning(
+                            "[intent] attack 目标 %s 是 %s 自己的领地，命令已丢弃", atk_tid, faction_id,
+                        )
+                        continue  # H38c: DROP the invalid command
 
             validated.append(cmd)
 
