@@ -520,8 +520,12 @@ class TurnController:
             return True
 
         if cmd.type == "tax":
-            rate = cmd.params.get("rate")
-            return not (rate is None or not 0.1 <= rate <= 0.5)
+            # H38d: 统一税率键名 — NPC 结构化决策用 tax_rate, macro-sim 用 new_rate,
+            # 旧代码只读 rate 导致所有 NPC 税收令被静默丢弃 (南明"税率60%"死循环根因)
+            rate = cmd.params.get("rate", cmd.params.get("tax_rate", cmd.params.get("new_rate")))
+            # H38d: 区间放宽 [0.1,0.5] → [0.05,0.6] (与 state_applier clamp 一致),
+            # NPC 常提"降至8%"不再被校验器整单拒绝
+            return not (rate is None or not 0.05 <= rate <= 0.6)
 
         # H38b: Accept policy/economic/diplomacy commands — these are handled
         # by MacroPolicyEngine, not the deterministic baseline.
@@ -631,8 +635,9 @@ class TurnController:
                 )
 
         elif cmd.type == "tax":
-            rate = cmd.params.get("rate", 0.3)
-            faction.tax_rate = max(0.1, min(0.5, rate))
+            # H38d: 统一键名 (rate | tax_rate | new_rate), 区间与校验器一致 [0.05, 0.6]
+            rate = cmd.params.get("rate", cmd.params.get("tax_rate", cmd.params.get("new_rate", 0.3)))
+            faction.tax_rate = max(0.05, min(0.6, rate))
 
         # H38b: New domestic command handlers — deterministic portion only.
         # Full effects (diplomacy/reform consequences) are handled by MacroPolicyEngine.

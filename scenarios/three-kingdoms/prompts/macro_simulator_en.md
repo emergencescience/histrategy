@@ -51,6 +51,7 @@ NPC decisions MUST respect this timeline. These are historical gravity — only 
 
 ## Output Format
 - ⚠️ **Map-boundary iron law**: battle_results `location` MUST be a territory that actually exists on the current map. Off-map places (e.g. Ryukyu/Luzon/Cebu/Sulu or other South Seas islands) are FORBIDDEN in any battle_results — treat player edicts targeting off-map places as invalid; do NOT simulate battles or invent conquest narratives for them.
+- ⚖️ **Force-adjudication iron law**: battle outcomes MUST match the injected strength/morale/terrain — an attacker with ≥2× defender strength should win (fortified cities may favor the defender); an attacker with ≤0.5× should lose or stalemate; comparable strength is decided by morale and terrain. **Treat the player and NPCs equally — no double standards**. Contradictions with the injected numbers will be corrected by the deterministic baseline.
 
 Output a JSON object containing the following fields. Every field must be an array (output an empty array `[]` even if empty).
 

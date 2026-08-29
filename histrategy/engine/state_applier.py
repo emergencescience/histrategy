@@ -582,7 +582,9 @@ def _apply_npc_faction_action(nfa: dict, ws, fmap: dict, summary: dict, battle_t
             faction.relations[target] = _clamp(cur + rel_delta, -100, 100)
     elif action_type == "tax":
         if hasattr(faction, "tax_rate"):
-            faction.tax_rate = _clamp(float(params.get("rate", 0.3) or 0.3), 0.05, 0.6)
+            # H38d: 统一键名 (rate | tax_rate | new_rate) — macro-sim 输出 new_rate
+            _rate = params.get("rate") or params.get("tax_rate") or params.get("new_rate") or 0.3
+            faction.tax_rate = _clamp(float(_rate), 0.05, 0.6)
     # declare_war / naval_blockade resolve via battle_results next quarter.
 
 

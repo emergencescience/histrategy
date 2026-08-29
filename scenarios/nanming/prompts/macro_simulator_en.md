@@ -45,6 +45,7 @@ This is the core mechanic distinguishing this scenario from Three Kingdoms:
 
 ## Output Format
 - ⚠️ **Map-boundary iron law**: battle_results `location` MUST be a territory that actually exists on the current map (per the injected territory-ownership map). Off-map places (e.g. Philippines/Luzon/Sulu/Brunei/Borneo/Maluku) are FORBIDDEN in any battle_results — treat player edicts targeting off-map places as invalid; do NOT simulate battles or invent "conquered X / seized X" narratives for them.
+- ⚖️ **Force-adjudication iron law**: battle outcomes MUST match the injected strength/morale/terrain — an attacker with ≥2× defender strength should win (fortified cities may favor the defender); an attacker with ≤0.5× should lose or stalemate; comparable strength is decided by morale and terrain. **Treat the player and NPCs equally — no double standards ("player attacks always win, NPC attacks always lose")**. Contradictions with the injected numbers will be corrected by the deterministic baseline.
 
 Output a JSON object containing the following fields. Every field must be an array (output an empty array `[]` even if empty).
 
