@@ -1095,17 +1095,20 @@ def _extract_state_changes(
         # Also check faction.territories as fallback
         if not owned:
             owned = list(faction.territories) if getattr(faction, "territories", None) else []
-        # Compute population: use owner_id-based map first, then sum from
-        # faction.territories → ws.territories[].population, then faction.population,
-        # then 50000 per territory estimate.
-        pop = faction_populations.get(faction_id, 0)
+        # Compute population: faction.population is the DYNAMIC value
+        # (updated by quarterly engine as tax/battles/season change), while
+        # ws.territories[].population is static scenario data. H39: use
+        # faction.population FIRST (matches build_faction_status_for_api),
+        # territory sum only as fallback for legacy V1 factions that never
+        # populate the field.
+        pop = getattr(faction, "population", 0) or 0
         if not pop and owned:
             pop = sum(
                 getattr(ws.territories.get(tid), "population", 0) or 0
                 for tid in owned
             )
         if not pop:
-            pop = getattr(faction, "population", 0) or 0
+            pop = faction_populations.get(faction_id, 0)
         if not pop:
             pop = max(100, len(owned) * 50000)
         changes[faction_id] = {
@@ -1125,14 +1128,14 @@ def _extract_state_changes(
         owned = faction_territories.get(faction_id, [])
         if not owned:
             owned = list(faction.territories) if getattr(faction, "territories", None) else []
-        pop = faction_populations.get(faction_id, 0)
+        pop = getattr(faction, "population", 0) or 0
         if not pop and owned:
             pop = sum(
                 getattr(ws.territories.get(tid), "population", 0) or 0
                 for tid in owned
             )
         if not pop:
-            pop = getattr(faction, "population", 0) or 0
+            pop = faction_populations.get(faction_id, 0)
         if not pop:
             pop = max(100, len(owned) * 50000)
         faction_stats[faction_id] = {

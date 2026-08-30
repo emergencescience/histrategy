@@ -1223,8 +1223,11 @@ def _init_world_state(room: GameRoom):
     player_faction = humans[0].faction_id if humans else "cao"
 
     # For non-default scenarios, use ScenarioLoader to pick up
-    # scenario-specific factions and year
-    if room.scenario and room.scenario not in ("three-kingdoms", ""):
+    # scenario-specific factions and year. three-kingdoms also uses
+    # ScenarioLoader (H39: create_initial_world() builds a V1 WorldState
+    # with NO armies, causing faction troops to collapse on the first
+    # battle — ScenarioLoader creates full armies for all factions).
+    if room.scenario and room.scenario not in ("",):
         from histrategy.engine.scenario_loader import ScenarioLoader
 
         try:

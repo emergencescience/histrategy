@@ -325,7 +325,10 @@ class TurnController:
         # the faction-level strength counter and actual army unit counts.
         # CRITICAL: Only sync when armies are actually deployed. Without this guard,
         # a new game's first quarter (or any turn with no armies) zeroes ALL faction
-        # strength_actual to 0, which the post-resolve guardrail then clamps to -35%.
+        # strength. H39: use max(deployed, reserve) so a faction with partially
+        # deployed armies does NOT lose its reserve troops — matches the
+        # pre-sync/post-sync semantics in quarterly_resolver (H37d).
+        _MIN_ACTIVE_TROOPS = 500
         for fid, faction in world_state.factions.items():
             if not faction.is_active:
                 continue
@@ -333,15 +336,16 @@ class TurnController:
                 a.total_troops for a in world_state.armies.values()
                 if a.faction_id == fid
             )
-            # H37d: log the reconciliation to trace the troop crash.
             _n_armies = sum(1 for a in world_state.armies.values() if a.faction_id == fid)
+            reserve = getattr(faction, "strength_actual", 0) or 0
+            if deployed > 0:
+                new_total = max(deployed, reserve, _MIN_ACTIVE_TROOPS)
+                faction.strength_actual = new_total
             import logging as _h37d_logging
             _h37d_logging.getLogger("histrategy.trooptrace").warning(
                 "[TROOPTRACE][reconcile] %s strength_actual=%d deployed=%d armies=%d",
                 fid, getattr(faction, "strength_actual", 0), deployed, _n_armies,
             )
-            if deployed > 0:
-                faction.strength_actual = deployed
 
         # ── Step 10: Return TurnResult ──
         # Build faction snapshots
