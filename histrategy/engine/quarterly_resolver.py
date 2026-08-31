@@ -261,6 +261,7 @@ class QuarterlyResolver:
         decisions: dict[str, DecisionResult],
         llm: LLMAdapter | None = None,
         skip_narrative: bool = False,
+        guardrail_pre_state: dict | None = None,
     ) -> QuarterlyResult:
         """执行一个季度的完整模拟。
 
@@ -286,6 +287,14 @@ class QuarterlyResolver:
         # to advance the season → +2/turn (seasons 春→秋→春 skipped 夏/冬). Now the
         # safety net only fires if the baseline did NOT already advance.
         _season_idx_at_start = _season_to_idx(getattr(world_state, "season", "spring"))
+
+        # H39c: capture the season/year being PROCESSED (pre-advance). The
+        # TurnController advances the season at the END of execute_turn, so by
+        # the time narrative/room-sync/save run, ws.season is the NEXT season.
+        # The turn record + narrative era must reflect the season the baseline
+        # actually simulated, not the one it advanced into.
+        _season_at_start = getattr(world_state, "season", "winter")
+        _year_at_start = getattr(world_state, "year", 1644)
 
         # H38a: Capture BEFORE snapshots so narrative can reference actual deltas
         _before_snapshots = _snapshot_factions(world_state)
@@ -444,7 +453,34 @@ class QuarterlyResolver:
                             faction.treasury = treasury
                             faction.population = population
                             faction_had_recruit = True
-                            logger.info("H36R_INLINE %s disband %d", fid, amt)
+                            # H39b: disband must ALSO reduce the deployed armies.
+                            # Without this, Step 5.5 (max(deployed, reserve))
+                            # reconciles strength_actual back up to the untouched
+                            # army totals — the disband was silently undone
+                            # (observed: 9,000 commanded → only ~1.4k net loss).
+                            try:
+                                from .state_applier import _reduce_army
+                                _deployed = sum(
+                                    a.total_troops
+                                    for a in world_state.armies.values()
+                                    if getattr(a, "faction_id", "") == fid and a.total_troops > 0
+                                )
+                                if _deployed > 0:
+                                    _amt_left = amt
+                                    for a in world_state.armies.values():
+                                        if _amt_left <= 0:
+                                            break
+                                        if getattr(a, "faction_id", "") == fid and a.total_troops > 0:
+                                            _share = max(1, int(amt * a.total_troops / _deployed))
+                                            _share = min(_share, a.total_troops, _amt_left)
+                                            _reduce_army(a, _share)
+                                            _amt_left -= _share
+                            except Exception as _re:
+                                logger.warning(
+                                    "[room=%s] disband army sync failed for %s: %s",
+                                    getattr(room, "id", "?"), fid, _re,
+                                )
+                            logger.info("H36R_INLINE %s disband %d (+army sync H39b)", fid, amt)
                 if faction_had_recruit:
                     _npc_recruited += 1
         except Exception as e:
@@ -593,6 +629,27 @@ class QuarterlyResolver:
                 if new_total and new_total != reserve:
                     faction.strength_actual = new_total
 
+        # ── Step 5.7: Guardrail clamp BEFORE narrative (H39b) ──
+        # Production previously applied _clamp_extreme_changes AFTER resolve
+        # returned, so the narrative (generated inside resolve) never saw the
+        # clamped numbers — Q1 narrative said "粮-20,180" while the saved delta
+        # was -18,000. Run the same guardrail here, before Step 6, so narrative,
+        # state_changes and turn_delta all reflect the final values.
+        if guardrail_pre_state is not None:
+            try:
+                from histrategy.server.room_manager import _clamp_extreme_changes
+                _clamp_extreme_changes(world_state, guardrail_pre_state)
+                logger.info(
+                    "[room=%s] Guardrail clamp applied pre-narrative (H39b)",
+                    getattr(room, "id", "?"),
+                )
+            except Exception as e:
+                logger.warning(
+                    "[room=%s] Guardrail pre-narrative clamp failed: %s",
+                    getattr(room, "id", "?"),
+                    e,
+                )
+
         # ── Step 6: Per-faction 叙事生成 ──
         # Streaming mode: skip the ~22s narrative LLM call here and stash the
         # context so narrative-live-stream can generate + stream it afterward.
@@ -602,6 +659,12 @@ class QuarterlyResolver:
                 "baseline": baseline,
                 "macro_delta": macro_delta,
                 "history_events": getattr(self, "_last_history_events", None),
+                # H39c: the turn's PROCESSED season/year (pre-advance), so the
+                # SSE narrative-live-stream regenerates with the correct era.
+                "processed_year": _year_at_start,
+                "processed_season": (
+                    _season_at_start.value if hasattr(_season_at_start, "value") else str(_season_at_start)
+                ),
             }
         elif self.narrative_engine:
             try:
@@ -616,6 +679,8 @@ class QuarterlyResolver:
                     macro_delta,
                     room,
                     state_deltas=_state_deltas,
+                    processed_year=_year_at_start,
+                    processed_season=_season_at_start,
                 )
                 print(f"⏱ [room={room.id}] narrative {time.time() - _t_narr:.1f}s", flush=True)
             except Exception as e:
@@ -650,6 +715,14 @@ class QuarterlyResolver:
             world_state,
             all_decisions,
             results,
+        )
+
+        # H39c: expose the processed (pre-advance) season/year for the turn
+        # record — the quarter_turn row must reflect the season the baseline
+        # actually simulated, not the post-advance one.
+        results.processed_year = _year_at_start
+        results.processed_season = (
+            _season_at_start.value if hasattr(_season_at_start, "value") else str(_season_at_start)
         )
 
         return results
@@ -767,6 +840,8 @@ class QuarterlyResolver:
         macro_delta,
         room,
         state_deltas: dict | None = None,
+        processed_year: int | None = None,
+        processed_season=None,
     ) -> dict[str, str]:
         """Generate a single global narrative covering all factions.
 
@@ -787,6 +862,8 @@ class QuarterlyResolver:
             room_id=room.id,
             scenario=getattr(room, "scenario", ""),
             state_deltas=state_deltas,
+            year=processed_year,
+            season=processed_season,
         )
 
         if not global_narrative or not global_narrative.strip():
@@ -817,6 +894,8 @@ class QuarterlyResult:
         "all_commands",
         "baseline",
         "macro_delta",
+        "processed_year",
+        "processed_season",
     )
 
     def __init__(self):
@@ -831,6 +910,8 @@ class QuarterlyResult:
         self.narrative_context: dict | None = None
         self.baseline = None  # TurnResult from deterministic simulation
         self.macro_delta: dict = {}  # LLM macro simulation delta
+        self.processed_year: int | None = None  # H39c: pre-advance year
+        self.processed_season: str | None = None  # H39c: pre-advance season
 
 
 # ── Helpers ────────────────────────────────────────

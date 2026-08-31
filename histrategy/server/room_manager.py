@@ -656,6 +656,10 @@ def stream_and_persist_narrative(room):
                 history_events=ctx.get("history_events"),
                 room_id=room.id,
                 scenario=getattr(room, "scenario", ""),
+                # H39c: use the PROCESSED season/year so the streamed chronicle
+                # era matches the turn record (pre-advance), not the advanced one.
+                year=ctx.get("processed_year"),
+                season=ctx.get("processed_season"),
             ):
                 if chunk:
                     chunks.append(chunk)
@@ -1441,6 +1445,17 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
         # V3 (merged V3+Macro)
         result = _resolve_v2_or_v3(room, ws, decisions, llm, mode="v3", skip_narrative=skip_narrative)
 
+    # H39c: 记录本回合实际推演的（推进前）年/季，供回合记录使用。
+    # 避免回合记录显示"推进后的季节"（Q1 实际在冬推演却记成春）。
+    if getattr(result, "processed_year", None) is not None:
+        room._turn_processed_year = result.processed_year
+    else:
+        room._turn_processed_year = getattr(ws, "year", 1644)
+    _ps = getattr(result, "processed_season", None)
+    room._turn_processed_season = _ps if _ps else (
+        getattr(ws.season, "value", None) or getattr(ws.season, "cn", None) or str(getattr(ws, "season", "winter"))
+    )
+
     room._last_narratives = result.narratives
     room._last_state_changes = getattr(result, "state_changes", {}) or {}
     npc_actions = []
@@ -1760,6 +1775,11 @@ def _capture_faction_state(ws, room=None) -> dict:
                     "food": gs.get("food", 0),
                     "treasury": gs.get("treasury", 0),
                     "morale": gs.get("morale", _DEFAULT_MORALE),
+                    # H39b: population from the DB column too — the game_state
+                    # column and the in-memory faction.population can disagree
+                    # (refugees/combat writeback vs. baseline growth), making
+                    # turn_delta population rows contradict the visible state.
+                    "population": gs.get("population", 0),
                 }
         except Exception:
             pass
@@ -1780,8 +1800,16 @@ def _capture_faction_state(ws, room=None) -> dict:
         treasury_val = db_vals.get("treasury", ws_treasury) if ws_treasury == _DEFAULT_TREASURY and db_vals.get("treasury", _DEFAULT_TREASURY) != _DEFAULT_TREASURY else ws_treasury
         morale_val = db_vals.get("morale", ws_morale) if ws_morale == _DEFAULT_MORALE and db_vals.get("morale", _DEFAULT_MORALE) != _DEFAULT_MORALE else ws_morale
 
-        # Bug H35a: compute population from territory sum
-        pop_val = getattr(faction, "population", 0)
+        # Bug H35a: compute population from territory sum.
+        # H39b: prefer the DB game_state column when available — the column is
+        # written from the post-resolve faction.population each turn, so it is
+        # what the player actually saw for the previous quarter. The in-memory
+        # faction.population can diverge from it (load-path recompute vs. combat
+        # writeback), which made turn_delta population rows contradict the
+        # visible game_state column.
+        ws_pop = getattr(faction, "population", 0)
+        db_pop = db_vals.get("population", 0)
+        pop_val = db_pop if db_pop != 0 else ws_pop
         if not pop_val:
             pop_val = sum(
                 getattr(ws.territories.get(tid), "population", 0)
@@ -2063,11 +2091,15 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
     except Exception as e:
         logger.warning(f"GameEngine init for {mode.upper()} failed: {e}, using bare resolver")
         resolver = QuarterlyResolver()
-        result = resolver.resolve(room, ws, decisions, llm=llm, skip_narrative=skip_narrative)
-        _clamp_extreme_changes(ws, old_state)
-        # Re-extract state_changes AFTER clamping so API returns post-guardrail values.
-        # Without this, state_changes in quarter_turn shows PRE-CLAMP values while
-        # game_state and turn_delta show POST-CLAMP — inconsistent and confusing.
+        # H39b: guardrail now runs INSIDE resolve (before narrative) so the
+        # narrative, state_changes and turn_delta all reflect the final values.
+        result = resolver.resolve(
+            room, ws, decisions, llm=llm, skip_narrative=skip_narrative,
+            guardrail_pre_state=old_state,
+        )
+        _sync_faction_territories(ws)
+        # Re-extract state_changes AFTER _sync_faction_territories so the API
+        # returns post-sync territory lists.
         from histrategy.engine.quarterly_resolver import _extract_state_changes
         result.state_changes = _extract_state_changes(ws, decisions)
         _save_v3_state_to_db(room, ws, decisions, result, old_state, pre_territories)
@@ -2101,12 +2133,13 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
         if resolver.narrative_engine:
             resolver.narrative_engine.lang = lang
 
-    result = resolver.resolve(room, ws, decisions, llm=llm, skip_narrative=skip_narrative)
-
-    # ── Post-resolve guardrail ──
-    _clamp_extreme_changes(ws, old_state)
-    # Re-extract state_changes after guardrail mutates faction.food
-    result.state_changes = _extract_state_changes(ws, decisions)
+    # H39b: guardrail clamp now runs INSIDE resolve() BEFORE narrative generation,
+    # so narrative / state_changes / turn_delta all reflect the same final values.
+    # (Previously clamped post-resolve → narrative showed pre-clamp numbers.)
+    result = resolver.resolve(
+        room, ws, decisions, llm=llm, skip_narrative=skip_narrative,
+        guardrail_pre_state=old_state,
+    )
 
     # ── Sync faction.territories from ws.territories[].owner_id ──
     # The baseline (execute_turn) mutates ws.territories[].owner_id but does
@@ -2805,8 +2838,10 @@ def _save_quarter(room, decisions, result):
         save_quarter_turn(
             room.id,
             room.quarter_number,
-            room.year,
-            room.season,
+            # H39c: 用本回合实际推演的（推进前）年/季，而非推进后的值 —
+            # 否则回合记录的季节永远比实际推演季节快一季（Q1 冬推演却记春）。
+            getattr(room, "_turn_processed_year", None) or room.year,
+            getattr(room, "_turn_processed_season", None) or room.season,
             faction_decisions=fd,
             baseline_result=baseline_dict,
             macro_delta=macro_dict,

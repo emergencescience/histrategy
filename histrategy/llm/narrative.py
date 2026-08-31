@@ -269,18 +269,31 @@ class NarrativeEngine:
         room_id: str = "",
         scenario: str = "",
         state_deltas: dict | None = None,
+        year: int | None = None,
+        season=None,
     ) -> str:
-        """Generate a single global narrative covering ALL factions for the quarter."""
+        """Generate a single global narrative covering ALL factions for the quarter.
+
+        year/season: optional OVERRIDES for the PROCESSED quarter. Without them
+        the narrative uses ws.year/ws.season — which are POST-advance after the
+        TurnController runs (H39c), causing the era line to be one season ahead
+        of what the baseline actually simulated.
+        """
         if not self.llm_available or not self.llm:
-            return self._offline_global_narrative(ws, faction_decisions)
+            return self._offline_global_narrative(ws, faction_decisions, year=year, season=season)
 
         is_en = self._language == "en"
         system_prompt = self._get_global_narrative_system_prompt(is_en)
 
         # Build context
         lines: list[str] = []
-        year = ws.year
-        season = getattr(ws.season, "cn", str(ws.season)) if hasattr(ws, "season") else "?"
+        year = year if year is not None else ws.year
+        season = (
+            season if season is not None
+            else (getattr(ws.season, "cn", str(ws.season)) if hasattr(ws, "season") else "?")
+        )
+        if hasattr(season, "cn"):
+            season = season.cn
         scenario_label = f"Scenario: {scenario}" if scenario else ""
 
         lines.append(f"Year: {year} | Season: {season}")
@@ -414,14 +427,19 @@ class NarrativeEngine:
         history_events: list | None = None,
         room_id: str = "",
         scenario: str = "",
+        year: int | None = None,
+        season=None,
     ):
         """Stream global narrative via SSE, yielding chunks as they arrive.
 
         Yields each text chunk. On LLM failure, yields the offline fallback
         as a single chunk.
+
+        year/season: optional PROCESSED-quarter overrides (H39c) — see
+        generate_global_narrative.
         """
         if not self.llm_available or not self.llm:
-            yield self._offline_global_narrative(ws, faction_decisions)
+            yield self._offline_global_narrative(ws, faction_decisions, year=year, season=season)
             return
 
         is_en = self._language == "en"
@@ -429,8 +447,13 @@ class NarrativeEngine:
 
         # Build context (same as generate_global_narrative)
         lines: list[str] = []
-        year = ws.year
-        season = getattr(ws.season, "cn", str(ws.season)) if hasattr(ws, "season") else "?"
+        year = year if year is not None else ws.year
+        season = (
+            season if season is not None
+            else (getattr(ws.season, "cn", str(ws.season)) if hasattr(ws, "season") else "?")
+        )
+        if hasattr(season, "cn"):
+            season = season.cn
         scenario_label = f"Scenario: {scenario}" if scenario else ""
 
         lines.append(f"Year: {year} | Season: {season}")
@@ -531,16 +554,25 @@ class NarrativeEngine:
             )
             yield self._offline_global_narrative(ws, faction_decisions)
 
-    def _offline_global_narrative(self, ws, faction_decisions: dict[str, str]) -> str:
+    def _offline_global_narrative(
+        self, ws, faction_decisions: dict[str, str], year: int | None = None, season=None
+    ) -> str:
         """Deterministic fallback when LLM is unavailable.
 
         Produces a readable chronicle summary instead of dumping raw decision text.
         Raw player commands are never suitable as public-facing narrative —
         they contain typos, informal language, and private tactical intent.
+
+        year/season: optional PROCESSED-quarter overrides (H39c).
         """
         is_en = self._language == "en"
-        year = ws.year
-        season = getattr(ws.season, "cn", str(ws.season)) if hasattr(ws, "season") else "?"
+        year = year if year is not None else ws.year
+        season = (
+            season if season is not None
+            else (getattr(ws.season, "cn", str(ws.season)) if hasattr(ws, "season") else "?")
+        )
+        if hasattr(season, "cn"):
+            season = season.cn
         season_label = f"{season} {year}" if is_en else f"{year}年{season}"
 
         # Era line for immersion
