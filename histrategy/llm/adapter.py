@@ -400,6 +400,41 @@ class LLMAdapter:
                     except (json.JSONDecodeError, KeyError, IndexError):
                         continue
 
+            def _build_stream_stats(usage, full_text, messages, latency):
+                """Real usage when available, chars//4 estimate as fallback."""
+                if usage:
+                    prompt_tokens = usage.get("prompt_tokens") or 0
+                    completion_tokens = usage.get("completion_tokens") or 0
+                    total_tokens = usage.get("total_tokens") or (prompt_tokens + completion_tokens)
+                    cached_tokens = 0
+                    pt_details = usage.get("prompt_tokens_details")
+                    if isinstance(pt_details, dict):
+                        cached_tokens = pt_details.get("cached_tokens", 0) or 0
+                    if not cached_tokens:
+                        cached_tokens = usage.get("prompt_cache_hit_tokens", 0) or 0
+                    return {
+                        "provider": self.provider_name,
+                        "model": self.model,
+                        "latency": latency,
+                        "prompt_tokens": prompt_tokens or 1,
+                        "completion_tokens": completion_tokens or 1,
+                        "total_tokens": total_tokens or 1,
+                        "reasoning_tokens": 0,
+                        "cached_tokens": cached_tokens,
+                    }
+                prompt_chars = sum(len(str(m.get("content", ""))) for m in messages)
+                return {
+                    "provider": self.provider_name,
+                    "model": self.model,
+                    "latency": latency,
+                    "prompt_tokens": max(1, prompt_chars // 4),
+                    "completion_tokens": max(1, len(full_text) // 4),
+                    "total_tokens": max(1, (prompt_chars + len(full_text)) // 4),
+                    "reasoning_tokens": 0,
+                    "cached_tokens": 0,
+                }
+
+            full_content: list[str] = []
             try:
                 with self.client.stream(
                     "POST",
@@ -408,7 +443,6 @@ class LLMAdapter:
                     timeout=_timeout,
                 ) as response:
                     response.raise_for_status()
-                    full_content = []
                     for chunk in _consume_stream(response):
                         full_content.append(chunk)
                         yield chunk
@@ -422,10 +456,33 @@ class LLMAdapter:
                     timeout=_timeout,
                 ) as response:
                     response.raise_for_status()
-                    full_content = []
                     for chunk in _consume_stream(response):
                         full_content.append(chunk)
                         yield chunk
+            except GeneratorExit:
+                # Client disconnected mid-stream: the LLM call was STILL BILLED,
+                # so record what we consumed (truncated). Without this the call
+                # silently disappears from llm_call_log — an accounting gap.
+                _lat = time.perf_counter() - start_time
+                _text = "".join(full_content)
+                self._logger.warning(
+                    "LLM chat_stream TRUNCATED (client disconnect): provider=%s model=%s chars=%d",
+                    self.provider_name,
+                    self.model,
+                    len(_text),
+                )
+                try:
+                    self._log_llm_call_to_db(
+                        messages,
+                        _text,
+                        _build_stream_stats(usage_box[0], _text, messages, _lat),
+                        _lat,
+                        metadata,
+                        error="truncated_client_disconnect",
+                    )
+                except Exception as _log_err:
+                    self._logger.warning("chat_stream truncated DB log failed: %s", _log_err)
+                raise
 
             latency = time.perf_counter() - start_time
             full_text = "".join(full_content)
@@ -438,45 +495,13 @@ class LLMAdapter:
             )
             # ── Write to DB (was missing — H31b fix) ──
             try:
-                usage = usage_box[0]
-                if usage:
-                    # REAL token usage from the API (stream_options.include_usage)
-                    prompt_tokens = usage.get("prompt_tokens") or 0
-                    completion_tokens = usage.get("completion_tokens") or 0
-                    total_tokens = usage.get("total_tokens") or (prompt_tokens + completion_tokens)
-                    # Cache-hit tokens — OpenAI format (prompt_tokens_details.cached_tokens)
-                    # or Volcano Ark format (prompt_cache_hit_tokens)
-                    cached_tokens = 0
-                    pt_details = usage.get("prompt_tokens_details")
-                    if isinstance(pt_details, dict):
-                        cached_tokens = pt_details.get("cached_tokens", 0) or 0
-                    if not cached_tokens:
-                        cached_tokens = usage.get("prompt_cache_hit_tokens", 0) or 0
-                    stats = {
-                        "provider": self.provider_name,
-                        "model": self.model,
-                        "latency": latency,
-                        "prompt_tokens": prompt_tokens or 1,
-                        "completion_tokens": completion_tokens or 1,
-                        "total_tokens": total_tokens or 1,
-                        "reasoning_tokens": 0,
-                        "cached_tokens": cached_tokens,
-                    }
-                else:
-                    # Fallback estimate (provider didn't return usage)
-                    prompt_chars = sum(len(str(m.get("content", ""))) for m in messages)
-                    stats = {
-                        "provider": self.provider_name,
-                        "model": self.model,
-                        "latency": latency,
-                        "prompt_tokens": max(1, prompt_chars // 4),
-                        "completion_tokens": max(1, len(full_text) // 4),
-                        "total_tokens": max(1, (prompt_chars + len(full_text)) // 4),
-                        "reasoning_tokens": 0,
-                        "cached_tokens": 0,
-                    }
                 self._log_llm_call_to_db(
-                    messages, full_text, stats, latency, metadata, error=None
+                    messages,
+                    full_text,
+                    _build_stream_stats(usage_box[0], full_text, messages, latency),
+                    latency,
+                    metadata,
+                    error=None,
                 )
             except Exception as _log_err:
                 self._logger.warning("chat_stream DB log failed: %s", _log_err)
