@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS llm_call_log (
     completion_tokens   INTEGER DEFAULT 0,
     total_tokens        INTEGER DEFAULT 0,
     reasoning_tokens    INTEGER,
+    cached_tokens       INTEGER DEFAULT 0,
     latency_ms          INTEGER DEFAULT 0,
     system_prompt_type  TEXT,                  -- 仅存类型: npc_decision | macro_simulator | intent_parse | narrative | ...
     user_prompt     TEXT,                      -- 用户 prompt（不含 system prompt 全文）

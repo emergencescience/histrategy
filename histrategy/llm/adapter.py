@@ -372,15 +372,16 @@ class LLMAdapter:
             # Doubao Seed 2.1 turbo disables reasoning tokens for faster responses
             if self.provider_name == "doubao":
                 stream_body["thinking"] = {"type": "disabled"}
-            with self.client.stream(
-                "POST",
-                "/chat/completions",
-                json=stream_body,
-                timeout=_timeout,
-            ) as response:
-                response.raise_for_status()
-                full_content = []
-                for line in response.iter_lines():
+            # Request REAL token usage (incl. cache-hit tokens) in the final SSE
+            # chunk. Without this, stream calls only have a chars//4 estimate.
+            # If the provider rejects stream_options (4xx), retry without it so
+            # streaming never breaks.
+            stream_body["stream_options"] = {"include_usage": True}
+
+            usage_box: list[dict | None] = [None]
+
+            def _consume_stream(resp):
+                for line in resp.iter_lines():
                     line = line.strip()
                     if not line or not line.startswith("data: "):
                         continue
@@ -389,25 +390,80 @@ class LLMAdapter:
                         break
                     try:
                         data = json.loads(data_str)
+                        # Final chunk carries usage when include_usage is on
+                        if data.get("usage"):
+                            usage_box[0] = data.get("usage")
                         delta = data["choices"][0].get("delta", {})
                         content = delta.get("content", "")
                         if content:
-                            full_content.append(content)
                             yield content
                     except (json.JSONDecodeError, KeyError, IndexError):
                         continue
 
-                latency = time.perf_counter() - start_time
-                full_text = "".join(full_content)
-                self._logger.info(
-                    "LLM chat_stream done: provider=%s model=%s latency=%.1fs output_chars=%d",
-                    self.provider_name,
-                    self.model,
-                    latency,
-                    len(full_text),
-                )
-                # ── Write to DB (was missing — H31b fix) ──
-                try:
+            try:
+                with self.client.stream(
+                    "POST",
+                    "/chat/completions",
+                    json=stream_body,
+                    timeout=_timeout,
+                ) as response:
+                    response.raise_for_status()
+                    full_content = []
+                    for chunk in _consume_stream(response):
+                        full_content.append(chunk)
+                        yield chunk
+            except httpx.HTTPStatusError:
+                # Provider may not support stream_options.include_usage → plain retry
+                body_without = {k: v for k, v in stream_body.items() if k != "stream_options"}
+                with self.client.stream(
+                    "POST",
+                    "/chat/completions",
+                    json=body_without,
+                    timeout=_timeout,
+                ) as response:
+                    response.raise_for_status()
+                    full_content = []
+                    for chunk in _consume_stream(response):
+                        full_content.append(chunk)
+                        yield chunk
+
+            latency = time.perf_counter() - start_time
+            full_text = "".join(full_content)
+            self._logger.info(
+                "LLM chat_stream done: provider=%s model=%s latency=%.1fs output_chars=%d",
+                self.provider_name,
+                self.model,
+                latency,
+                len(full_text),
+            )
+            # ── Write to DB (was missing — H31b fix) ──
+            try:
+                usage = usage_box[0]
+                if usage:
+                    # REAL token usage from the API (stream_options.include_usage)
+                    prompt_tokens = usage.get("prompt_tokens") or 0
+                    completion_tokens = usage.get("completion_tokens") or 0
+                    total_tokens = usage.get("total_tokens") or (prompt_tokens + completion_tokens)
+                    # Cache-hit tokens — OpenAI format (prompt_tokens_details.cached_tokens)
+                    # or Volcano Ark format (prompt_cache_hit_tokens)
+                    cached_tokens = 0
+                    pt_details = usage.get("prompt_tokens_details")
+                    if isinstance(pt_details, dict):
+                        cached_tokens = pt_details.get("cached_tokens", 0) or 0
+                    if not cached_tokens:
+                        cached_tokens = usage.get("prompt_cache_hit_tokens", 0) or 0
+                    stats = {
+                        "provider": self.provider_name,
+                        "model": self.model,
+                        "latency": latency,
+                        "prompt_tokens": prompt_tokens or 1,
+                        "completion_tokens": completion_tokens or 1,
+                        "total_tokens": total_tokens or 1,
+                        "reasoning_tokens": 0,
+                        "cached_tokens": cached_tokens,
+                    }
+                else:
+                    # Fallback estimate (provider didn't return usage)
                     prompt_chars = sum(len(str(m.get("content", ""))) for m in messages)
                     stats = {
                         "provider": self.provider_name,
@@ -417,12 +473,13 @@ class LLMAdapter:
                         "completion_tokens": max(1, len(full_text) // 4),
                         "total_tokens": max(1, (prompt_chars + len(full_text)) // 4),
                         "reasoning_tokens": 0,
+                        "cached_tokens": 0,
                     }
-                    self._log_llm_call_to_db(
-                        messages, full_text, stats, latency, metadata, error=None
-                    )
-                except Exception as _log_err:
-                    self._logger.warning("chat_stream DB log failed: %s", _log_err)
+                self._log_llm_call_to_db(
+                    messages, full_text, stats, latency, metadata, error=None
+                )
+            except Exception as _log_err:
+                self._logger.warning("chat_stream DB log failed: %s", _log_err)
         except Exception as e:
             latency = time.perf_counter() - start_time
             self._logger.error(
@@ -442,6 +499,7 @@ class LLMAdapter:
                     "completion_tokens": 0,
                     "total_tokens": 0,
                     "reasoning_tokens": 0,
+                    "cached_tokens": 0,
                 }
                 self._log_llm_call_to_db(
                     messages, "", stats, latency, metadata, error=str(e)[:500]
@@ -655,6 +713,16 @@ class LLMAdapter:
             if isinstance(details, dict):
                 reasoning_tokens = details.get("reasoning_tokens", 0)
 
+            # Cache-hit tokens — OpenAI format (prompt_tokens_details.cached_tokens)
+            # or Volcano Ark format (prompt_cache_hit_tokens). Enables measuring
+            # context-cache hit rate for cost analysis.
+            cached_tokens = 0
+            pt_details = usage.get("prompt_tokens_details")
+            if isinstance(pt_details, dict):
+                cached_tokens = pt_details.get("cached_tokens", 0) or 0
+            if not cached_tokens:
+                cached_tokens = usage.get("prompt_cache_hit_tokens", 0) or 0
+
             self.last_call_stats = {
                 "provider": self.provider_name,
                 "model": self.model,
@@ -663,6 +731,7 @@ class LLMAdapter:
                 "completion_tokens": completion_tokens,
                 "total_tokens": total_tokens,
                 "reasoning_tokens": reasoning_tokens,
+                "cached_tokens": cached_tokens,
             }
 
             # Update cumulative counters (GIL-protected, safe for moderate concurrency)
@@ -717,6 +786,7 @@ class LLMAdapter:
                 "completion_tokens": stats["completion_tokens"],
                 "total_tokens": stats["total_tokens"],
                 "reasoning_tokens": stats["reasoning_tokens"],
+                "cached_tokens": stats.get("cached_tokens", 0),
                 "messages": messages,
                 "response": content,
             }
@@ -852,6 +922,7 @@ class LLMAdapter:
                 completion_tokens=stats.get("completion_tokens", 0),
                 total_tokens=stats.get("total_tokens", 0),
                 reasoning_tokens=stats.get("reasoning_tokens"),
+                cached_tokens=stats.get("cached_tokens", 0),
                 latency_ms=int(latency * 1000),
                 system_prompt_type=system_prompt_type,
                 user_prompt=user_prompt,
@@ -882,6 +953,7 @@ class LLMAdapter:
                 "completion_tokens": 0,
                 "total_tokens": 0,
                 "reasoning_tokens": 0,
+                "cached_tokens": 0,
                 "error": str(exception),
             }
 
@@ -1012,6 +1084,7 @@ class LLMAdapter:
                     "completion_tokens": 0,
                     "total_tokens": 0,
                     "reasoning_tokens": 0,
+                    "cached_tokens": 0,
                 },
                 latency=latency,
                 metadata=metadata,

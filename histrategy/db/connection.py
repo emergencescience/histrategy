@@ -258,6 +258,7 @@ CREATE TABLE IF NOT EXISTS llm_call_log (
     completion_tokens   INTEGER DEFAULT 0,
     total_tokens        INTEGER DEFAULT 0,
     reasoning_tokens    INTEGER,
+    cached_tokens       INTEGER DEFAULT 0,
     latency_ms          INTEGER DEFAULT 0,
     system_prompt_type  TEXT,
     user_prompt     TEXT,

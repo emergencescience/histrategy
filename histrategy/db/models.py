@@ -463,6 +463,7 @@ def log_llm_call(
     completion_tokens: int = 0,
     total_tokens: int = 0,
     reasoning_tokens: int | None = None,
+    cached_tokens: int = 0,
     latency_ms: int = 0,
     system_prompt_type: str | None = None,
     user_prompt: str | None = None,
@@ -477,9 +478,9 @@ def log_llm_call(
         """INSERT INTO llm_call_log
             (id, room_id, quarter_number, call_type, faction_id,
              provider, model, prompt_tokens, completion_tokens,
-             total_tokens, reasoning_tokens, latency_ms,
+             total_tokens, reasoning_tokens, cached_tokens, latency_ms,
              system_prompt_type, user_prompt, response, error, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             log_id,
             room_id,
@@ -492,6 +493,7 @@ def log_llm_call(
             completion_tokens,
             total_tokens,
             reasoning_tokens,
+            cached_tokens,
             latency_ms,
             system_prompt_type,
             user_prompt,
