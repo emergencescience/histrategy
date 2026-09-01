@@ -131,6 +131,18 @@ def create_room(
     )
     from histrategy.engine.game_room import GameRoom, RoomPhase
 
+    # ── H40: 《山河鼎革》软下线 — 云端不再接受新房间 ──
+    # 场景列表保留，但创建入口替换为自建引导（前端 CTA + 后端 409 双保险）。
+    # 存量房间 decide/status/turns 不受影响；本地自建（SDK DirectEngine）不走此路径。
+    _RETIRED_SCENARIOS = {"nanming", "ming-qing", "shanhe-dingge"}
+    if str(scenario).strip().lower() in _RETIRED_SCENARIOS:
+        return {
+            "ok": False,
+            "error": "《山河鼎革》已停止在云端开设新房间。请从 GitHub 自建部署后本地游玩（安装指引见 README.md）: https://github.com/emergencescience/histrategy",
+            "code": "SCENARIO_RETIRED",
+            "self_host_url": "https://github.com/emergencescience/histrategy",
+        }
+
     # ── Build scenario-aware faction mapping ──
     use_fallback = scenario in ("", "three-kingdoms")
     if use_fallback:

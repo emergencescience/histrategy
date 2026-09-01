@@ -20,6 +20,10 @@
 |----------|------|----------|----------|
 | **Three Kingdoms** | 207 AD | Cao Cao, Liu Bei, Sun Quan | English, 中文 |
 | **Rome Triumvirate** | 44 BC | Octavian, Antony, Cleopatra, Senate | English, 中文 |
+| **Southern Ming (山河鼎革)** | 1645 AD | Southern Ming, Qing, Peasant Army, Zheng Clan | 中文 |
+
+> 🏠 **《山河鼎革》已停止云端服务** — 自建即可继续游玩（scenario id: `nanming`）。
+> 云端（emergence.science）不再接受新房间，但源码完全开放：克隆本仓库后本地运行即可体验全部 4 个势力。安装见下方 Quick Start。
 
 ## Quick Start
 
@@ -42,6 +46,10 @@ print(result["narrative"])
 # Rome Triumvirate — English
 room = Room.create("rome", faction="octavian", scenario="rome-triumvirate", lang="en")
 result = room.play("Secure the Senate's support against Antony")
+
+# Southern Ming / 山河鼎革 — 中文（自建部署专用，需 LLM API key）
+room = Room.create("my-ming", faction="nanming", scenario="nanming", lang="zh")
+result = room.play("整军备战，坚守扬州，联结郑氏水师")
 ```
 
 ### From Source

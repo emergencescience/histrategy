@@ -93,7 +93,12 @@ def start(
     )
 
     if not result.get("ok"):
-        return {"ok": False, "error": result.get("error", "Failed to create room")}
+        resp: dict = {"ok": False, "error": result.get("error", "Failed to create room")}
+        # H40: 透传 SCENARIO_RETIRED 标记，让 api 层能转成 HTTP 409 + 自建引导
+        if result.get("code"):
+            resp["code"] = result["code"]
+            resp["self_host_url"] = result.get("self_host_url", "")
+        return resp
 
     room_id = result["room_id"]
     room = _get_room(room_id)

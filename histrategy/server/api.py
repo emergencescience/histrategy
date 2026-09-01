@@ -281,6 +281,11 @@ def create_app(llm_provider: str | None = None) -> Any:
             metadata=metadata,
             host_user_id=x_user_id,
         )
+        # H40: 山河鼎革软下线 — 创建被拒时返回 409 + 自建引导
+        if result.get("code") == "SCENARIO_RETIRED":
+            from fastapi.responses import JSONResponse
+
+            return JSONResponse(status_code=409, content=result)
         return result
 
     @app.post("/api/rooms/{room_id}/decide")
@@ -1136,13 +1141,19 @@ def create_app(llm_provider: str | None = None) -> Any:
         from histrategy.server.room_manager import detect_device_type
         from histrategy.server.single_player import start
 
-        return start(
+        result = start(
             faction=body.get("faction", "shu"),
             scenario=body.get("scenario", "three-kingdoms"),
             language_style=body.get("language_style", "vernacular"),
             lang=body.get("lang", "zh"),
             device_type=detect_device_type(user_agent),
         )
+        # H40: 山河鼎革软下线 — 创建被拒时返回 409 + 自建引导
+        if result.get("code") == "SCENARIO_RETIRED":
+            from fastapi.responses import JSONResponse
+
+            return JSONResponse(status_code=409, content=result)
+        return result
 
     # ═══════════════════════════════════════════════════════════
     # Scenario Metadata API (/api/scenarios)
