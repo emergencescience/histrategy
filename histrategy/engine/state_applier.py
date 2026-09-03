@@ -487,6 +487,26 @@ def _transfer_territory(loc: str, new_owner: str, old_owner: str, ws, summary: d
             old_faction.strength_actual = max(_MIN_ACTIVE_TROOPS, old_faction.strength_actual - absorbed)
             ws.factions[new_owner].strength_actual = getattr(ws.factions[new_owner], "strength_actual", 0) + absorbed
 
+    # ── P0-3: 攻城掠夺 (conquest loot) ──
+    # 90a7cac: conquering cities NEVER enriched the attacker (treasury pinned
+    # <10k for 18 consecutive quarters) → expansion deepened the death spiral
+    # instead of relieving it. Loot scales with the city's population so
+    # conquest is a real recovery lever: gold ≈ 6% of pop, food ≈ 25%.
+    # (襄阳 ~100k pop → ~6,000 gold + ~25,000 food ≈ a full quarter of income.)
+    victor = ws.factions[new_owner]
+    pop = int(getattr(territory, "population", 0) or 0)
+    if pop > 0:
+        loot_gold = max(1500, int(pop * 0.06))
+        loot_food = max(3000, int(pop * 0.25))
+        victor.treasury = getattr(victor, "treasury", 0) + loot_gold
+        victor.food = getattr(victor, "food", 0) + loot_food
+        summary.setdefault("loot_gold", 0)
+        summary["loot_gold"] += loot_gold
+        logger.info(
+            "Conquest loot: %s took %s → +%d gold, +%d food",
+            new_owner, loc, loot_gold, loot_food,
+        )
+
 
 def _apply_npc_faction_action(nfa: dict, ws, fmap: dict, summary: dict, battle_troops_lost: dict | None = None) -> None:
     """Apply an NPC faction's autonomous economic/military action."""

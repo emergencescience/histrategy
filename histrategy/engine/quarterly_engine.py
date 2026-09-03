@@ -572,15 +572,19 @@ class QuarterlyEngine:
                 morale_penalty = 10
                 desc = "金库空虚，哗变溃散"
 
-                # Desertion scales with army size
+                # Desertion scales with army size (P0-3: capped at 3%/quarter —
+                # the old ladder (2/3/5%) stacked with 5% forced disband + the
+                # ≤10-morale 10% rout into a death spiral with NO recovery
+                # equilibrium: 90a7cac cao ran 18 consecutive broke quarters,
+                # troops 150K→100K with zero growth, Q20 single-quarter -19K.
+                # Conquest loot (see _transfer_territory) + these caps give the
+                # broke faction a path back instead of a ratchet down.)
                 if strength <= 5000:
                     desertion_pct = 0.0
                 elif strength <= 50000:
-                    desertion_pct = 0.02
-                elif strength <= 200000:
-                    desertion_pct = 0.03
+                    desertion_pct = 0.015
                 else:
-                    desertion_pct = 0.05
+                    desertion_pct = 0.03
 
                 # Apply morale penalty
                 new_morale = max(0, morale - morale_penalty)
@@ -666,7 +670,12 @@ class QuarterlyEngine:
                     )
 
             # ── Morale collapse threshold ──
-            if morale <= 10 and strength > 5000:
+            # P0-3: threshold 10 → 5. At ≤10 morale the 10% rout stacked on top
+            # of desertion + forced disband and fired almost every quarter for
+            # chronically-broke factions (90a7cac morale pinned 3-26 for years) —
+            # a collapse ratchet, not an emergency brake. True collapse (≤5) keeps
+            # the emergency response without the perpetual drain.
+            if morale <= 5 and strength > 5000:
                 rout = max(1000, int(strength * 0.10))
                 faction.strength_actual = max(500, strength - rout)
                 if result and hasattr(result, "notable_events"):
