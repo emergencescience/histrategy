@@ -562,7 +562,7 @@ class QuarterlyResolver:
                     bs_proposals,
                     room,
                 )
-                results.macro_delta = macro_delta  # Expose for DB storage
+                results.macro_delta = macro_delta  # placeholder; final assignment after guardrail (Step 5)
                 print(f"⏱ [room={room.id}] macro_sim {time.time() - _t_macro:.1f}s", flush=True)
             except Exception as e:
                 logger.error("[room=%s] MacroPolicyEngine failed: %s", room.id, e)
@@ -582,6 +582,13 @@ class QuarterlyResolver:
                         logger.info("[room=%s] Guardrail warning: %s", room.id, getattr(w, "message", w))
             except Exception as e:
                 logger.warning("[room=%s] GuardrailValidator failed: %s", room.id, e)
+
+        # P0-1: persist the SANITIZED delta (post-guardrail), not the raw LLM
+        # output — guardrail may drop violating entries, and _settle_battle's
+        # deterministic truth write-back mutates these same dicts, so the
+        # stored record (quarter_turn.macro_delta) reflects reality.
+        if macro_delta:
+            results.macro_delta = macro_delta
 
         if macro_delta and self.state_applier:
             try:

@@ -2582,8 +2582,18 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict, pre_terri
             if not territories_list and ws:
                 territories_list = _territories_from_owner(ws, fid)
             # Bug H35k: ws.territories may be entirely empty after simulation.
-            # Use pre-simulation snapshot as final fallback.
-            if not territories_list and pre_territories and fid in pre_territories:
+            # Use pre-simulation snapshot as final fallback — but ONLY when the
+            # whole world map is missing (true engine data loss). A faction with
+            # 0 owned territories while ws.territories is intact is the LEGITIMATE
+            # post-war outcome (full wipe → exile). Resurrecting pre_territories
+            # there ghost-writes lost cities into game_state for a quarter
+            # (90a7cac Q1: shu wiped by cao yet saved with xinye+jiangxia →
+            # 一城双主 until Q2's save). state_changes (extracted from the same
+            # ws AFTER _sync_faction_territories) was already correct — only the
+            # DB snapshot lied.
+            if (not territories_list and pre_territories
+                    and fid in pre_territories
+                    and ws and not getattr(ws, "territories", None)):
                 territories_list = list(pre_territories[fid])
 
             # ── 政策字典（输入验证） ──

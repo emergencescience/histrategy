@@ -348,6 +348,8 @@ def _settle_battle(br: dict, ws, fmap: dict, tmap: dict, summary: dict) -> None:
     capture_authorized = force_permits or morale_collapse
 
     adjacency_ok = _attacker_borders_territory(atk, loc, ws)
+    captured = False
+    reason = None
     if territory and capture_authorized:
         if not adjacency_ok:
             logger.warning(
@@ -360,6 +362,29 @@ def _settle_battle(br: dict, ws, fmap: dict, tmap: dict, summary: dict) -> None:
             af.morale_actual = _clamp(getattr(af, "morale_actual", 50) + 5, 0, 100)
             df.morale_actual = _clamp(getattr(df, "morale_actual", 50) - 8, 0, 100)
             # 势力永生：失去最后一座城池不再判灭亡，作为流亡军继续存在。
+            captured = True
+            reason = ("morale_collapse" if morale_collapse and not force_permits
+                      else "force_superiority")
+
+    # ── P0-1: write the DETERMINISTIC outcome back into the record ──
+    # The LLM narrates (result: "stalemate" etc.) but Python decides capture.
+    # Without this write-back, quarter_turn.macro_delta persists the LLM's raw
+    # fiction while the world state moved — 90a7cac Q16/Q21 jiangxia: record said
+    # 僵持/capture=false yet the city changed hands (morale-9 garrison collapsed;
+    # Q21 cao's global superiority). Players/RIA/narratives read the record →
+    # 战报与状态永久脱节. Grounding: br fields now carry the settled truth.
+    br["territory_captured"] = captured
+    br["settled"] = {
+        "captured": captured,
+        "reason": reason,
+        "attacker_losses": atk_loss,
+        "defender_losses": def_loss,
+        "power_ratio": round(ratio, 3),
+    }
+    if captured:
+        br["result"] = "capture"
+    elif not br.get("result") or br.get("result") in ("capture", "attack_win", "rout"):
+        br["result"] = "defense_held"
 
 
 def _sum_casualties(v) -> int:

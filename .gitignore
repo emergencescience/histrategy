@@ -29,3 +29,6 @@ publications
 histrategy.db
 tmp/
 data/nanming_games.db
+
+# room fixtures contain production player decisions — local only, never push
+tests/fixtures/rooms/
