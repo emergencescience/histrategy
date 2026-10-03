@@ -26,6 +26,10 @@
 
 from __future__ import annotations
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 import re
 
 # 与前端 parseAdvisorStrategies 的正则保持逐字一致（CN/EN 双格式）
@@ -190,3 +194,67 @@ def build_structured_advice(text: str) -> dict:
         "custom": custom,
         "parsed": bool(strategies) or custom is not None,
     }
+
+
+def parse_option_commands(
+    frame: dict,
+    faction_id: str,
+    llm_adapter=None,
+    max_workers: int = 4,
+) -> dict | None:
+    """把每个选项的政令**解析成结构化 commands**，供前端在**提交前**显示"这条会做什么"。
+
+    为什么需要提前解析：原先只有提交后 `/command` 的回包才带 parsed commands
+    （前端因此显示 PARSED negotiate | military_posture 这类小标签）。
+    也就是说玩家在**做决策时**看不到自己那条会被理解成什么 —— 而
+    "我以为我发了屯田令，实际被解析成别的东西" 正是这套决策流要治的病。
+
+    做法：与 intent_cache.precompute_and_cache 用**同一个** `IntentParser`（不是另写一份
+    解析逻辑，避免前后端第三份实现漂移），各选项**并行**解析，返回：
+
+        {"type": "parsed_commands",
+         "custom": [[{"type": "invest", "params": {...}}, ...], ...],   # 按政令逐条
+         "strategies": [[...], ...]}                                     # 按上策/下策
+
+    **下标对齐**：两个列表都与输入同长、同序（candidate[i] ↔ 输出[i]），
+    空命令/解析失败处留空列表 []，这样前端可以直接按下标把 chips 挂到对应选项上。
+
+    解析失败不抛异常（返回该条为空列表），因为这只是**增强信息**，不该拖垮整条军师流。
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    jobs: list[tuple[str, int, str]] = []
+    for i, txt in enumerate((frame.get("custom") or {}).get("commands") or []):
+        if str(txt or "").strip():
+            jobs.append(("custom", i, str(txt)))
+    for i, s in enumerate(frame.get("strategies") or []):
+        txt = (s or {}).get("command") or ""
+        if str(txt).strip():
+            jobs.append(("strategies", i, str(txt)))
+    if not jobs:
+        return None
+
+    def _parse_one(text: str) -> list[dict]:
+        try:
+            from histrategy.parser.intent import IntentParser
+            from histrategy.server.intent_cache import _serialize_commands
+
+            cmds = IntentParser(llm_adapter).parse(text, faction_id)
+            out: list[dict] = []
+            for c in _serialize_commands(cmds)[:4]:
+                out.append({"type": c.get("type", ""), "params": c.get("params", {})})
+            return out
+        except Exception:
+            logger.warning("parse_option_commands: 单条解析失败 text=%r", str(text)[:48], exc_info=True)
+            return []
+
+    with ThreadPoolExecutor(max_workers=max(1, min(max_workers, len(jobs)))) as ex:
+        results = list(ex.map(_parse_one, [j[2] for j in jobs]))
+
+    frame_out: dict = {"type": "parsed_commands", "custom": [], "strategies": []}
+    for (kind, idx, _), parsed in zip(jobs, results):
+        bucket = frame_out[kind]
+        while len(bucket) <= idx:
+            bucket.append([])
+        bucket[idx] = parsed
+    return frame_out

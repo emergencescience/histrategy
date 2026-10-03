@@ -232,3 +232,82 @@ def test_matches_frontend_typescript_implementation(tmp_path):
         assert r.returncode == 0, f"node 执行失败: {r.stderr[:200]}"
         ts_cards = json.loads(r.stdout)
         assert parse_advisor_strategies(text) == ts_cards, f"[{name}] 前后端解析结果不一致"
+
+
+# ─────────────────────────────────────────────────────────────
+# parse_option_commands：在**解析阶段**就把各选项政令解析成结构化 commands
+# （原先只有提交后 /command 回包才带，玩家决策时看不到"我这条会做什么"）
+# ─────────────────────────────────────────────────────────────
+def test_parse_option_commands_shape_and_order():
+    from histrategy.llm.advisor_strategies import parse_option_commands
+
+    frame = {
+        "type": "strategies",
+        "custom": {"understanding": "x", "commands": ["降低税率至0.15", "派使者缔结盟约"]},
+        "strategies": [
+            {"tier": "上策", "title": "t", "command": "征兵五千"},
+            {"tier": "下策", "title": "t", "command": ""},          # 空命令：应跳过
+            {"tier": "下策", "title": "t", "command": "征兵三千加固城防"},
+        ],
+    }
+    out = parse_option_commands(frame, "shu", None)
+    assert out is not None and out["type"] == "parsed_commands"
+    # 下标对齐契约：输出与输入同长同序，前端据此把 chips 挂到对应选项
+    assert len(out["custom"]) == 2, "custom 应按政令逐条一一对应"
+    assert len(out["strategies"]) == 3, "strategies 应与输入同长（按下标对齐）"
+    assert out["strategies"][1] == [], "空命令处应留空列表占位（保持下标对齐）"
+    assert out["strategies"][0] and out["strategies"][2]
+    for bucket in (out["custom"], out["strategies"]):
+        for cmds in bucket:
+            assert isinstance(cmds, list)
+            for c in cmds:
+                assert set(c) >= {"type", "params"}, c
+
+
+def test_parse_option_commands_returns_none_without_commands():
+    from histrategy.llm.advisor_strategies import parse_option_commands
+
+    assert parse_option_commands({"custom": {}, "strategies": []}, "shu", None) is None
+    assert parse_option_commands({}, "shu", None) is None
+
+
+def test_parse_option_commands_survives_a_failing_entry(monkeypatch):
+    """单条解析失败只丢该条 —— 这是增强信息，不该拖垮整条军师流。"""
+    import histrategy.llm.advisor_strategies as mod
+
+    calls = {"n": 0}
+    real_parse = None
+    try:
+        from histrategy.parser.intent import IntentParser
+
+        real_parse = IntentParser.parse
+    except Exception:
+        pass
+
+    def _boom(self, text, faction_id):
+        calls["n"] += 1
+        if "炸" in text:
+            raise RuntimeError("boom")
+        return real_parse(self, text, faction_id)
+
+    monkeypatch.setattr("histrategy.parser.intent.IntentParser.parse", _boom, raising=False)
+    frame = {"custom": {"commands": ["炸一条"]}, "strategies": [{"command": "征兵五千"}]}
+    out = mod.parse_option_commands(frame, "shu", None)
+    assert out is not None, "一条失败不该让整帧消失"
+    assert out["custom"] == [[]], "失败的那条应为空列表"
+    assert out["strategies"][0], "同帧里其它条目仍应解析成功"
+
+
+def test_parsed_commands_uses_the_same_parser_as_the_game(monkeypatch):
+    """必须复用 IntentParser（同一份解析逻辑），不得另写第三份实现。
+
+    前后端各有一份解析实现已经够危险了；这里做源码级约束。
+    """
+    import pathlib
+    import re as _re
+
+    src = pathlib.Path(mod_path := __file__).parent.parent / "llm" / "advisor_strategies.py"
+    text = src.read_text(encoding="utf-8")
+    assert "from histrategy.parser.intent import IntentParser" in text
+    assert _re.search(r"IntentParser\(llm_adapter\)\.parse\(", text), "应使用 IntentParser(...).parse(...)"
+    assert mod_path  # 占位，避免 lint 报未使用

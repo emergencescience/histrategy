@@ -784,7 +784,7 @@ def create_app(llm_provider: str | None = None) -> Any:
             # JSON-encode each chunk so newlines in the structured format survive
             # SSE framing (the frontend does JSON.parse then concatenates). Same
             # robust framing as narrative-live-stream.
-            def _structured_frame(full_text: str) -> str | None:
+            def _structured_frame_dict(full_text: str) -> dict | None:
                 """把整段进言转成结构化帧（analysis/intercepts/strategies）。
 
                 在 [DONE] 之前多发这一帧，前端即可直接消费三策与拦截解释，
@@ -797,10 +797,39 @@ def create_app(llm_provider: str | None = None) -> Any:
                     frame = build_structured_advice(full_text)
                     if not frame.get("parsed") and not frame.get("intercepts"):
                         return None  # 没解析出东西就不发，让前端继续走文本解析
-                    return f"data: {_json_adv.dumps(frame, ensure_ascii=False)}\n\n"
+                    return frame
                 except Exception:
                     logger.warning("advisor structured frame failed", exc_info=True)
                     return None
+
+            def _parsed_commands_frame(frame_dict: dict) -> str | None:
+                """把各选项的政令解析成结构化 commands，随流补发一帧。
+
+                为什么要在这里做（而不是等 /command 回包）：玩家在**做决策的那一刻**
+                就该看到"我这条会被理解成什么"，而不是提交之后才知道 ——
+                "我的令被静默理解成别的"正是这套决策流要治的病。
+                各选项并行解析（ThreadPoolExecutor），失败只丢该条、不影响整条流。
+                """
+                try:
+                    from histrategy.llm.advisor_strategies import parse_option_commands
+
+                    parsed = parse_option_commands(frame_dict, fid, llm)
+                    if not parsed:
+                        return None
+                    return f"data: {_json_adv.dumps(parsed, ensure_ascii=False)}\n\n"
+                except Exception:
+                    logger.warning("parsed_commands frame failed", exc_info=True)
+                    return None
+
+            def _emit_structured(frame_dict: dict | None) -> list[str]:
+                """发结构化帧 + 紧随其后的 parsed commands 帧（都在 [DONE] 之前）。"""
+                if not frame_dict:
+                    return []
+                out = [f"data: {_json_adv.dumps(frame_dict, ensure_ascii=False)}\n\n"]
+                pc = _parsed_commands_frame(frame_dict)
+                if pc:
+                    out.append(pc)
+                return out
 
             try:
                 acc: list[str] = []
@@ -808,16 +837,14 @@ def create_app(llm_provider: str | None = None) -> Any:
                     if chunk:
                         acc.append(chunk)
                         yield f"data: {_json_adv.dumps(chunk, ensure_ascii=False)}\n\n"
-                frame = _structured_frame("".join(acc))
-                if frame:
-                    yield frame
+                for chunk in _emit_structured(_structured_frame_dict("".join(acc))):
+                    yield chunk
                 yield "data: [DONE]\n\n"
             except Exception:
                 fallback = advisor._offline_advice(local_state, query)
                 yield f"data: {_json_adv.dumps(fallback, ensure_ascii=False)}\n\n"
-                frame = _structured_frame(fallback)
-                if frame:
-                    yield frame
+                for chunk in _emit_structured(_structured_frame_dict(fallback)):
+                    yield chunk
                 yield "data: [DONE]\n\n"
 
         return StreamingResponse(
