@@ -120,7 +120,13 @@ def start(
     }
 
 
-def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | None = None) -> dict:
+def command(
+    game_id: str,
+    decision: str,
+    lang: str = "zh",
+    suggestion_id: str | None = None,
+    option: str = "",
+) -> dict:
     """Execute a player command (blocks until LLM resolution completes).
 
     Args:
@@ -171,7 +177,9 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
     streaming = _streaming_enabled()
 
     # 1. Submit decision → synchronous resolve (submit_decision calls _resolve_and_advance internally)
-    submit_result = submit_decision(game_id, human_fid, decision, skip_narrative=streaming)
+    submit_result = submit_decision(
+        game_id, human_fid, decision, skip_narrative=streaming, option=option
+    )
     parsed_commands = submit_result.get("commands", []) if submit_result.get("ok") else []
     if not submit_result.get("ok"):
         return {"ok": False, "error": submit_result.get("error", "Decision submission failed")}
@@ -233,7 +241,7 @@ def command(game_id: str, decision: str, lang: str = "zh", suggestion_id: str | 
             )
             try:
                 _trigger_npc_decisions(room)
-                submit_decision(game_id, human_fid, decision)
+                submit_decision(game_id, human_fid, decision, option=option)
             except Exception as e:
                 logger.warning(f"Room {game_id}: sync NPC trigger failed: {e}")
 

@@ -741,18 +741,20 @@ def create_app(llm_provider: str | None = None) -> Any:
                         "若目标可行，则三条建议应围绕该目标展开。\n\n"
                     )
             # ← 必须在 if/else 之外求值：中文分支同样要用它
-            custom_block = _advisor_first_enabled(room.scenario)
+            # 只有玩家**确实写了东西**才索要第 4 块 —— 输入框为空时没有"原话"可解析，
+            # 让模型凭空编一个"你的决策"反而会削弱这一块的可信度（也更费 token）。
+            custom_block = _advisor_first_enabled(room.scenario) and bool(goal and goal.strip())
             if is_en:
                 base = (
                     f"Advise me as the war councilor of {faction.name}: first, analyze "
                     f"the current strategic situation in 2-3 sentences of vivid prose, "
-                    f"then provide three actionable strategies considering relative "
+                    f"then provide two actionable strategies (one bold, one cautious) considering relative "
                     f"strength and recent developments.\n"
                     f"Output STRICTLY in this format (one blank line between strategies), "
                     f"where 'Decree:' is a single executable command the player can "
                     f"copy-paste and send directly:\n\n"
+                    # PRD D1: two council plans (Upper/Lower) + the player's own plan block.
                     f"【Upper Strategy】<title, max 8 words>\nDecree: <one executable command>\n\n"
-                    f"【Middle Strategy】<title, max 8 words>\nDecree: <one executable command>\n\n"
                     f"【Lower Strategy】<title, max 8 words>\nDecree: <one executable command>\n"
                     f"LANGUAGE: write the analysis, the titles AND every Decree in English. "
                     f"Do not output Chinese characters anywhere."
@@ -765,11 +767,12 @@ def create_app(llm_provider: str | None = None) -> Any:
             else:
                 base = (
                     f"请以我（{faction.name}）的军师身份进言：先用2-3句文言简析当前形势，"
-                    f"再给出三条可执行的策略，务必兼顾敌我实力对比与近期战况。\n"
+                    f"再给出两条可执行的策略（一进取、一稳健），务必兼顾敌我实力对比与近期战况。\n"
                     f"严格按以下格式输出（每条策略之间空一行），"
                     f"其中「策令：」后必须是一句玩家可直接照抄发送的具体政令：\n\n"
+                    # PRD §D1：军师给**两条**方案（上策/下策），第三条选项是"玩家决策解析"。
+                    # 不再要中策 —— 选项过多反而增加决策负担，且与已批准设计不符。
                     f"【上策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉\n\n"
-                    f"【中策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉\n\n"
                     f"【下策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉"
                 )
                 extra = (
@@ -1137,6 +1140,8 @@ def create_app(llm_provider: str | None = None) -> Any:
             body.get("decision") or body.get("command", ""),
             lang=body.get("lang", "zh"),
             suggestion_id=body.get("suggestion_id"),
+            # advisor-first 埋点：玩家选了哪个选项（top|bottom|custom|direct）
+            option=str(body.get("option", "") or ""),
         )
 
     @app.post("/api/intent/precompute")

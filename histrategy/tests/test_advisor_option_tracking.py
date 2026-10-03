@@ -69,3 +69,20 @@ def test_quarter_turn_stores_option_inside_json_column():
     """不得新增数据库列 —— PRD 明确 option 存 JSON 字段内。"""
     schema = (REPO / "histrategy" / "db" / "schema.sql").read_text(encoding="utf-8")
     assert "_option" not in schema, "不应改 schema"
+
+
+def test_single_player_command_path_threads_option():
+    """前端实际走的是 `/single-player/{id}/command`，不是 `/rooms/{id}/decide`。
+
+    两条提交路径都必须把 option 透传到底 —— 只接一条的话，线上（单人房）永远记不到数据，
+    而测试却会因为另一条通了而变绿。这种"测了没用的路"最危险，所以两条都断言。
+    """
+    sp = (REPO / "histrategy" / "server" / "single_player.py").read_text(encoding="utf-8")
+    assert 'option: str = "",' in sp, "single_player.command 必须接收 option"
+    assert "skip_narrative=streaming, option=option" in sp, "主路径必须透传"
+    assert "submit_decision(game_id, human_fid, decision, option=option)" in sp, "重试路径必须透传"
+
+    api = API.read_text(encoding="utf-8")
+    assert api.count('option=str(body.get("option", "") or "")') >= 2, (
+        "两个提交端点（/decide 与 /single-player/command）都要接收 option"
+    )

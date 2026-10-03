@@ -90,3 +90,13 @@ def test_flag_is_used_to_gate_the_fourth_block():
     src = API.read_text(encoding="utf-8")
     assert "_advisor_first_enabled(room.scenario)" in src
     assert "if custom_block else" in src, "第 4 块必须受开关控制"
+
+
+def test_fourth_block_only_when_the_player_actually_wrote_something():
+    """输入框为空时不得索要第 4 块 —— 没有"原话"可解析，让模型凭空编一个
+    "你的决策"只会削弱这一块的可信度（而且更费 token）。"""
+    from pathlib import Path as _P
+
+    api = _P(__file__).resolve().parents[1] / "server" / "api.py"
+    src = api.read_text(encoding="utf-8")
+    assert "and bool(goal and goal.strip())" in src
