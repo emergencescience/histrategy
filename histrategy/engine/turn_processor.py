@@ -22,6 +22,7 @@ def _era_intro_line(scenario: str, year: int, season: str) -> str:
 
 from .helpers import (
     FIRST_TURN_SUGGESTIONS,
+    GENERIC_EARLY_SUGGESTIONS,
     _auto_mobilize_for_attack,
     _build_faction_id_map,
     _build_territory_id_map,
@@ -947,10 +948,10 @@ class TurnProcessorMixin:
         # Generate plan suggestions
         if ws.turn_number <= 1:
             # ── First turn: hard-coded suggestions (no LLM needed) ──
+            _lang = getattr(self, "_scenario_language", "zh")
             new_choices = FIRST_TURN_SUGGESTIONS.get(
-                ws.player_faction_id,
-                FIRST_TURN_SUGGESTIONS["cao"],
-            )
+                ws.player_faction_id
+            ) or GENERIC_EARLY_SUGGESTIONS.get(_lang, GENERIC_EARLY_SUGGESTIONS["zh"])
         elif self.narrative_engine and self.narrative_engine.is_available:
             with contextlib.suppress(Exception):
                 new_choices = self.narrative_engine.generate_plan_suggestions(ws, ws.player_faction_id)

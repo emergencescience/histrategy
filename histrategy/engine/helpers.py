@@ -209,6 +209,38 @@ EARLY_TURNS_SUGGESTIONS = {
                 ],
             },
         },
+        "liubiao": {
+            1: {
+                "zh": [
+                    "【坐镇荆州】整训襄阳水师与江陵守军，扼守长江中游，不轻启战端",
+                    "[liubiao_t1_heir]【定嗣安内】早定刘琦刘琮之嗣位，调和蔡瑁蒯越两派，稳住荆州士族",
+                    "[liubiao_t1_alliance]【结好江东】遣使赴吴，以同拒曹操为名与孙权修好，牵制北方",
+                    "[liubiao_t1_farms]【屯田江汉】在江汉平原兴修水利，广行屯田，储备粮草",
+                ],
+                "en": [
+                    "【Hold Jingzhou】Retrain the Xiangyang river fleet and Jiangling garrison; hold the middle Yangtze, avoid war",
+                    "[liubiao_t1_heir]【Settle the Succession】Name an heir early and reconcile the Cai and Kuai clans to steady Jingzhou's gentry",
+                    "[liubiao_t1_alliance]【Court the Southland】Send envoys to Wu to align with Sun Quan against Cao Cao",
+                    "[liubiao_t1_farms]【Farm the Jianghan】Build irrigation and military farms across the Jianghan plain to stock grain",
+                ],
+            },
+        },
+        "liuzhang": {
+            1: {
+                "zh": [
+                    "【保境安民】闭关自守，不参与中原纷争，专意守土安民",
+                    "[liuzhang_t1_pass]【北防张鲁】增兵葭萌关，防备汉中张鲁，修葺剑阁天险",
+                    "[liuzhang_t1_develop]【开发天府】整修都江堰灌区，减免赋税，广储军粮",
+                    "[liuzhang_t1_court]【任用贤能】擢用黄权张松等益州人士，抑制东州士族专权",
+                ],
+                "en": [
+                    "【Secure the Borders】Close the passes, stay out of the Central Plains conflict, focus on holding Shu",
+                    "[liuzhang_t1_pass]【Guard Against Zhang Lu】Reinforce Jiameng Pass and repair the Jian Ge ramparts against Hanzhong",
+                    "[liuzhang_t1_develop]【Develop the Heavenly Granary】Restore the Dujiangyan irrigation works, cut taxes, stock grain",
+                    "[liuzhang_t1_court]【Raise the Worthy】Promote Huang Quan, Zhang Song and other Shu men to curb the Eastern faction",
+                ],
+            },
+        },
     },
     "rome-triumvirate": {
         "octavian": {
@@ -620,6 +652,26 @@ EARLY_TURNS_SUGGESTIONS = {
 FIRST_TURN_SUGGESTIONS = {
     k: v[1]["zh"]
     for k, v in EARLY_TURNS_SUGGESTIONS.get("three-kingdoms", {}).items()
+}
+
+# 未登记势力的**通用**开局建议（按语言给）。
+# ⚠️ 兜底绝不能指向某个具体势力 —— 原写法是 `FIRST_TURN_SUGGESTIONS["cao"]`：
+# 玩家以刘表开局（该势力当时未登记）会收到曹操的方略
+# 「整编水师于邺城玄武池…准备南征刘表」，等于被建议去打自己。
+# 这里给中性建议，宁可朴素也不冒充（与 intro_plan 里 choices 的兜底同一套路）。
+GENERIC_EARLY_SUGGESTIONS = {
+    "zh": [
+        "【固本培元】整顿内政，发展农商，积蓄钱粮",
+        "[generic_t1_train]【整军经武】操练兵马，修缮城防，不轻启战端",
+        "[generic_t1_diplo]【合纵连横】遣使交好邻邦，探察各方虚实",
+        "[generic_t1_scout]【广布耳目】搜集周边情报，静观天下大势",
+    ],
+    "en": [
+        "【Build the Foundation】Reorganize the administration, develop agriculture and trade, build reserves",
+        "[generic_t1_train]【Train the Army】Drill the troops, repair the defenses, avoid premature war",
+        "[generic_t1_diplo]【Seek Alliances】Send envoys to neighboring powers and sound out their intentions",
+        "[generic_t1_scout]【Gather Intelligence】Collect reports on surrounding powers and await the turning of the tide",
+    ],
 }
 
 

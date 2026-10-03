@@ -2,7 +2,12 @@
 from __future__ import annotations
 
 from ..llm.game_master import GameMaster
-from .helpers import EARLY_TURNS_SUGGESTIONS, FIRST_TURN_SUGGESTIONS, _suppress_stderr
+from .helpers import (
+    EARLY_TURNS_SUGGESTIONS,
+    FIRST_TURN_SUGGESTIONS,
+    GENERIC_EARLY_SUGGESTIONS,
+    _suppress_stderr,
+)
 
 
 def _resolve_early_suggestions(scenario: str, faction_id: str, turn: int, lang: str) -> list[str]:
@@ -133,10 +138,11 @@ class IntroPlanMixin:
             getattr(self, "_scenario_language", "zh"),
         )
         if not faction_suggestions:
+            # 兜底给**通用**建议，绝不指向某个具体势力（否则刘表会被建议去打刘表）
+            _lang = getattr(self, "_scenario_language", "zh")
             faction_suggestions = FIRST_TURN_SUGGESTIONS.get(
-                ws.player_faction_id,
-                FIRST_TURN_SUGGESTIONS["cao"],
-            )
+                ws.player_faction_id
+            ) or GENERIC_EARLY_SUGGESTIONS.get(_lang, GENERIC_EARLY_SUGGESTIONS["zh"])
         suggestions = [
             s.split("】", 1)[0] + "】" + s.split("】", 1)[1].split("，")[0] + "等" if "】" in s else s[:30]
             for s in faction_suggestions
@@ -209,11 +215,11 @@ class IntroPlanMixin:
             if early:
                 suggestions = early
             else:
-                # Fallback: use FIRST_TURN_SUGGESTIONS for backward compat
+                # Fallback: 通用建议（不再回退到曹操的方略）
+                _lang = getattr(self, "_scenario_language", "zh")
                 suggestions = FIRST_TURN_SUGGESTIONS.get(
-                    ws.player_faction_id,
-                    FIRST_TURN_SUGGESTIONS.get("cao", []),
-                )
+                    ws.player_faction_id
+                ) or GENERIC_EARLY_SUGGESTIONS.get(_lang, GENERIC_EARLY_SUGGESTIONS["zh"])
         elif self.narrative_engine and self.narrative_engine.is_available:
             with _suppress_stderr():
                 suggestions = self.narrative_engine.generate_plan_suggestions(ws, ws.player_faction_id)
