@@ -39,15 +39,14 @@ if TYPE_CHECKING:
 def _serialize_world_state(ws) -> dict | None:
     """Serialize a WorldState to a JSON-safe dict for DB persistence.
 
-    Two WorldState flavors exist:
-    - local `histrategy.state.world_state.WorldState` — has `to_dict()`
-    - engine `histrategy_engine.world.WorldState` (dataclass) — has NO
-      `to_dict()`, contains enum fields (Season, TerrainType, UnitType,
-      HistoricalMode) that json.dumps cannot handle directly.
-    This helper handles both, recursively converting enums to `.value`.
+    WorldState 是 dataclass，含 enum 字段（Season, TerrainType, UnitType,
+    HistoricalMode），json.dumps 不能直接处理 —— 本函数把它们递归转成 `.value`。
 
-    IMPORTANT: The local WorldState.to_dict() drops territories, armies, and
-    characters. We ALWAYS use dataclasses.asdict() to preserve all fields.
+    IMPORTANT（不变式，勿改成调 to_dict）：WorldState.to_dict() 会丢掉
+    territories / armies / characters（Bug H35l），所以我们**一律**用
+    dataclasses.asdict() 保留全部字段。回归测试
+    `test_serialization_never_calls_to_dict` 用"给 to_dict 装地雷"的方式锁死
+    这条不变式 —— 一旦有人改回 to_dict，测试立刻炸。
     """
     if ws is None:
         return None

@@ -107,6 +107,28 @@ def _try_save(room: GameRoom, ws_dict: dict | None = None):
 # ── Room CRUD ────────────────────────────────────────
 
 
+# 自建/自测打开软下线剧本的开关（见 _retired_scenarios）
+ALLOW_RETIRED_ENV = "HISTRATEGY_ALLOW_RETIRED_SCENARIOS"
+
+
+def _retired_scenarios() -> set[str]:
+    """云端已软下线、不再接受**新房间**的剧本。
+
+    为什么要有开关：这条闸门在 `create_room` 里是**无条件的**，但面对玩家的
+    提示语写着"请从 GitHub 自建部署后本地游玩" —— 而自建部署跑的就是这段代码。
+    也就是说，自建服务端同样开不了房，**提示与实现自相矛盾**（而且让 nanming
+    的引擎/提示词/回归测试整条链路失去云端覆盖）。
+
+    现在：默认仍下线（云端行为不变）；自建部署设
+    `HISTRATEGY_ALLOW_RETIRED_SCENARIOS=1` 即可正常开局，与提示语一致。
+    """
+    import os
+
+    if (os.environ.get(ALLOW_RETIRED_ENV) or "").strip().lower() in ("1", "true", "on", "yes"):
+        return set()
+    return {"nanming", "ming-qing", "shanhe-dingge"}
+
+
 def create_room(
     scenario: str = "three-kingdoms",
     pre_assigned: dict[str, str] | None = None,
@@ -133,9 +155,8 @@ def create_room(
 
     # ── H40: 《山河鼎革》软下线 — 云端不再接受新房间 ──
     # 场景列表保留，但创建入口替换为自建引导（前端 CTA + 后端 409 双保险）。
-    # 存量房间 decide/status/turns 不受影响；本地自建（SDK DirectEngine）不走此路径。
-    _RETIRED_SCENARIOS = {"nanming", "ming-qing", "shanhe-dingge"}
-    if str(scenario).strip().lower() in _RETIRED_SCENARIOS:
+    # 存量房间 decide/status/turns 不受影响。
+    if str(scenario).strip().lower() in _retired_scenarios():
         return {
             "ok": False,
             "error": "《山河鼎革》已停止在云端开设新房间。请从 GitHub 自建部署后本地游玩（安装指引见 README.md）: https://github.com/emergencescience/histrategy",

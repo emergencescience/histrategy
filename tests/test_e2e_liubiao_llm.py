@@ -38,6 +38,11 @@ def has_api_key() -> bool:
     return False
 
 
+# 整文件标记为 llm_e2e：回归脚本的确定性基线用 -m "not llm_e2e" 排除它，
+# 再由单独一遍跑并单独报（见 /opt/data/scripts/hs_nov1_tests.sh）。
+pytestmark = pytest.mark.llm_e2e
+
+
 @pytest.mark.skipif(not has_api_key(), reason="No LLM API key available")
 class TestLiubiaoLLMMode:
     """E2E tests for Liu Biao faction in LLM-driven mode."""

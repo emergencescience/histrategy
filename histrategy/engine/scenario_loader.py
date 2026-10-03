@@ -25,6 +25,7 @@ files the loader falls back to the three-kingdoms scenario knowledge.
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 import tomllib
@@ -38,6 +39,8 @@ from histrategy_engine.world import (
     UnitType,
     WorldState,
 )
+
+logger = __import__("logging").getLogger(__name__)
 
 from .loader import (
     TERRAIN_MAP,
@@ -339,6 +342,23 @@ class ScenarioLoader:
                         t.climate_zone = td["climate_zone"]
                     if "fertility" in td:
                         t.fertility = td["fertility"]
+                    # ── 声明式归属（initial_state.territories[*].owner）──
+                    # 上面那段只从 `factions[*].territories` 反推归属，而本文件每个
+                    # territory 都带一个 `owner` 字段 —— 该字段此前**从未被读取**：
+                    # 改了它什么也不会发生（死数据）。后果是数据写着「汉中属农民军」
+                    # 而引擎里汉中无主；rome 剧本同理丢掉 4 块（sicilia/sardinia 属
+                    # 庞培之子、africa/transalpine_gaul 属安东尼）。
+                    # 现在以该声明字段为准，与 factions 列表真正矛盾时打警告而非静默择一。
+                    _declared = td.get("owner")
+                    if _declared:
+                        _cur = getattr(t, "owner_id", "") or ""
+                        if _cur and _cur != _declared:
+                            logger.warning(
+                                "[scenario=%s] territory %s 归属冲突：factions 列表=%s ≠ "
+                                "initial_state.owner=%s —— 以 initial_state.owner 为准",
+                                self.scenario_id, tid, _cur, _declared,
+                            )
+                        t.owner_id = _declared
 
         # Determine season
         season_str = init.get("season", "spring")

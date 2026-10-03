@@ -45,10 +45,27 @@ def _build_rome_ws():
 class TestSerializeWorldState:
     """_serialize_world_state handles both WorldState flavors."""
 
-    def test_engine_world_state_serializes_without_to_dict(self):
+    def test_serialization_never_calls_to_dict(self):
+        """不变式：序列化**不得**依赖 `to_dict()`（它会丢 territories/armies/characters，Bug H35l）。
+
+        原断言是 `assert not hasattr(ws, "to_dict")` —— 一个"引擎版没有 to_dict"的**前提检查**。
+        WorldState 两种实现合并后这个前提不再成立（现在有 to_dict），测试因此长期挂红。
+        但真正的意图不是"没有 to_dict"，而是"**不能用** to_dict"。
+        所以改成给 to_dict 装一颗地雷：实现若回退到 it，这里立刻炸。
+        """
         ws = _build_rome_ws()
-        # Engine WorldState (PyPI dataclass) has no to_dict
-        assert not hasattr(ws, "to_dict")
+
+        def _boom(*_a, **_k):
+            raise AssertionError(
+                "_serialize_world_state 调用了 to_dict() —— 它会丢掉 "
+                "territories/armies/characters（Bug H35l），必须用 dataclasses.asdict()"
+            )
+
+        if hasattr(ws, "to_dict"):
+            try:
+                ws.to_dict = _boom  # 普通 dataclass 实例可写
+            except (AttributeError, TypeError):
+                pass  # slots/冻结对象不可覆写 —— 那就退化为只验产物（见下）
 
         d = _serialize_world_state(ws)
         assert d is not None

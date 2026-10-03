@@ -376,6 +376,39 @@ class IntroPlanMixin:
                 "advisors": "周瑜（公瑾）为大都督，鲁肃（子敬）谋划长远",
                 "generals": "程普、黄盖、甘宁、周泰等江东宿将",
             },
+            # ── 其余可玩势力（此前缺失 → 全部被 fallback 冒充成曹操，见下方注释）──
+            "liubiao": {
+                "name": "刘表",
+                "alias": "景升",
+                "location": "襄阳",
+                "desc": "据荆州八郡，带甲十余万，然外宽内忌，蔡蒯用事",
+                "advisors": "蒯越（异度）、蔡瑁（德珪）",
+                "generals": "文聘（仲业）、黄祖、张允",
+            },
+            "liuzhang": {
+                "name": "刘璋",
+                "alias": "季玉",
+                "location": "成都",
+                "desc": "承父刘焉之业，据益州天府，然闇弱多疑，不能制下",
+                "advisors": "黄权（公衡）、张松（子乔）",
+                "generals": "张任、吴懿、李严",
+            },
+            "zhanglu": {
+                "name": "张鲁",
+                "alias": "公祺",
+                "location": "汉中",
+                "desc": "以五斗米道教民，据汉中近三十年，政教合一，夹于曹操与刘璋之间",
+                "advisors": "阎圃、杨松",
+                "generals": "张卫、杨任",
+            },
+            "machao": {
+                "name": "马超",
+                "alias": "孟起",
+                "location": "西凉",
+                "desc": "凉州铁骑勇冠三军，父马腾入朝为质，与韩遂合兵",
+                "advisors": "韩遂（文约，盟友）",
+                "generals": "庞德（令明）、马岱",
+            },
         }
 
         scenario = getattr(self, "scenario", "three-kingdoms")
@@ -387,13 +420,39 @@ class IntroPlanMixin:
                 + "当审时度势，谋定而后动。\n"
             )
         else:
-            info = intros.get(faction_key, intros["cao"])
+            info = intros.get(faction_key)
+            if not info:
+                # ⚠️ 这里**绝不能**回退到 intros["cao"]。
+                # 原写法 `intros.get(faction_key, intros["cao"])` 让任何未登记的势力
+                # 被自我介绍成「你，曹操，字孟德，挟天子以令诸侯」—— 玩家以刘表开局
+                # 却被当成曹操（刘璋/张鲁/马超 同理）。这是玩家可见的身份错误。
+                # 兜底改为**用真实势力自己的名字与治所**，宁可朴素也不能冒充。
+                _cap = getattr(player, "capital", "") or ""
+                try:
+                    _t = self.world_state.territories.get(_cap)
+                    if _t is not None and getattr(_t, "name", ""):
+                        _cap = _t.name
+                except Exception:
+                    pass
+                info = {
+                    "name": getattr(player, "name", "") or faction_key,
+                    "alias": "",
+                    "location": _cap,
+                    "desc": f"以{_cap}为根基，静观天下大势" if _cap else "静观天下大势",
+                    "advisors": "",
+                    "generals": "",
+                }
+            _alias_part = f"，字{info['alias']}" if info.get("alias") else ""
+            _staff = ""
+            if info.get("advisors"):
+                _staff += f"帐下：{info['advisors']}。\n"
+            if info.get("generals"):
+                _staff += f"武将：{info['generals']}听候调遣。\n"
             intro = (
                 f"建安十二年（公元207年），天下三分之势初成。\n\n"
                 f"曹操已平河北，虎视荆襄；孙权坐断江东，兵精粮足。\n\n"
-                f"你，{info['name']}，字{info['alias']}，{info['desc']}。\n\n"
-                f"帐下：{info['advisors']}。\n"
-                f"武将：{info['generals']}听候调遣。\n"
+                f"你，{info['name']}{_alias_part}，{info['desc']}。\n\n"
+                f"{_staff}"
             )
 
         choices = {

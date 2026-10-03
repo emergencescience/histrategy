@@ -28,6 +28,14 @@ all = [
 [project.scripts]
 histrategy = "histrategy.__main__:main"
 
+[tool.pytest.ini_options]
+markers = [
+    # 真调第三方大模型的 e2e：输出本身不确定，"红"可能是真坏也可能是模型这次发挥不好。
+    # 这类用例**不计入确定性基线**（回归脚本单独跑、单独报），否则整条回归变成靠运气，
+    # 于是开始有人无视红色 —— 那才是真正的损失。
+    "llm_e2e: 真调第三方大模型，输出不确定，不计入确定性基线",
+]
+
 [tool.ruff]
 target-version = "py310"
 line-length = 120

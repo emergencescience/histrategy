@@ -81,12 +81,68 @@ class TestKnowledgeBaseIntegrity:
             )
 
     def test_territories_have_valid_owners(self):
+        """领地归属的**真源头**是 initial_state.json，不是 territories.json。
+
+        territories.json 按设计只放地理信息（id/name/neighbors/terrain/climate/
+        fertility/population），**没有** owner_id。原测试从那里读 owner_id ——
+        24/24 全是 None，于是它长期挂红，而且**什么都没校验到**（一个失败的空测试）。
+        改为校验真源头，并加一条更强的不变式：地图上每块领地都必须在归属表里有主。
+        """
         factions_data = json.loads((KNOWLEDGE_DIR / "factions.json").read_text())
         faction_ids = {f["id"] for f in factions_data}
-        territories = json.loads((KNOWLEDGE_DIR / "territories.json").read_text())
-        for t in territories:
-            assert t["owner_id"] in faction_ids, (
-                f"Territory '{t['name']}' has unknown owner: {t['owner_id']}"
+
+        initial = json.loads((KNOWLEDGE_DIR / "initial_state.json").read_text())
+        owners = {tid: td.get("owner") for tid, td in initial["territories"].items()}
+
+        for tid, owner in owners.items():
+            assert owner in faction_ids, f"领地 '{tid}' 的 owner 未知: {owner!r}"
+
+        # 归属的**单一源头**必须是 initial_state.json。
+        # （地图文件与归属表用的是两套 id 词表：地图按省域 sichuan/fujian，
+        #  归属表按城 chengdu/fuzhou —— 所以不能断言两边集合相等，那是伪不变式。
+        #  真正该钉的是：归属别在两个文件里各写一份，否则必然漂移。）
+        for t in json.loads((KNOWLEDGE_DIR / "territories.json").read_text()):
+            assert "owner_id" not in t and "owner" not in t, (
+                f"territories.json 的 '{t['id']}' 带上了归属字段 —— "
+                "归属的单一源头应是 initial_state.json"
+            )
+
+    def test_loaded_world_state_ownerless_matches_known_gaps(self):
+        """端到端不变量：加载后的世界状态里，无主领土只能等于**已知缺口**。
+
+        这条断言真的跑一遍场景加载器，所以能抓到只有运行时才暴露的问题。
+        它上线第一次就抓到了真 bug：加载器只从 factions[*].territories 反推归属，
+        **从不读** initial_state.territories[*].owner —— 那个字段是死数据。
+        后果：数据写着「汉中属农民军」而引擎里汉中无主；rome 更是丢掉 4 块
+        （sicilia/sardinia 属庞培之子、africa/transalpine_gaul 属安东尼）。
+        已修（scenario_loader._build_from_initial_state 现在以声明字段为准）。
+
+        剩下无主的是数据里**根本没声明**归属的：这是内容决策
+        （1646 广西/云南 归南明残余？台湾归荷兰/郑氏？罗马城 italia 归元老院？），
+        不该由工程侧凭空指定 —— 故登记为已知缺口：数据补齐后本断言会失败并提醒更新。
+        """
+        from histrategy.engine.scenario_loader import ScenarioLoader
+
+        KNOWN_GAPS = {
+            "three-kingdoms": set(),
+            "nanming": {"guangxi", "yunnan", "taiwan"},
+            "rome-triumvirate": {"italia"},
+        }
+        for scen, player in (
+            ("nanming", "nanming"),
+            ("three-kingdoms", "shu"),
+            ("rome-triumvirate", "senate"),
+        ):
+            ws = ScenarioLoader(scen).build_world_state(player)
+            assert ws.territories, f"{scen}: 世界状态里一块领土都没有"
+            ownerless = {
+                tid for tid, td in ws.territories.items()
+                if not (getattr(td, "owner_id", "") or "")
+            }
+            expected = KNOWN_GAPS[scen]
+            assert ownerless == expected, (
+                f"{scen} 无主领土与已知缺口不符 —— 新出现: {sorted(ownerless - expected)}, "
+                f"已补齐: {sorted(expected - ownerless)}（补齐请从 KNOWN_GAPS 删掉对应项）"
             )
 
     def test_initial_state_has_all_factions(self):
@@ -168,7 +224,12 @@ class TestPrompts:
         assert path.exists()
         content = path.read_text()
         assert "山河鼎革" in content
-        assert "海权维度" in content  # unique mechanic
+        # 海权机制：断言**概念**而非标题文字。
+        # 「海权维度」这个标题在 040521e（prompt trim）里被删掉，于是本断言长期挂红 ——
+        # 但机制本身还在（郑氏「东亚最强水师…可贸易/封锁/退守台湾」+ naval_blockade 动作）。
+        # 锁标题会在每次精简 prompt 时误报，锁概念才抓得住"机制真的没了"。
+        assert "水师" in content
+        assert "naval_blockade" in content
         assert "南明" in content
         assert "八旗" in content
         assert "郑氏" in content
