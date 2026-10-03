@@ -37,8 +37,9 @@ services:
 
       # ── 引擎 ──────────────────────────────────────────────
       # v3 = 确定性基线 + LLM 非线性层（生产使用的引擎）
-      # TODO: 待 V1 引擎下线后本变量将被移除（届时只有 v3）
-      - HISTRATEGY_ENGINE=${HISTRATEGY_ENGINE:-v3}
+      # 引擎默认就是 v3，无需设置（V1 已于 2026-10-03 下线）。
+      # 只有想强制走确定性引擎时才取消注释：
+      # - HISTRATEGY_ENGINE=v2
 
       # ── 数据目录（SQLite + 存档）──────────────────────────
       - HISTRATEGY_DATA_DIR=/data

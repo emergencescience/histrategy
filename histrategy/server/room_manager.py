@@ -1448,10 +1448,9 @@ def _resolve_and_advance(room: GameRoom, skip_narrative: bool = False):
     decisions = collect_all_decisions(room, ws, llm=llm, turn_memory=room.turn_summaries, lang=lang)
 
     # 根据引擎模式选择仿真器
-    # skip_narrative 仅对 V3 有意义（V1/V2 无 LLM 叙事引擎）。
-    if engine_mode == EngineMode.V1:
-        result = _resolve_v1(room, ws, decisions, llm)
-    elif engine_mode == EngineMode.V2:
+    # V1（纯 LLM 全量推演）已于 2026-10-03 下线，不再有该分支。
+    # skip_narrative 仅对 V3 有意义（V2 无 LLM 叙事引擎）。
+    if engine_mode == EngineMode.V2:
         result = _resolve_v2_or_v3(room, ws, decisions, llm, mode="v2")
     else:
         # V3 (merged V3+Macro)
@@ -1889,171 +1888,6 @@ def _resolve_territories_from_delta(faction, delta: dict, ws) -> list[dict]:
     ]
 
 
-def _resolve_v1(room, ws, decisions, llm):
-    """V1 引擎：纯 LLM 仿真。"""
-    import concurrent.futures
-
-    from histrategy.engine.v1_simulator import (
-        V1Simulator,
-        _apply_v1_state_to_world,
-        detect_territory_changes,
-        save_v1_state_to_db,
-    )
-
-    simulator = V1Simulator(llm)
-
-    fd = {}
-    for fid, dr in decisions.items():
-        fd[fid] = {"decision": dr.decision_text, "commands": dr.commands, "source": dr.source}
-    # Backfill from slots: ensure human decisions are preserved even if
-    # DecisionResult objects lost their text during async collection
-    for slot in room.human_slots():
-        if slot.faction_id not in fd or not fd[slot.faction_id].get("decision"):
-            decision_text = slot.pending_decision or ""
-            commands = slot.pending_commands or []
-            fd[slot.faction_id] = {"decision": decision_text, "commands": commands, "source": "human"}
-
-    # Run V1 simulation with timeout.
-    # V1 sends the full world state to the LLM in one call. deepseek-v4-flash
-    # thinking mode can take 60-120s for complex multi-faction scenarios.
-    # We use 130s with one retry before falling back to heuristic.
-    # If the first attempt times out, retry once before falling back.
-    _TIMEOUT = 130
-    lang = getattr(room, "metadata", {}).get("lang", "zh")
-    v1_result = None
-    for attempt in (1, 2):
-        try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(
-                    simulator.simulate,
-                    ws,
-                    fd,
-                    room.turn_summaries,
-                    room_id=room.id,
-                    quarter_number=room.quarter_number + 1,
-                    scenario=room.scenario,
-                    lang=lang,
-                )
-                v1_result = future.result(timeout=_TIMEOUT)
-            break  # success
-        except concurrent.futures.TimeoutError:
-            if attempt == 1:
-                logger.warning(
-                    f"V1 simulate timed out after {_TIMEOUT}s for room {room.id} "
-                    f"(attempt {attempt}/2), retrying..."
-                )
-            else:
-                logger.warning(
-                    f"V1 simulate timed out after {_TIMEOUT}s for room {room.id} "
-                    f"(attempt {attempt}/2), falling back"
-                )
-                v1_result = simulator._fallback(ws, fd, lang=lang, reason="timeout")
-        except Exception as e:
-            logger.error(f"V1 simulate failed for room {room.id}: {e}, falling back")
-            v1_result = simulator._fallback(ws, fd, lang=lang, reason="error")
-            break
-
-    # ── 先捕获旧状态（用于 turn_delta 计算）──
-    old_state = _capture_faction_state(ws, room=room)
-    v1_factions = v1_result.get("factions", {})
-    state_changes = v1_result.get("state_changes", {})
-    if not v1_factions and state_changes:
-        # Rome scenario prompt uses "state_changes" (delta format) instead of
-        # absolute "factions". Convert deltas to absolute values by applying
-        # them to current WorldState. Fixes #64.
-        for fid, delta in state_changes.items():
-            faction = ws.factions.get(fid)
-            if not faction or not faction.is_active:
-                continue
-            troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
-            morale = getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50) or 50
-            # Bug H35a: compute population from territory sum
-            pop_val_delta = getattr(faction, "population", 0)
-            if not pop_val_delta:
-                pop_val_delta = sum(
-                    getattr(ws.territories.get(tid), "population", 0)
-                    for tid in getattr(faction, "territories", [])
-                    if ws.territories.get(tid)
-                )
-            v1_factions[fid] = {
-                "population": pop_val_delta,
-                "troops": troops + delta.get("strength_delta", 0),
-                "food": faction.food,
-                "treasury": faction.treasury + delta.get("treasury_delta", 0),
-                "morale": morale + delta.get("morale_delta", 0),
-                "territories": _resolve_territories_from_delta(faction, delta, ws),
-                "policies": getattr(faction, "policies", {}),
-                "is_active": True,
-            }
-        if v1_factions:
-            logger.info(f"V1: converted state_changes→factions for {list(v1_factions.keys())} (Rome delta format)")
-    if not v1_factions:
-        # V1 prompt may use "state_changes" instead of "factions"
-        # (e.g. rome-triumvirate). Use WorldState factions as fallback.
-        for fid, faction in ws.factions.items():
-            if not faction.is_active:
-                continue
-            old_state[fid] = {
-                "population": _capture_faction_population(ws, faction),
-                "troops": getattr(faction, "strength_actual", 0),
-                "food": faction.food,
-                "treasury": faction.treasury,
-                "morale": getattr(faction, "morale_actual", 50),
-            }
-    else:
-        for fid in v1_factions:
-            faction = ws.factions.get(fid)
-            if faction:
-                old_state[fid] = {
-                    "population": _capture_faction_population(ws, faction),
-                    "troops": getattr(faction, "strength_actual", 0),
-                    "food": faction.food,
-                    "treasury": faction.treasury,
-                    "morale": getattr(faction, "morale_actual", 50),
-                }
-
-    # 将 V1 结果应用到 WorldState
-    _apply_v1_state_to_world(ws, v1_factions)
-
-    # ── Bug H35b fix: deterministic economy tick ──
-    # V1 simulation relies on LLM to produce economy changes, but the LLM often
-    # ignores tax revenue and military upkeep, resulting in frozen treasuries.
-    # Apply deterministic tax + food/upkeep after LLM state application so
-    # treasury and food always change each quarter.
-    _apply_deterministic_economy(ws)
-
-    # ── Territory change narrative enhancement ──
-    # Detect undocumented territory changes and append to narrative.
-    # Fixes: cities silently changing hands without narrative explanation
-    # (e.g. Q5→Q6 Chengdu/Xi'an disappearing without mention).
-    try:
-        raw_narrative = v1_result.get('narrative', '')
-        enhanced = detect_territory_changes(
-            old_state, v1_factions, ws, raw_narrative
-        )
-        if enhanced != raw_narrative:
-            v1_result['narrative'] = enhanced
-            logger.info(
-                f'V1 territory narrative enhanced: '
-                f'room={room.id} q={room.quarter_number + 1}'
-            )
-    except Exception as e:
-        logger.warning(
-            f'V1 territory check failed (non-fatal): {e}'
-        )
-
-    # 写入 DB（传入旧状态以计算 delta）
-    # Note: room.quarter_number hasn't been incremented yet — save with next quarter
-    save_v1_state_to_db(room.id, room.quarter_number + 1, ws, v1_result, old_state=old_state)
-
-    # V1 does not use TurnController (which advances season for V2/V3).
-    # Advance season AFTER saving so Q1 is recorded with the correct starting season
-    # (e.g. Rome 44 BC starts in spring, Q1 should be spring, not summer).
-    _advance_season(ws)
-
-    # 构建兼容 result 对象并返回
-    return _build_v1_result(room, ws, decisions, v1_result, fd, lang)
-
 
 def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = False):
     """Resolve using QuarterlyResolver — V2 (deterministic) or V3 (LLM-augmented).
@@ -2091,8 +1925,8 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
 
         from histrategy.engine.game import GameEngine
 
-        if mode == "v3":
-            os.environ.setdefault("HISTRATEGY_ENGINE", "v3")
+        # 注：V1 下线后无需再 setdefault HISTRATEGY_ENGINE ——
+        # detect_engine_mode() 默认即 V3，GameEngine 构造时读到的就是正确模式。
         engine = GameEngine(scenario=room.scenario, new_game=True, llm=llm)
         engine.world_state_v2 = ws
         engine._use_v2 = True
@@ -2178,169 +2012,6 @@ def _resolve_v2_or_v3(room, ws, decisions, llm, mode, skip_narrative: bool = Fal
             room.id)
 
     return result
-
-
-# ── V1 Result Builder ─────────────────────────────────────────────
-
-
-@dataclass
-class _V1Result:
-    narratives: dict
-    state_changes: dict
-    turn_summary: dict | None
-    faction_decisions: dict | None = None  # V1 pass-through for _save_quarter
-
-
-def _build_v1_result(room, ws, decisions, v1_result, fd, lang):
-    """Build unified narrative + battle summary + V1Result from LLM output.
-
-    Uses a single global narrative for all factions (no per-faction duplication).
-    """
-    faction_narratives = v1_result.get("narratives", v1_result.get("faction_narratives", {}))
-    global_narrative = v1_result.get("narrative", "")
-
-    # Prefer explicit global narrative; fall back to first faction narrative or summary
-    narratives = {}
-    if global_narrative and global_narrative.strip():
-        narratives["global"] = global_narrative
-    else:
-        # Build a unified summary from faction narratives
-        parts = []
-        fnames = _get_faction_names(room, lang=lang)
-        for fid in decisions:
-            fn = faction_narratives.get(fid, "")
-            if fn and fn.strip():
-                fname = fnames.get(fid, fid)
-                bracket = "[]" if lang == "en" else "【】"
-                parts.append(f"{bracket[0]}{fname}{bracket[1]}{fn[:200]}")
-        if parts:
-            narratives["global"] = "\n\n".join(parts)
-        else:
-            # Absolute fallback: basic state summary
-            season_str = getattr(ws, "current_season", "?")
-            yr = getattr(ws, "year", 207)
-            summary_parts = []
-            for fid in decisions:
-                faction = ws.factions.get(fid)
-                if faction:
-                    troops = getattr(faction, "strength_actual", 0)
-                    food = faction.food
-                    territory_names = [ws.territories[tid].name for tid in faction.territories if tid in ws.territories]
-                    territory_str = "、".join(territory_names[:3]) if territory_names else "无领地"
-                    fname = fnames.get(fid, fid)
-                    if lang != "en":
-                        summary_parts.append(f"{fname}拥兵{troops:,}，积粟{food:,}斛，据{territory_str}")
-                    else:
-                        summary_parts.append(
-                            f"{fname} commands {troops:,} troops, "
-                            f"stores {food:,} grain, holds {territory_str}"
-                        )
-            if lang != "en":
-                narratives["global"] = f"【{yr}年{season_str}】天下大势，" + "；".join(summary_parts) + "。"
-            else:
-                narratives["global"] = f"[{yr} {season_str}] " + "; ".join(summary_parts) + "."
-
-    # Backward-compat: copy global to each faction
-    global_text = narratives.get("global", "")
-    for fid in decisions:
-        narratives[fid] = global_text
-
-    # Build battle summary for NPC reference
-    battle_events = []
-    for fid in decisions:
-        dr = decisions.get(fid)
-        if dr and dr.commands:
-            for cmd in dr.commands:
-                if isinstance(cmd, dict) and cmd.get("type") == "attack":
-                    target = cmd.get("params", {}).get("target_territory", "?")
-                    battle_events.append(f"{fid}→{target}")
-    v1_battles = v1_result.get("battles", [])
-    if v1_battles:
-        for b in v1_battles[:3]:
-            battle_events.append(f"{b.get('attacker','?')}⚔{b.get('defender','?')}@{b.get('location','')}")
-    v1_events = v1_result.get("events", [])
-    if v1_events and not battle_events:
-        evt = v1_events[0]
-        if isinstance(evt, str) and len(evt) < 60:
-            battle_events.append(evt[:40])
-    ts = v1_result.get("turn_summary", {})
-    if isinstance(ts, dict):
-        key_evt = ts.get("key_event", "")
-        if key_evt and key_evt not in battle_events:
-            battle_events.append(str(key_evt)[:40])
-    battle_str = " | ".join(battle_events[:3]) if battle_events else ""
-
-    season_str = getattr(ws, "current_season", "?")
-    v1_summary = {
-        "quarter": room.quarter_number + 1,
-        "engine": "v1",
-        "outcome_summary": (
-            f"[{ws.year}年{season_str}] {battle_str or '各方休整'}"
-            if battle_str
-            else f"[{ws.year}年{season_str}] 各方休整，蓄力待发"
-        ),
-    }
-
-    # Extract territory ownership from world state
-    territory_owners = {}
-    if hasattr(ws, "territories") and ws.territories:
-        for tid, t in ws.territories.items():
-            if hasattr(t, "owner_id"):
-                territory_owners[tid] = t.owner_id or ""
-            elif isinstance(t, dict):
-                territory_owners[tid] = t.get("owner_id", "") or ""
-
-    # Fallback: if ws.territories is empty (WorldState lost territory objects
-    # during DB round-trip), rebuild territory_owners from faction territory lists.
-    if not territory_owners:
-        for fid in ws.factions:
-            faction = ws.factions[fid]
-            for tid in getattr(faction, "territories", []) or []:
-                territory_owners[tid] = fid
-
-    # Extract per-faction stats (population, troops, food, treasury, morale, loyalty)
-    # Include ALL active factions (major from decisions + minor NPC factions)
-    # EXCEPT npc_only factions (e.g. sextus_pompey) which should not appear in UI
-    npc_ids = _get_npc_only_ids(room.id)
-    faction_stats = {}
-    for fid in ws.factions:
-        if fid in npc_ids:
-            continue  # Skip npc_only factions
-        faction = ws.factions[fid]
-        if not faction.is_active:
-            continue
-        # Bug H35a fix: compute population from territory sum (FactionState has no population field)
-        pop_val = getattr(faction, "population", 0)
-        if not pop_val:
-            pop_val = sum(
-                getattr(ws.territories.get(tid), "population", 0)
-                for tid in (getattr(faction, "territories", []) or [])
-                if ws.territories.get(tid)
-            )
-        stats = {
-            "population": pop_val,
-            "troops": getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0,
-            "food": getattr(faction, "food", 0),
-            "treasury": getattr(faction, "treasury", 0),
-            "morale": getattr(faction, "morale_actual", 50) or getattr(faction, "morale", 50) or 50,
-        }
-        loyalty = getattr(faction, "loyalty", 50) or 50
-        stats["loyalty"] = loyalty
-        territories_list = getattr(faction, "territories", []) or []
-        stats["territories"] = territories_list
-        faction_stats[fid] = stats
-
-    state_changes = {
-        "territory_owners": territory_owners,
-        "faction_stats": faction_stats,
-    }
-
-    return _V1Result(
-        narratives=narratives,
-        state_changes=state_changes,
-        turn_summary=v1_summary,
-        faction_decisions=fd,
-    )
 
 
 # ── DB Save Helpers ─────────────────────────────────────────────
@@ -2826,15 +2497,6 @@ def _save_quarter(room, decisions, result):
                 "commands": serialized_cmds,
                 "source": dr.source,
             }
-        # Fallback: if _resolve_v1 attached faction_decisions to result,
-        # use it to backfill any empty human decisions (V1 pass-through fix)
-        v1_fd = getattr(result, "faction_decisions", None)
-        if v1_fd:
-            for fid, entry in fd.items():
-                if not entry["decision"] and fid in v1_fd:
-                    entry["decision"] = v1_fd[fid].get("decision", "")
-                    if not entry["commands"]:
-                        entry["commands"] = v1_fd[fid].get("commands", [])
         # Collect per-turn token usage from llm_call_log
         token_usage = _collect_quarter_tokens(room.id, room.quarter_number)
 

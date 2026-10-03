@@ -49,16 +49,15 @@ room = Room.create("my-game", faction="cao", lang="zh")
 
 ## Recommended Engine
 
-**Use V1 engine for best narrative quality.** V1 runs a single LLM call per turn with rich historical storytelling. V2 is deterministic (no LLM) for testing.
+**引擎用默认的 V3 即可**（确定性基线 + LLM 非线性层）。V1（一次 LLM 调用推演全世界）已于 2026-10-03 下线：它的失效模式是数值幻觉。 V2 is deterministic (no LLM) for testing.
 
 ```bash
-export HISTRATEGY_ENGINE=v1
 export DEEPSEEK_API_KEY="sk-..."
 ```
 
 | Engine | Description | LLM Calls | Best For |
 |--------|-------------|-----------|----------|
-| **V1** (recommended) | Single LLM simulation per turn | 1 | Narrative immersion, production play |
+| **V3** (default) | Deterministic base + LLM nonlinear layer | 1~N | Production play（无需环境变量） |
 | V2 | Pure deterministic formulas | 0 | Testing, offline play |
 
 ## Installation

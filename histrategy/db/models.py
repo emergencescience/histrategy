@@ -15,6 +15,20 @@ from typing import TYPE_CHECKING
 
 from .connection import _IS_SQLITE, execute, execute_one, execute_write, json_dumps, json_loads
 
+
+def _engine_version() -> str:
+    """当前**实际生效**的引擎标识，写入 game_room.engine_version。
+
+    V1 下线后不再读 HISTRATEGY_ENGINE 原始值 —— 若环境变量留了 "v1"，
+    记录下来的会是回退后的真实引擎（v3），而不是那个已失效的值。
+    """
+    try:
+        from ..engine.engine_switch import detect_engine_mode
+
+        return detect_engine_mode().value
+    except Exception:
+        return ""
+
 if TYPE_CHECKING:
     from histrategy.engine.game_room import GameRoom
 
@@ -131,7 +145,7 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
                 slots_json,
                 summaries_json,
                 1 if room.is_public else 0,
-                os.environ.get("HISTRATEGY_ENGINE", ""),
+                _engine_version(),
                 now,
                 room.id,
             ),
@@ -160,7 +174,7 @@ def save_room(room: GameRoom, world_state_dict: dict | None = None):
                 slots_json,
                 room.decision_timeout,
                 summaries_json,
-                os.environ.get("HISTRATEGY_ENGINE", ""),
+                _engine_version(),
                 now,
                 now,
                 getattr(room, "host_user_id", ""),

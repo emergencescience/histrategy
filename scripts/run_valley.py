@@ -25,7 +25,7 @@ from histrategy.llm.adapter import LLMAdapter
 
 # ── Prompt ───────────────────────────────────────────────────
 
-SIMULATOR_PROMPT_PATH = REPO_ROOT / "scenarios/silicon-valley/prompts/v1_simulator_en.md"
+SIMULATOR_PROMPT_PATH = REPO_ROOT / "scenarios/silicon-valley/prompts/market_sim_en.md"
 SIMULATOR_PROMPT = SIMULATOR_PROMPT_PATH.read_text(encoding="utf-8")
 
 

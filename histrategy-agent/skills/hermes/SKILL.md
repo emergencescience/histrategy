@@ -93,7 +93,7 @@ Single-player (file-based) does NOT work for multiplayer — you MUST have a ser
 
 ```bash
 # Start the server (required for multiplayer)
-HISTRATEGY_ENGINE=v1 uvicorn 'histrategy.server.api:create_app' --factory --host 0.0.0.0 --port 8080
+uvicorn 'histrategy.server.api:create_app' --factory --host 0.0.0.0 --port 8080
 ```
 
 ```python

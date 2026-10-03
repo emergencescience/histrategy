@@ -27,7 +27,7 @@ def _start_server_thread(host: str, port: int, data_dir: str, api_key: str):
     os.environ["DEEPSEEK_API_KEY"] = api_key
     os.environ["LLM_MODEL"] = "deepseek-v4-flash"  # fast model for tests
     os.environ["HISTRATEGY_DATA_DIR"] = data_dir
-    os.environ["HISTRATEGY_ENGINE"] = "v1"
+    os.environ["HISTRATEGY_ENGINE"] = "v3"  # V1 已于 2026-10-03 下线
 
     import logging
 
@@ -45,7 +45,7 @@ def _start_server_thread(host: str, port: int, data_dir: str, api_key: str):
 def histrategy_server():
     """Start a histrategy server for the test session.
 
-    Sets HISTRATEGY_ENGINE=v1 and uses DEEPSEEK_API_KEY from environment.
+    Sets HISTRATEGY_ENGINE=v3 and uses DEEPSEEK_API_KEY from environment.
     Uses a daemon thread (same process) for reliable env + threading.
     """
     api_key = os.environ.get("DEEPSEEK_API_KEY", "") or os.environ.get("OPENAI_API_KEY", "")

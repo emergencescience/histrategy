@@ -23,11 +23,13 @@
 
 ## 快速开始
 
-### 推荐：V1 引擎
+### 编程接口：histrategy-sdk
+
+> 想直接跑起来玩？最快的自建方式是下面的 **Docker Compose 自建**（一个容器、SQLite、不需要 Postgres）。
+> 本节是**编程接口**用法。
 
 ```bash
 pip install histrategy-sdk
-export HISTRATEGY_ENGINE=v1
 export DEEPSEEK_API_KEY="sk-..."
 ```
 
@@ -65,11 +67,11 @@ histrategy
 
 | 引擎 | 说明 | LLM | 适用场景 |
 |------|------|-----|----------|
-| **V1**（推荐） | 每回合单次 LLM 调用，叙事丰富 | 是 | 正式游玩，沉浸体验 |
+| **V1**（已下线） | ~~每回合单次 LLM 调用推演全世界~~ | — | **2026-10-03 移除**（数值幻觉） |
 | V2 | 纯确定性公式，零 LLM | 否 | 测试、离线、平衡调校 |
 | V3 | 混合：确定性基线 + LLM 非线性层 | 是 | 高级模拟 |
 
-通过 `HISTRATEGY_ENGINE=v1`（或 `v2`、`v3`）设置。推荐使用 V1。
+**V3 是默认引擎，无需设置任何环境变量**。只有想强制走确定性引擎（离线/测试）时才设 `HISTRATEGY_ENGINE=v2`。
 
 ## 架构
 

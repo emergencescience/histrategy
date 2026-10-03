@@ -72,7 +72,6 @@ ignore = [
 "histrategy/engine/game_room.py" = ["E501"]
 "histrategy/llm/narrative_context.py" = ["E501"]
 "histrategy/engine/quarterly_resolver.py" = ["E501"]
-"histrategy/engine/v1_simulator.py" = ["E501"]
 "histrategy/parser/intent.py" = ["E501"]
 
 [tool.ruff.lint.isort]

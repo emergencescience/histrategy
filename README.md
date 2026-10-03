@@ -27,11 +27,13 @@
 
 ## Quick Start
 
-### Recommended: V1 Engine
+### Programmatic use: histrategy-sdk
+
+> 想直接跑起来玩？最快的自建方式是下面的 **Self-host with Docker Compose**（一个容器、SQLite、不需要 Postgres）。
+> 本节是**编程接口**用法。
 
 ```bash
 pip install histrategy-sdk
-export HISTRATEGY_ENGINE=v1
 export DEEPSEEK_API_KEY="sk-..."
 ```
 
@@ -68,14 +70,14 @@ docker compose up -d --build
 # 3) 打开 http://localhost:8080
 ```
 
-- **引擎**：`HISTRATEGY_ENGINE=v3`（生产使用的混合引擎：确定性基线 + LLM 非线性层）。
+- **引擎**：V3（生产引擎：确定性基线 + LLM 非线性层）—— **无需任何引擎环境变量**。
 - **存档**：游戏存档与 SQLite 落在 `./.histrategy-data`，整个目录删掉即重置。
 - **任意 OpenAI 兼容端点**：设 `LLM_API_BASE` + `LLM_API_KEY` + `LLM_MODEL` 即可。
 - **想用 Postgres**：设 `HISTRATEGY_DATABASE_URL=postgresql://user:pass@host:5432/db`。
 
-> ⚠️ **引擎选型（进行中）**：本仓库正在下线 V1（纯 LLM）引擎，目标是最终**不再需要
-> `HISTRATEGY_ENGINE` 环境变量**（v3 成为唯一引擎）。届时下文基于 SDK 的 file-based
-> 玩法会一并调整，自建请优先使用本节的 Docker Compose 方式。
+> ✅ **V1 引擎已下线（2026-10-03）**：V1（一次 LLM 调用推演全世界）的失效模式是**幻觉**——
+> 让 LLM 凭空产出十几个势力的精确数值，必然与确定性基线打架。现在 **V3 是默认且唯一的生产引擎**，
+> 且 **`HISTRATEGY_ENGINE` 环境变量不再需要**（不设置即为 v3；`v2` 仅作离线/测试覆盖）。
 
 ### From Source
 
@@ -98,11 +100,12 @@ histrategy
 
 | Engine | Description | LLM | Best For |
 |--------|-------------|-----|----------|
-| **V1** | Single LLM call per turn with rich narrative | Yes | Production play, immersion |
-| V2 | Pure deterministic formulas, zero LLM | No | Testing, offline, balance tuning |
-| V3 | Hybrid: deterministic base + LLM nonlinear layer | Yes | Advanced simulation |
+| **V3** (default) | Hybrid: deterministic base + LLM nonlinear layer + guardrails | Yes | **Production play** |
+| V2 | Pure deterministic formulas, zero LLM (the base layer of V3) | No | Offline, testing, balance tuning |
+| ~~V1~~ | ~~Single LLM call per turn simulating the whole world~~ | — | **Removed 2026-10-03** (hallucinated numbers) |
 
-Set via `HISTRATEGY_ENGINE=v1` (or `v2`, `v3`). V1 is recommended.
+V3 is the default — **no environment variable required**. Set `HISTRATEGY_ENGINE=v2`
+only to force the deterministic engine (offline/testing).
 
 ## Architecture
 
