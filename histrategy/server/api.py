@@ -23,7 +23,26 @@ from typing import Any
 # ─── Shared Helpers ──────────────────────────────────────────────
 
 
-async def _sse_error(message: str):
+def _resolve_advisor_lang(query_lang: str, room) -> str:
+    """决定军师用哪种语言说话。
+
+    优先级：**页面传来的 lang > 房间 metadata.lang > "zh"**。
+
+    为什么需要页面优先：房间创建时写入的 metadata.lang 可能缺失或与当前页面不一致，
+    旧实现只认它、且端点未接收 lang 参数（前端的 &lang=en 被 FastAPI 忽略），
+    结果就是"英文页面上的军师说中文"。
+    """
+    q = (query_lang or "").strip().lower()
+    if q:
+        return q
+    meta = getattr(room, "metadata", None) or {}
+    try:
+        return str(meta.get("lang") or "zh")
+    except AttributeError:
+        return "zh"
+
+
+def _sse_error(message: str):
     """Yield an SSE error event."""
     import json
 
@@ -419,7 +438,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         )
 
     @app.get("/api/rooms/{room_id}/advisor")
-    def api_advisor(room_id: str, faction_id: str = "", goal: str = ""):
+    def api_advisor(room_id: str, faction_id: str = "", goal: str = "", lang: str = ""):
         """Return structured strategic advice as JSON.
 
         Manual trigger via 军师 button. Returns:
@@ -520,7 +539,7 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         if not llm or not llm.is_available:
             from histrategy.llm.advisor import StrategicAdvisor
-            lang_meta = getattr(room, "metadata", {}).get("lang", "zh")
+            lang_meta = _resolve_advisor_lang(lang, room)
             advisor = StrategicAdvisor(llm, language=lang_meta)
             result = advisor._offline_structured(local_state, personality)
             result["ok"] = True
@@ -539,7 +558,7 @@ def create_app(llm_provider: str | None = None) -> Any:
         return result
 
     @app.get("/api/rooms/{room_id}/advisor-stream")
-    def api_advisor_stream(room_id: str, faction_id: str = "", goal: str = ""):
+    def api_advisor_stream(room_id: str, faction_id: str = "", goal: str = "", lang: str = ""):
         """Stream AI advisor advice (军师进言) via SSE.
 
         Uses recent 3-4 turn_summaries + current faction state to generate
@@ -659,8 +678,11 @@ def create_app(llm_provider: str | None = None) -> Any:
 
         from histrategy.llm.advisor import StrategicAdvisor
 
-        # Read language from room metadata for bilingual advisor support
-        lang_meta = getattr(room, "metadata", {}).get("lang", "zh")
+        # 语言优先级：页面传来的 lang > 房间 metadata.lang > zh。
+        # 旧实现只读房间 metadata 且**根本没接收 lang 参数**，前端发的 &lang=en 被
+        # FastAPI 静默忽略 —— 于是"英文页面上的军师说中文"，且房间元数据一旦缺失
+        # 就没有任何纠正手段。
+        lang_meta = _resolve_advisor_lang(lang, room)
 
         advisor = StrategicAdvisor(llm, language=lang_meta)
 
@@ -701,9 +723,11 @@ def create_app(llm_provider: str | None = None) -> Any:
                     f"Output STRICTLY in this format (one blank line between strategies), "
                     f"where 'Decree:' is a single executable command the player can "
                     f"copy-paste and send directly:\n\n"
-                    f"【Upper Strategy】〈title ≤8 words〉\nDecree: 〈one executable command〉\n\n"
-                    f"【Middle Strategy】〈title ≤8 words〉\nDecree: 〈one executable command〉\n\n"
-                    f"【Lower Strategy】〈title ≤8 words〉\nDecree: 〈one executable command〉"
+                    f"【Upper Strategy】<title, max 8 words>\nDecree: <one executable command>\n\n"
+                    f"【Middle Strategy】<title, max 8 words>\nDecree: <one executable command>\n\n"
+                    f"【Lower Strategy】<title, max 8 words>\nDecree: <one executable command>\n\n"
+                    f"LANGUAGE: write the analysis, the titles AND every Decree in English. "
+                    f"Do not output Chinese characters anywhere."
                 )
             else:
                 query = goal_prefix + (
