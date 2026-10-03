@@ -154,6 +154,9 @@ def test_structured_frame_carries_custom_plan():
     frame = build_structured_advice(CUSTOM_CN)
     assert frame["custom"] is not None
     assert len(frame["custom"]["commands"]) == 3
+    # strategies 只装军师方案：同一块不得在 strategies 与 custom 里各出现一次
+    assert [s["tier"] for s in frame["strategies"]] == ["上策", "下策"]
+    assert "玩家决策解析" not in [s["tier"] for s in frame["strategies"]]
     json.dumps(frame, ensure_ascii=False)
 
 

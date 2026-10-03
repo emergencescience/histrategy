@@ -54,7 +54,8 @@ _TIER_NORM = {
 
 # 「玩家决策解析」及其英文别名 → 统一档位名（与既有做法一致：前端按档位配色，
 # 英文页再用 tierLabel 显示 "Your Plan"）。
-_TIER_NORM["玩家决策解析"] = "玩家决策解析"
+CUSTOM_TIER = "玩家决策解析"
+_TIER_NORM[CUSTOM_TIER] = CUSTOM_TIER
 for _alias in ("Your Plan", "Player's Plan", "Your Decision"):
     _TIER_NORM[_alias] = "玩家决策解析"
 
@@ -150,7 +151,7 @@ def extract_custom_plan(text: str) -> dict | None:
     返回 None 表示这次进言里没有这一块（旧行为：只有三策）。
     """
     for card in parse_advisor_strategies(text):
-        if card["tier"] == "玩家决策解析":
+        if card["tier"] == CUSTOM_TIER:
             return {
                 "title": card["title"],
                 "understanding": card["title"],   # 块头那句＝"我怎么理解你的话"
@@ -176,12 +177,16 @@ def build_structured_advice(text: str) -> dict:
     （前端目前用 `/api/intent/precompute` 做，点卡片时可跳过 ~20s 的 LLM 解析）。
     该项是后续工作，此处**不伪造**字段。
     """
-    strategies = parse_advisor_strategies(text)
+    all_blocks = parse_advisor_strategies(text)
+    # `strategies` 只装**军师给的方案**（上策/下策）；「玩家决策解析」单独走 `custom`，
+    # 否则同一块会在两个字段里各出现一次，前端还得自己去重。
+    strategies = [c for c in all_blocks if c["tier"] != CUSTOM_TIER]
+    custom = extract_custom_plan(text)
     return {
         "type": "strategies",
         "analysis": extract_analysis(text),
         "intercepts": extract_intercepts(text),
         "strategies": strategies,
-        "custom": extract_custom_plan(text),
-        "parsed": bool(strategies),
+        "custom": custom,
+        "parsed": bool(strategies) or custom is not None,
     }
