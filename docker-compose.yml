@@ -1,0 +1,58 @@
+# Histrategy (三國志略) — 本地 / 自建运行
+#
+# 这是「自建」的推荐路径：一个容器、零外部依赖（默认用 SQLite，无需 Postgres）。
+#
+# 用法：
+#   1) 在仓库根目录创建 .env（不会被提交），至少填一个 LLM key：
+#        DEEPSEEK_API_KEY=sk-xxxxxxxx
+#      也可以用任意 OpenAI 兼容端点：
+#        LLM_API_BASE=https://api.openai.com/v1
+#        LLM_API_KEY=sk-xxxxxxxx
+#        LLM_MODEL=gpt-4o-mini
+#   2) docker compose up -d --build
+#   3) 打开 http://localhost:8080
+#
+# 说明：
+#   - LLM key 只通过环境变量 / 本文件传入，**不经过浏览器**。
+#   - 游戏存档与 SQLite 落在 ./data（挂载到容器内 /data），删掉即可重置。
+#   - 想用 Postgres 就设 HISTRATEGY_DATABASE_URL=postgresql://user:pass@host:5432/db。
+
+services:
+  histrategy:
+    build: .
+    image: histrategy:local
+    ports:
+      - "${HISTRATEGY_PORT:-8080}:8080"
+    environment:
+      # ── LLM Provider（三选一）─────────────────────────────
+      # Path 1: provider 专用 key（URL/model 自动识别）
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - TONGYI_API_KEY=${TONGYI_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      # Path 2: 任意 OpenAI 兼容端点（完全自控）
+      - LLM_API_BASE=${LLM_API_BASE:-}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-deepseek-v4-flash}
+
+      # ── 引擎 ──────────────────────────────────────────────
+      # v3 = 确定性基线 + LLM 非线性层（生产使用的引擎）
+      # TODO: 待 V1 引擎下线后本变量将被移除（届时只有 v3）
+      - HISTRATEGY_ENGINE=${HISTRATEGY_ENGINE:-v3}
+
+      # ── 数据目录（SQLite + 存档）──────────────────────────
+      - HISTRATEGY_DATA_DIR=/data
+
+      # ── 可选 ──────────────────────────────────────────────
+      # - HISTRATEGY_SCENARIO=nanming
+      # - HISTRATEGY_DATABASE_URL=postgresql://user:pass@host:5432/histrategy
+    volumes:
+      # 游戏存档 + SQLite；与仓库里的 dev 用 data/ 区分开
+      - ./.histrategy-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/api/health', timeout=5).status==200 else 1)\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped

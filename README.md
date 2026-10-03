@@ -52,6 +52,31 @@ room = Room.create("my-ming", faction="nanming", scenario="nanming", lang="zh")
 result = room.play("整军备战，坚守扬州，联结郑氏水师")
 ```
 
+### Self-host with Docker Compose（推荐自建方式）
+
+One container, zero external dependencies — 默认用 SQLite，**不需要 Postgres**。
+
+```bash
+# 1) 提供 LLM key —— 只走环境变量 / .env，不经过浏览器
+cat > .env <<'EOF'
+DEEPSEEK_API_KEY=sk-xxxxxxxx
+EOF
+
+# 2) 构建并启动
+docker compose up -d --build
+
+# 3) 打开 http://localhost:8080
+```
+
+- **引擎**：`HISTRATEGY_ENGINE=v3`（生产使用的混合引擎：确定性基线 + LLM 非线性层）。
+- **存档**：游戏存档与 SQLite 落在 `./.histrategy-data`，整个目录删掉即重置。
+- **任意 OpenAI 兼容端点**：设 `LLM_API_BASE` + `LLM_API_KEY` + `LLM_MODEL` 即可。
+- **想用 Postgres**：设 `HISTRATEGY_DATABASE_URL=postgresql://user:pass@host:5432/db`。
+
+> ⚠️ **引擎选型（进行中）**：本仓库正在下线 V1（纯 LLM）引擎，目标是最终**不再需要
+> `HISTRATEGY_ENGINE` 环境变量**（v3 成为唯一引擎）。届时下文基于 SDK 的 file-based
+> 玩法会一并调整，自建请优先使用本节的 Docker Compose 方式。
+
 ### From Source
 
 ```bash
