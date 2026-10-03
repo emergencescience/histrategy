@@ -364,7 +364,7 @@
     "italia": {
       "name": "意大利",
       "name_en": "Italia",
-      "owner": "",
+      "owner": "antony",
       "population": 800000,
       "development": 55,
       "terrain": "plains",

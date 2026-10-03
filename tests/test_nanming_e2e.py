@@ -123,10 +123,17 @@ class TestKnowledgeBaseIntegrity:
         """
         from histrategy.engine.scenario_loader import ScenarioLoader
 
+        # 2026-10-03：三个剧本的归属缺口已按史实补齐（见下），此处应为全空。
+        # 南明 广西/云南/台湾：归 factions.json 里早已声明的中立势力 "other"
+        #   （description: 西南未定之地和边疆土司；npc_only，不参与 AI 决策）。
+        #   台湾按 1646 年实况（荷兰/原住民治下，不在中国诸势力手中）一并归入该中立桶。
+        # 罗马 italia：归安东尼 —— 同剧本里 roma（罗马城）本就属安东尼，
+        #   且公元前 44 年安东尼正任执政官、控制意大利。
+        # 若将来有人重新引入无主领土，本断言会失败并列出是哪几块。
         KNOWN_GAPS = {
             "three-kingdoms": set(),
-            "nanming": {"guangxi", "yunnan", "taiwan"},
-            "rome-triumvirate": {"italia"},
+            "nanming": set(),
+            "rome-triumvirate": set(),
         }
         for scen, player in (
             ("nanming", "nanming"),
@@ -439,3 +446,35 @@ class TestScenarioCompleteness:
             if ftype == "file" and not full_path.is_file():
                 missing.append(rel_path)
         assert not missing, f"Missing required files: {missing}"
+
+
+class TestNeutralFaction:
+    """中立势力 "other"（其他势力）：据地但不参与决策 —— founder 2026-10-03 的模型。"""
+
+    def test_other_is_declared_npc_only(self):
+        from histrategy.engine.scenario_loader import ScenarioLoader
+
+        lf = ScenarioLoader("nanming").load_factions()
+        assert "other" in lf, "factions.json 里声明的 other 应能被加载"
+        assert lf["other"].get("npc_only") is True, "other 必须标记 npc_only"
+        # 房间创建路径据此把它排除在 NPC 决策之外（room_manager 用同一判定）
+        deciding = sorted(fid for fid, f in lf.items() if not f.get("npc_only"))
+        assert deciding == ["nanming", "nongminjun", "qing", "zheng"], deciding
+        assert "other" not in deciding
+
+    def test_other_holds_the_declared_territories(self):
+        """它声明的 starting_territories 必须真的落到世界状态里。
+
+        原先 initial_state.json 没有 other 这一家 → 它声明的广西/云南成了无主之地
+        （同一类"声明了却没人读"的坑，见 _serialize/_build_from_initial_state 的注释）。
+        """
+        from histrategy.engine.scenario_loader import ScenarioLoader
+
+        ws = ScenarioLoader("nanming").build_world_state("nanming")
+        owned = {tid for tid, td in ws.territories.items() if getattr(td, "owner_id", "") == "other"}
+        lf = ScenarioLoader("nanming").load_factions()
+        declared = set(lf["other"].get("starting_territories", []))
+        assert declared, "factions.json 里 other 应声明 starting_territories"
+        assert declared <= owned, f"声明的领地未落实: {sorted(declared - owned)}"
+        # 台湾不在声明里，是本次按史实（1646 荷兰/原住民治下）补入的
+        assert {"guangxi", "yunnan", "taiwan"} <= owned, sorted(owned)

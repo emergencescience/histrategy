@@ -158,6 +158,42 @@
         "development": 0.7,
         "mercy": 0.5
       }
+    },
+    "other": {
+      "name": "其他势力",
+      "name_en": "Minor Factions",
+      "capital": "",
+      "territories": [
+        "guangxi",
+        "yunnan",
+        "taiwan"
+      ],
+      "treasury": 3000,
+      "food": 4000,
+      "strength": 5000,
+      "loyalty": 40,
+      "prestige": 10,
+      "tax_rate": 0.1,
+      "morale_actual": 40,
+      "tech_levels": {
+        "agriculture": 1,
+        "commerce": 1,
+        "military": 1
+      },
+      "relations": {
+        "nanming": 0,
+        "qing": -30,
+        "nongminjun": 0,
+        "zheng": 0
+      },
+      "personality": {
+        "aggression": 0.1,
+        "cunning": 0.3,
+        "caution": 0.8,
+        "diplomacy": 0.4,
+        "development": 0.3,
+        "mercy": 0.5
+      }
     }
   },
   "territories": {
@@ -292,6 +328,33 @@
       "development": 30,
       "terrain": "hills",
       "climate_zone": "central",
+      "fertility": 5
+    },
+    "guangxi": {
+      "name": "广西",
+      "owner": "other",
+      "population": 70000,
+      "development": 25,
+      "terrain": "coast",
+      "climate_zone": "south",
+      "fertility": 5
+    },
+    "yunnan": {
+      "name": "云南",
+      "owner": "other",
+      "population": 60000,
+      "development": 20,
+      "terrain": "hills",
+      "climate_zone": "south",
+      "fertility": 5
+    },
+    "taiwan": {
+      "name": "台湾",
+      "owner": "other",
+      "population": 40000,
+      "development": 15,
+      "terrain": "coast",
+      "climate_zone": "south",
       "fertility": 5
     }
   },

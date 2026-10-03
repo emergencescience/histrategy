@@ -20,7 +20,8 @@ sys.path.insert(0, str(REPO))
 
 from histrategy.engine.game import GameEngine  # noqa: E402
 
-# 与 scenarios/three-kingdoms/knowledge/initial_state.json 里的势力对齐
+# 世界里持有领地的势力（见 scenarios/three-kingdoms/knowledge/initial_state.json）。
+# 其中只有 cao/shu/wu 可玩、参与 AI 决策；liubiao/liuzhang 仅据地（见文件末尾的模型说明）。
 WORLD_FACTIONS = {
     "cao": "曹操",
     "shu": "刘备",
@@ -65,77 +66,119 @@ def test_unregistered_faction_falls_back_without_impersonating(tmp_path, monkeyp
     assert "你，曹操" not in nar, f"兜底把玩家冒充成曹操: {nar[:120]}"
 
 
-# ─────────────────────────────────────────────────────────────
-# 同一类 bug 的另一条通道：开局**建议**也会冒充别的势力
-#   原写法 FIRST_TURN_SUGGESTIONS.get(fid, FIRST_TURN_SUGGESTIONS["cao"])
-#   而 FIRST_TURN_SUGGESTIONS 只有 cao/shu/wu → 未登记势力拿到曹操的方略。
-#   玩家以刘表开局（该势力原先未登记）得到的第一条建议就是
-#   「【南征荆州】整编水师于邺城玄武池…准备南征刘表」—— 建议他去打自己。
-# ─────────────────────────────────────────────────────────────
 from histrategy.engine.helpers import (  # noqa: E402
     EARLY_TURNS_SUGGESTIONS,
-    GENERIC_EARLY_SUGGESTIONS,
     FIRST_TURN_SUGGESTIONS,
+    GENERIC_EARLY_SUGGESTIONS,
 )
 from histrategy.engine.intro_plan import _resolve_early_suggestions  # noqa: E402
 
+# ─────────────────────────────────────────────────────────────
+# 势力分层的**事实模型**（founder 2026-10-03 明确）：
+#   三国剧本只有 3 股需要 npc_decision 的势力：魏 / 蜀 / 吴（也是仅有的可玩势力）。
+#   刘表、刘璋只是**据地势力**：地图上持有领地，但既不可选、也不参与 AI 决策。
+# 下面把这条模型钉住 —— 免得有人（包括我）再为不可选势力写专属内容，或反过来
+# 让不该决策的势力拿到决策。
+# ─────────────────────────────────────────────────────────────
+from histrategy.engine.faction_slot import (  # noqa: E402
+    LLM_NPC_FACTIONS,
+    PLAYABLE_FACTIONS,
+)
 
-@pytest.mark.parametrize("fid,want", sorted(WORLD_FACTIONS.items()))
-def test_every_world_faction_has_its_own_turn1_suggestions(fid, want):
+SELECTABLE = {"cao": "曹操", "shu": "刘备", "wu": "孙权"}
+INERT = {"liubiao": "刘表", "liuzhang": "刘璋"}  # 据地势力：不可选、不决策
+ALL_WORLD = {**SELECTABLE, **INERT}
+
+# 各家的"独有地名/符号"，用来判定有没有串用别人的方略
+FACTION_MARKERS = {
+    "cao": ("邺城", "许昌", "玄武池", "南征荆州"),
+    "shu": ("新野", "隆中", "诸葛亮"),
+    "wu": ("鄱阳湖", "建业", "周瑜"),
+}
+
+
+def test_three_kingdoms_has_exactly_three_decision_factions():
+    """三国只有魏蜀吴需要 npc_decision，也只有这三家可玩。"""
+    assert PLAYABLE_FACTIONS == ["cao", "shu", "wu"], PLAYABLE_FACTIONS
+    assert LLM_NPC_FACTIONS == {"cao", "shu", "wu"}, LLM_NPC_FACTIONS
+
+
+def test_territory_holders_are_not_decision_factions():
+    """刘表/刘璋在世界里持有领地，但**不在**可玩/决策集合里（founder 的模型）。"""
+    for fid in INERT:
+        assert fid not in PLAYABLE_FACTIONS, f"{fid} 不该可玩"
+        assert fid not in LLM_NPC_FACTIONS, f"{fid} 不该参与 AI 决策"
+
+
+@pytest.mark.parametrize("fid", sorted(SELECTABLE))
+def test_selectable_faction_has_its_own_turn1_suggestions(fid):
     got = _resolve_early_suggestions("three-kingdoms", fid, 1, "zh")
-    assert got, f"{fid}: 回合 1 没有自己的建议 → 会兜底到别人的方略"
+    assert got, f"{fid}: 可玩势力必须有专属开局建议"
 
 
-@pytest.mark.parametrize("fid", [f for f in WORLD_FACTIONS if f != "cao"])
-def test_no_faction_gets_caos_strategy_package(fid):
-    """非曹操势力拿到的一整套建议，不得等于曹操那一套（冒充的最直接形式）。"""
-    mine = _resolve_early_suggestions("three-kingdoms", fid, 1, "zh")
-    caos = _resolve_early_suggestions("three-kingdoms", "cao", 1, "zh")
-    assert mine != caos, f"{fid} 拿到的就是曹操的方略"
+@pytest.mark.parametrize("fid", sorted(INERT))
+def test_inert_faction_has_no_own_package(fid):
+    """据地势力**不写**专属内容（不做无用功）；它们靠中性兜底。"""
+    assert _resolve_early_suggestions("three-kingdoms", fid, 1, "zh") == []
+    assert fid not in FIRST_TURN_SUGGESTIONS
 
 
-def test_liubiao_is_not_advised_to_attack_himself():
-    """当初那条 bug 的原样症状：刘表的第一条建议是「准备南征刘表」。"""
-    got = " ".join(_resolve_early_suggestions("three-kingdoms", "liubiao", 1, "zh"))
-    assert "南征刘表" not in got, f"刘表被建议去打自己: {got[:100]}"
-    assert "邺城" not in got, f"建议里出现曹操的都城（说明是曹操的方略）: {got[:100]}"
+def test_selectable_packages_are_distinct():
+    """可玩三家的方略必须各不相同 —— 串用别人整套的最直接形式是"两家一模一样"。"""
+    pkgs = {fid: tuple(_resolve_early_suggestions("three-kingdoms", fid, 1, "zh")) for fid in SELECTABLE}
+    for fid, pkg in pkgs.items():
+        assert pkg, f"{fid} 没有专属方略"
+    assert len(set(pkgs.values())) == len(pkgs), f"有势力共用同一套方略: {pkgs}"
 
 
-def test_english_players_get_english_suggestions():
-    """兜底曾把**中文**的曹操方略发给英文玩家。按语言兜底后不该再出现。
+def test_the_original_symptom_markers_still_detect_caos_package():
+    """**正向对照**：先证明"标记法"真能认出曹操那套（否则下面的负向断言是空转）。"""
+    caos = " ".join(_resolve_early_suggestions("three-kingdoms", "cao", 1, "zh"))
+    assert "南征刘表" in caos and "邺城" in caos, f"曹操的方略里应含这些标记: {caos[:80]}"
 
-    只查**汉字**：`【】：` 这类全角标点是刻意的风格（既有英文条目也用），不算"混了中文"。
+
+@pytest.mark.parametrize("fid", sorted(INERT))
+def test_inert_factions_never_get_anyones_package(fid):
+    """据地势力（刘表/刘璋）不得拿到任何一家的整套方略。
+
+    原 bug：刘表拿到曹操那套，第一条就是「【南征荆州】整编水师于邺城玄武池…
+    准备南征刘表」—— 建议他打自己。用上一条已证有效的标记来判定。
     """
-    import re as _re
-
-    got = _resolve_early_suggestions("three-kingdoms", "liubiao", 1, "en")
-    assert got, "英文建议为空"
-    han = _re.findall(r"[\u4e00-\u9fff]+", " ".join(got))
-    assert not han, f"英文建议里混入汉字: {han[:3]}"
+    own = _resolve_early_suggestions("three-kingdoms", fid, 1, "zh")
+    effective = " ".join(own if own else GENERIC_EARLY_SUGGESTIONS["zh"])
+    for m in ("邺城", "玄武池", "南征刘表", "南征荆州", "鄱阳湖", "隆中对策"):
+        assert m not in effective, f"{fid} 拿到了别人的方略（含「{m}」）: {effective[:88]}"
 
 
-def test_generic_fallback_is_neutral_and_lang_aware():
+def test_generic_fallback_is_neutral_lang_aware_and_never_named():
     assert set(GENERIC_EARLY_SUGGESTIONS) >= {"zh", "en"}
     for lang, items in GENERIC_EARLY_SUGGESTIONS.items():
         assert items, lang
-        # 中性建议里不得点名任何具体势力
         blob = " ".join(items)
-        for name in ("曹操", "刘备", "孙权", "刘表", "刘璋", "Cao Cao", "Liu Bei", "Sun Quan"):
+        for name in ("曹操", "刘备", "孙权", "Cao Cao", "Liu Bei", "Sun Quan"):
             assert name not in blob, f"通用建议里点名了 {name}（就不是通用建议了）"
+
+
+def test_english_suggestions_contain_no_han_characters():
+    """原兜底是中文的，英文玩家也会收到中文方略。"""
+    import re as _re
+
+    for fid in sorted(SELECTABLE):
+        got = _resolve_early_suggestions("three-kingdoms", fid, 1, "en")
+        assert got, f"{fid}: 缺英文开局建议"
+        han = _re.findall(r"[\u4e00-\u9fff]+", " ".join(got))
+        assert not han, f"{fid} 的英文建议里混入汉字: {han[:3]}"
 
 
 def test_three_call_sites_no_longer_fall_back_to_cao():
     """三处调用点都不得再以曹操为默认值 —— 源码级断言，防止回退。"""
-    import pathlib
-
     for rel in ("engine/intro_plan.py", "engine/turn_processor.py"):
         src = (REPO / "histrategy" / rel).read_text(encoding="utf-8")
         assert 'FIRST_TURN_SUGGESTIONS["cao"]' not in src, f"{rel} 又回退到曹操的方略了"
         assert "GENERIC_EARLY_SUGGESTIONS" in src, f"{rel} 未接入通用兜底"
 
 
-def test_first_turn_alias_still_covers_the_three_original_factions():
-    """向后兼容别名不能被这次改动破坏。"""
-    assert set(FIRST_TURN_SUGGESTIONS) >= {"cao", "shu", "wu"}
-    for fid in ("cao", "shu", "wu"):
+def test_first_turn_alias_still_covers_the_three_selectable_factions():
+    assert set(FIRST_TURN_SUGGESTIONS) == set(SELECTABLE)
+    for fid in SELECTABLE:
         assert EARLY_TURNS_SUGGESTIONS["three-kingdoms"][fid][1]["zh"]

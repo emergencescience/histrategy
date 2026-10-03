@@ -382,39 +382,6 @@ class IntroPlanMixin:
                 "advisors": "周瑜（公瑾）为大都督，鲁肃（子敬）谋划长远",
                 "generals": "程普、黄盖、甘宁、周泰等江东宿将",
             },
-            # ── 其余可玩势力（此前缺失 → 全部被 fallback 冒充成曹操，见下方注释）──
-            "liubiao": {
-                "name": "刘表",
-                "alias": "景升",
-                "location": "襄阳",
-                "desc": "据荆州八郡，带甲十余万，然外宽内忌，蔡蒯用事",
-                "advisors": "蒯越（异度）、蔡瑁（德珪）",
-                "generals": "文聘（仲业）、黄祖、张允",
-            },
-            "liuzhang": {
-                "name": "刘璋",
-                "alias": "季玉",
-                "location": "成都",
-                "desc": "承父刘焉之业，据益州天府，然闇弱多疑，不能制下",
-                "advisors": "黄权（公衡）、张松（子乔）",
-                "generals": "张任、吴懿、李严",
-            },
-            "zhanglu": {
-                "name": "张鲁",
-                "alias": "公祺",
-                "location": "汉中",
-                "desc": "以五斗米道教民，据汉中近三十年，政教合一，夹于曹操与刘璋之间",
-                "advisors": "阎圃、杨松",
-                "generals": "张卫、杨任",
-            },
-            "machao": {
-                "name": "马超",
-                "alias": "孟起",
-                "location": "西凉",
-                "desc": "凉州铁骑勇冠三军，父马腾入朝为质，与韩遂合兵",
-                "advisors": "韩遂（文约，盟友）",
-                "generals": "庞德（令明）、马岱",
-            },
         }
 
         scenario = getattr(self, "scenario", "three-kingdoms")
@@ -454,11 +421,23 @@ class IntroPlanMixin:
                 _staff += f"帐下：{info['advisors']}。\n"
             if info.get("generals"):
                 _staff += f"武将：{info['generals']}听候调遣。\n"
+            # 兜底也要给足信息量：原来只写一行身份（72 字），既看不出家底也读不出下一步。
+            # 这里补上兵力/粮草/资金，与 v2 模板（_build_intro_narrative）保持同形。
+            _holdings = ""
+            if info.get("location"):
+                _holdings += f"以{info['location']}为根基，"
+            _holdings += (
+                f"麾下兵卒{getattr(player, 'strength_actual', 0)}，"
+                f"粮草{getattr(player, 'food', 0)}，"
+                f"资金{getattr(player, 'treasury', 0)}。"
+            )
             intro = (
                 f"建安十二年（公元207年），天下三分之势初成。\n\n"
                 f"曹操已平河北，虎视荆襄；孙权坐断江东，兵精粮足。\n\n"
-                f"你，{info['name']}{_alias_part}，{info['desc']}。\n\n"
+                f"你，{info['name']}{_alias_part}，{info['desc']}。\n"
+                f"{_holdings}\n"
                 f"{_staff}"
+                f"当审时度势，谋定而后动。\n"
             )
 
         choices = {

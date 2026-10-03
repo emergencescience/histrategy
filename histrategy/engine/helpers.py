@@ -209,38 +209,6 @@ EARLY_TURNS_SUGGESTIONS = {
                 ],
             },
         },
-        "liubiao": {
-            1: {
-                "zh": [
-                    "【坐镇荆州】整训襄阳水师与江陵守军，扼守长江中游，不轻启战端",
-                    "[liubiao_t1_heir]【定嗣安内】早定刘琦刘琮之嗣位，调和蔡瑁蒯越两派，稳住荆州士族",
-                    "[liubiao_t1_alliance]【结好江东】遣使赴吴，以同拒曹操为名与孙权修好，牵制北方",
-                    "[liubiao_t1_farms]【屯田江汉】在江汉平原兴修水利，广行屯田，储备粮草",
-                ],
-                "en": [
-                    "【Hold Jingzhou】Retrain the Xiangyang river fleet and Jiangling garrison; hold the middle Yangtze, avoid war",
-                    "[liubiao_t1_heir]【Settle the Succession】Name an heir early and reconcile the Cai and Kuai clans to steady Jingzhou's gentry",
-                    "[liubiao_t1_alliance]【Court the Southland】Send envoys to Wu to align with Sun Quan against Cao Cao",
-                    "[liubiao_t1_farms]【Farm the Jianghan】Build irrigation and military farms across the Jianghan plain to stock grain",
-                ],
-            },
-        },
-        "liuzhang": {
-            1: {
-                "zh": [
-                    "【保境安民】闭关自守，不参与中原纷争，专意守土安民",
-                    "[liuzhang_t1_pass]【北防张鲁】增兵葭萌关，防备汉中张鲁，修葺剑阁天险",
-                    "[liuzhang_t1_develop]【开发天府】整修都江堰灌区，减免赋税，广储军粮",
-                    "[liuzhang_t1_court]【任用贤能】擢用黄权张松等益州人士，抑制东州士族专权",
-                ],
-                "en": [
-                    "【Secure the Borders】Close the passes, stay out of the Central Plains conflict, focus on holding Shu",
-                    "[liuzhang_t1_pass]【Guard Against Zhang Lu】Reinforce Jiameng Pass and repair the Jian Ge ramparts against Hanzhong",
-                    "[liuzhang_t1_develop]【Develop the Heavenly Granary】Restore the Dujiangyan irrigation works, cut taxes, stock grain",
-                    "[liuzhang_t1_court]【Raise the Worthy】Promote Huang Quan, Zhang Song and other Shu men to curb the Eastern faction",
-                ],
-            },
-        },
     },
     "rome-triumvirate": {
         "octavian": {

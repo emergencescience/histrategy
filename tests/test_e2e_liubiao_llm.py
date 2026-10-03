@@ -189,7 +189,16 @@ class TestLiubiaoLLMMode:
         )
 
     def test_no_self_allying(self):
-        """Regression: Liu Biao should NOT ally with himself (H09e bug fix)."""
+        """回归：玩家不得与**自己**结盟（H09e）。
+
+        断言方式改动（2026-10-03）：原实现是对 NPC 反应**散文**做字符串匹配
+        （"反应里同时出现「刘表」与「结盟」就算自我结盟"）。这条启发式会误报：
+        一次运行里它命中了一句完全正常的叙述 —— 曹操评价**别人**的联合
+        （「曹操闻荆襄结盟，冷笑曰：…刘表守户之犬…」），于是本用例长期在
+        "时红时绿"里挂着，还容易被当成 LLM 抖动而忽略。
+        改为检查**状态**：玩家势力的外交关系里不得出现它自己 —— 这才是"自我结盟"
+        这件事在数据上的样子，且与 LLM 措辞无关。
+        """
         from histrategy.engine.game import GameEngine
         from histrategy.llm.adapter import LLMAdapter
 
@@ -197,15 +206,15 @@ class TestLiubiaoLLMMode:
         engine = GameEngine(llm=llm, new_game=True, force_v1=True)
         engine.set_player_faction("liubiao")
 
-        # Make a decision that might trigger alliance logic
-        decision = "与刘表军结盟共同御敌。"
-
-        result = engine.process_turn(decision)
+        # 故意下一条"与刘表军结盟"的荒谬命令（=与自己结盟）
+        result = engine.process_turn("与刘表军结盟共同御敌。")
         npc_reactions = result.get("npc_reactions", [])
+        assert result is not None, "process_turn 不应崩"
 
-        for reaction in npc_reactions:
-            if isinstance(reaction, str):
-                # Should not mention allying with self
-                assert "刘表" not in reaction or "结盟" not in reaction, f"Self-allying detected: {reaction}"
+        ws = engine.world_state
+        me = ws.factions.get("liubiao")
+        assert me is not None, "玩家势力应存在于世界状态"
+        rels = getattr(me, "relations", {}) or {}
+        assert "liubiao" not in rels, f"玩家势力出现了与自己的外交关系: {rels}"
 
-        print(f"\n  SELF-ALLY CHECK PASSED: {len(npc_reactions)} NPC reactions")
+        print(f"\n  SELF-ALLY CHECK PASSED: {len(npc_reactions)} NPC reactions, relations={list(rels)[:6]}")
