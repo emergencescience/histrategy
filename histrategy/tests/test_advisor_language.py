@@ -15,6 +15,7 @@
      前端发的 `&lang=en` 被 FastAPI 静默忽略，语言只看房间 metadata；
      房间元数据一旦缺失或与页面不一致，就没有纠正手段。
 """
+import ast
 import re
 import sys
 from pathlib import Path
@@ -84,15 +85,37 @@ def test_chinese_system_prompt_pins_the_language():
 
 
 def test_english_user_instruction_has_no_chinese_placeholders():
-    """英文分支里不得残留中文占位符 —— 那正是模型把策令写成中文的诱因。"""
-    src = API.read_text(encoding="utf-8")
-    idx = src.index("query = goal_prefix + (")
-    end = src.index("# JSON-encode each chunk", idx)
-    seg = src[idx:end]
-    en_seg = seg[: seg.index("\n            else:")]  # 只取 is_en 那一支
-    assert "Output STRICTLY" in en_seg, "抽取到的不是英文分支，测试需更新"
-    han = HAN.findall(en_seg)
-    assert not han, f"英文分支残留汉字: {han}"
+    """英文分支里不得残留中文占位符 —— 那正是模型把策令写成中文的诱因。
+
+    用 **AST** 抽取 `_stream_advice` 里 `if is_en:` 分支的全部字符串常量，
+    而不是按文本锚点截取 —— 这样重构（例如把 query 拆成 base + extra）不会误报，
+    但"英文分支混进汉字"这种实质问题一定被抓到。
+    """
+    tree = ast.parse(API.read_text(encoding="utf-8"))
+    fn = next(
+        n for n in ast.walk(tree)
+        if isinstance(n, ast.FunctionDef) and n.name == "_stream_advice"
+    )
+
+    def _strings(nodes):
+        out = []
+        for n in nodes:
+            for sub in ast.walk(n):
+                if isinstance(sub, ast.Constant) and isinstance(sub.value, str):
+                    out.append(sub.value)
+        return out
+
+    # 可能有多个 `if is_en:`（目标注入、格式指令各一处）—— 取含格式指令的那个，
+    # 且**只看 if 分支本体**（If 节点的 ast.walk 会把 else 分支也算进去，那是中文的）。
+    candidates = [
+        _strings(node.body)
+        for node in ast.walk(fn)
+        if isinstance(node, ast.If) and isinstance(node.test, ast.Name) and node.test.id == "is_en"
+    ]
+    en_strs = next((s for s in candidates if any("Output STRICTLY" in x for x in s)), None)
+    assert en_strs is not None, "未找到英文格式指令（结构变化需同步本测试）"
+    han = [s for s in en_strs if HAN.search(s)]
+    assert not han, f"英文分支残留汉字: {han[:3]}"
 
 
 def test_english_user_instruction_tells_the_model_to_write_english():

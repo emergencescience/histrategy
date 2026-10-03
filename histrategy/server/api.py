@@ -23,6 +23,29 @@ from typing import Any
 # ─── Shared Helpers ──────────────────────────────────────────────
 
 
+# ── advisor-first 灰度（设计文档 §2/§6）───────────────────────────────────
+# 默认：只对白名单剧本开启。环境变量可覆盖，好处是**不用重新部署前端**就能关：
+#   HISTRATEGY_ADVISOR_FIRST=0  → 全局关闭（回滚到现状）
+#   HISTRATEGY_ADVISOR_FIRST=1  → 全局开启（本地联调/全量）
+# 未设置             → 只对 ADVISOR_FIRST_SCENARIOS 里的剧本开启
+ADVISOR_FIRST_SCENARIOS = {"rome-triumvirate"}
+
+
+def _advisor_first_enabled(scenario: str) -> bool:
+    """本轮是否走 advisor-first（决定要不要向模型索要第 4 块「玩家决策解析」）。
+
+    关闭时**不索要第 4 块** —— 这既是回滚开关，也是一根省 token 的杠杆。
+    """
+    import os
+
+    raw = (os.environ.get("HISTRATEGY_ADVISOR_FIRST") or "").strip().lower()
+    if raw in ("0", "false", "off", "no"):
+        return False
+    if raw in ("1", "true", "on", "yes"):
+        return True
+    return (scenario or "").strip() in ADVISOR_FIRST_SCENARIOS
+
+
 def _resolve_advisor_lang(query_lang: str, room) -> str:
     """决定军师用哪种语言说话。
 
@@ -324,6 +347,9 @@ def create_app(llm_provider: str | None = None) -> Any:
             room_id,
             body.get("faction_id", ""),
             decision,
+            # advisor-first 埋点：玩家这一轮选了哪个选项（top|bottom|custom）。
+            # 旧前端不传 → 记为 "direct"（玩家自由文本直接提交）。
+            option=str(body.get("option", "") or ""),
         )
 
     @app.get("/api/rooms/{room_id}/narrative-stream")
@@ -714,8 +740,10 @@ def create_app(llm_provider: str | None = None) -> Any:
                         "或远超我方当前实力，必须明确点破，切勿为不可能的目标编造实现路径。"
                         "若目标可行，则三条建议应围绕该目标展开。\n\n"
                     )
+            # ← 必须在 if/else 之外求值：中文分支同样要用它
+            custom_block = _advisor_first_enabled(room.scenario)
             if is_en:
-                query = goal_prefix + (
+                base = (
                     f"Advise me as the war councilor of {faction.name}: first, analyze "
                     f"the current strategic situation in 2-3 sentences of vivid prose, "
                     f"then provide three actionable strategies considering relative "
@@ -725,24 +753,31 @@ def create_app(llm_provider: str | None = None) -> Any:
                     f"copy-paste and send directly:\n\n"
                     f"【Upper Strategy】<title, max 8 words>\nDecree: <one executable command>\n\n"
                     f"【Middle Strategy】<title, max 8 words>\nDecree: <one executable command>\n\n"
-                    f"【Lower Strategy】<title, max 8 words>\nDecree: <one executable command>\n\n"
-                    f"【Your Plan】<one line: how you interpreted the commander, naming any ambiguity>\n"
-                    f"Decree: <concrete decree 1>\nDecree: <concrete decree 2, may be multiple>\n\n"
+                    f"【Lower Strategy】<title, max 8 words>\nDecree: <one executable command>\n"
                     f"LANGUAGE: write the analysis, the titles AND every Decree in English. "
                     f"Do not output Chinese characters anywhere."
                 )
+                extra = (
+                    "\n【Your Plan】<one line: how you interpreted the commander, naming any "
+                    "ambiguity>\nDecree: <concrete decree 1>\nDecree: <concrete decree 2, may be multiple>"
+                    if custom_block else ""
+                )
             else:
-                query = goal_prefix + (
+                base = (
                     f"请以我（{faction.name}）的军师身份进言：先用2-3句文言简析当前形势，"
                     f"再给出三条可执行的策略，务必兼顾敌我实力对比与近期战况。\n"
                     f"严格按以下格式输出（每条策略之间空一行），"
                     f"其中「策令：」后必须是一句玩家可直接照抄发送的具体政令：\n\n"
                     f"【上策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉\n\n"
                     f"【中策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉\n\n"
-                    f"【下策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉\n\n"
-                    f"【玩家决策解析】〈一句话说出你如何理解主公的原话，把模糊之处说破〉\n"
-                    f"策令：〈具体政令一〉\n策令：〈具体政令二，可多行〉"
+                    f"【下策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉"
                 )
+                extra = (
+                    "\n\n【玩家决策解析】〈一句话说出你如何理解主公的原话，把模糊之处说破〉\n"
+                    "策令：〈具体政令一〉\n策令：〈具体政令二，可多行〉"
+                    if custom_block else ""
+                )
+            query = goal_prefix + base + extra
             # JSON-encode each chunk so newlines in the structured format survive
             # SSE framing (the frontend does JSON.parse then concatenates). Same
             # robust framing as narrative-live-stream.

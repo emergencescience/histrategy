@@ -356,7 +356,13 @@ def _streaming_enabled() -> bool:
     return _os.environ.get("HISTRATEGY_STREAMING", "").strip() in ("1", "true", "True", "yes")
 
 
-def submit_decision(room_id: str, faction_id: str, decision: str, skip_narrative: bool = False) -> dict:
+def submit_decision(
+    room_id: str,
+    faction_id: str,
+    decision: str,
+    skip_narrative: bool = False,
+    option: str = "",
+) -> dict:
     """提交本季度决策。全员提交后自动 resolve。
 
     histrategy 是内部服务，auth 由 orchestrator 代理层处理。
@@ -364,6 +370,8 @@ def submit_decision(room_id: str, faction_id: str, decision: str, skip_narrative
 
     Args:
         skip_narrative: 流式模式下跳过叙事生成（见 _streaming_enabled）。
+        option: advisor-first 埋点 —— 玩家本轮在三个选项里选了哪个
+            （top 上策 / bottom 下策 / custom 玩家决策解析）；自由文本直接提交记 direct。
     """
     room = _get_room(room_id)
     if not room:
@@ -401,6 +409,21 @@ def submit_decision(room_id: str, faction_id: str, decision: str, skip_narrative
         return {"ok": False, "error": f"势力 {faction_id} 由AI控制"}
 
     slot.submit_decision(decision)
+
+    # ── advisor-first 埋点：把选项记在 room.metadata（随 room 一起持久化）──
+    # 不用新表也不用改 schema：quarter_turn.faction_decisions 是 JSON 字段，
+    # 落库时以 `_option` 键写进该势力的决策条目（见 _save_quarter）。
+    try:
+        meta = getattr(room, "metadata", None)
+        if isinstance(meta, dict):
+            opts = meta.get("decision_options")
+            if not isinstance(opts, dict):
+                opts = {}
+            opts[faction_id] = (option or "direct")
+            meta["decision_options"] = opts
+            _try_save(room)
+    except Exception as _opt_err:
+        logger.warning(f"Room {room_id}: 记录 decision option 失败（不影响提交）: {_opt_err}")
 
     # ── Parse human free-text into structured commands ──
     # The V3 QuarterlyResolver parses commands at resolution time (line 105 of
@@ -2474,9 +2497,32 @@ def _enrich_narratives_with_npc(narratives: dict, decisions: dict, room, baselin
     return enriched
 
 
+def _resolve_decision_option(source: str, recorded: str | None) -> str | None:
+    """判定这一轮人类玩家属于哪种情况（advisor-first 埋点）。
+
+    - source == "human"            → 玩家亲自提交了 → 用记录到的选项；
+                                      没记录（旧前端）记为 "direct"
+    - source == "heuristic_timeout" → 玩家超时未提交 → "timeout"
+    - 其余（llm / heuristic / …）   → NPC，不记
+    返回 None 表示不写入 `_option`。
+    """
+    src = (source or "").strip().lower()
+    if src == "human":
+        return (recorded or "direct").strip() or "direct"
+    if src == "heuristic_timeout":
+        return "timeout"
+    return None
+
+
 def _save_quarter(room, decisions, result):
     try:
         from histrategy.db.models import save_quarter_turn
+
+        # advisor-first 埋点：玩家本轮选了哪个选项（由 submit_decision 写入 metadata）
+        room_options = {}
+        _meta = getattr(room, "metadata", None)
+        if isinstance(_meta, dict) and isinstance(_meta.get("decision_options"), dict):
+            room_options = _meta["decision_options"]
 
         fd = {}
         for fid, dr in decisions.items():
@@ -2501,11 +2547,18 @@ def _save_quarter(room, decisions, result):
                     except (TypeError, ValueError):
                         serialized_cmds.append(str(c))
 
-            fd[fid] = {
+            entry = {
                 "decision": dr.decision_text,
                 "commands": serialized_cmds,
                 "source": dr.source,
             }
+            # advisor-first 埋点：只对人类玩家写 `_option`（NPC 不关心）
+            _opt = _resolve_decision_option(
+                getattr(dr, "source", ""), (room_options or {}).get(fid)
+            )
+            if _opt:
+                entry["_option"] = _opt
+            fd[fid] = entry
         # Collect per-turn token usage from llm_call_log
         token_usage = _collect_quarter_tokens(room.id, room.quarter_number)
 
