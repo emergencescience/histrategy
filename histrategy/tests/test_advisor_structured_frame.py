@@ -26,10 +26,12 @@ sys.path.insert(0, str(REPO))
 from histrategy.llm.advisor_strategies import (  # noqa: E402
     build_structured_advice,
     extract_analysis,
+    extract_custom_plan,
     extract_intercepts,
     parse_advisor_strategies,
 )
 
+PROMPTS = REPO / "histrategy" / "llm" / "prompts"
 TS_SRC = Path("/opt/data/repos/surprisal-portal/src/lib/histrategy-play-view.ts")
 
 CN = """当前形势：我据新野一城，兵不满万，曹军已得荆襄之势。宜先固本，再图进取。
@@ -105,6 +107,79 @@ def test_structured_frame_shape():
     assert isinstance(frame["analysis"], str) and frame["analysis"]
     # 必须可 JSON 序列化（要经 SSE 发送）
     json.dumps(frame, ensure_ascii=False)
+
+
+CUSTOM_CN = """主公但有吩咐，臣必效死。
+
+【上策】屯粮固本
+策令：于新野推行屯田制
+
+【下策】结援江东
+策令：遣使赴吴结盟
+
+【玩家决策解析】你说"休养生息"——我理解为：不扩军、减税、全力屯田
+策令：税率降至 0.15
+策令：新野、江夏推行屯田制
+策令：本季不募兵（休养生息不含扩军）
+"""
+
+
+def test_player_plan_block_is_parsed_as_fourth_option():
+    """第 4 块「玩家决策解析」必须被识别成一个独立档位（PRD 的第三选项）。"""
+    cards = parse_advisor_strategies(CUSTOM_CN)
+    assert [c["tier"] for c in cards] == ["上策", "下策", "玩家决策解析"]
+    plan = extract_custom_plan(CUSTOM_CN)
+    assert plan is not None
+    assert "休养生息" in plan["understanding"]
+    assert len(plan["commands"]) == 3, "模糊意图应被拆成多条具体政令"
+
+
+def test_multi_command_block_exposes_commands_list():
+    """一块多条政令时给出 commands 数组；单条时保持旧形状（向后兼容）。"""
+    last = parse_advisor_strategies(CUSTOM_CN)[-1]
+    assert len(last["commands"]) == 3
+    assert last["command"] == last["commands"][0], "command 仍应是第一条（旧前端读它）"
+    single = parse_advisor_strategies("【上策】A\n策令：甲")
+    assert "commands" not in single[0], "单命令块不应新增字段"
+
+
+def test_english_alias_maps_to_player_plan():
+    txt = "【Your Plan】You want to be bolder.\nDecree: recruit 3000\nDecree: march on Fancheng"
+    cards = parse_advisor_strategies(txt)
+    assert cards[0]["tier"] == "玩家决策解析"
+    assert len(cards[0]["commands"]) == 2
+
+
+def test_structured_frame_carries_custom_plan():
+    frame = build_structured_advice(CUSTOM_CN)
+    assert frame["custom"] is not None
+    assert len(frame["custom"]["commands"]) == 3
+    json.dumps(frame, ensure_ascii=False)
+
+
+def test_old_three_option_output_still_parses():
+    """旧格式（只有上/中/下策）必须继续工作。"""
+    old = "【上策】A\n策令：甲\n\n【中策】B\n策令：乙\n\n【下策】C\n策令：丙"
+    assert [c["tier"] for c in parse_advisor_strategies(old)] == ["上策", "中策", "下策"]
+    assert build_structured_advice(old)["custom"] is None
+
+
+def test_prompts_require_the_fourth_block():
+    """两个 system prompt 都必须含第 4 块规则，且覆盖三种输入形态。"""
+    cn = (PROMPTS / "advisor.md").read_text(encoding="utf-8")
+    assert "玩家决策解析（第四块" in cn
+    for kw in ("明确命令", "模糊意图", "提问", "不要复述"):
+        assert kw in cn, f"中文 prompt 缺少: {kw}"
+    en = (PROMPTS / "advisor_en.md").read_text(encoding="utf-8")
+    assert "Player's Plan (fourth block" in en
+    for kw in ("Explicit order", "Vague intent", "Question", "Do not paraphrase"):
+        assert kw in en, f"英文 prompt 缺少: {kw}"
+
+
+def test_user_instruction_asks_for_the_fourth_block():
+    src = (REPO / "histrategy" / "server" / "api.py").read_text(encoding="utf-8")
+    assert "【玩家决策解析】〈一句话说出你如何理解主公的原话" in src
+    assert "【Your Plan】<one line: how you interpreted the commander" in src
 
 
 def _frontend_parser_js(tmp: Path) -> str | None:

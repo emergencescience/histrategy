@@ -726,6 +726,8 @@ def create_app(llm_provider: str | None = None) -> Any:
                     f"【Upper Strategy】<title, max 8 words>\nDecree: <one executable command>\n\n"
                     f"【Middle Strategy】<title, max 8 words>\nDecree: <one executable command>\n\n"
                     f"【Lower Strategy】<title, max 8 words>\nDecree: <one executable command>\n\n"
+                    f"【Your Plan】<one line: how you interpreted the commander, naming any ambiguity>\n"
+                    f"Decree: <concrete decree 1>\nDecree: <concrete decree 2, may be multiple>\n\n"
                     f"LANGUAGE: write the analysis, the titles AND every Decree in English. "
                     f"Do not output Chinese characters anywhere."
                 )
@@ -737,7 +739,9 @@ def create_app(llm_provider: str | None = None) -> Any:
                     f"其中「策令：」后必须是一句玩家可直接照抄发送的具体政令：\n\n"
                     f"【上策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉\n\n"
                     f"【中策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉\n\n"
-                    f"【下策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉"
+                    f"【下策】〈不超过8字的标题〉\n策令：〈一句可直接执行的政令〉\n\n"
+                    f"【玩家决策解析】〈一句话说出你如何理解主公的原话，把模糊之处说破〉\n"
+                    f"策令：〈具体政令一〉\n策令：〈具体政令二，可多行〉"
                 )
             # JSON-encode each chunk so newlines in the structured format survive
             # SSE framing (the frontend does JSON.parse then concatenates). Same

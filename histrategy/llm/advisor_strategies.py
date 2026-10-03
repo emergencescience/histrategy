@@ -30,9 +30,18 @@ import re
 
 # 与前端 parseAdvisorStrategies 的正则保持逐字一致（CN/EN 双格式）
 _STRATEGY_RE = re.compile(
-    r"【(上策|中策|下策|Upper Strategy|Middle Strategy|Lower Strategy)】"
+    r"【(上策|中策|下策|玩家决策解析|Upper Strategy|Middle Strategy|Lower Strategy|"
+    r"Your Plan|Player's Plan|Your Decision)】"
     r"\s*([^\n]*)\n\s*(?:策令|Decree|Command)[：:]\s*([^\n【]+)"
 )
+
+# 一块里可能有**多条**政令（玩家决策解析尤其需要：模糊意图要拆成多领域政策）。
+# 按块头切分，再收集该块内所有「策令：」行。
+_BLOCK_SPLIT_RE = re.compile(
+    r"【(上策|中策|下策|玩家决策解析|Upper Strategy|Middle Strategy|Lower Strategy|"
+    r"Your Plan|Player's Plan|Your Decision)】"
+)
+_CMD_LINE_RE = re.compile(r"^\s*(?:策令|Decree|Command)[：:]\s*(.+)$")
 
 _TIER_NORM = {
     "上策": "上策",
@@ -42,6 +51,12 @@ _TIER_NORM = {
     "Middle Strategy": "中策",
     "Lower Strategy": "下策",
 }
+
+# 「玩家决策解析」及其英文别名 → 统一档位名（与既有做法一致：前端按档位配色，
+# 英文页再用 tierLabel 显示 "Your Plan"）。
+_TIER_NORM["玩家决策解析"] = "玩家决策解析"
+for _alias in ("Your Plan", "Player's Plan", "Your Decision"):
+    _TIER_NORM[_alias] = "玩家决策解析"
 
 # 《》〈〉<> 都是 prompt 里的占位符括号，真输出里出现即属噪音，去掉
 _BRACKETS = re.compile(r"[〈〉<>《》]")
@@ -75,12 +90,26 @@ def parse_advisor_strategies(text: str) -> list[dict]:
     if not text:
         return []
     cards: list[dict] = []
-    for m in _STRATEGY_RE.finditer(text):
+    # 先按块切分，以便收集"每块多命令"；兼容旧格式（每块恰好一条）。
+    marks = list(_BLOCK_SPLIT_RE.finditer(text))
+    for i, m in enumerate(marks):
         tier = _TIER_NORM.get(m.group(1), m.group(1))
-        title = _BRACKETS.sub("", m.group(2) or "").strip()
-        command = _BRACKETS.sub("", m.group(3) or "").strip()
-        if command:
-            cards.append({"tier": tier, "title": title, "command": command})
+        body = text[m.end(): marks[i + 1].start() if i + 1 < len(marks) else len(text)]
+        lines = body.split("\n")
+        title = _BRACKETS.sub("", lines[0] if lines else "").strip()
+        commands: list[str] = []
+        for line in lines:
+            cm = _CMD_LINE_RE.match(line)
+            if cm:
+                cmd = _BRACKETS.sub("", cm.group(1)).strip()
+                if cmd:
+                    commands.append(cmd)
+        if not commands:
+            continue
+        card = {"tier": tier, "title": title, "command": commands[0]}
+        if len(commands) > 1:
+            card["commands"] = commands
+        cards.append(card)
     return cards
 
 
@@ -114,6 +143,22 @@ def extract_intercepts(text: str) -> list[str]:
     return out[:3]
 
 
+def extract_custom_plan(text: str) -> dict | None:
+    """取出「玩家决策解析」这一块（玩家意图 → 具体政令）。
+
+    与上策/下策不同，这一块是**把主公的话翻译成可执行方案**，因此可能含多条政令。
+    返回 None 表示这次进言里没有这一块（旧行为：只有三策）。
+    """
+    for card in parse_advisor_strategies(text):
+        if card["tier"] == "玩家决策解析":
+            return {
+                "title": card["title"],
+                "understanding": card["title"],   # 块头那句＝"我怎么理解你的话"
+                "commands": card.get("commands", [card["command"]]),
+            }
+    return None
+
+
 def build_structured_advice(text: str) -> dict:
     """把一段军师进言文本转成结构化帧。
 
@@ -137,5 +182,6 @@ def build_structured_advice(text: str) -> dict:
         "analysis": extract_analysis(text),
         "intercepts": extract_intercepts(text),
         "strategies": strategies,
+        "custom": extract_custom_plan(text),
         "parsed": bool(strategies),
     }
