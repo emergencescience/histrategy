@@ -1838,16 +1838,37 @@ def _capture_faction_state(ws, room=None) -> dict:
     return old_state
 
 
-def _capture_faction_population(ws, faction) -> int:
-    """Compute faction population from territory sum (FactionState has no population field)."""
-    pop_val = getattr(faction, "population", 0)
-    if not pop_val:
-        pop_val = sum(
-            getattr(ws.territories.get(tid), "population", 0)
+def _resolve_faction_population(faction, ws, territories_list, old_row) -> int:
+    """解析一个势力本回合的人口 —— **状态写入与增量记录的唯一来源**。
+
+    为什么必须只有一个来源：这里有三层兜底（无城池也会给出合理值），而
+    `_capture_faction_population()` 对"无城池"势力返回 0。两处各算一遍就会
+    写出"game_state 存 50000 而 turn_delta 记 50000→0"的自相矛盾，
+    玩家屏幕上每回合演一次人口归零（全库 25.1% 的 population delta 如此）。
+
+    Fallback 顺序：
+      1. 势力自身 population 属性
+      2. 其领土人口之和（ws.territories）
+      3. territories_list 快照之和
+      4. 上一季度人口（BUG H35j：旧实现此处退化成 100）
+      5. 绝对下限 50000
+    """
+    computed_population = _safe_int(getattr(faction, "population", 0))
+    if computed_population == 0 and ws:
+        computed_population = sum(
+            max(100, _safe_int(getattr(ws.territories.get(tid), "population", 50000)))
             for tid in getattr(faction, "territories", [])
-            if ws.territories.get(tid)
+            if tid in ws.territories
         )
-    return pop_val
+    if not computed_population and territories_list:
+        computed_population = sum(
+            max(100, t.get("population", 50000)) for t in territories_list if isinstance(t, dict)
+        )
+    if not computed_population and old_row:
+        computed_population = _safe_int(old_row.get("population", 0))
+    if not computed_population:
+        computed_population = 50000  # minimum faction population
+    return computed_population
 
 
 def _resolve_territories_from_delta(faction, delta: dict, ws) -> list[dict]:
@@ -2287,26 +2308,9 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict, pre_terri
             # native population field — it's derived from Territory.population).
             # Territory.population defaults to 50000. Use getattr for safety
             # against serialized Territory dicts or missing keys after DB round-trip.
-            computed_population = _safe_int(getattr(faction, "population", 0))
-            if computed_population == 0 and ws:
-                computed_population = sum(
-                    max(100, _safe_int(getattr(ws.territories.get(tid), "population", 50000)))
-                    for tid in getattr(faction, "territories", [])
-                    if tid in ws.territories
-                )
-            # Fallback 1: compute from territories_list (uses owner fallback)
-            if not computed_population and territories_list:
-                computed_population = sum(
-                    max(100, t.get("population", 50000)) for t in territories_list
-                    if isinstance(t, dict)
-                )
-            # Fallback 2: carry forward previous quarter population (Bug H35j)
-            # Previously defaulted to max(100, 0*50000)=100 when no territories.
-            if not computed_population and fid in old_state:
-                computed_population = _safe_int(old_state[fid].get("population", 0))
-            # Fallback 3: absolute minimum
-            if not computed_population:
-                computed_population = 50000  # minimum faction population
+            computed_population = _resolve_faction_population(
+                faction, ws, territories_list, old_state.get(fid)
+            )
 
             save_game_state(
                 room_id=room.id,
@@ -2349,9 +2353,14 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict, pre_terri
                     old = old_state[fid]
                     delta_map = [
                         (
+                            # 必须复用**真正落库的那个值**（computed_population）。
+                            # 旧代码在这里另调用 _capture_faction_population()，它对
+                            # "无城池"势力返回 0 → 与 game_state 的 50000 自相矛盾，
+                            # 玩家屏幕上每回合演一次"人口 50000 → 0"的假灾难
+                            # （全库 25.1% 的 population delta 都是这么来的）。
                             "population",
                             _safe_int(old.get("population", 0)),
-                            _safe_int(_capture_faction_population(ws, faction)),
+                            _safe_int(computed_population),
                         ),
                         ("troops", _safe_int(old.get("troops", 0)), _safe_int(getattr(faction, "strength_actual", 0))),
                         ("food", _safe_float(old.get("food", 0)), _safe_float(faction.food)),
