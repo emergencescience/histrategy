@@ -915,11 +915,15 @@ class IntentParser:
         return "infantry"
 
     def _extract_tax_rate(self, text: str) -> float:
-        """Extract tax rate from text (0.1-0.5)."""
+        """Extract tax rate from text.
+
+        区间与校验器/执行器统一为 [0.05, 0.6]（旧值 [0.1, 0.5] 会把玩家说的
+        "减税到 8%" 静默改成 10%，属于"玩家说了、系统偷偷改了"的一类问题）。
+        """
         match = re.search(r"(\d+)\s*[%％]", text)
         if match:
             rate = int(match.group(1)) / 100.0
-            return max(0.1, min(0.5, rate))
+            return max(0.05, min(0.6, rate))
         # "加税" → 0.4, "减税" → 0.2
         if "加" in text:
             return 0.4

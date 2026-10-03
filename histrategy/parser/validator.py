@@ -175,11 +175,22 @@ class CommandValidator:
         return True
 
     def _validate_tax(self, cmd: Command) -> bool:
-        """Validate tax: rate must be 0.1-0.5."""
-        rate = cmd.params.get("rate")
+        """Validate tax.
+
+        键名与区间都必须和**执行器**对齐，否则会出现"校验器拒了、执行器却能做"的
+        静默丢弃（H38d 修的就是这类问题，但当时只改了执行器侧）：
+        - 键名：rate | tax_rate | new_rate（规则解析器用 rate，LLM 结构化决策用
+          tax_rate，macro-sim 用 new_rate）
+        - 区间：[0.05, 0.6]（与 `state_applier.py` 的 clamp 一致；旧值 [0.1, 0.5]
+          会把"减税到 8%"这类合理政令直接判非法）
+        """
+        rate = cmd.params.get("rate") or cmd.params.get("tax_rate") or cmd.params.get("new_rate")
         if rate is None:
             return False
-        return 0.1 <= float(rate) <= 0.5
+        try:
+            return 0.05 <= float(rate) <= 0.6
+        except (TypeError, ValueError):
+            return False
 
     def _validate_train(self, cmd: Command, world_state: WorldState) -> bool:
         """Validate training: territory must belong to faction."""

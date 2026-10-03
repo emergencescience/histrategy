@@ -103,3 +103,45 @@ def test_macro_sim_prompts_contain_rules():
             text = p.read_text(encoding="utf-8")
             assert marker in text, f"{p} missing {marker}"
             assert "地图边界铁律" in text or "Map-boundary" in text, f"{p} missing map-boundary rule"
+
+
+# ── 5. 玩家侧也统一（H38d 当时只改了执行器侧，校验器/规则解析器漏了）──
+def test_player_validator_accepts_three_keys_and_new_range():
+    """玩家命令校验器必须与执行器同键名同区间，否则会被静默丢弃。"""
+    from histrategy.engine.helpers import create_initial_world
+    from histrategy.parser.validator import CommandValidator
+
+    ws = create_initial_world("cao", "three-kingdoms")
+    v = CommandValidator(ws.map if hasattr(ws, "map") else None)
+
+    def ok(params):
+        return v._validate_tax(Command(type="tax", params=params, faction_id="cao"))
+
+    # 三种键名都要接受（规则解析器 rate / LLM 结构化 tax_rate / macro new_rate）
+    assert ok({"rate": 0.15}) is True
+    assert ok({"tax_rate": 0.08}) is True, "tax_rate 键被旧逻辑拒绝"
+    assert ok({"new_rate": 0.20}) is True, "new_rate 键被旧逻辑拒绝"
+    # 新区间 [0.05, 0.6]
+    assert ok({"rate": 0.05}) is True
+    assert ok({"rate": 0.6}) is True
+    assert ok({"rate": 0.02}) is False, "低于 0.05 应拒绝"
+    assert ok({"rate": 0.9}) is False, "高于 0.6 应拒绝"
+    assert ok({}) is False, "缺键应拒绝"
+    assert ok({"rate": "abc"}) is False, "非数字应拒绝（不能抛异常）"
+
+
+def test_rule_parser_no_longer_silently_rewrites_low_tax_orders():
+    """玩家说"减税到 8%"不该被静默改成 10%。"""
+    from histrategy.parser.intent import IntentParser
+
+    p = IntentParser(llm=None) if _accepts_llm(IntentParser) else IntentParser()
+    assert abs(p._extract_tax_rate("把税率降到 8%") - 0.08) < 1e-9
+    assert abs(p._extract_tax_rate("税率 55%") - 0.55) < 1e-9, "55% 应保留（旧逻辑压成 50%）"
+    assert abs(p._extract_tax_rate("税率 5%") - 0.05) < 1e-9
+    assert abs(p._extract_tax_rate("税率 80%") - 0.6) < 1e-9, "超上限才夹到 0.6"
+
+
+def _accepts_llm(cls) -> bool:
+    import inspect
+
+    return "llm" in inspect.signature(cls.__init__).parameters
