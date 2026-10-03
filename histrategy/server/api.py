@@ -718,14 +718,40 @@ def create_app(llm_provider: str | None = None) -> Any:
             # JSON-encode each chunk so newlines in the structured format survive
             # SSE framing (the frontend does JSON.parse then concatenates). Same
             # robust framing as narrative-live-stream.
+            def _structured_frame(full_text: str) -> str | None:
+                """把整段进言转成结构化帧（analysis/intercepts/strategies）。
+
+                在 [DONE] 之前多发这一帧，前端即可直接消费三策与拦截解释，
+                不必再各自正则解析同一份文本（前后端两份实现必然漂移）。
+                旧前端对非字符串帧会 `continue` 跳过，因此**先发帧不会破坏线上**。
+                """
+                try:
+                    from histrategy.llm.advisor_strategies import build_structured_advice
+
+                    frame = build_structured_advice(full_text)
+                    if not frame.get("parsed") and not frame.get("intercepts"):
+                        return None  # 没解析出东西就不发，让前端继续走文本解析
+                    return f"data: {_json_adv.dumps(frame, ensure_ascii=False)}\n\n"
+                except Exception:
+                    logger.warning("advisor structured frame failed", exc_info=True)
+                    return None
+
             try:
+                acc: list[str] = []
                 for chunk in advisor.advise_player_stream(local_state, personality=personality, query=query):
                     if chunk:
+                        acc.append(chunk)
                         yield f"data: {_json_adv.dumps(chunk, ensure_ascii=False)}\n\n"
+                frame = _structured_frame("".join(acc))
+                if frame:
+                    yield frame
                 yield "data: [DONE]\n\n"
             except Exception:
                 fallback = advisor._offline_advice(local_state, query)
                 yield f"data: {_json_adv.dumps(fallback, ensure_ascii=False)}\n\n"
+                frame = _structured_frame(fallback)
+                if frame:
+                    yield frame
                 yield "data: [DONE]\n\n"
 
         return StreamingResponse(
