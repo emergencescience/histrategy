@@ -929,13 +929,30 @@ def create_app(llm_provider: str | None = None) -> Any:
                 if npc_only_ids else raw_narr
             )
 
+            # Filter NPC-only factions from state_changes as well.
+            # V3's _extract_state_changes() now EMBEDS faction_stats directly in
+            # state_changes, which made the npc_only filter on the game_state
+            # fallback below dead code — so npc_only factions (e.g. sextus_pompey)
+            # leaked into the shared page's 势力资源 table, rendered with their
+            # raw internal ID because they have no display name.
+            raw_sc = _safe_json_loads(row.get("state_changes")) or {}
+            if npc_only_ids and isinstance(raw_sc, dict):
+                sc_filtered = {k: v for k, v in raw_sc.items() if k not in npc_only_ids}
+                if isinstance(sc_filtered.get("faction_stats"), dict):
+                    sc_filtered["faction_stats"] = {
+                        fid: v
+                        for fid, v in sc_filtered["faction_stats"].items()
+                        if fid not in npc_only_ids
+                    }
+                raw_sc = sc_filtered
+
             turn = {
                 "quarter_number": qn,
                 "year": row["year"],
                 "season": row["season"],
                 "faction_decisions": fd_filtered,
                 "narratives": narr_filtered,
-                "state_changes": _safe_json_loads(row.get("state_changes")),
+                "state_changes": raw_sc,
                 "token_usage": _safe_json_loads(row.get("token_usage")),
                 "turn_deltas": deltas,
                 "policies": policies,
