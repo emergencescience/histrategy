@@ -890,6 +890,8 @@ def create_app(llm_provider: str | None = None) -> Any:
             deltas = {}
             for d in raw_deltas:
                 fid = d["faction_id"]
+                if fid in npc_only_ids:
+                    continue  # npc_only factions are never displayed (see state_changes filter)
                 if fid not in deltas:
                     deltas[fid] = []
                 deltas[fid].append(

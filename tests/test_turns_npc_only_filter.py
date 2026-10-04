@@ -60,8 +60,17 @@ def _wire(monkeypatch, npc_only):
     import histrategy.db.models as db
     import histrategy.server.room_manager as rm
 
+    def _deltas(room_id, qn):
+        return [
+            {"faction_id": "octavian", "delta_type": "morale", "old_value": 90,
+             "new_value": 95, "delta": 5, "reason": "r", "source": "s"},
+            # The phantom 0 -> 50000 population event that used to leak.
+            {"faction_id": "sextus_pompey", "delta_type": "population", "old_value": 0,
+             "new_value": 50000, "delta": 50000, "reason": "r", "source": "s"},
+        ]
+
     monkeypatch.setattr(db, "get_quarter_turns", lambda *a, **k: [dict(_TURN_ROW)])
-    monkeypatch.setattr(db, "get_turn_deltas", lambda *a, **k: [])
+    monkeypatch.setattr(db, "get_turn_deltas", _deltas)
     monkeypatch.setattr(db, "get_policies_by_quarter", lambda *a, **k: [])
     monkeypatch.setattr(db, "get_latest_game_states", lambda *a, **k: [])
     monkeypatch.setattr(rm, "_get_npc_only_ids", lambda room_id: set(npc_only))
@@ -83,6 +92,7 @@ def test_npc_only_faction_hidden_everywhere_in_turns(client, monkeypatch):
     assert "sextus_pompey" not in turn["narratives"]
     assert "sextus_pompey" not in turn["state_changes"]
     assert "sextus_pompey" not in turn["state_changes"]["faction_stats"]
+    assert "sextus_pompey" not in turn["turn_deltas"]
     # …while the top-level declaration still tells the frontend who is npc_only.
     assert data["npc_only_factions"] == ["sextus_pompey"]
 
@@ -90,6 +100,7 @@ def test_npc_only_faction_hidden_everywhere_in_turns(client, monkeypatch):
     assert "octavian" in turn["state_changes"]
     assert "octavian" in turn["state_changes"]["faction_stats"]
     assert "octavian" in turn["faction_decisions"]
+    assert "octavian" in turn["turn_deltas"]
     # Non-faction keys must not be clobbered by the filter.
     assert "faction_stats" in turn["state_changes"]
 
