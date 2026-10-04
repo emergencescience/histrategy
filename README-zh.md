@@ -9,7 +9,7 @@
 [![Made by Emergence Science](https://img.shields.io/badge/Made%20by-Emergence%20Science-8A2BE2)](https://emergence.science)
 
 <p align="center">
-  <img src="publications/2026-05-25-introduction/assets/2026-05-25-histrategy-yuan-shao.png" alt="三國志略 CLI 界面" width="720">
+  <img src="publications/2026-05-25-introduction/assets/2026-05-25-histrategy-yuan-shao.png" alt="三國志略（早期终端版本界面截图）" width="720">
 </p>
 
 ---
@@ -76,7 +76,7 @@ histrategy
 ## 架构
 
 ```
-histrategy/              # 完整游戏：FastAPI 服务器、CLI、Web UI
+histrategy/              # 完整游戏：FastAPI 服务器、Web UI
 histrategy-sdk/          # 玩家 SDK：Room、DirectEngine（文件存储）
 histrategy-agent/        # Agent 集成：TurnProcessor、IM 适配器
 histrategy-engine/       # 核心引擎：WorldState、TurnController、公式

@@ -2217,82 +2217,92 @@ def _clamp_extreme_changes(ws, old_state: dict):
 
     # ── First pass: collect raw changes ──
     faction_changes: dict[str, dict] = {}
-    max_gain_ratio = 1.0
 
     for fid, faction in ws.factions.items():
         if not faction.is_active:
             continue
         # 布景势力（minor_npc / npc_only）不参与结算 → 也不参与守门缩放。
-        # 他们若进入 max_gain_ratio 的计算，会扭曲真正需要缩放的主力势力。
+        # 他们若进入统计，会扭曲真正需要缩放的主力势力。
         if not _is_settled_faction(ws, fid):
             continue
         old = old_state.get(fid, {})
         old_troops = old.get("troops", 0)
         new_troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
         if old_troops > 0 and new_troops != old_troops:
-            ratio = new_troops / old_troops
             faction_changes[fid] = {
                 "faction": faction,
                 "old": old_troops,
                 "new": new_troops,
-                "ratio": ratio,
+                "ratio": new_troops / old_troops,
                 "old_food": old.get("food", 0) or getattr(faction, "food", 0) or 0,
             }
-            if ratio > max_gain_ratio:
-                max_gain_ratio = ratio
 
-    if max_gain_ratio > (1 + _MAX_TROOP_GAIN):
-        # ── Proportional scaling: preserve relative ordering ──
-        scale = (1 + _MAX_TROOP_GAIN) / max_gain_ratio
-        logger.warning(
-            "V3 guardrail: proportional scaling applied, "
-            f"max_gain_ratio={max_gain_ratio:.1f}x, scale={scale:.2f}, "
-            f"factions={len(faction_changes)}"
-        )
-        for fid, data in faction_changes.items():
-            faction = data["faction"]
-            old_troops = data["old"]
-            new_troops = data["new"]
-            ratio = data["ratio"]
+    # ── Second pass: PER-FACTION capping（2026-10-04 改，用户裁定）──
+    #
+    # 旧行为（已废弃）：取**最大涨幅者的比例**当作**全体**的缩放系数。
+    #     scale = (1 + _MAX_TROOP_GAIN) / max_gain_ratio，然后 `old * ratio * scale`
+    # 看起来是"按比例保留差异"，实际后果是**最弱的势力决定所有人的命运**：
+    # 生产/本地实测（罗马，antony 27000 / octavian 1500 / senate 43000 / cleopatra 15000）:
+    #     octavian  1500 -> 5935 (+396%)  → scale = 1.5/4.96 = 0.30
+    #     cleopatra 15000 -> 17000 (+13%) → 被乘 0.30 → 6444  (−57%！)
+    #     senate    43000 -> 48000 (+12%) → 被乘 0.30 → 18197（−58%！）
+    # 一个 1500 人的小势力涨了兵，最后是元老院和埃及被砍掉一半兵力 —— 用户看到的
+    # "势力莫名掉一半兵"全出自这里，与战损无关。
+    #
+    # 新行为：**谁超限就压谁**。每个势力各自 `old × (1 ± cap)`，互不影响。
+    # 代价是"多个势力同时超限时，它们都会停在各自的上限"（旧注释担心的
+    # "都变成同一个数"）—— 但那只在这些势力的 old 值本来就相同时才发生，
+    # 而那时"大家都吃到上限"本身就是正确语义，不该让别人的涨幅给自己打折。
+    _GAIN_CAP = 1 + _MAX_TROOP_GAIN
+    _LOSS_CAP = 1 - _MAX_TROOP_LOSS
+    for fid, data in faction_changes.items():
+        faction = data["faction"]
+        old_troops = data["old"]
+        new_troops = data["new"]
+        ratio = data["ratio"]
 
-            if ratio > 1:  # gain
-                clamped = int(old_troops * ratio * scale)
+        if ratio > 1:  # gain
+            cap = int(old_troops * _GAIN_CAP)
+            if new_troops > cap:
+                clamped = cap
                 logger.warning(
                     f"V3 guardrail: {faction.name} ({fid}) troops "
-                    f"{old_troops}->{new_troops} ({ratio:+.0%} raw) "
-                    f"→ scaled to {clamped} "
-                    f"(proportional, max capped at {int(old_troops * (1 + _MAX_TROOP_GAIN))})"
+                    f"{old_troops}->{new_troops} ({ratio:+.0%}) "
+                    f"→ capped to {clamped} (per-faction cap: +{_MAX_TROOP_GAIN:.0%})"
                 )
-            else:  # loss
-                loss_pct = 1 - ratio
-                if loss_pct > _MAX_TROOP_LOSS:
-                    clamped = int(old_troops * (1 - _MAX_TROOP_LOSS))
-                    logger.warning(
-                        f"V3 guardrail: {faction.name} ({fid}) troops "
-                        f"{old_troops}->{new_troops} ({ratio:+.0%}) "
-                        f"clamped to {clamped} (loss cap: {_MAX_TROOP_LOSS:.0%})"
-                    )
-                else:
-                    clamped = new_troops
-
-            if hasattr(faction, "strength_actual"):
-                faction.strength_actual = clamped
-            elif hasattr(faction, "strength"):
-                faction.strength = clamped
-
-            # Scale food proportionally (always, even if old_food=0 — use baseline minimum)
-            old_food = data["old_food"]
-            if abs(ratio - 1) > 1.0:
-                # 2026-10-04: was `min_food = 3000` — a fourth magic floor in
-                # the same family as the 50000 population / 3000 food floors.
-                # Use the faction's OWN previous food as the baseline; a faction
-                # with 500 food must not be re-based onto 3000.
-                effective_old = max(old_food, 1)
-                faction.food = int(effective_old * min(1 + _MAX_TROOP_GAIN, 2.0))
+            else:
+                clamped = new_troops
+        else:  # loss —— 与 gain 各自独立判定（旧代码里 loss 上限只在"有人涨超"
+            # 时才生效，是另一处耦合；现在每个势力都独立受自己的上限约束）
+            if (1 - ratio) > _MAX_TROOP_LOSS:
+                clamped = int(old_troops * _LOSS_CAP)
                 logger.warning(
-                    f"V3 guardrail: {faction.name} ({fid}) food auto-scaled "
-                    f"{effective_old}->{faction.food}"
+                    f"V3 guardrail: {faction.name} ({fid}) troops "
+                    f"{old_troops}->{new_troops} ({ratio:+.0%}) "
+                    f"clamped to {clamped} (loss cap: {_MAX_TROOP_LOSS:.0%})"
                 )
+            else:
+                clamped = new_troops
+
+        if hasattr(faction, "strength_actual"):
+            faction.strength_actual = clamped
+        elif hasattr(faction, "strength"):
+            faction.strength = clamped
+
+        # 粮食同步：仅在**自身**兵力涨超 100% 时按同一倍率重算
+        # （ratio ≥ 0 恒成立，故 abs(ratio-1)>1 ⟺ ratio>2，即只可能是暴涨）
+        old_food = data["old_food"]
+        if abs(ratio - 1) > 1.0:
+            # 2026-10-04: was `min_food = 3000` — a fourth magic floor in
+            # the same family as the 50000 population / 3000 food floors.
+            # Use the faction's OWN previous food as the baseline; a faction
+            # with 500 food must not be re-based onto 3000.
+            effective_old = max(old_food, 1)
+            faction.food = int(effective_old * min(_GAIN_CAP, 2.0))
+            logger.warning(
+                f"V3 guardrail: {faction.name} ({fid}) food auto-scaled "
+                f"{effective_old}->{faction.food}"
+            )
 
     # ── Dedicated food guardrail (always runs, proportional) ──
     # 2026-10-04: the ABSOLUTE floor is gone (was 3000). Every faction's food was

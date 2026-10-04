@@ -25,9 +25,6 @@ all = [
     "psycopg2-binary>=2.9",
 ]
 
-[project.scripts]
-histrategy = "histrategy.__main__:main"
-
 [tool.pytest.ini_options]
 markers = [
     # 真调第三方大模型的 e2e：输出本身不确定，"红"可能是真坏也可能是模型这次发挥不好。

@@ -9,7 +9,7 @@
 [![Made by Emergence Science](https://img.shields.io/badge/Made%20by-Emergence%20Science-8A2BE2)](https://emergence.science)
 
 <p align="center">
-  <img src="publications/2026-05-25-introduction/assets/2026-05-25-histrategy-yuan-shao.png" alt="Histrategy CLI" width="720">
+  <img src="publications/2026-05-25-introduction/assets/2026-05-25-histrategy-yuan-shao.png" alt="Histrategy (early terminal build screenshot)" width="720">
 </p>
 
 ---
@@ -110,7 +110,7 @@ only to force the deterministic engine (offline/testing).
 ## Architecture
 
 ```
-histrategy/              # Full game: FastAPI server, CLI, web UI
+histrategy/              # Full game: FastAPI server, web UI
 histrategy-sdk/          # SDK for players: Room, DirectEngine (file-based)
 histrategy-agent/        # Agent integration: TurnProcessor, IM adapters
 histrategy-engine/       # Core engine: WorldState, TurnController, formulas

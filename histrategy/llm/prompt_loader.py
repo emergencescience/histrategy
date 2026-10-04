@@ -16,7 +16,10 @@ def load_prompt(filename: str, default: str | None = None) -> str | None:
 
 ADVISOR_SYSTEM = load_prompt("advisor.md")
 ADVISOR_SYSTEM_EN = load_prompt("advisor_en.md")
-ALIGNMENT_SYSTEM = load_prompt("alignment.md")
+# ALIGNMENT_SYSTEM: deleted 2026-10-04 — histrategy/llm/alignment.py had zero
+# production importers (only its own test). 非线性摩擦目前由 V3 macro 层模拟。
+# 若恢复：模块与 prompts/alignment.md 必须一起恢复 —— load_prompt() 在 import
+# 时执行，缺文件会 FileNotFoundError 让整个应用起不来。
 GAMEMASTER_INTRO_SYSTEM = load_prompt("gamemaster_intro.md")
 GAMEMASTER_INTRO_SYSTEM_EN = load_prompt(
     "gamemaster_intro_en.md",
@@ -56,7 +59,6 @@ MACRO_SIM_SYSTEM_EN = None
 KNOWN_PROMPTS = {
     "ADVISOR_SYSTEM": ADVISOR_SYSTEM,
     "ADVISOR_SYSTEM_EN": ADVISOR_SYSTEM_EN,
-    "ALIGNMENT_SYSTEM": ALIGNMENT_SYSTEM,
     "GAMEMASTER_INTRO_SYSTEM": GAMEMASTER_INTRO_SYSTEM,
     "GAMEMASTER_PLAN_SYSTEM": GAMEMASTER_PLAN_SYSTEM,
     "GAMEMASTER_COMMAND_SYSTEM": GAMEMASTER_COMMAND_SYSTEM,
