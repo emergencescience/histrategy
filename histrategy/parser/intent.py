@@ -76,6 +76,18 @@ def _ensure_scenario_territories(scenario: str | None = None):
                 TERRITORY_NAME_MAP[name] = tid
             if tid and tid not in TERRITORY_NAME_MAP:
                 TERRITORY_NAME_MAP[tid] = tid
+            # 2026-10-04: 英文名 + 城市名/别名也要注册。
+            # 玩家说的是**城市**，地图上画的是**行省**：屋大维玩家说"尤其是叙拉古"，
+            # 而地图上只有 sicilia（西西里）—— 此前 TERRITORY_NAME_MAP 里没有
+            # "叙拉古"，于是 intent parser 解析不出目标，指令被丢弃，玩家只看到
+            # 顾问一句"叙拉古不在当前已知势力领地内"。（仓库里此前根本搜不到
+            # "叙拉古" 这个词 —— 那句话是 LLM 现编的。）
+            name_en = t.get("name_en", "")
+            if name_en and name_en not in TERRITORY_NAME_MAP:
+                TERRITORY_NAME_MAP[name_en] = tid
+            for alias in t.get("cities", []) or []:
+                if alias and alias not in TERRITORY_NAME_MAP:
+                    TERRITORY_NAME_MAP[alias] = tid
     except Exception as e:
         import logging
         logging.getLogger("histrategy.parser").warning(
@@ -363,12 +375,24 @@ class IntentParser:
             system_prompt += "\n\n" + state_ctx
 
         # Inject current scenario's territory map so LLM knows valid IDs
-        territory_refs = []
-        for name, tid in sorted(TERRITORY_NAME_MAP.items(), key=lambda x: -len(x[0])):
-            if len(name) > 1 and name != tid and not name.startswith("_"):
-                territory_refs.append(f"{tid}({name})")
-        if territory_refs:
-            system_prompt += f"\n\n## 当前可用领土ID\n{', '.join(territory_refs)}"
+        # 2026-10-04: 按行省聚合别名（含英文名与主要城市名）。玩家说的是城市，
+        # 地图上是行省 —— 必须显式告诉 LLM「城市名 → 该行省的 ID」，
+        # 否则它会因为找不到"叙拉古"而放弃整个攻击指令。
+        _names_by_tid: dict[str, list[str]] = {}
+        for _nm, _tid in TERRITORY_NAME_MAP.items():
+            if len(_nm) > 1 and _nm != _tid and not _nm.startswith("_"):
+                bucket = _names_by_tid.setdefault(_tid, [])
+                if _nm not in bucket:
+                    bucket.append(_nm)
+        if _names_by_tid:
+            _refs = [f"{_tid}({'/'.join(_names)})" for _tid, _names in sorted(_names_by_tid.items())]
+            system_prompt += (
+                "\n\n## 当前可用领土ID\n"
+                "（括号内 = 该领地的中文名/英文名/主要城市名；玩家用城市名指代时，"
+                "一律解析为该领地的 ID。例：叙拉古 → sicilia，卡普亚 → campania，"
+                "亚历山大里亚 → aegyptus）\n"
+                + ", ".join(_refs)
+            )
 
         # Inject faction map
         faction_refs = []

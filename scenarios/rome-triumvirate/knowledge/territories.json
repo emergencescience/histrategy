@@ -3,6 +3,10 @@
     "id": "roma",
     "name": "罗马",
     "name_en": "Rome",
+    "cities": [
+      "罗马城",
+      "Rome"
+    ],
     "region": "latium",
     "terrain": "urban",
     "base_population": 500000,
@@ -15,6 +19,16 @@
     "id": "cisalpine_gaul",
     "name": "山南高卢",
     "name_en": "Cisalpine Gaul",
+    "cities": [
+      "米兰",
+      "Mediolanum",
+      "维罗纳",
+      "Verona",
+      "阿奎莱亚",
+      "Aquileia",
+      "热那亚",
+      "Genua"
+    ],
     "region": "cisalpine_gaul",
     "terrain": "plains",
     "base_population": 200000,
@@ -26,6 +40,14 @@
     "id": "transalpine_gaul",
     "name": "山北高卢",
     "name_en": "Transalpine Gaul",
+    "cities": [
+      "卢格杜努姆",
+      "Lugdunum",
+      "维也纳",
+      "Vienna",
+      "日内瓦",
+      "Geneva"
+    ],
     "region": "transalpine_gaul",
     "terrain": "plains",
     "base_population": 300000,
@@ -37,6 +59,17 @@
     "id": "sicilia",
     "name": "西西里",
     "name_en": "Sicily",
+    "cities": [
+      "叙拉古",
+      "锡拉库萨",
+      "Syracuse",
+      "麦萨纳",
+      "Messana",
+      "帕诺尔穆斯",
+      "Panormus",
+      "阿格里真托",
+      "Agrigentum"
+    ],
     "region": "sicilia",
     "terrain": "hills",
     "base_population": 200000,
@@ -50,6 +83,12 @@
     "id": "sardinia",
     "name": "撒丁尼亚",
     "name_en": "Sardinia",
+    "cities": [
+      "卡利亚里",
+      "Caralis",
+      "努拉",
+      "Nora"
+    ],
     "region": "sardinia",
     "terrain": "hills",
     "base_population": 60000,
@@ -61,6 +100,14 @@
     "id": "hispania_citerior",
     "name": "近西班牙",
     "name_en": "Hispania Citerior",
+    "cities": [
+      "塔拉科",
+      "Tarraco",
+      "新迦太基",
+      "Carthago Nova",
+      "萨贡托",
+      "Saguntum"
+    ],
     "region": "hispania_citerior",
     "terrain": "plains",
     "base_population": 180000,
@@ -73,6 +120,14 @@
     "id": "narbonensis",
     "name": "纳尔旁高卢",
     "name_en": "Narbonensis",
+    "cities": [
+      "马赛",
+      "Massilia",
+      "纳尔旁",
+      "Narbo",
+      "阿莱拉特",
+      "Arelate"
+    ],
     "region": "narbonensis",
     "terrain": "plains",
     "base_population": 120000,
@@ -84,6 +139,14 @@
     "id": "africa",
     "name": "阿非利加",
     "name_en": "Africa",
+    "cities": [
+      "迦太基",
+      "Carthage",
+      "乌提卡",
+      "Utica",
+      "努米底亚",
+      "Numidia"
+    ],
     "region": "africa",
     "terrain": "plains",
     "base_population": 200000,
@@ -96,6 +159,14 @@
     "id": "macedonia",
     "name": "马其顿",
     "name_en": "Macedonia",
+    "cities": [
+      "帖撒罗尼迦",
+      "Thessalonica",
+      "腓立比",
+      "Philippi",
+      "佩拉",
+      "Pella"
+    ],
     "region": "macedonia",
     "terrain": "mountain",
     "base_population": 150000,
@@ -108,6 +179,16 @@
     "id": "syria",
     "name": "叙利亚",
     "name_en": "Syria",
+    "cities": [
+      "安条克",
+      "Antioch",
+      "大马士革",
+      "Damascus",
+      "耶路撒冷",
+      "Jerusalem",
+      "提尔",
+      "Tyre"
+    ],
     "region": "syria",
     "terrain": "desert",
     "base_population": 250000,
@@ -120,6 +201,16 @@
     "id": "asia",
     "name": "亚细亚",
     "name_en": "Asia",
+    "cities": [
+      "以弗所",
+      "Ephesus",
+      "帕加马",
+      "Pergamon",
+      "士麦那",
+      "Smyrna",
+      "特洛伊",
+      "Troy"
+    ],
     "region": "asia",
     "terrain": "hills",
     "base_population": 350000,
@@ -132,6 +223,16 @@
     "id": "graecia",
     "name": "希腊",
     "name_en": "Graecia",
+    "cities": [
+      "雅典",
+      "Athens",
+      "科林斯",
+      "Corinth",
+      "斯巴达",
+      "Sparta",
+      "德尔斐",
+      "Delphi"
+    ],
     "region": "graecia",
     "terrain": "hills",
     "base_population": 150000,
@@ -143,6 +244,14 @@
     "id": "aegyptus",
     "name": "埃及",
     "name_en": "Egypt",
+    "cities": [
+      "亚历山大里亚",
+      "Alexandria",
+      "孟菲斯",
+      "Memphis",
+      "底比斯",
+      "Thebes"
+    ],
     "region": "aegyptus",
     "terrain": "river_valley",
     "base_population": 400000,
@@ -155,6 +264,12 @@
     "id": "cyrenaica",
     "name": "昔兰尼加",
     "name_en": "Cyrenaica",
+    "cities": [
+      "昔兰尼",
+      "Cyrene",
+      "贝雷尼凯",
+      "Berenice"
+    ],
     "region": "cyrenaica",
     "terrain": "desert",
     "base_population": 80000,
@@ -166,6 +281,12 @@
     "id": "cyprus",
     "name": "塞浦路斯",
     "name_en": "Cyprus",
+    "cities": [
+      "帕福斯",
+      "Paphos",
+      "萨拉米斯",
+      "Salamis"
+    ],
     "region": "cyprus",
     "terrain": "hills",
     "base_population": 60000,
@@ -178,6 +299,14 @@
     "id": "illyria",
     "name": "伊利里亚",
     "name_en": "Illyria",
+    "cities": [
+      "萨罗那",
+      "Salona",
+      "阿波罗尼亚",
+      "Apollonia",
+      "斯库台",
+      "Scodra"
+    ],
     "region": "illyria",
     "terrain": "mountain",
     "base_population": 80000,
@@ -189,6 +318,14 @@
     "id": "mesopotamia",
     "name": "美索不达米亚",
     "name_en": "Mesopotamia",
+    "cities": [
+      "塞琉西亚",
+      "Seleucia",
+      "泰西封",
+      "Ctesiphon",
+      "巴比伦",
+      "Babylon"
+    ],
     "region": "mesopotamia",
     "terrain": "river_valley",
     "base_population": 300000,
@@ -200,6 +337,14 @@
     "id": "italia",
     "name": "意大利",
     "name_en": "Italia",
+    "cities": [
+      "拉文纳",
+      "Ravenna",
+      "佩鲁西亚",
+      "Perusia",
+      "阿雷提乌姆",
+      "Arretium"
+    ],
     "region": "italia",
     "terrain": "plains",
     "base_population": 800000,
@@ -211,6 +356,16 @@
     "id": "campania",
     "name": "坎帕尼亚",
     "name_en": "Campania",
+    "cities": [
+      "卡普亚",
+      "Capua",
+      "布林迪西",
+      "Brundisium",
+      "那不勒斯",
+      "Naples",
+      "庞贝",
+      "Pompeii"
+    ],
     "region": "campania",
     "terrain": "plains",
     "base_population": 120000,

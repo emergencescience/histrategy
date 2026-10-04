@@ -27,6 +27,68 @@ if TYPE_CHECKING:
     from ..military import MilitaryEngine
 
 
+# ─── Freezing "scenery" factions (2026-10-04) ────────────────────────────────
+# Faction IDs outside `WorldState.settled_faction_ids` (minor_npc / npc_only)
+# get NO per-quarter state settlement. See WorldState.settled_faction_ids.
+# These helpers snapshot/restore the mutable economic state of such factions
+# around the economic steps of execute_turn.
+_FREEZE_FACTION_FIELDS = (
+    "population",
+    "treasury",
+    "food",
+    "morale_actual",
+    "strength_actual",
+)
+_FREEZE_TERRITORY_FIELDS = ("population", "development", "unrest")
+
+
+def _snapshot_unsettled(world_state) -> dict:
+    """快照所有**不参与结算**的势力及其领地的可变经济字段。
+
+    返回 {} 表示没有需要冻结的势力（未声明 settled_faction_ids → 全部结算）。
+    """
+    from histrategy_engine.world import is_settled
+
+    ids = getattr(world_state, "settled_faction_ids", None)
+    if not ids:
+        return {}
+
+    snap: dict = {}
+    for fid, faction in world_state.factions.items():
+        if is_settled(world_state, fid):
+            continue
+        terr_snap: dict = {}
+        for t in world_state.territories.values():
+            if getattr(t, "owner_id", "") == fid:
+                terr_snap[t.id] = {f: getattr(t, f, None) for f in _FREEZE_TERRITORY_FIELDS}
+        snap[fid] = {
+            "faction": {f: getattr(faction, f, None) for f in _FREEZE_FACTION_FIELDS},
+            "territories": terr_snap,
+        }
+    return snap
+
+
+def _restore_unsettled(world_state, snap: dict) -> None:
+    """把冻结势力的经济字段写回快照值。
+
+    刻意**不动** `owner_id` / `faction.territories`：布景势力可以被攻灭、可以
+    丢城（那是战斗的正当结果），只是不参与经济结算。
+    """
+    if not snap:
+        return
+    for fid, s in snap.items():
+        faction = world_state.factions.get(fid)
+        if faction is not None:
+            for k, v in s["faction"].items():
+                setattr(faction, k, v)
+        for tid, fields in s["territories"].items():
+            t = world_state.territories.get(tid)
+            # 只在领土仍属于该势力时恢复（易手的城交给战斗逻辑与新主）
+            if t is not None and getattr(t, "owner_id", "") == fid:
+                for k, v in fields.items():
+                    setattr(t, k, v)
+
+
 class TurnController:
     """Orchestrates full turn execution across all engines."""
 
@@ -73,6 +135,15 @@ class TurnController:
         # ── Normalize commands: dict → Command objects ──
         if player_commands:
             player_commands = [Command(**c) if isinstance(c, dict) else c for c in player_commands]
+
+        # ── Freeze non-settled factions (2026-10-04) ──
+        # Factions outside `settled_faction_ids` (minor_npc / npc_only) must not
+        # be economically settled: no tax, no food, no growth, no morale drift.
+        # They are scenery holding a static garrison. Snapshot here, restore after
+        # Step 2, so the economy cannot touch them — while COMBAT still can (a
+        # scenery faction must be conquerable, so we restore only around the
+        # economic steps, never at the end of the turn).
+        _frozen = _snapshot_unsettled(world_state)
 
         # ── Step 1: Climate roll ──
         climate_events = self.domestic_engine.climate.roll_all(
@@ -196,6 +267,9 @@ class TurnController:
             if fid not in resource_changes:
                 resource_changes[fid] = {"food_delta": 0, "tax_revenue": 0}
             resource_changes[fid]["food_delta"] -= upkeep
+
+        # ── End of economic settlement: unfreeze the scenery factions ──
+        _restore_unsettled(world_state, _frozen)
 
         # ── Step 3: Collect commands ──
         # H36q: NPC commands come from LLM structured decisions (via

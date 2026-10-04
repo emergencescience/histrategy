@@ -1882,6 +1882,18 @@ def _capture_faction_state(ws, room=None) -> dict:
     return old_state
 
 
+def _is_settled_faction(ws, faction_id: str) -> bool:
+    """是否对该势力做每回合状态结算（见 WorldState.settled_faction_ids）。
+
+    未声明 settled_faction_ids（空）→ 全部结算，向后兼容。
+    """
+    try:
+        from histrategy_engine.world import is_settled
+        return is_settled(ws, faction_id)
+    except ImportError:  # pragma: no cover
+        return True
+
+
 def _resolve_faction_population(faction, ws, territories_list, old_row) -> int:
     """解析一个势力本回合的人口 —— **状态写入与增量记录的唯一来源**。
 
@@ -1897,6 +1909,11 @@ def _resolve_faction_population(faction, ws, territories_list, old_row) -> int:
       4. 上一季度人口（BUG H35j：旧实现此处退化成 100）
       5. 0 —— **不再编造数字**
 
+    2026-10-04 上层重构：第 1 层改为调用 `histrategy_engine.world.settled_population`
+    ——「实际控制领土之和 与 剧本声明的家丁下限 取大」。之所以要**去掉**原本
+    「先读 faction.population，为 0 才算领土」的顺序：那样一来丢了城的势力会一直
+    带着旧值（`faction.population` 只在载入时算过一次），永远不掉人口。
+
     2026-10-04：第 5 层原来是硬编码的 `50000`（"minimum faction population"），
     于是无地无人口的势力（屋大维 / 塞克斯图斯）凭空得到 5 万人口，还被当成
     真实事件写进 `turn_delta`（全库 15 条 / 8 个房间）。而同一份数据的另一条
@@ -1906,21 +1923,34 @@ def _resolve_faction_population(faction, ws, territories_list, old_row) -> int:
     有门客/家丁的势力应该**在剧本数据里声明 population**（见 scenario_loader
     的 `population` 字段），而不是靠引擎兜底。
     """
-    computed_population = _safe_int(getattr(faction, "population", 0))
-    if computed_population == 0 and ws:
-        computed_population = sum(
-            max(0, _safe_int(getattr(ws.territories.get(tid), "population", 0)))
-            for tid in getattr(faction, "territories", [])
-            if tid in ws.territories
-        )
-    if not computed_population and territories_list:
-        computed_population = sum(
+    # ── 1. 权威来源：由**实际控制的领土**推导，下限 = 剧本声明的家丁（2026-10-04）──
+    # 只要 ws 里有领土数据就用它，**哪怕结果是 0**。丢城就该掉人口，不能回退
+    # 到上一季的陈旧值 —— 那正是「屋大维丢了坎帕尼亚、人口仍显示 112860」的 bug。
+    # 人口 = max(声明的家丁下限, 所控城池人口之和)，与
+    # `quarterly_resolver._extract_state_changes` 共用同一个 helper。
+    if ws is not None and getattr(ws, "territories", None):
+        try:
+            from histrategy_engine.world import settled_population
+            return settled_population(faction, ws)
+        except ImportError:  # pragma: no cover
+            pass
+
+    # ── 2. 无世界状态时退化为：声明下限 → 快照求和 → 上一季 ──
+    floor = _safe_int(getattr(faction, "population_floor", 0))
+    if floor:
+        return floor
+    if territories_list:
+        snapshot_sum = sum(
             max(0, t.get("population", 0)) for t in territories_list if isinstance(t, dict)
         )
-    if not computed_population and old_row:
-        computed_population = _safe_int(old_row.get("population", 0))
-    # 第 5 层：不再兜底成魔法数字。0 就是 0。
-    return computed_population
+        if snapshot_sum:
+            return snapshot_sum
+    if old_row:
+        previous = _safe_int(old_row.get("population", 0))
+        if previous:
+            return previous
+    # 不再兜底成魔法数字（曾经是 50000）。0 就是 0。
+    return 0
 
 
 def _resolve_territories_from_delta(faction, delta: dict, ws) -> list[dict]:
@@ -2192,6 +2222,10 @@ def _clamp_extreme_changes(ws, old_state: dict):
     for fid, faction in ws.factions.items():
         if not faction.is_active:
             continue
+        # 布景势力（minor_npc / npc_only）不参与结算 → 也不参与守门缩放。
+        # 他们若进入 max_gain_ratio 的计算，会扭曲真正需要缩放的主力势力。
+        if not _is_settled_faction(ws, fid):
+            continue
         old = old_state.get(fid, {})
         old_troops = old.get("troops", 0)
         new_troops = getattr(faction, "strength_actual", 0) or getattr(faction, "strength", 0) or 0
@@ -2249,8 +2283,11 @@ def _clamp_extreme_changes(ws, old_state: dict):
             # Scale food proportionally (always, even if old_food=0 — use baseline minimum)
             old_food = data["old_food"]
             if abs(ratio - 1) > 1.0:
-                min_food = 3000  # baseline minimum food for all factions
-                effective_old = max(old_food, min_food)
+                # 2026-10-04: was `min_food = 3000` — a fourth magic floor in
+                # the same family as the 50000 population / 3000 food floors.
+                # Use the faction's OWN previous food as the baseline; a faction
+                # with 500 food must not be re-based onto 3000.
+                effective_old = max(old_food, 1)
                 faction.food = int(effective_old * min(1 + _MAX_TROOP_GAIN, 2.0))
                 logger.warning(
                     f"V3 guardrail: {faction.name} ({fid}) food auto-scaled "
@@ -2269,6 +2306,8 @@ def _clamp_extreme_changes(ws, old_state: dict):
     _FOOD_PRESERVATION_RATIO = 1 - _MAX_FOOD_LOSS  # Preserve at least 60%
     for fid, faction in ws.factions.items():
         if not faction.is_active:
+            continue
+        if not _is_settled_faction(ws, fid):
             continue
         old_data = old_state.get(fid, {})
         old_food = old_data.get("food", 0) or 0
@@ -2320,6 +2359,12 @@ def _save_v3_state_to_db(room, ws, decisions, result, old_state: dict, pre_terri
     for fid, faction in ws.factions.items():
         try:
             if not faction.is_active:
+                continue
+
+            # 2026-10-04：布景势力（minor_npc / npc_only）不写 game_state /
+            # turn_delta。用户裁定「罗马 4 个、三国 3 个势力需要每回合结算
+            # 状态」；替他们算出来的漂移只会污染分享页与统计。
+            if not _is_settled_faction(ws, fid):
                 continue
 
             # ── 城池列表 ──

@@ -30,11 +30,15 @@ from .world import (
     TurnResult,
     UnitType,
     WorldState,
+    is_settled,
+    settled_population,
 )
 
 __all__ = [
     # World
     "WorldState",
+    "is_settled",
+    "settled_population",
     "Territory",
     "Character",
     "FactionState",

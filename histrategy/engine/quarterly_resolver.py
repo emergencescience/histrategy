@@ -1151,6 +1151,24 @@ def _resolve_territory_name(tid: str) -> str:
         return tid
 
 
+def _is_settled(ws, faction_id: str) -> bool:
+    """是否对该势力做每回合结算（见 WorldState.settled_faction_ids）。"""
+    try:
+        from histrategy_engine.world import is_settled
+        return is_settled(ws, faction_id)
+    except ImportError:  # pragma: no cover — 引擎不可用时退化为"全部结算"
+        return True
+
+
+def _settled_population(faction, ws, owned: list[str] | None = None) -> int:
+    """人口唯一来源：max(声明的家丁下限, 所控城池人口之和)。"""
+    try:
+        from histrategy_engine.world import settled_population
+        return settled_population(faction, ws, owned)
+    except ImportError:  # pragma: no cover
+        return int(getattr(faction, "population", 0) or 0)
+
+
 def _extract_state_changes(
     ws: WorldState,
     decisions: dict[str, DecisionResult],
@@ -1179,29 +1197,21 @@ def _extract_state_changes(
     for faction_id, faction in ws.factions.items():
         if not faction.is_active:
             continue
+        # 2026-10-04：只有 settled_factions 参与每回合结算（用户裁定：
+        # 罗马 4 个、三国 3 个）。布景势力（minor_npc / npc_only，如罗马的
+        # sextus_pompey、三国的 liubiao/liuzhang）不产出 state_changes ——
+        # 引擎替他们算出来的任何漂移都是噪音，且会泄漏成裸内部 ID。
+        if not _is_settled(ws, faction_id):
+            continue
         owned = faction_territories.get(faction_id, [])
         # Also check faction.territories as fallback
         if not owned:
             owned = list(faction.territories) if getattr(faction, "territories", None) else []
-        # Compute population: faction.population is the DYNAMIC value
-        # (updated by quarterly engine as tax/battles/season change), while
-        # ws.territories[].population is static scenario data. H39: use
-        # faction.population FIRST (matches build_faction_status_for_api),
-        # territory sum only as fallback for legacy V1 factions that never
-        # populate the field.
-        pop = getattr(faction, "population", 0) or 0
-        if not pop and owned:
-            pop = sum(
-                getattr(ws.territories.get(tid), "population", 0) or 0
-                for tid in owned
-            )
-        if not pop:
-            pop = faction_populations.get(faction_id, 0)
-        # 2026-10-04: the old `pop = max(100, len(owned) * 50000)` floor is REMOVED.
-        # It invented a number that contradicted _resolve_faction_population()'s
-        # 50000 floor, so the same faction showed two different populations on the
-        # game page vs the shared page. A landless, population-less faction is 0 —
-        # scenarios that want retainers declare `population` in initial_state.json.
+        # 人口唯一来源：max(剧本声明的家丁下限, 所控城池人口之和)。
+        # 丢城 → 编户人口随之消失，只剩家丁下限（用户 2026-10-04 确认：
+        # "中途丢城的时候，一般不会丢掉多数的人口吗？" —— 会，所以要重算）。
+        pop = _settled_population(faction, ws, owned)
+        faction.population = pop  # 回写，使 game_state 与 state_changes 同源
         changes[faction_id] = {
             "strength": getattr(faction, "strength_actual", 0),
             "treasury": faction.treasury,
@@ -1216,18 +1226,12 @@ def _extract_state_changes(
     for faction_id, faction in ws.factions.items():
         if not faction.is_active:
             continue
+        if not _is_settled(ws, faction_id):
+            continue
         owned = faction_territories.get(faction_id, [])
         if not owned:
             owned = list(faction.territories) if getattr(faction, "territories", None) else []
-        pop = getattr(faction, "population", 0) or 0
-        if not pop and owned:
-            pop = sum(
-                getattr(ws.territories.get(tid), "population", 0) or 0
-                for tid in owned
-            )
-        if not pop:
-            pop = faction_populations.get(faction_id, 0)
-        # 2026-10-04: `max(100, len(owned) * 50000)` floor removed — see above.
+        pop = _settled_population(faction, ws, owned)
         faction_stats[faction_id] = {
             "population": pop,
             "troops": getattr(faction, "strength_actual", 0),

@@ -38,9 +38,16 @@ from histrategy.server.room_manager import _resolve_faction_population  # noqa: 
 
 
 def _faction(population=None, territories=()):
+    """构造一个势力 stub。
+
+    `population` 是**剧本声明的家丁下限** —— 2026-10-04 起它落在
+    `population_floor` 字段上（`population` 每季由领土重算、会被覆盖，
+    所以声明值必须单独保存）。两个字段都设，模拟 loader 的行为。
+    """
     kwargs = {"territories": list(territories)}
     if population is not None:
         kwargs["population"] = population
+        kwargs["population_floor"] = population
     return SimpleNamespace(**kwargs)
 
 

@@ -157,6 +157,33 @@ class ScenarioLoader:
             return 0
 
     @property
+    def major_npc_factions(self) -> list[str]:
+        """独立 LLM 决策的主要 AI 势力（scenario.toml [factions] major_npc）。"""
+        factions_cfg = self._toml.get("factions", {})
+        return list(factions_cfg.get("major_npc", []))
+
+    @property
+    def settled_factions(self) -> list[str]:
+        """每回合需要结算状态的势力 = `available` ∪ `major_npc`。
+
+        用户 2026-10-04 裁定：**罗马 4 个、三国 3 个**势力需要每回合结算，
+        其余（minor_npc / npc_only，如罗马的 sextus_pompey、三国的 liubiao
+        & liuzhang）是"世界布景"—— 他们持有静态驻军，但 LLM 不为他们决策，
+        引擎替他们算出来的任何漂移都是噪音。
+
+        实测口径：
+          rome-triumvirate  available=[octavian,antony,cleopatra,senate] → 4
+          three-kingdoms     available=[cao,shu,wu]                       → 3
+          nanming            available=[nanming,qing,nongminjun,zheng]     → 4
+        返回空列表表示"全部结算"（向后兼容）。
+        """
+        ordered: list[str] = []
+        for fid in self.available_factions + self.major_npc_factions:
+            if fid not in ordered:
+                ordered.append(fid)
+        return ordered
+
+    @property
     def map_topology(self) -> str:
         """地图拓扑，来自 scenario.toml 的 [engine] map_topology。
 
@@ -452,7 +479,7 @@ class ScenarioLoader:
         #   - landed faction + declaration   → the larger of the two
         #   - landless faction + declaration → the declaration
         for fid, faction in factions.items():
-            declared_pop = int(getattr(faction, "population", 0) or 0)
+            declared_pop = int(getattr(faction, "population_floor", 0) or 0)
             pop_sum = sum(
                 getattr(territories[tid], "population", 0)
                 for tid in faction.territories
@@ -471,6 +498,7 @@ class ScenarioLoader:
             factions=factions,
             armies=armies,
             player_deviation=0.0,
+            settled_faction_ids=self.settled_factions,
         )
 
     def _build_from_legacy_scenario(
@@ -543,6 +571,7 @@ class ScenarioLoader:
             factions=factions,
             armies=armies,
             player_deviation=0.0,
+            settled_faction_ids=self.settled_factions,
         )
 
     def _build_factions(self, factions_data: dict) -> dict[str, FactionState]:
@@ -576,7 +605,9 @@ class ScenarioLoader:
                 # passed at all, so a scenario declaring `population` in
                 # initial_state.json silently lost it (declaration was a no-op)
                 # and landless factions were stuck at the dataclass default.
+                # population = 家丁/门客下限（见 FactionState.population_floor）
                 population=fd.get("population", 0),
+                population_floor=fd.get("population", 0),
                 off_territory_income=fd.get("off_territory_income", 0.0),
                 off_territory_food=fd.get("off_territory_food", 0.0),
                 tax_rate=fd.get("tax_rate", 0.3),

@@ -156,12 +156,19 @@ def test_two_population_paths_agree(rome_ws):
     from histrategy.server.room_manager import _resolve_faction_population
 
     changes = _extract_state_changes(rome_ws, {})
+    from histrategy_engine.world import is_settled
+
+    checked = 0
     for fid, faction in rome_ws.factions.items():
-        if not faction.is_active:
-            continue
+        if not faction.is_active or not is_settled(rome_ws, fid):
+            continue  # 布景势力不参与结算，自然不在 faction_stats 里
+        checked += 1
         a = _resolve_faction_population(faction, rome_ws, [], {"population": faction.population})
         b = changes["faction_stats"][fid]["population"]
         assert a == b, f"{fid}: game_state={a} vs state_changes={b}"
+    # 罗马：4 个势力参与结算，sextus_pompey 排除在外
+    assert checked == 4, f"expected 4 settled factions, checked {checked}"
+    assert "sextus_pompey" not in changes["faction_stats"]
 
 
 # ── 3. 非领土收入 ────────────────────────────────────────────────────
@@ -205,6 +212,82 @@ def test_landless_treasury_at_zero_income_stays_flat(tc):
     before = sx.treasury
     tc.execute_turn(ws, player_commands=[])
     assert sx.treasury == before, f"sextus got free money: {before} -> {sx.treasury}"
+
+
+# ── 3.5 结算范围：只有 N 个势力被结算（用户 2026-10-04 裁定）───────────
+def test_settled_faction_scope_per_scenario():
+    """罗马 4 个、三国 3 个势力参与每回合状态结算，其余是"世界布景"。
+
+    布景势力（minor_npc / npc_only）持有静态驻军：不产出 state_changes /
+    turn_delta，经济不漂移。此前他们被结算，漂移泄漏成分享页上的裸内部 ID
+    和幽灵 0→50000 人口增量。
+    """
+    from histrategy.engine.scenario_loader import ScenarioLoader
+
+    # 顺序 = available ∪ major_npc（available 已按难度从易到难排列）
+    assert ScenarioLoader("rome-triumvirate").settled_factions == [
+        "antony", "senate", "cleopatra", "octavian",
+    ]
+    assert ScenarioLoader("three-kingdoms").settled_factions == ["cao", "shu", "wu"]
+    # 三国的 liubiao / liuzhang 在 initial_state 里存在，但**不**参与结算
+    tk = ScenarioLoader("three-kingdoms").settled_factions
+    assert "liubiao" not in tk and "liuzhang" not in tk
+
+
+def test_scenery_faction_is_excluded_from_state_changes(rome_ws):
+    from histrategy.engine.quarterly_resolver import _extract_state_changes
+
+    changes = _extract_state_changes(rome_ws, {})
+    assert "sextus_pompey" not in changes
+    assert "sextus_pompey" not in changes["faction_stats"]
+    assert set(changes["faction_stats"]) == {"octavian", "antony", "cleopatra", "senate"}
+
+
+def test_scenery_faction_state_does_not_drift(tc):
+    """跑一个季度，布景势力的经济状态必须**一动不动**（无税收、无粮耗、无漂移）。"""
+    ws = ScenarioLoader(ROME).build_world_state(PLAYER)
+    sextus = ws.factions["sextus_pompey"]
+    before = (sextus.treasury, sextus.food, sextus.population, sextus.morale_actual)
+    before_terr = {
+        tid: ws.territories[tid].population
+        for tid in sextus.territories
+    }
+    assert before_terr, "sextus should hold sicilia+sardinia as scenery"
+
+    tc.execute_turn(ws, player_commands=[])
+
+    after = (sextus.treasury, sextus.food, sextus.population, sextus.morale_actual)
+    assert before == after, f"scenery faction drifted: {before} -> {after}"
+    for tid, pop in before_terr.items():
+        assert ws.territories[tid].population == pop, f"{tid} population drifted"
+
+
+def test_settled_factions_still_get_settled(tc):
+    """反向用例：参与结算的势力**必须**仍然会变（别把'冻结'做成'全冻'）。"""
+    ws = ScenarioLoader(ROME).build_world_state(PLAYER)
+    oct_ = ws.factions[PLAYER]
+    gold_before = oct_.treasury
+    tc.execute_turn(ws, player_commands=[])
+    assert oct_.treasury != gold_before, "settled faction must still be settled"
+
+
+def test_population_drops_when_city_is_lost():
+    """丢城 → 编户人口随之消失，只剩家丁下限（用户 2026-10-04 追问的语义）。
+
+    此前 `faction.population` 只在载入时算一次，丢了城仍带着旧值
+    （生产实测：屋大维丢了坎帕尼亚，人口还显示 112860）。
+    """
+    from histrategy.server.room_manager import _resolve_faction_population
+
+    ws = ScenarioLoader(ROME).build_world_state(PLAYER)
+    oct_ = ws.factions[PLAYER]
+    assert _resolve_faction_population(oct_, ws, [], None) == 120000
+
+    # 坎帕尼亚被夺走
+    ws.territories["campania"].owner_id = "antony"
+    oct_.territories = []
+    pop = _resolve_faction_population(oct_, ws, [], {"population": 112860})
+    assert pop == 100, f"丢城后应只剩 100 家丁，实得 {pop}（陈旧的 112860 是 bug）"
 
 
 # ── 4. 粮食绝对下限删除 ──────────────────────────────────────────────

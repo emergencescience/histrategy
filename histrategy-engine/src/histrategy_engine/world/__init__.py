@@ -236,6 +236,14 @@ class FactionState:
     treasury: int = 5000
     food: int = 3000
     population: int = 0  # total faction population (de-coupled from territory populations)
+    # ── Declared population floor (2026-10-04) ──
+    # The `population` a scenario declares in initial_state.json = the faction's
+    # retinue (家丁/门客/clientela) that stays with the patron even without land.
+    # It is a FLOOR, not the whole value: at settlement the faction's population is
+    # `max(population_floor, sum of owned territories' populations)`. Kept separate
+    # from `population` because `population` is recomputed every quarter and would
+    # otherwise destroy the declaration on the first lost province.
+    population_floor: int = 0
     # ── Off-territory income (2026-10-04) ──
     # Roman aristocrats drew real income from family estates (patrimonium) and
     # overseas trade, not only from provincial taxation. These two fields let a
@@ -444,9 +452,56 @@ class WorldState:
     historical_mode: HistoricalMode = HistoricalMode.HISTORICAL
     player_deviation: float = 0.0
 
+    # ── Per-quarter settlement scope (2026-10-04) ──
+    # Faction IDs that get a per-quarter state settlement: economy, population,
+    # state_changes and turn_delta. Populated from scenario.toml
+    # (`available` ∪ `major_npc`). Factions OUTSIDE this list (minor_npc /
+    # npc_only — e.g. rome's sextus_pompey, three-kingdoms' liubiao & liuzhang)
+    # are world scenery: they hold static garrisons and must NOT be settled,
+    # because the LLM does not decide for them and any drift we compute for them
+    # is pure noise (it leaked to the shared page as bare internal IDs and
+    # phantom 0→50000 population jumps).
+    # Empty list = settle everything (backward-compatible default).
+    settled_faction_ids: list[str] = field(default_factory=list)
+
     event_history: list[dict] = field(default_factory=list)
     completed_events: list[str] = field(default_factory=list)
     averted_events: list[str] = field(default_factory=list)
+
+
+def is_settled(world_state, faction_id: str) -> bool:
+    """是否对该势力做每回合状态结算。
+
+    未声明 `settled_faction_ids`（空）→ 全部结算（向后兼容；
+    `histrategy-engine` 的单测里手搓的 WorldState 就属于这种情况）。
+    """
+    ids = getattr(world_state, "settled_faction_ids", None)
+    if not ids:
+        return True
+    return faction_id in ids
+
+
+def settled_population(faction, world_state, owned: list[str] | None = None) -> int:
+    """势力人口的**唯一**来源：`max(声明的家丁下限, 所控城池人口之和)`。
+
+    2026-10-04 之前，同一个势力的"人口"由两条路径分别计算，各自带一个硬编码
+    下限（`50000` 与 `max(100, len(owned)*50000)`），于是游戏页显示 50000、
+    分享页显示 100。现在两条路径都调用这里。
+
+    为什么是 max 而不是覆盖：罗马时期人口不绑土地（门客随主家走），所以无地
+    不等于无人 —— 但依据必须是**剧本声明的事实**，不是引擎里的魔法数字。
+    为什么会掉人口：城丢了，编户人口就没了，只剩家丁下限（用户 2026-10-04
+    确认："中途丢城的时候，一般不会丢掉多数的人口吗？" —— 会，所以必须重算）。
+    """
+    floor = int(getattr(faction, "population_floor", 0) or 0)
+    total = 0
+    territories = getattr(world_state, "territories", None)
+    if territories:
+        for tid in list(owned if owned is not None else (getattr(faction, "territories", []) or [])):
+            t = territories.get(tid)
+            if t is not None:
+                total += max(0, int(getattr(t, "population", 0) or 0))
+    return max(floor, total)
 
 
 # ─── Backward-compat properties on WorldState ──────────────────

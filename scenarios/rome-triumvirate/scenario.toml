@@ -30,11 +30,13 @@ max_quarters = 56
 map_topology = "fully_connected"
 
 [factions]
-available = ["octavian", "antony", "cleopatra", "senate"]
+# 顺序 = 大厅从左到右；第一个是默认扮演势力（2026-10-04 用户裁定：
+# 按难度从易到难，Antony 最稳 → 默认。见 surprisal-portal 的 ROMAN_FACTIONS）
+available = ["antony", "senate", "cleopatra", "octavian"]
 npc_only = ["sextus_pompey"]
 major_npc = ["octavian", "antony", "cleopatra", "senate"]
 minor_npc = ["sextus_pompey"]
-default_player_faction = "octavian"
+default_player_faction = "antony"
 
 [display]
 icon = "🏛️"
