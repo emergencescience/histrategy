@@ -1895,23 +1895,31 @@ def _resolve_faction_population(faction, ws, territories_list, old_row) -> int:
       2. 其领土人口之和（ws.territories）
       3. territories_list 快照之和
       4. 上一季度人口（BUG H35j：旧实现此处退化成 100）
-      5. 绝对下限 50000
+      5. 0 —— **不再编造数字**
+
+    2026-10-04：第 5 层原来是硬编码的 `50000`（"minimum faction population"），
+    于是无地无人口的势力（屋大维 / 塞克斯图斯）凭空得到 5 万人口，还被当成
+    真实事件写进 `turn_delta`（全库 15 条 / 8 个房间）。而同一份数据的另一条
+    路径 `quarterly_resolver._extract_state_changes()` 给的是 100 —— 两个函数、
+    两个下限，导致**同一回合同一势力在游戏页和分享页显示两个数**。
+    现在停在这里返回 0：无地 + 无人口就是 0，前端显示 0（或「—」）才是事实。
+    有门客/家丁的势力应该**在剧本数据里声明 population**（见 scenario_loader
+    的 `population` 字段），而不是靠引擎兜底。
     """
     computed_population = _safe_int(getattr(faction, "population", 0))
     if computed_population == 0 and ws:
         computed_population = sum(
-            max(100, _safe_int(getattr(ws.territories.get(tid), "population", 50000)))
+            max(0, _safe_int(getattr(ws.territories.get(tid), "population", 0)))
             for tid in getattr(faction, "territories", [])
             if tid in ws.territories
         )
     if not computed_population and territories_list:
         computed_population = sum(
-            max(100, t.get("population", 50000)) for t in territories_list if isinstance(t, dict)
+            max(0, t.get("population", 0)) for t in territories_list if isinstance(t, dict)
         )
     if not computed_population and old_row:
         computed_population = _safe_int(old_row.get("population", 0))
-    if not computed_population:
-        computed_population = 50000  # minimum faction population
+    # 第 5 层：不再兜底成魔法数字。0 就是 0。
     return computed_population
 
 
@@ -2250,10 +2258,14 @@ def _clamp_extreme_changes(ws, old_state: dict):
                 )
 
     # ── Dedicated food guardrail (always runs, proportional) ──
-    # The old guardrail used a crude absolute floor (3000) that ignored
-    # the faction's previous food level. Now we preserve at least 60% of
-    # the previous turn's food per faction, with a minimum absolute floor.
-    _FOOD_FLOOR_ABSOLUTE = 3000         # Absolute minimum for any faction
+    # 2026-10-04: the ABSOLUTE floor is gone (was 3000). Every faction's food was
+    # being bumped up to at least 3000 each quarter regardless of its actual
+    # stock, so a faction legitimately holding 500 food silently got 3000 and the
+    # jump was recorded as a real event in turn_delta. The PROPORTIONAL guardrail
+    # below (preserve ≥60% of last quarter, cap gains at +100%) is the part that
+    # actually guards against LLM-hallucinated swings — keep that, drop the
+    # magic number. A faction with 500 food now keeps 500.
+    _FOOD_FLOOR_ABSOLUTE = 0            # no absolute floor — proportional only
     _FOOD_PRESERVATION_RATIO = 1 - _MAX_FOOD_LOSS  # Preserve at least 60%
     for fid, faction in ws.factions.items():
         if not faction.is_active:

@@ -25,6 +25,9 @@ year_direction = "negative"
 turn_timeout_human = 300
 turn_timeout_ai = 120
 max_quarters = 56
+# 罗马世界以地中海为交通主干（海运远比陆运便宜），所有行省彼此可达 ——
+# 地图不需要显式边。loader 会把邻接关系物化成全连通图。
+map_topology = "fully_connected"
 
 [factions]
 available = ["octavian", "antony", "cleopatra", "senate"]

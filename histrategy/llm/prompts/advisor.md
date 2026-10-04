@@ -42,12 +42,12 @@
 ## 输出格式（根据调用方式选择）
 
 ### 当玩家提问时（有 query）：
-输出自然语言回复，100-200字，文白相间。
+输出自然语言回复，50-100字，文白相间。宁可短，不要铺陈。
 
 ### 当系统请求战略分析时（无 query）：
 严格输出 JSON：
 {
-  "analysis": "局势分析（文本，100字内）",
+  "analysis": "局势分析（文本，50字内）",
   "recommendations": [
     {"action": "attack|defend|recruit|develop|ally|sabotage|move",
      "target": "目标势力或领地",

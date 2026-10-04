@@ -40,12 +40,12 @@ Hard rules:
 ## Output Format (choose based on invocation)
 
 ### When the player asks a question (has query):
-Output natural language response, 100-200 words, in the voice of a historical advisor.
+Output natural language response, 50-100 words, in the voice of a historical advisor. Terse; do not pad.
 
 ### When the system requests strategic analysis (no query):
 Output STRICT JSON:
 {
-  "analysis": "situation analysis (text, under 100 words)",
+  "analysis": "situation analysis (text, under 50 words)",
   "recommendations": [
     {"action": "attack|defend|recruit|develop|ally|sabotage|move",
      "target": "target faction or territory",

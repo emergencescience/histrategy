@@ -120,6 +120,27 @@ class TurnController:
             resource_changes[fid]["food_delta"] += tr.food_delta
             resource_changes[fid]["tax_revenue"] += tr.tax_revenue
 
+        # ── Off-territory income (2026-10-04) ──
+        # Family estates (patrimonium) + overseas trade. Declared per scenario,
+        # applies every quarter REGARDLESS of territory holdings — this is what
+        # keeps a landless-but-legitimate faction (Octavian, 44 BC) economically
+        # alive. Default 0.0 for every faction, so other scenarios are untouched.
+        for fid, faction in world_state.factions.items():
+            if not faction.is_active:
+                continue
+            off_gold = getattr(faction, "off_territory_income", 0.0) or 0.0
+            off_food = getattr(faction, "off_territory_food", 0.0) or 0.0
+            if not off_gold and not off_food:
+                continue
+            faction.treasury = int(faction.treasury + off_gold)
+            faction.food = int(faction.food + off_food)
+            if fid not in resource_changes:
+                resource_changes[fid] = {"food_delta": 0, "tax_revenue": 0}
+            resource_changes[fid]["food_delta"] += int(off_food)
+            resource_changes[fid]["tax_revenue"] += int(off_gold)
+            resource_changes[fid]["off_territory_income"] = off_gold
+            resource_changes[fid]["off_territory_food"] = off_food
+
         # Check for famine across all active factions
         for fid, faction in world_state.factions.items():
             if not faction.is_active:

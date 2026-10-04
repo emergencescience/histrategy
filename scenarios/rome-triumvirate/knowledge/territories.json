@@ -206,5 +206,17 @@
     "base_development": 55,
     "strategic_value": 9,
     "has_port": true
+  },
+  {
+    "id": "campania",
+    "name": "坎帕尼亚",
+    "name_en": "Campania",
+    "region": "campania",
+    "terrain": "plains",
+    "base_population": 120000,
+    "base_development": 40,
+    "strategic_value": 6,
+    "has_port": true,
+    "grain_bonus": 10
   }
 ]

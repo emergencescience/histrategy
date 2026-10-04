@@ -11,8 +11,10 @@
       "name": "屋大维",
       "name_en": "Octavian",
       "ruler": "octavian",
-      "capital": "",
-      "territories": [],
+      "capital": "campania",
+      "territories": [
+        "campania"
+      ],
       "treasury": 1000,
       "food": 500,
       "strength": 1000,
@@ -38,7 +40,10 @@
         "diplomacy": 0.8,
         "development": 0.5,
         "mercy": 0.35
-      }
+      },
+      "population": 100,
+      "off_territory_income": 1200,
+      "off_territory_food": 200
     },
     "antony": {
       "name": "马克·安东尼",
@@ -367,6 +372,16 @@
       "owner": "antony",
       "population": 800000,
       "development": 55,
+      "terrain": "plains",
+      "has_port": true,
+      "fertility": 6
+    },
+    "campania": {
+      "name": "坎帕尼亚",
+      "name_en": "Campania",
+      "owner": "octavian",
+      "population": 120000,
+      "development": 40,
       "terrain": "plains",
       "has_port": true,
       "fertility": 6

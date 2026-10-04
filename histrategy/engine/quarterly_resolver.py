@@ -1197,8 +1197,11 @@ def _extract_state_changes(
             )
         if not pop:
             pop = faction_populations.get(faction_id, 0)
-        if not pop:
-            pop = max(100, len(owned) * 50000)
+        # 2026-10-04: the old `pop = max(100, len(owned) * 50000)` floor is REMOVED.
+        # It invented a number that contradicted _resolve_faction_population()'s
+        # 50000 floor, so the same faction showed two different populations on the
+        # game page vs the shared page. A landless, population-less faction is 0 —
+        # scenarios that want retainers declare `population` in initial_state.json.
         changes[faction_id] = {
             "strength": getattr(faction, "strength_actual", 0),
             "treasury": faction.treasury,
@@ -1224,8 +1227,7 @@ def _extract_state_changes(
             )
         if not pop:
             pop = faction_populations.get(faction_id, 0)
-        if not pop:
-            pop = max(100, len(owned) * 50000)
+        # 2026-10-04: `max(100, len(owned) * 50000)` floor removed — see above.
         faction_stats[faction_id] = {
             "population": pop,
             "troops": getattr(faction, "strength_actual", 0),

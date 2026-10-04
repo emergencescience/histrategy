@@ -156,6 +156,42 @@ class ScenarioLoader:
         except (TypeError, ValueError):
             return 0
 
+    @property
+    def map_topology(self) -> str:
+        """地图拓扑，来自 scenario.toml 的 [engine] map_topology。
+
+        "adjacency"      —— 默认。按 territories.json 的 `neighbors` 字段走图论，
+                            缺 `neighbors` 的地块就是孤岛。
+        "fully_connected"—— 全连通。用于**以地中海为交通主干**的剧本：海上运输
+                            远比陆运便宜，所以罗马世界的所有行省彼此可达，不存
+                            "不相邻所以打不到"这回事。（用户 2026-10-04 裁定：
+                            罗马地图不需要边。）
+        """
+        engine = self._toml.get("engine", {})
+        return str(engine.get("map_topology", "adjacency") or "adjacency")
+
+    def _apply_map_topology(self, territories: dict) -> None:
+        """按 map_topology 物化地图邻接关系（就地修改 Territory.neighbors）。
+
+        为什么在 loader 里物化成稠密图、而不是改 MapEngine：
+        MapEngine 是通用组件，不认识剧本；把"罗马靠海全连通"这条**剧本知识**
+        放进剧本配置 + loader，MapEngine 保持原样即可 —— 同时保证
+        `are_adjacent()` / `get_neighbors()` / 攻城邻接校验
+        (`state_applier._attacker_borders_territory`) 这些**已有**的下游逻辑
+        无需任何改动就能正确工作。
+        """
+        if self.map_topology != "fully_connected" or not territories:
+            return
+        all_ids = list(territories.keys())
+        for tid, t in territories.items():
+            t.neighbors = [other for other in all_ids if other != tid]
+        logger.info(
+            "[scenario=%s] map_topology=fully_connected → %d territories, %d directed edges",
+            self.scenario_id,
+            len(all_ids),
+            len(all_ids) * (len(all_ids) - 1),
+        )
+
     # ── public data loaders ─────────────────────────────────────────────
 
     def load_factions(self) -> dict:
@@ -292,6 +328,12 @@ class ScenarioLoader:
         territories = self.load_territories()
         characters = self.load_characters()
 
+        # Materialize the scenario's map topology (e.g. "fully_connected" for
+        # Mediterranean scenarios). Must happen BEFORE the WorldState is built
+        # so every downstream consumer — MapEngine, the attack-adjacency guard
+        # in state_applier — sees the real graph on the very first turn.
+        self._apply_map_topology(territories)
+
         # Try initial_state.json first (modern path)
         init = self.load_initial_state()
         if init and "factions" in init:
@@ -360,6 +402,32 @@ class ScenarioLoader:
                             )
                         t.owner_id = _declared
 
+        # ── Sync faction.territories ← territory.owner_id (2026-10-04) ──
+        # The two sources disagree after the block above: `initial_state.json`'s
+        # per-territory `owner` field is authoritative and is applied LAST, but it
+        # never updated `factions[*].territories`. Measured on rome: 5 territories
+        # desynced (antony held italia/africa/transalpine_gaul, sextus_pompey held
+        # sicilia/sardinia — none of them listed in the owner's `territories`).
+        # Consequence: `faction.territories` (what the UI / game_state shows) lied
+        # about ownership while the map, movement and battle logic used owner_id —
+        # and it made the two population computation paths return DIFFERENT numbers
+        # for the same faction. Same de-sync class that `_sync_faction_territories`
+        # repairs mid-game in room_manager; do the equivalent once at load time so
+        # the WorldState starts coherent.
+        _owner_map: dict[str, list[str]] = {}
+        for _tid, _t in territories.items():
+            _own = getattr(_t, "owner_id", "") or ""
+            if _own:
+                _owner_map.setdefault(_own, []).append(_tid)
+        for _fid, _faction in factions.items():
+            _synced = sorted(_owner_map.get(_fid, []))
+            if _synced != sorted(_faction.territories):
+                logger.warning(
+                    "[scenario=%s] faction %s territories desync → synced from owner_id: %s → %s",
+                    self.scenario_id, _fid, sorted(_faction.territories), _synced,
+                )
+                _faction.territories = _synced
+
         # Determine season
         season_str = init.get("season", "spring")
         season = _parse_season(season_str)
@@ -374,18 +442,23 @@ class ScenarioLoader:
         # Create armies
         armies = self._create_armies(factions)
 
-        # Compute faction.population from territory sums.
-        # Without this, faction.population stays at the default (10000) while
-        # _extract_state_changes computes the real sum from ws.territories,
-        # causing the frontend to display a massive fake "growth" at Turn 1.
+        # Compute faction.population.
+        # 2026-10-04: a faction may DECLARE its own population (retainers /
+        # clients / 家丁) — population is a faction-level attribute, not merely a
+        # derived sum of territory populations. Rome-era populations were not
+        # bound to land: a clientela could follow its patron. So a landless
+        # faction keeps its declared population rather than collapsing to 0.
+        #   - landed faction, no declaration → territory sum (unchanged legacy)
+        #   - landed faction + declaration   → the larger of the two
+        #   - landless faction + declaration → the declaration
         for fid, faction in factions.items():
+            declared_pop = int(getattr(faction, "population", 0) or 0)
             pop_sum = sum(
                 getattr(territories[tid], "population", 0)
                 for tid in faction.territories
                 if tid in territories
             )
-            if pop_sum > 0:
-                faction.population = pop_sum
+            faction.population = max(declared_pop, pop_sum)
 
         return WorldState(
             year=year,
@@ -499,6 +572,13 @@ class ScenarioLoader:
                 morale_actual=fd.get("morale_actual", fd.get("morale", 50)),
                 treasury=fd.get("treasury", 5000),
                 food=fd.get("food", 3000),
+                # 2026-10-04: population MUST be read here. It previously was not
+                # passed at all, so a scenario declaring `population` in
+                # initial_state.json silently lost it (declaration was a no-op)
+                # and landless factions were stuck at the dataclass default.
+                population=fd.get("population", 0),
+                off_territory_income=fd.get("off_territory_income", 0.0),
+                off_territory_food=fd.get("off_territory_food", 0.0),
                 tax_rate=fd.get("tax_rate", 0.3),
                 tech_levels=fd.get("tech_levels", {}),
                 relations=fd.get("relations", {}),

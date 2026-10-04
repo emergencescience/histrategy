@@ -236,6 +236,14 @@ class FactionState:
     treasury: int = 5000
     food: int = 3000
     population: int = 0  # total faction population (de-coupled from territory populations)
+    # ── Off-territory income (2026-10-04) ──
+    # Roman aristocrats drew real income from family estates (patrimonium) and
+    # overseas trade, not only from provincial taxation. These two fields let a
+    # scenario declare a per-quarter income that is INDEPENDENT of territories,
+    # so a landless-but-legitimate faction (e.g. Octavian in 44 BC) still has an
+    # economic base. Default 0 → existing scenarios are unaffected.
+    off_territory_income: float = 0.0  # gold per quarter
+    off_territory_food: float = 0.0  # food per quarter
     tax_rate: float = 0.3  # 0.1 - 0.5
     tech_levels: dict[str, int] = field(default_factory=dict)
 

@@ -198,5 +198,15 @@
     "climate": "mediterranean",
     "has_port": true,
     "description": "亚得里亚海东岸，连接意大利与希腊的跳板"
+  },
+  {
+    "id": "campania",
+    "name": "坎帕尼亚",
+    "name_la": "Campania",
+    "importance": 6,
+    "terrain": "plains",
+    "climate": "mediterranean",
+    "has_port": true,
+    "description": "卡普亚与布林迪西所在。恺撒安置老兵的土地，屋大维44BC渡海登陆、招募旧部之处。"
   }
 ]
