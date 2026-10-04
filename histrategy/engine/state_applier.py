@@ -117,6 +117,9 @@ class StateApplier:
             f = ws.factions.get(fid)
             if not f:
                 continue
+            # 布景势力不参与结算 → morale 事件同样跳过（见 _apply_morale_event）
+            if not _is_settled_faction(ws, fid):
+                continue
             ch = _clamp(int(me.get("change", 0) or 0), -_MORALE_EVENT_CAP, _MORALE_EVENT_CAP)
             if ch:
                 f.morale_actual = _clamp(getattr(f, "morale_actual", 50) + ch, 0, 100)
@@ -252,11 +255,29 @@ def _apply_battle_override(bo: dict, ws) -> None:
             char.is_governor = False
 
 
+def _is_settled_faction(ws, faction_id: str) -> bool:
+    """是否对该势力做每回合结算（见 WorldState.settled_faction_ids）。
+
+    空列表 = 全部结算（向后兼容）。
+    """
+    try:
+        from histrategy_engine.world import is_settled
+
+        return is_settled(ws, faction_id)
+    except ImportError:  # pragma: no cover
+        return True
+
+
 def _apply_morale_event(me: dict, ws) -> None:
     """Apply a single morale event."""
     faction_id = me.get("faction", "")
     faction = ws.factions.get(faction_id)
     if not faction:
+        return
+    # 2026-10-04: 布景势力（minor_npc / npc_only）不参与结算 → 宏观层的 morale
+    # 事件也跳过。**只跳过 morale**，绝不能在这里跳过 strength/领土：布景势力
+    # 必须仍然能被攻灭、能被夺城（那是战斗的正当结果）。
+    if not _is_settled_faction(ws, faction_id):
         return
     change = me.get("change", 0)
     current = getattr(faction, "morale_actual", 50)

@@ -1277,21 +1277,58 @@ def create_app(llm_provider: str | None = None) -> Any:
         x_user_id: str = Header(default="", alias="X-User-Id"),
         user_agent: str = Header(default="", alias="User-Agent"),
     ):
-        """Single-player — start new game."""
+        """Single-player — start new game.
+
+        `faction` 必填（2026-10-04）。此前默认值是硬编码的 `"shu"`，
+        于是 `{"scenario": "rome-triumvirate"}` 这种缺 faction 的请求会拿到
+        一个三国势力 id —— 罗马世界里没有 shu，结果返回一个
+        `is_active: false`、0 兵 0 城 0 钱的空壳房间，且不报错。
+        用户裁定：**必须传 faction，否则返回失败**（不要兜底成某个默认势力）。
+        """
+        from fastapi.responses import JSONResponse
+
         from histrategy.server.room_manager import detect_device_type
         from histrategy.server.single_player import start
 
+        faction = str(body.get("faction") or "").strip()
+        scenario = str(body.get("scenario") or "three-kingdoms").strip()
+
+        if not faction:
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "code": "FACTION_REQUIRED",
+                    "error": "必须指定 faction（start 不再兜底成默认势力）。",
+                    "hint": 'POST {"scenario": "rome-triumvirate", "faction": "antony"}',
+                },
+            )
+
+        # 校验 faction 属于该剧本，否则同样拒绝（避免再出现"罗马房间里的三国势力"）
+        try:
+            from histrategy.engine.scenario_loader import ScenarioLoader
+
+            declared = ScenarioLoader(scenario).declared_factions
+        except Exception:
+            declared = []
+        if declared and faction not in declared:
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "code": "UNKNOWN_FACTION",
+                    "error": f"势力 {faction!r} 不属于剧本 {scenario!r}。",
+                    "valid_factions": declared,
+                },
+            )
+
         result = start(
-            faction=body.get("faction", "shu"),
-            scenario=body.get("scenario", "three-kingdoms"),
+            faction=faction,
+            scenario=scenario,
             language_style=body.get("language_style", "vernacular"),
             lang=body.get("lang", "zh"),
             device_type=detect_device_type(user_agent),
         )
         # H40: 山河鼎革软下线 — 创建被拒时返回 409 + 自建引导
         if result.get("code") == "SCENARIO_RETIRED":
-            from fastapi.responses import JSONResponse
-
             return JSONResponse(status_code=409, content=result)
         return result
 

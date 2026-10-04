@@ -687,9 +687,9 @@ class NarrativeEngine:
             lines.append("")
 
         # Parsed commands with notes
-        if getattr(tr, "player_commands", []):
+        if getattr(tr, "parsed_commands", None) or getattr(tr, "player_commands", []):
             lines.append("## 解析后的军令")
-            for cmd in tr.player_commands:
+            for cmd in (getattr(tr, "parsed_commands", None) or tr.player_commands):
                 cmd_type = getattr(cmd, "type", "?")
                 cmd_params = getattr(cmd, "params", {})
                 cmd_notes = getattr(cmd, "notes", "")

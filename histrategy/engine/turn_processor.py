@@ -444,7 +444,7 @@ class TurnProcessorMixin:
 
         # Update baseline_result with LLM overrides for narrative generation
         baseline_result.player_decision = player_decision
-        baseline_result.player_commands = list(player_commands)
+        baseline_result.parsed_commands = list(player_commands)
         sanitized = guardrail_result["sanitized_delta"]
         baseline_result._v3_delta = sanitized  # accessible by NarrativeEngine
 

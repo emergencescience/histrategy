@@ -163,6 +163,23 @@ class ScenarioLoader:
         return list(factions_cfg.get("major_npc", []))
 
     @property
+    def declared_factions(self) -> list[str]:
+        """剧本 `[factions]` 里声明过的**全部**势力 id。
+
+        用于校验 `faction` 参数属于该剧本（`/api/single-player/start`）。
+        比 `available_factions` 宽 —— 含 major_npc / minor_npc / npc_only，
+        因为玩家理论上可以选任何一个在剧本里有数据的势力；这里挡的是
+        「在罗马房间里传 `shu`」这种跨剧本串味。
+        """
+        factions_cfg = self._toml.get("factions", {})
+        ordered: list[str] = []
+        for key in ("available", "major_npc", "minor_npc", "npc_only"):
+            for fid in factions_cfg.get(key, []) or []:
+                if fid not in ordered:
+                    ordered.append(fid)
+        return ordered
+
+    @property
     def settled_factions(self) -> list[str]:
         """每回合需要结算状态的势力 = `available` ∪ `major_npc`。
 

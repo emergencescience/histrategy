@@ -325,6 +325,60 @@ def test_settled_scope_survives_db_round_trip():
     assert is_settled(tk_restored, "cao")
 
 
+def test_scenery_faction_morale_is_frozen():
+    """布景势力的「民心」也不参与结算（用户 2026-10-04 问：计算还是冻结？）。
+
+    经济已在 TurnController 冻结，但**宏观层在其后运行**（state_applier 的
+    morale_events），实测会把布景势力的 morale 改掉（75→65→60）。
+    既然布景势力不参与争霸，LLM 对它的 morale 事件就是噪音 → 一并冻结。
+    ⚠️ 只冻 morale：strength/领土绝不能冻（布景势力必须仍可被攻灭）。
+    """
+    from histrategy.engine.state_applier import _apply_morale_event
+
+    ws = ScenarioLoader(ROME).build_world_state(PLAYER)
+    sextus = ws.factions["sextus_pompey"]
+    oct_ = ws.factions[PLAYER]
+    before_sextus = sextus.morale_actual
+    before_oct = oct_.morale_actual
+
+    _apply_morale_event({"faction": "sextus_pompey", "change": -20}, ws)
+    _apply_morale_event({"faction": PLAYER, "change": -20}, ws)
+
+    assert sextus.morale_actual == before_sextus, "布景势力 morale 不该被宏观层改动"
+    assert oct_.morale_actual == before_oct - 20, "参与结算的势力必须照常受影响"
+
+
+def test_scenery_faction_can_still_be_conquered():
+    """反向用例：冻结**没有**把布景势力做成无敌 —— 它仍可丢城、仍会掉兵。"""
+    from histrategy.engine.state_applier import _settle_battle
+
+    ws = ScenarioLoader(ROME).build_world_state(PLAYER)
+    sextus = ws.factions["sextus_pompey"]
+    assert "sicilia" in sextus.territories
+    troops_before = sextus.strength_actual
+
+    # defaultdict(int)：settle 路径会读写若干 summary 计数键，用 defaultdict
+    # 免得测试因为漏声明某个计数键而失败（那与本次要验证的行为无关）
+    from collections import defaultdict
+
+    summary = defaultdict(int)
+    _settle_battle(
+        {
+            "location": "sicilia",
+            "attacker": "antony",
+            "defender": "sextus_pompey",
+            "result": "attacker_victory",
+            "territory_captured": True,
+        },
+        ws,
+        {},
+        {},
+        summary,
+    )
+    assert sextus.strength_actual < troops_before, "布景势力必须仍会在战斗中掉兵"
+    assert "sicilia" not in sextus.territories, "布景势力必须仍会丢城"
+
+
 # ── 4. 粮食绝对下限删除 ──────────────────────────────────────────────
 def test_food_absolute_floor_removed(rome_ws):
     """低粮势力不再被抬到 3000。proportional 保底仍在，但绝对地板必须为 0。"""

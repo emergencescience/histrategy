@@ -29,13 +29,19 @@ def narrative_engine():
 
 @pytest.fixture
 def sample_turn_result_with_context():
-    """TurnResult with player decision and commands."""
+    """TurnResult with player decision and commands.
+
+    字段名 2026-10-04 由 player_commands 改为 parsed_commands（用户裁定）：
+    房间路径把**所有势力**的命令合并后传进 execute_turn，所以这个字段装的是
+    全体该回合的解析后命令。`player_commands` 仍保留为只读别名，但构造时
+    必须用 parsed_commands。
+    """
     return TurnResult(
         year=208,
         season=Season.SPRING,
         turn_number=3,
         player_decision="【南征刘备】集结宛城5万步兵和1万骑兵，春季行军进攻新野。在下邳部署防守。",
-        player_commands=[
+        parsed_commands=[
             Command(
                 type="attack",
                 params={"target_territory": "xinye"},
@@ -131,7 +137,7 @@ class TestCommandNotesInContext:
             season=Season.SPRING,
             turn_number=1,
             player_decision="进攻",
-            player_commands=[
+            parsed_commands=[
                 Command(type="attack", params={"target_territory": "xinye"}, faction_id="cao"),
             ],
         )

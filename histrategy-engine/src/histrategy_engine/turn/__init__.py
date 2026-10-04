@@ -461,7 +461,7 @@ class TurnController:
             history_events=[],
             faction_snapshots=faction_snapshots,
             player_decision=player_decision,
-            player_commands=list(player_commands or []),
+            parsed_commands=list(player_commands or []),
         )
 
     # ── Helpers ──

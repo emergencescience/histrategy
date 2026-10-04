@@ -842,7 +842,7 @@ class GameEngineCore:
                 "player_faction": player_faction,
                 "factions": faction_data,
                 "player_decision": getattr(self, "_last_player_decision", ""),
-                "player_commands": [
+                "parsed_commands": [
                     {
                         "type": getattr(c, "type", ""),
                         "params": getattr(c, "params", {}),

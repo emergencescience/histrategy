@@ -427,7 +427,14 @@ class TurnResult:
     # Context passthrough: original player decision + parsed commands
     # for narrative engine to generate richer, more accurate stories
     player_decision: str = ""
-    player_commands: list = field(default_factory=list)
+    # ⚠️ 名字是 parsed_commands 而不是 player_commands（2026-10-04 改名）：
+    # 房间路径（quarterly_resolver._execute_baseline）把**所有势力**的命令合并成
+    # combined_commands 再传进 execute_turn(player_commands=...)，所以落库的
+    # `quarter_turn.baseline_result.parsed_commands` 装的是**全体**该回合的解析后
+    # 命令 —— 它恰恰是排查"玩家指令到底被理解成什么"的唯一权威账本。
+    # 旧名字 player_commands 让人以为只有玩家的命令，误导排查（曾据此得出
+    # "玩家没有进攻指令"的错误结论）。旧行里的 player_commands 键仍然保留。
+    parsed_commands: list = field(default_factory=list)
 
 
 # ─── World State ───────────────────────────────────────────────
@@ -506,6 +513,14 @@ def settled_population(faction, world_state, owned: list[str] | None = None) -> 
 
 # ─── Backward-compat properties on WorldState ──────────────────
 
+
+TurnResult.player_commands = property(  # type: ignore[attr-defined]
+    # 向后兼容别名（2026-10-04 改名 parsed_commands）。dataclasses.asdict() 不看
+    # property，所以持久化出去只有 parsed_commands 一个键 —— DB 里不会再出现
+    # 两份数据。读旧代码路径照常工作。
+    lambda self: self.parsed_commands,
+    lambda self, v: setattr(self, "parsed_commands", v),
+)
 
 WorldState.turn = property(  # type: ignore[attr-defined]
     lambda self: self.turn_number,

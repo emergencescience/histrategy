@@ -37,7 +37,11 @@ NARRATIVE_SYSTEM_EN = load_prompt("narrative_en.md")
 GLOBAL_NARRATIVE_SYSTEM = load_prompt("global_narrative.md")
 GLOBAL_NARRATIVE_SYSTEM_EN = load_prompt("global_narrative_en.md")
 PLAN_SUGGESTIONS_SYSTEM = load_prompt("plan_suggestions.md")
-NPC_INTERPRETER_SYSTEM = load_prompt("npc_interpreter.md")
+# NPC_INTERPRETER_SYSTEM: deleted 2026-10-04 — histrategy/llm/npc_interpreter.py
+# had zero importers repo-wide (its only mention was an archived design doc),
+# so the module and its prompt were removed. If a Tier-1 batch NPC interpreter is
+# ever revived, restore both the module and this line **together** — load_prompt()
+# runs at import time and raises FileNotFoundError if the .md is missing.
 NPC_DECISION_SYSTEM = load_prompt("npc_decision.md")
 NPC_DECISION_SYSTEM_EN = load_prompt("npc_decision_en.md")
 INTENT_PARSE_SYSTEM = load_prompt("intent_parse.md")
@@ -61,7 +65,6 @@ KNOWN_PROMPTS = {
     "GLOBAL_NARRATIVE_SYSTEM": GLOBAL_NARRATIVE_SYSTEM,
     "GLOBAL_NARRATIVE_SYSTEM_EN": GLOBAL_NARRATIVE_SYSTEM_EN,
     "PLAN_SUGGESTIONS_SYSTEM": PLAN_SUGGESTIONS_SYSTEM,
-    "NPC_INTERPRETER_SYSTEM": NPC_INTERPRETER_SYSTEM,
     "NPC_DECISION_SYSTEM": NPC_DECISION_SYSTEM,
     "NPC_DECISION_SYSTEM_EN": NPC_DECISION_SYSTEM_EN,
     "INTENT_PARSE_SYSTEM": INTENT_PARSE_SYSTEM,
