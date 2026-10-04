@@ -290,6 +290,41 @@ def test_population_drops_when_city_is_lost():
     assert pop == 100, f"丢城后应只剩 100 家丁，实得 {pop}（陈旧的 112860 是 bug）"
 
 
+def test_settled_scope_survives_db_round_trip():
+    """⚠️ 这条测试是为了锁死一个**只在生产暴露**的静默失效（2026-10-04）。
+
+    进程内的 WorldState 带着 `settled_faction_ids`（房间刚创建时正确），
+    但 `load_room()` 是从 DB 反序列化重建 WorldState 的 —— 而
+    `deserialize_world_state()` 此前**从不恢复这个字段**，空列表的含义又是
+    "全部结算"，于是「只有 N 个势力参与结算」在第一次 DB 往返后就静默退回全体。
+    症状：单元测试全绿，生产却仍在给 sextus_pompey 写 game_state / turn_delta。
+
+    所以这里必须走真实的 serialize → deserialize 往返，而不是只测内存对象。
+    """
+    from histrategy.db.models import _serialize_world_state, deserialize_world_state
+    from histrategy_engine.world import is_settled
+
+    ws = ScenarioLoader(ROME).build_world_state(PLAYER)
+    blob = _serialize_world_state(ws)
+    assert blob is not None
+    restored = deserialize_world_state(blob)
+
+    assert restored.settled_faction_ids == ["antony", "senate", "cleopatra", "octavian"], (
+        f"DB 往返后结算范围丢了：{restored.settled_faction_ids}"
+    )
+    assert not is_settled(restored, "sextus_pompey"), (
+        "sextus_pompey 在 DB 往返后又变成'参与结算'了 —— 生产会继续给他写 state"
+    )
+    for fid in ("antony", "senate", "cleopatra", "octavian"):
+        assert is_settled(restored, fid)
+
+    # 反向：三国的 liubiao 同样必须在往返后仍被排除
+    tk = ScenarioLoader("three-kingdoms").build_world_state("cao")
+    tk_restored = deserialize_world_state(_serialize_world_state(tk))
+    assert not is_settled(tk_restored, "liubiao")
+    assert is_settled(tk_restored, "cao")
+
+
 # ── 4. 粮食绝对下限删除 ──────────────────────────────────────────────
 def test_food_absolute_floor_removed(rome_ws):
     """低粮势力不再被抬到 3000。proportional 保底仍在，但绝对地板必须为 0。"""

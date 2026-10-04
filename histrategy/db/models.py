@@ -36,6 +36,30 @@ if TYPE_CHECKING:
 # ── GameRoom DB Model ────────────────────────────────────
 
 
+_SETTLED_FACTIONS_CACHE: dict[str, list[str]] = {}
+
+
+def settled_factions_for_scenario(scenario: str) -> list[str]:
+    """每回合需要结算状态的势力 = 剧本的 `available ∪ major_npc`。
+
+    2026-10-04（用户裁定）：罗马 4 个、三国 3 个。其余是"世界布景"。
+    返回 [] 表示"全部结算"（向后兼容：剧本加载失败或 V1 旧剧本名）。
+    """
+    if not scenario:
+        return []
+    if scenario in _SETTLED_FACTIONS_CACHE:
+        return _SETTLED_FACTIONS_CACHE[scenario]
+    ids: list[str] = []
+    try:
+        from histrategy.engine.scenario_loader import ScenarioLoader
+
+        ids = ScenarioLoader(scenario).settled_factions
+    except Exception:
+        ids = []
+    _SETTLED_FACTIONS_CACHE[scenario] = ids
+    return ids
+
+
 def _serialize_world_state(ws) -> dict | None:
     """Serialize a WorldState to a JSON-safe dict for DB persistence.
 
@@ -247,6 +271,16 @@ def deserialize_world_state(ws_data: dict) -> WorldState:
     ws.player_deviation = ws_data.get("player_deviation", 0.0)
     ws.completed_events = list(ws_data.get("completed_events", []) or [])
     ws.event_history = list(ws_data.get("event_history", ws_data.get("event_log", [])) or [])
+
+    # ── 结算范围：**必须在这里重新推导**（2026-10-04）──
+    # `is_settled()` 看的就是 `ws.settled_faction_ids`，而空列表的含义是
+    # "全部结算"。此前这个字段从不在这里恢复 —— 于是「只有 N 个势力参与结算」
+    # 这条规则**每经历一次 DB 往返就静默失效**：进程内（房间刚创建）生效，
+    # 一旦 `load_room()` 从 DB 反序列化就退回全体结算。
+    # 生产实测：修复后新建的房间，sextus_pompey 依然被写 game_state / turn_delta。
+    # 现在不从 blob 里读，而是**每次按 scenario 推导** —— 这样 scenario.toml
+    # 一改就生效，也不会被历史的脏 blob 带偏。
+    ws.settled_faction_ids = settled_factions_for_scenario(ws.scenario or "")
 
     # Rebuild factions
     for fid, fd in (ws_data.get("factions") or {}).items():
