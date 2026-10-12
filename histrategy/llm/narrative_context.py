@@ -111,6 +111,12 @@ def format_baseline_for_narrative(baseline, ws: WorldState | None = None) -> str
 
     # ── Character events ──
     char_events = _safe_attr(baseline, "character_events", [])
+    # 人物亡故不入叙事（2026-10-12 用户裁定）：人物的生死不是玩家需要关心的事。
+    # 引擎仍维护存活状态，叙事层只报叛逃/忠诚变化。
+    char_events = [
+        ce for ce in char_events
+        if isinstance(ce, dict) and "death" not in str(ce.get("type", "")).lower()
+    ]
     if char_events:
         lines.append("### 人物变易")
         for ce in char_events:
@@ -120,9 +126,7 @@ def format_baseline_for_narrative(baseline, ws: WorldState | None = None) -> str
                 delta = ce.get("delta", "")
                 reason = ce.get("reason", "")
                 name = ce.get("character_name", cid)
-                if etype == "natural_death":
-                    lines.append(f"- {name} 病故")
-                elif etype == "loyalty_change" or etype == "loyalty_impact":
+                if etype == "loyalty_change" or etype == "loyalty_impact":
                     lines.append(f"- {name} 忠诚{'↑' if delta and delta > 0 else '↓'}{abs(delta) if delta else ''}: {reason}")
                 elif etype == "defection":
                     lines.append(f"- {name} 叛逃至 {ce.get('new_faction', '?')}")

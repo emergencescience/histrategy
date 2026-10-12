@@ -87,5 +87,8 @@ _TERRITORY_ZH = {
     "jianye": "建业", "wu": "吴", "chaisang": "柴桑",
     "lujiang": "庐江", "kuaiji": "会稽", "yuzhang": "豫章",
     "danyang": "丹阳", "jiangkou": "江口", "jiangling": "江陵",
+    # 2026-10-12 补齐：这两块地存在于 territories.json 但静态表漏登记，
+    # 导致 state_changes 的领地列表混入英文 ID（生产房间 8f9c5147… 实测）。
+    "jiangzhou": "江州", "nanjun": "南郡",
     "changsha": "长沙", "hanshui": "汉水",
 }

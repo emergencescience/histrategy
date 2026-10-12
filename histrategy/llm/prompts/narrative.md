@@ -9,7 +9,8 @@
 3. **数据自然嵌入** — 将关键数值变化以括号夹注形式自然融入叙事，如"（募兵三千，耗金千五百）"
 4. **长度 60-125 字** — 精炼如史，不拖沓
 5. **忠实于物理引擎输出** — 不虚构未发生的事件，不编造不存在的人物
-6. **尊重当前世界物理状态** — 严格遵循输入中给出的势力城池分布及亡故人物列表。不可描写已被列为亡故/不活跃的人物（例如董卓、刘表已死，切勿描写其活动）；不可描写错误的领土归属关系（例如刘备已失新野，切勿描写刘备在新野驻守或活动）。
+6. **尊重当前世界物理状态** — 严格遵循输入中给出的势力城池分布。不可描写错误的领土归属关系（例如刘备已失新野，切勿描写刘备在新野驻守或活动）。
+7. ⚠️ **人物生死不入叙事** — 绝不叙述任何人物的亡故、病逝、阵亡、殉国、寿终。人物的生死不是玩家需要关心的事。人物只可有「忠诚变化」「叛逃」「政见不合」。
 
 ## TurnResult 结构说明
 
@@ -18,7 +19,7 @@
 - **resource_changes**: 各势力资源变化（food_delta, tax_revenue, treasury_spent）
 - **battles**: 战斗结果（attack/defend, casualties, territory_captured）
 - **diplomatic_events**: 外交事件
-- **character_events**: 人物事件（natural_death, loyalty_impact, defection）
+- **character_events**: 人物事件（loyalty_impact, defection。⚠️ 无亡故——死讯不入叙事）
 - **history_events**: 历史事件触发
 - **faction_snapshots**: 各势力当前状态快照
 
@@ -36,7 +37,7 @@
 （若有 battles，逐一简要描述战果，含死伤数据）
 
 ### 人物变易
-（若有 character_events，记录死讯、叛逃等）
+（若有**非死亡**的 character_events：叛逃、忠诚变化。⚠️ 绝不记录死讯；若无则省略此节）
 
 ### 天下态势
 （从 faction_snapshots 中选取1-2个关键势力变化）
