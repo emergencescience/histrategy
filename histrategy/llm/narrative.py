@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
     from .adapter import LLMAdapter
 
-from .context_helpers import collect_dead_characters
+from .narrative_names import normalize_macro_delta_for_narrative
 from .prompt_loader import NARRATIVE_SYSTEM, NARRATIVE_SYSTEM_EN, PLAN_SUGGESTIONS_SYSTEM
 
 # ─── Knowledge path resolution ──────────────────────────────────
@@ -238,7 +238,10 @@ class NarrativeEngine:
             lines.append(f"Commands: {commands}")
         lines.append(f"\nBaseline results: {baseline}")
         if macro_delta:
-            lines.append(f"Macro adjustments: {macro_delta}")
+            safe_macro, _dropped = normalize_macro_delta_for_narrative(
+                macro_delta, ws, is_en=(self._language == "en")
+            )
+            lines.append(f"Macro adjustments: {safe_macro}")
 
         system_prompt = self._get_narrative_system_prompt(is_en=(self._language == "en"))
         if self._language == "en":
@@ -324,10 +327,14 @@ class NarrativeEngine:
         lines.append("are not listed. Do NOT describe territory as belonging to a")
         lines.append("faction that does not own it per the Post-Battle Territory list.")
 
-        # Macro adjustments
+        # Macro adjustments — 名称归一化后再入提示词：领地 ID → 显示名，
+        # 人物键（模型有时给拼音/英文名）→ 正名，避免正文出现「顾 Yong」「nanjun」
+        # 这类泄漏（2026-10-12）。**语言感知**：英文叙事取 name_en、取不到保持原样，
+        # 绝不把中文名塞进英文正文。
         if macro_delta:
+            safe_macro, _dropped = normalize_macro_delta_for_narrative(macro_delta, ws, is_en=is_en)
             lines.append("## Macro Adjustments")
-            lines.append(str(macro_delta))
+            lines.append(str(safe_macro))
             lines.append("")
 
         # Faction snapshots
@@ -482,8 +489,9 @@ class NarrativeEngine:
         lines.append("MUST reflect these facts exactly.")
 
         if macro_delta:
+            safe_macro, _dropped = normalize_macro_delta_for_narrative(macro_delta, ws, is_en=is_en)
             lines.append("## Macro Adjustments")
-            lines.append(str(macro_delta))
+            lines.append(str(safe_macro))
             lines.append("")
 
         # H35y: Build territory ownership from ws.territories[].owner_id first
@@ -737,17 +745,21 @@ class NarrativeEngine:
                 lines.append(f"  伤亡: 攻方{atk_loss} 守方{def_loss}")
             lines.append("")
 
-        # Character events
-        if tr.character_events:
+        # Character events — **只报叛逃/忠诚变化，绝不报人物亡故**
+        # 2026-10-12 用户裁定：孙坚/董卓/吕布/袁绍… 这类人物的生死不是玩家
+        # 需要关心的事，叙事层不得再出现死讯。引擎内部照旧维护存活状态。
+        living_events = [
+            evt for evt in tr.character_events
+            if "death" not in str(evt.get("type", "")).lower()
+        ]
+        if living_events:
             lines.append("## 人物变易")
-            for evt in tr.character_events:
+            for evt in living_events:
                 t = evt.get("type", "?")
                 name = evt.get("character_name", "?")
-                if t == "natural_death":
-                    lines.append(f"- {name} 寿终正寝")
-                elif t == "defection":
+                if t == "defection":
                     lines.append(f"- {name} 叛逃")
-                elif t == "loyalty_impact":
+                elif t in ("loyalty_impact", "loyalty_change"):
                     lines.append(f"- {name} 忠诚度变化 {evt.get('delta', 0):+d}")
                 else:
                     lines.append(f"- {name}: {t}")
@@ -784,13 +796,10 @@ class NarrativeEngine:
                 )
             lines.append("")
 
-            # List deceased figures to avoid revival hallucinations
-            dead_names = collect_dead_characters(world_state)
-
-            if dead_names:
-                lines.append("## 已亡故/不活跃人物（不可在此回合复活或出现活跃事迹）")
-                lines.append(f"- {', '.join(dead_names)}")
-                lines.append("")
+            # 已亡故人物清单不再注入叙事提示词（2026-10-12 用户裁定）。
+            # 过去这里注入「已亡故/不活跃人物」，LLM 便每季复述「此前 X、Y 亦已物故」，
+            # 而引擎的死亡状态本就每季重算（见 narrative_names 模块注释）——读者看到的
+            # 只是一串毫不相关的死讯。人物生死不入叙事，故无需此清单。
         elif tr.faction_snapshots:
             lines.append("## 天下态势")
             for _, fs in tr.faction_snapshots.items():
@@ -936,20 +945,9 @@ class NarrativeEngine:
                     else:
                         parts.append(f"{b.location}易手，归{b.attacker_id}所有。")
 
-        # Character events
-        deaths = [e for e in tr.character_events if "death" in str(e.get("type", ""))]
-        if deaths:
-            if is_en:
-                parts.append("\n### Notable Deaths")
-            else:
-                parts.append("\n### 人物变易")
-            for e in deaths:
-                name = e.get("character_name", "?")
-                year = e.get("year", tr.year)
-                if is_en:
-                    parts.append(f"{name} passed away in {year}.")
-                else:
-                    parts.append(f"{name}于{year}年病故。")
+        # Character events — 死讯不入叙事（2026-10-12 用户裁定）。
+        # 这里过去会写「{name}于{year}年病故。」，是生产环境「孙坚、袁绍、董卓…
+        # 俱病故」那串废话的直接来源之一。人物生死不再出现在任何叙事路径上。
 
         # Resource summary
         if tr.resource_changes:

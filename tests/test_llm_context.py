@@ -1,4 +1,5 @@
-"""Unit tests for LLM grounding contexts (territories and deceased characters)."""
+"""Unit tests for LLM grounding contexts (territories, factions, and the
+亡故人物清单 which is kept for game_master but deliberately NOT for narrative)."""
 
 from __future__ import annotations
 
@@ -66,9 +67,13 @@ def test_narrative_context_with_world_state():
     assert "## 天下势力及控制城池" in context
     assert "曹操军" in context
     assert "许昌, 洛阳" in context
-    assert "## 已亡故/不活跃人物" in context
-    assert "董卓" in context
-    assert "刘表" in context
+    # 2026-10-12 用户裁定：人物生死不入叙事。
+    # 叙事上下文**不再**注入「已亡故/不活跃人物」清单 —— 它正是每季复述
+    # 「孙坚、袁绍、董卓…俱病故」的源头。game_master 的 plan/command
+    # 上下文仍保留该清单（见本文件后续用例），两者职责不同。
+    assert "## 已亡故/不活跃人物" not in context
+    assert "董卓" not in context
+    assert "刘表" not in context  # 旧用例断言它出现在亡故清单里；该清单已不入叙事
 
 
 def test_plan_context_formatting():
