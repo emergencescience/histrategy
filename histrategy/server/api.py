@@ -23,12 +23,19 @@ from typing import Any
 # ─── Shared Helpers ──────────────────────────────────────────────
 
 
-# ── advisor-first 灰度（设计文档 §2/§6）───────────────────────────────────
+# ── advisor 灰度（设计文档 §2/§6）─────────────────────────────────────────
 # 默认：只对白名单剧本开启。环境变量可覆盖，好处是**不用重新部署前端**就能关：
 #   HISTRATEGY_ADVISOR_FIRST=0  → 全局关闭（回滚到现状）
 #   HISTRATEGY_ADVISOR_FIRST=1  → 全局开启（本地联调/全量）
 # 未设置             → 只对 ADVISOR_FIRST_SCENARIOS 里的剧本开启
-ADVISOR_FIRST_SCENARIOS = {"rome-triumvirate"}
+#
+# ⚠️ 这个开关只决定「要不要向模型索要第 4 块：玩家决策解析（Your Plan）」——
+#    它**不**决定前端是否隐藏「发送」按钮（那是前端 ADVISOR_FIRST_SCENARIOS 的事）。
+#    three-kingdoms 2026-10-12 起进入 3 周灰度（至 2026-11-02）：前端**保留**
+#    「发送」按钮，这里开放第 4 块，让自由文本也能先看到结构化解析预览 +
+#    提交后回显 chips —— 目标是消灭 ~11% 的「0 命令回合」沉默失败。
+#    实验记录：emergence-meta/internal/design/2026-10-12-three-kingdoms-advisor-gray.md
+ADVISOR_FIRST_SCENARIOS = {"rome-triumvirate", "three-kingdoms"}
 
 
 def _advisor_first_enabled(scenario: str) -> bool:

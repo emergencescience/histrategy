@@ -33,7 +33,8 @@ def _clean_env():
 
 def test_default_is_whitelist_only():
     assert _advisor_first_enabled("rome-triumvirate") is True
-    assert _advisor_first_enabled("three-kingdoms") is False
+    # 2026-10-12 起 three-kingdoms 进入 3 周灰度（保留「发送」按钮 + 开放第 4 块解析）
+    assert _advisor_first_enabled("three-kingdoms") is True
     assert _advisor_first_enabled("nanming") is False
 
 
@@ -52,7 +53,10 @@ def test_env_can_enable_globally():
 def test_whitelist_is_a_single_obvious_knob():
     """改成 three-kingdoms 起步（或换剧本）应当只动这一处。"""
     assert isinstance(api.ADVISOR_FIRST_SCENARIOS, set)
-    assert api.ADVISOR_FIRST_SCENARIOS == {"rome-triumvirate"}
+    # 2026-10-12：three-kingdoms 加入 3 周灰度（至 2026-11-02）。
+    # 注意语义：本集合只控制「要不要索要第 4 块玩家决策解析」，
+    # **不**控制前端隐藏「发送」按钮（前端那套集合仍是 {rome-triumvirate}）。
+    assert api.ADVISOR_FIRST_SCENARIOS == {"rome-triumvirate", "three-kingdoms"}
 
 
 def test_custom_block_flag_is_evaluated_outside_the_language_branches():
