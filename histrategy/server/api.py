@@ -224,28 +224,22 @@ def create_app(llm_provider: str | None = None) -> Any:
         llm_provider_name = _llm_provider or "none"
         llm_debug: dict[str, Any] = {}
         if _llm_provider:
-            import os as _os
-
             from histrategy.llm.adapter import LLMAdapter
 
             try:
                 adapter = LLMAdapter(provider=_llm_provider)
                 llm_available = adapter.is_available
+                # 只暴露"能不能用"与非敏感元数据。2026-10-21 起移除了
+                # key_prefix / key_length / api_base / env_key_* ——
+                # /api/health 是公开端点（经网关也无需登录），
+                # 之前会把密钥前缀、长度、上游地址和 DB 主机直接吐给任何人。
                 llm_debug = {
-                    "has_api_key": bool(adapter.api_key),
-                    "key_length": len(adapter.api_key) if adapter.api_key else 0,
-                    "key_prefix": adapter.api_key[:5] + "..." if adapter.api_key else "",
-                    "has_client": adapter.client is not None,
                     "provider_name": adapter.provider_name,
-                    "api_base": adapter.api_base,
                     "model": adapter.model,
                 }
             except Exception as e:
                 llm_debug = {"error": f"{type(e).__name__}: {e}"}
 
-            raw_key = _os.environ.get("DEEPSEEK_API_KEY", "")
-            llm_debug["env_key_exists"] = bool(raw_key)
-            llm_debug["env_key_length"] = len(raw_key) if raw_key else 0
 
         # v2 engine is always available (histrategy-engine is a hard dependency)
         v2_available = True
@@ -262,10 +256,8 @@ def create_app(llm_provider: str | None = None) -> Any:
             from histrategy.db.connection import DATABASE_URL as _db_url
 
             db_type = "sqlite" if _sqlite_flag else "postgres"
-            db_host = _db_url.split("@")[-1].split("/")[0] if "@" in _db_url else "local"
         except Exception:
             db_type = "unknown"
-            db_host = "unknown"
 
         return {
             "status": "ok",
@@ -283,7 +275,6 @@ def create_app(llm_provider: str | None = None) -> Any:
             },
             "db": {
                 "type": db_type,
-                "host": db_host,
             },
         }
 
